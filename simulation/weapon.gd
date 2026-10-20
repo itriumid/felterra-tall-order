@@ -57,6 +57,30 @@ static func knife() -> Weapon:
 	return weapon
 
 
+## The knife grown up: the cats' heritage blade, its wavy edge longer and harder.
+static func keris() -> Weapon:
+	var weapon := knife()
+	weapon.name = "keris"
+	weapon.reach = 0.55
+	weapon.damage = 3.2
+	weapon.interval = 0.34
+	weapon.arc = deg_to_rad(125.0)
+	weapon.knock = 2.0
+	return weapon
+
+
+## And the keris's own heir: the curved claw blade, very fast, very close.
+static func kerambit() -> Weapon:
+	var weapon := knife()
+	weapon.name = "kerambit"
+	weapon.reach = 0.5
+	weapon.damage = 3.0
+	weapon.interval = 0.2
+	weapon.arc = deg_to_rad(140.0)
+	weapon.swing_time = 0.1
+	return weapon
+
+
 ## Or a handgun: slow, short, but every round tells.
 static func handgun() -> Weapon:
 	var weapon := Weapon.new()
@@ -80,6 +104,8 @@ static func submachine_gun() -> Weapon:
 static func named(weapon_name: String) -> Weapon:
 	match weapon_name:
 		"knife": return knife()
+		"keris": return keris()
+		"kerambit": return kerambit()
 		"submachine_gun": return submachine_gun()
 	return handgun()
 

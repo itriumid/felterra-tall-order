@@ -146,3 +146,63 @@ func test_adrenaline_gives_back_a_share_of_damage_dealt() -> void:
 	rat.health = 100.0
 	arena.strike(rat, 2.0, Vector2.RIGHT, 0.0, 0.0, "round", cat)
 	check(is_equal_approx(cat.health, 6.0), "dealing 2 at half adrenaline healed to %.2f" % cat.health)
+
+
+func _play_levels(cat: Cat, random: RandomNumberGenerator, levels: int) -> Array[int]:
+	var sizes: Array[int] = []
+	for level in levels:
+		var offer := Upgrades.offer(cat, random)
+		sizes.append(offer.size())
+		if offer.is_empty():
+			break
+		Upgrades.apply(cat, offer[random.randi_range(0, offer.size() - 1)])
+	return sizes
+
+
+func test_a_long_run_never_runs_out_of_upgrades() -> void:
+	var random := RandomNumberGenerator.new()
+	random.seed = 3
+	var cat := Cat.new()
+	cat.wear({"weapons": ["knife"]})
+	var sizes := _play_levels(cat, random, 200)
+	check(sizes.size() == 200 and sizes.all(func(size: int) -> bool: return size == Upgrades.CHOICES), "an offer came up short: %s" % str(sizes.filter(func(size: int) -> bool: return size < Upgrades.CHOICES)))
+
+
+func test_power_keeps_growing_past_every_top_level() -> void:
+	var random := RandomNumberGenerator.new()
+	random.seed = 4
+	var cat := Cat.new()
+	cat.wear({"weapons": ["knife", "handgun"]})
+	_play_levels(cat, random, 80)
+	var damage_at_80 := cat.weapons.map(func(weapon: Weapon) -> float: return weapon.hit_for(cat))
+	_play_levels(cat, random, 80)
+	var damage_at_160 := cat.weapons.map(func(weapon: Weapon) -> float: return weapon.hit_for(cat))
+	check(damage_at_160.reduce(func(a: float, b: float) -> float: return a + b) > damage_at_80.reduce(func(a: float, b: float) -> float: return a + b), "eighty more levels made her no stronger")
+
+
+func test_a_knife_evolves_only_at_the_top_level_and_keeps_its_levels() -> void:
+	var cat := Cat.new()
+	cat.wear({"weapons": ["knife"]})
+	for level in Upgrades.WEAPON_TOP - 1:
+		Upgrades.apply(cat, {"id": "level:knife", "rarity": Upgrades.Rarity.COMMON})
+	check("evolve:knife" in Upgrades.available(cat), "a top-level knife wasn't offered its evolution")
+	var young := Cat.new()
+	young.wear({"weapons": ["knife"]})
+	for level in 4:
+		Upgrades.apply(young, {"id": "level:knife", "rarity": Upgrades.Rarity.COMMON})
+	check(not "evolve:knife" in Upgrades.available(young), "a level 5 knife could already evolve")
+	var power := cat.weapons[0].power
+	Upgrades.apply(cat, {"id": "evolve:knife", "rarity": Upgrades.Rarity.COMMON})
+	check(cat.weapons[0].name == "keris", "the knife became %s" % cat.weapons[0].name)
+	check(cat.weapons[0].power >= power, "evolving lost the knife's levels")
+	check(not "weapon:knife" in Upgrades.available(cat), "a knife was offered beside her keris")
+
+
+func test_the_last_of_a_family_takes_mastery_without_limit() -> void:
+	var cat := Cat.new()
+	cat.wear({"weapons": ["kerambit"]})
+	for level in Upgrades.WEAPON_TOP + 10:
+		var id := "level:kerambit" if cat.weapons[0].level < Upgrades.WEAPON_TOP else "mastery:kerambit"
+		check(id in Upgrades.available(cat), "%s wasn't offered at level %d" % [id, cat.weapons[0].level])
+		Upgrades.apply(cat, {"id": id, "rarity": Upgrades.Rarity.COMMON})
+	check(cat.weapons[0].level == Upgrades.WEAPON_TOP + 11, "the kerambit stopped at level %d" % cat.weapons[0].level)

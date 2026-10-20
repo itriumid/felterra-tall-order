@@ -374,6 +374,54 @@ kkk
 kbk
 kkk
 """
+## The keris: the knife evolved, its blade waving, a brass guard at the hilt.
+const KERIS_EAST := """
+kk...k.k..
+khbkSkSkSk
+kk..k.k.k.
+"""
+const KERIS_NORTHEAST := """
+.....k
+....kk
+...ksk
+..kSk.
+.khk..
+kbk...
+kk....
+"""
+const KERIS_NORTH := """
+.k.
+ksk
+.kSk
+ksk
+.kSk
+kkk
+khk
+kbk
+kkk
+"""
+## The kerambit: curved like a claw, with a ring for the finger.
+const KERAMBIT_EAST := """
+.....kk.
+kkk.kssk
+kbkkSkk.
+kkkk....
+"""
+const KERAMBIT_NORTHEAST := """
+..kk
+.ksk
+kSk.
+kbk.
+kk..
+"""
+const KERAMBIT_NORTH := """
+kk.
+.sk
+kSk
+kkk
+kbk
+kkk
+"""
 ## Everything a cat holds in a paw, each at three drawn angles with where it's gripped and where
 ## it fires or points.
 const GUNS := {
@@ -386,6 +434,16 @@ const GUNS := {
 		"east": {"art": GUN_EAST, "grip": Vector2(3, 3), "muzzle": Vector2(11, 1)},
 		"northeast": {"art": GUN_NORTHEAST, "grip": Vector2(2, 6), "muzzle": Vector2(8, 0)},
 		"north": {"art": GUN_NORTH, "grip": Vector2(2, 7), "muzzle": Vector2(2, 0)},
+	},
+	"keris": {
+		"east": {"art": KERIS_EAST, "grip": Vector2(1, 1), "muzzle": Vector2(9, 1)},
+		"northeast": {"art": KERIS_NORTHEAST, "grip": Vector2(1, 5), "muzzle": Vector2(5, 0)},
+		"north": {"art": KERIS_NORTH, "grip": Vector2(1, 7), "muzzle": Vector2(1, 0)},
+	},
+	"kerambit": {
+		"east": {"art": KERAMBIT_EAST, "grip": Vector2(1, 2), "muzzle": Vector2(6, 0)},
+		"northeast": {"art": KERAMBIT_NORTHEAST, "grip": Vector2(1, 3), "muzzle": Vector2(3, 0)},
+		"north": {"art": KERAMBIT_NORTH, "grip": Vector2(1, 4), "muzzle": Vector2(0, 0)},
 	},
 	"handgun": {
 		"east": {"art": HANDGUN_EAST, "grip": Vector2(1, 3), "muzzle": Vector2(7, 1)},

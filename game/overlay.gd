@@ -18,6 +18,9 @@ var banishing := false
 ## The pause menu's lines while it's open (empty when it isn't), and which is chosen.
 var menu: Array[String] = []
 var menu_choice := 0
+## The settings page's rows while it's open (empty when it isn't), and which is chosen.
+var setting_rows: Array[Dictionary] = []
+var setting_choice := 0
 var step_milliseconds := 0.0
 
 
@@ -32,7 +35,9 @@ func _draw() -> void:
 	_draw_score()
 	if show_numbers:
 		_draw_numbers()
-	if not menu.is_empty():
+	if not setting_rows.is_empty():
+		_draw_settings()
+	elif not menu.is_empty():
 		_draw_menu()
 	elif choosing:
 		_draw_start()
@@ -262,3 +267,51 @@ func _draw_held(at: Vector2) -> void:
 	InterfaceArt.bold(self, box.position + Vector2(10, 7), title, Palette.PINK)
 	for index in lines.size():
 		PixelFont.draw(self, box.position + Vector2(10, 22 + index * PixelFont.LINE_HEIGHT), lines[index], Palette.OFF_WHITE)
+
+
+## The settings page: each section's rows, the value on the right, a volume as a bar of ten. The
+## chosen row is on pink, with the arrows that change it.
+func _draw_settings() -> void:
+	var screen := get_viewport_rect().size
+	var row_height := PixelFont.LINE_HEIGHT + 2
+	var sections := {}
+	for row in setting_rows:
+		if row.section != "":
+			sections[row.section] = true
+	var width := 260.0
+	# Rows, a heading and a gap for each section, a gap before Back, the title and the margins.
+	var height := setting_rows.size() * row_height + sections.size() * (row_height + 4) + 4 + 30
+	var box := Rect2(floorf((screen.x - width) / 2.0), floorf((screen.y - height) / 2.0), width, height)
+	InterfaceArt.panel(self, box)
+	InterfaceArt.bold(self, box.position + Vector2(10, 7), "Settings", Palette.PINK)
+	var y := box.position.y + 24
+	var section := "none"
+	for index in setting_rows.size():
+		var row: Dictionary = setting_rows[index]
+		if row.section != section:
+			section = row.section
+			y += 4
+			if section != "":
+				PixelFont.draw(self, Vector2(box.position.x + 10, y), section.capitalize(), Palette.PINK)
+				y += row_height
+		var chosen := index == setting_choice
+		var ink := Palette.GRAPHITE if chosen else Palette.OFF_WHITE
+		if chosen:
+			draw_rect(Rect2(box.position.x + 6, y - 2, box.size.x - 12, row_height), Palette.PINK)
+		PixelFont.draw(self, Vector2(box.position.x + 16, y), row.name, ink)
+		var right := box.end.x - 14
+		if row.volume >= 0:
+			var bar_x: float = right - 10 * 6 - (12 if chosen else 0)
+			for step in 10:
+				var filled: bool = step < int(row.volume)
+				draw_rect(Rect2(bar_x + step * 6, y + 1, 4, 5), (Palette.GRAPHITE if chosen else Palette.LEAF_LIGHT) if filled else (Palette.PANEL_LIGHT if not chosen else Palette.SMOKE))
+			if chosen:
+				PixelFont.draw(self, Vector2(bar_x - 10, y), "←", ink)
+				PixelFont.draw(self, Vector2(right - 7, y), "→", ink)
+		elif row.value != "":
+			var value: String = ("← %s →" % row.value) if chosen else String(row.value)
+			PixelFont.draw(self, Vector2(right - PixelFont.width(value), y), value, ink)
+		y += row_height
+	var keys: Array[String] = ["W S", "choose", "A D", "change", "Esc", "back"]
+	var line_width := InterfaceArt.key_line_width(keys)
+	InterfaceArt.key_line(self, Vector2(floorf((screen.x - line_width) / 2.0), box.end.y + 6), keys)

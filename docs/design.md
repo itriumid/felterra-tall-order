@@ -148,7 +148,9 @@ Level-ups arrive as **cards**. A card offers a choice of three; you hold it unti
 - **A pause menu exists in both.** Solo, it stops the world. Online, it opens over a world that
   keeps running, and its panel is see-through so you can see what's coming.
 - Held cards can be read in the pause menu, and are only played in action.
-- **The pause menu**: carry on, blood on or off, aim mode, start again, leave the game. It opens
+- **The pause menu**: carry on, settings, start again, leave the game. **Settings**: graphics
+  (full screen, window size, vertical sync), audio (overall, music, effects and interface
+  volumes, each its own bus) and gameplay (aim mode, blood), kept for next time. It opens
   on its own when a run ends, ready to start again. Its see-through panel is a checkerboard of
   palette pixels, not a blend.
 - **Card text is short.** If a card needs a paragraph, the upgrade is too complicated.
@@ -158,13 +160,14 @@ Level-ups arrive as **cards**. A card offers a choice of three; you hold it unti
 | Kind | Offers |
 |---|---|
 | **A weapon** | A new one, into a free paw or support slot |
-| **A weapon's level** | Levels 1 to 5 for a weapon held; at 5 it can evolve along its family (knife to keris to kerambit, machete to greatsword, handgun to submachine gun, rifle to automatic rifle to assault rifle, or rifle to sniper rifle) |
+| **A weapon's level** | Levels 1 to 10 for a weapon held; at 10 it can evolve along its family (knife to keris to kerambit, machete to greatsword, handgun to submachine gun, rifle to automatic rifle to assault rifle, or rifle to sniper rifle), keeping everything its levels gave it |
+| **Mastery** | Past the top: a weapon at the last of its family, or gear at level 5, takes mastery levels without limit, each worth half a level. A long run keeps growing, which is what makes a god run possible, and a card is never empty |
 | **Gear** | Armor and accessories, worn and visible |
 | **A dodge mutation** | See the dodge |
 
 **Stats come only from what she wears**, never as cards of their own: every stat she has is
 something you can see on her. Each slot holds one item, and the same item's card again levels
-it up, to level 5.
+it up, to level 5, then into mastery.
 
 | Slot | Items, and what a common level gives |
 |---|---|
