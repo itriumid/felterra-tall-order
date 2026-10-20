@@ -34,6 +34,7 @@ var fading: Array[Dictionary] = []
 var random := RandomNumberGenerator.new()
 var time := 0.0
 var kills := 0
+var giants_felled := 0
 var spawning := true
 ## The crew's experience, shared: every kill counts for all of them, and every level-up hands
 ## each cat an offer.
@@ -88,6 +89,7 @@ func step() -> void:
 	giants = giants.filter(func(giant: Giant) -> bool: return giant.fallen_for < FELLED_LASTS)
 	_separate()
 	_shoulder_through()
+	_wander()
 	_bite()
 	_fly_shots()
 	for body in fallen:
@@ -394,6 +396,7 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 		events.append({"position": giant.body.position, "height": minf(0.3, Giant.TALL), "direction": direction, "killed": not giant.alive(), "by": by, "giant": true})
 		if not giant.alive():
 			kills += 1
+			giants_felled += 1
 			_gain_experience(Giant.WORTH)
 		return
 	var creature: Creature = target
@@ -444,6 +447,19 @@ func _gain_experience(amount: int) -> void:
 			# Never an empty card: with mastery there's always something, but if not, no card.
 			if not offer.is_empty():
 				cat.offers.append(offer)
+
+
+## With no cat in the clearing (behind the title, say) the horde and the giants amble about: each
+## picks somewhere and goes there, then somewhere else.
+func _wander() -> void:
+	if not cats.is_empty():
+		return
+	for creature in creatures:
+		if not creature.wander_to.is_finite() or creature.body.position.distance_to(creature.wander_to) < 0.4:
+			creature.wander_to = Vector2(random.randf_range(1.0, SIZE.x - 1.0), random.randf_range(1.0, SIZE.y - 1.0))
+	for giant in giants:
+		if not giant.wander_to.is_finite() or giant.body.position.distance_to(giant.wander_to) < 1.0:
+			giant.wander_to = Vector2(random.randf_range(3.0, SIZE.x - 3.0), random.randf_range(3.0, SIZE.y - 3.0))
 
 
 func _keep_inside(body: Body) -> void:

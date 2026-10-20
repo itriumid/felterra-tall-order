@@ -61,7 +61,10 @@ The design is in `docs/design.md`; read it before changing how the game plays.
 
 - **Before calling a change done**, run the tests:
   `godot --headless --path . --import`, then
-  `godot --headless --path . --script tests/run_tests.gd`. Run long probes and tools under
+  `godot --headless --path . --script tests/run_tests.gd`, and play the menus through:
+  `timeout 120 godot --headless --path . --script tools/check_menus.gd -- --title`. A screenshot
+  only shows a page; the menu check chooses from them, and fails on any engine error. A new page
+  or choice gets a step there. Run long probes and tools under
   `timeout`; a stuck loop pegs a core until killed.
 - **The simulation (`simulation/`) never touches nodes or the screen.** It runs headless: the
   tests run it that way, and so will the host of an online game. Views live in `game/`.
@@ -89,7 +92,7 @@ The design is in `docs/design.md`; read it before changing how the game plays.
 - **To see the game without playing it**, run
   `godot --path . -- --screenshot=<path>.png --screenshot-after=4` (add `--horde=<count>`,
   `--no-spawn`, `--at=<x>,<y>`, `--gear=<0 to 2>`, `--sturdy`, `--fallen=<count>`,
-  `--walk=<x>,<y>`, `--giant=<count>`, `--giant-from=<x>,<y>`, `--menu`, `--menu-after=<seconds>`, `--settings`, `--sound`, `--start=<knife or handgun>`, `--no-blood`, or `--frames=<count>` for a
+  `--walk=<x>,<y>`, `--giant=<count>`, `--giant-from=<x>,<y>`, `--menu`, `--menu-after=<seconds>`, `--settings`, `--sound`, `--title`, `--down-after=<seconds>`, `--start=<knife or handgun>`, `--no-blood`, or `--frames=<count>` for a
   sequence). It opens a window, saves one
   640 by 360 frame and quits; the window takes keyboard focus, so warn whoever is at the
   machine first. Check its log for `SCRIPT ERROR`, and check the frame itself: a frame that
@@ -106,7 +109,8 @@ The design is in `docs/design.md`; read it before changing how the game plays.
   in step; `game/music_director.gd` fades them to the run. Real music replaces the layers one for
   one. Hear it through a scripted fight with
   `godot --headless --path . --script tools/music_demo.gd -- <output>.wav`.
-- **Development flags never read or write the player's settings file**, so trying things out
-  can't change someone's settings.
+- **Development flags never read or write the player's settings or records files**, so trying
+  things out can't change someone's settings or best run. A run with no flags opens on the
+  title, as the game does; one with flags goes straight into the fight they set up.
 - **Look the art over** with `tools/sprite_sheet.gd`, which lays every sprite out magnified on
   one sheet. Walk cycles step with distance walked, never a clock, so feet don't slide.

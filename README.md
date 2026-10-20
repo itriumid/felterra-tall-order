@@ -7,7 +7,8 @@ An auto-shooter roguelike set in the Nusantara seas of Felterra, a world of cats
 pixel art, honest physics, and cooperative play for one to four, online or on one screen.
 
 It's at the very beginning: the design is in [`docs/design.md`](docs/design.md), and what runs
-so far is a prototype. One cat with a knife or a handgun, level-up cards, a logged clearing, a horde of rats coming out
+so far is a prototype, from the title to the end of a run: one cat with a knife or a handgun,
+level-up cards, gear and evolving weapons, synthesized sound and adaptive music, a logged clearing, a horde of rats coming out
 of the jungle, the light under the canopy, and gear you can try on.
 
 ## Controls
@@ -24,7 +25,7 @@ of the jungle, the light under the canopy, and gear you can try on.
 | R | Down | Reroll the card |
 | X with 1, 2 or 3 | B | Banish that choice for the rest of the run |
 | Tab (hold) | Back | Read the cards in full |
-| Escape | Start | Pause: carry on, settings, start again, leave. It opens on its own when she's down |
+| Escape | Start | Pause: carry on, settings, start again, back to the title, leave |
 | W and S, then Enter or Space | Stick, then A | Choose in the pause menu |
 | A and D, or the arrows | Stick | Change a setting: graphics, audio volumes, aim and blood. Settings are kept for next time |
 | F3 | | Frame rate and timings |

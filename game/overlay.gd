@@ -21,6 +21,11 @@ var menu_choice := 0
 ## The settings page's rows while it's open (empty when it isn't), and which is chosen.
 var setting_rows: Array[Dictionary] = []
 var setting_choice := 0
+## Which page the menu is ("title", "pause" or "summary"), the last run's numbers, and which of
+## them beat the best.
+var page := ""
+var summary := {}
+var beaten: Array[String] = []
 var step_milliseconds := 0.0
 
 
@@ -29,14 +34,23 @@ func _process(_delta: float) -> void:
 
 
 func _draw() -> void:
+	if page == "title":
+		_draw_title()
+		if not setting_rows.is_empty():
+			_draw_settings()
+		return
 	if not menu.is_empty():
 		_dither()
+	if cat == null:
+		return
 	_draw_status()
 	_draw_score()
 	if show_numbers:
 		_draw_numbers()
 	if not setting_rows.is_empty():
 		_draw_settings()
+	elif page == "summary":
+		_draw_summary()
 	elif not menu.is_empty():
 		_draw_menu()
 	elif choosing:
@@ -216,7 +230,7 @@ func _dither() -> void:
 ## The pause menu, and beside it the cards she's holding, to read but not to play.
 func _draw_menu() -> void:
 	var screen := get_viewport_rect().size
-	var title := "Paused" if cat.alive() else "She's down"
+	var title := "Paused"
 	var width := InterfaceArt.bold_width(title)
 	for line in menu:
 		width = maxi(width, PixelFont.width(line) + 14)
@@ -315,3 +329,71 @@ func _draw_settings() -> void:
 	var keys: Array[String] = ["W S", "choose", "A D", "change", "Esc", "back"]
 	var line_width := InterfaceArt.key_line_width(keys)
 	InterfaceArt.key_line(self, Vector2(floorf((screen.x - line_width) / 2.0), box.end.y + 6), keys)
+
+
+## The title: the game's name over the clearing, and its choices.
+func _draw_title() -> void:
+	var screen := get_viewport_rect().size
+	var heading := "Felterra"
+	var title := "Tall Order"
+	var line := "A crew of cats against giants"
+	var row := PixelFont.LINE_HEIGHT + 3
+	var width := maxf(InterfaceArt.bold_width(title) + 40, PixelFont.width(line) + 24)
+	for choice in menu:
+		width = maxf(width, PixelFont.width(choice) + 40)
+	var height := 52 + menu.size() * row + 10
+	var box := Rect2(floorf((screen.x - width) / 2.0), floorf(screen.y * 0.42 - height / 2.0), width, height)
+	if not setting_rows.is_empty():
+		return
+	InterfaceArt.panel(self, box)
+	var center := box.position.x + box.size.x / 2.0
+	PixelFont.draw(self, Vector2(floorf(center - PixelFont.width(heading) / 2.0), box.position.y + 8), heading, Palette.OFF_WHITE)
+	InterfaceArt.bold(self, Vector2(floorf(center - InterfaceArt.bold_width(title) / 2.0), box.position.y + 20), title, Palette.PINK)
+	PixelFont.draw(self, Vector2(floorf(center - PixelFont.width(line) / 2.0), box.position.y + 33), line, Palette.SMOKE)
+	_draw_choices(Vector2(box.position.x + 6, box.position.y + 52), box.size.x - 12)
+	var keys: Array[String] = ["W S", "choose", "Enter", "take"]
+	var keys_width := InterfaceArt.key_line_width(keys)
+	InterfaceArt.key_line(self, Vector2(floorf((screen.x - keys_width) / 2.0), box.end.y + 6), keys)
+
+
+## How the run went, what beat the best, and where to go from here.
+func _draw_summary() -> void:
+	var screen := get_viewport_rect().size
+	var rows := [
+		["time", "Survived", "%d:%02d" % [int(summary.get("time", 0.0)) / 60, int(summary.get("time", 0.0)) % 60]],
+		["level", "Level reached", str(summary.get("level", 1))],
+		["kills", "Kills", str(summary.get("kills", 0))],
+		["giants", "Giants felled", str(summary.get("giants", 0))],
+	]
+	var row_height := PixelFont.LINE_HEIGHT + 2
+	var width := 220.0
+	# The heading, the numbers, a gap, the choices, and the margin below.
+	var height := 26 + rows.size() * row_height + 8 + menu.size() * (PixelFont.LINE_HEIGHT + 3) + 2
+	var box := Rect2(floorf((screen.x - width) / 2.0), floorf((screen.y - height) / 2.0), width, height)
+	InterfaceArt.panel(self, box)
+	InterfaceArt.bold(self, box.position + Vector2(10, 7), "She's down", Palette.PINK)
+	var y := box.position.y + 26
+	for row: Array in rows:
+		PixelFont.draw(self, Vector2(box.position.x + 14, y), row[1], Palette.OFF_WHITE)
+		var value: String = row[2]
+		var right := box.end.x - 14
+		if row[0] in beaten:
+			# A new best, marked in words as well as color.
+			var mark := "New best"
+			PixelFont.draw(self, Vector2(right - PixelFont.width(value) - PixelFont.width(mark) - 8, y), mark, Palette.PINK)
+		InterfaceArt.bold(self, Vector2(right - InterfaceArt.bold_width(value), y), value, Palette.LEAF_LIGHT if row[0] in beaten else Palette.OFF_WHITE)
+		y += row_height
+	_draw_choices(Vector2(box.position.x + 6, y + 8), box.size.x - 12)
+
+
+## A page's choices, the chosen one on pink with graphite text.
+func _draw_choices(at: Vector2, width: float) -> void:
+	var row := PixelFont.LINE_HEIGHT + 3
+	for index in menu.size():
+		var spot := at + Vector2(0, index * row)
+		if index == menu_choice:
+			draw_rect(Rect2(spot - Vector2(0, 2), Vector2(width, row)), Palette.PINK)
+			PixelFont.draw(self, spot + Vector2(4, 0), "→", Palette.GRAPHITE)
+			PixelFont.draw(self, spot + Vector2(14, 0), menu[index], Palette.GRAPHITE)
+		else:
+			PixelFont.draw(self, spot + Vector2(14, 0), menu[index], Palette.OFF_WHITE)
