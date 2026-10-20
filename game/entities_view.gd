@@ -10,6 +10,7 @@ const FLASH_TIME := 0.05
 ## never slide, and a body knocked through the air doesn't run.
 const CAT_STRIDE := 0.42
 const RAT_STRIDE := 0.24
+const DOG_STRIDE := 0.6
 const GIANT_STRIDE := 1.4
 
 var arena: Arena
@@ -98,9 +99,15 @@ func _draw() -> void:
 		elif thing is Giant:
 			_draw_giant(thing)
 		elif thing is Creature:
-			_draw_rat(thing.body, _frame(thing, RAT_STRIDE), false)
+			if thing.kind == "dog":
+				_draw_dog(thing.body, _frame(thing, DOG_STRIDE), false, thing.state == Creature.State.CROUCHING)
+			else:
+				_draw_rat(thing.body, _frame(thing, RAT_STRIDE), false)
 		elif thing is Body:
-			_draw_rat(thing, 0, true)
+			if thing.kind == "dog":
+				_draw_dog(thing, 1, true, false)
+			else:
+				_draw_rat(thing, 0, true)
 		else:
 			_draw_remains(entry[1])
 	for speck in _dust:
@@ -132,11 +139,29 @@ func _draw_rat(body: Body, frame: int, fallen: bool) -> void:
 	draw_texture(texture, _rat_corner(body, texture, facing_left) - Vector2(0, 0 if fallen else Sprites.RAT_LIFT[frame]))
 
 
+## A dog: galloping, or bunched low before a lunge, or fallen on its back.
+func _draw_dog(body: Body, frame: int, fallen: bool, crouching: bool) -> void:
+	var facing_left := body.velocity.x < 0.0
+	var art := Sprites.dog_art(2 if crouching else frame)
+	var texture := Sprites.lit(art, facing_left, fallen)
+	var feet := Sprites.DOG_FEET
+	if facing_left:
+		feet.x = texture.get_width() - 1 - feet.x
+	var corner := World.to_screen(body.position, body.height) - feet
+	if crouching:
+		# Down on its haunches: the warning before the leap.
+		corner.y += 4
+	elif not fallen:
+		corner.y -= Sprites.DOG_LIFT[frame]
+	draw_texture(texture, corner)
+
+
 ## Remains crumbling away, a few more pixels gone each stage.
 func _draw_remains(remains: Dictionary) -> void:
 	var body: Body = remains.body
 	var stage := clampi(int((1.0 - remains.left / Arena.FADE_TIME) * Sprites.STAGES), 0, Sprites.STAGES - 1) + 1
-	var texture := Sprites.crumbled(Sprites.RAT_STRIDES[0], stage, false, true)
+	var art: String = Sprites.dog_art(1) if body.kind == "dog" else Sprites.RAT_STRIDES[0]
+	var texture := Sprites.crumbled(art, stage, false, true)
 	draw_texture(texture, _rat_corner(body, texture, false))
 
 
@@ -263,6 +288,8 @@ func _draw_smear(weapon: Weapon, paw: Vector2) -> void:
 ## dust and fur, which leave nothing.
 func _bleed(delta: float) -> void:
 	for event in _pending:
+		if event.by == "lunge":
+			continue
 		if event.by == "stomp" or event.by == "fall":
 			# The ground thrown up: dust and clods, no blood.
 			for index in 18:

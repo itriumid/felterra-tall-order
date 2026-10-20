@@ -8,7 +8,7 @@ pixel art, honest physics, and cooperative play for one to four, online or on on
 
 It's at the very beginning: the design is in [`docs/design.md`](docs/design.md), and what runs
 so far is a prototype, from the title to the end of a run: one cat with a knife or a handgun,
-level-up cards, gear and evolving weapons, synthesized sound and adaptive music, a logged clearing, a horde of rats coming out
+level-up cards, gear and evolving weapons, synthesized sound and adaptive music, a logged clearing, a horde of rats and packs of guard dogs coming out
 of the jungle, the light under the canopy, and gear you can try on.
 
 ## Download

@@ -12,11 +12,11 @@ config_version=5
 
 config/name="Felterra: Tall Order"
 config/version="0.0.1"
-config/icon="res://icon.png"
 run/main_scene="res://game/main.tscn"
 config/use_custom_user_dir=true
 config/custom_user_dir_name="Felterra Tall Order"
 config/features=PackedStringArray("4.7", "GL Compatibility")
+config/icon="res://icon.png"
 
 [display]
 
@@ -37,9 +37,9 @@ theme/default_font_subpixel_positioning=0
 [rendering]
 
 textures/canvas_textures/default_texture_filter=0
-textures/vram_compression/import_etc2_astc=true
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
 environment/defaults/default_clear_color=Color(0.0627451, 0.141176, 0.0941176, 1)
 2d/snap/snap_2d_transforms_to_pixel=true
 2d/snap/snap_2d_vertices_to_pixel=true
