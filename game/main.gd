@@ -360,6 +360,7 @@ func _open_page(page: String) -> void:
 
 func _close_page() -> void:
 	_page = ""
+	_overlay.page = ""
 	_overlay.menu.clear()
 	_overlay.setting_rows.clear()
 	get_tree().paused = false
@@ -370,6 +371,9 @@ func _read_page() -> void:
 		_read_settings()
 	else:
 		_read_choices()
+	# A choice can close its page (Play, Carry on): then there's no page left to show.
+	if _page.is_empty():
+		return
 	_overlay.page = _page if _page != "settings" else _settings_from
 	_overlay.menu = _menu_lines()
 	_overlay.menu_choice = _menu_choice
