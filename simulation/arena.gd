@@ -216,7 +216,7 @@ func stomp(giant: Giant, at: Vector2) -> void:
 			cat.hurt(Giant.CRUSH_DAMAGE, apart.normalized() * Giant.SHOCK_KNOCK)
 		elif apart.length() <= Giant.SHOCK_RADIUS:
 			cat.hurt(Giant.SHOCK_DAMAGE, apart.normalized() * Giant.SHOCK_KNOCK)
-	events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "stomp"})
+	events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "stomp", "giant": true})
 
 
 ## A felled giant hits the ground along his length: everything in that strip is crushed.
@@ -232,7 +232,7 @@ func land(giant: Giant) -> void:
 		var apart := cat.body.position - closest
 		if apart.length() <= Giant.FALLEN_WIDTH:
 			cat.hurt(Giant.FALL_DAMAGE, (apart.normalized() if apart.length() > 0.001 else giant.fall_direction.orthogonal()) * Giant.SHOCK_KNOCK)
-	events.append({"position": (feet + head) / 2.0, "height": 0.0, "direction": giant.fall_direction, "killed": false, "by": "fall"})
+	events.append({"position": (feet + head) / 2.0, "height": 0.0, "direction": giant.fall_direction, "killed": false, "by": "fall", "giant": true})
 
 
 ## Which way something walking through a spot pushes it: toward +1 if it's on the left of the
@@ -314,7 +314,8 @@ func _bite() -> void:
 							or cat.body.height > creature.body.height + creature.body.tall:
 						continue
 					creature.bite_ready_in = Creature.BITE_INTERVAL
-					cat.hurt(Creature.BITE_DAMAGE, apart.normalized() * 0.6)
+					if cat.hurt(Creature.BITE_DAMAGE, apart.normalized() * 0.6):
+						events.append({"position": cat.body.position, "height": 0.15, "direction": apart.normalized(), "killed": false, "by": "bite", "giant": false})
 
 
 func _fly_shots() -> void:
@@ -390,7 +391,7 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 		giant.take(damage, direction)
 		# A push is shared over his mass: a round that throws a rat barely moves him.
 		giant.body.velocity += direction * knock / Giant.HEFT
-		events.append({"position": giant.body.position, "height": minf(0.3, Giant.TALL), "direction": direction, "killed": not giant.alive(), "by": by})
+		events.append({"position": giant.body.position, "height": minf(0.3, Giant.TALL), "direction": direction, "killed": not giant.alive(), "by": by, "giant": true})
 		if not giant.alive():
 			kills += 1
 			_gain_experience(Giant.WORTH)
@@ -403,7 +404,7 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 		events.pop_front()
 	events.append({
 		"position": creature.body.position, "height": creature.body.height + creature.body.tall * 0.5,
-		"direction": direction, "killed": not creature.alive(), "by": by,
+		"direction": direction, "killed": not creature.alive(), "by": by, "giant": false,
 	})
 	if creature.alive():
 		return

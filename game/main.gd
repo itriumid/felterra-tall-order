@@ -41,6 +41,7 @@ var _camera: Camera2D
 var _overlay: Overlay
 var _muzzle_light: PointLight2D
 var _entities: EntitiesView
+var _audio: AudioDirector
 var _ground: GroundView
 var _outfit := 0
 ## The weapon she starts with, once chosen: until then the run waits.
@@ -121,6 +122,8 @@ func _ready() -> void:
 	if _keeping_settings:
 		settings.load_from()
 	settings.apply()
+	# A development run is silent unless asked: screenshots shouldn't blast whoever's nearby.
+	AudioServer.set_bus_mute(0, not _keeping_settings and not "--sound" in OS.get_cmdline_user_args())
 	_build_scene()
 	_entities.blood = settings.get_value("gameplay", "blood")
 	_begin(horde, spawning)
@@ -165,6 +168,9 @@ func _build_scene() -> void:
 	_world.add_child(_muzzle_light)
 	_camera = Camera2D.new()
 	_world.add_child(_camera)
+	_audio = AudioDirector.new()
+	add_child(_audio)
+	_audio.setup(_world)
 	var interface := CanvasLayer.new()
 	interface.layer = 10
 	add_child(interface)
@@ -191,6 +197,7 @@ func _begin(horde: int, spawning: bool) -> void:
 		arena.fallen.append(body)
 	_entities.arena = arena
 	_ground.arena = arena
+	_audio.watch(arena)
 	_overlay.arena = arena
 	_overlay.cat = cat
 
@@ -240,6 +247,11 @@ func _process(delta: float) -> void:
 		_behind -= Arena.STEP
 		arena.step()
 		steps += 1
+	# Hits from these steps, for the blood and the sound alike.
+	var events: Array[Dictionary] = arena.events.duplicate()
+	arena.events.clear()
+	_entities.take_events(events)
+	_audio.take_events(events)
 	if steps > 0:
 		_overlay.step_milliseconds = (Time.get_ticks_usec() - started) / 1000.0 / steps
 	# On her spot on the ground, not her height: a hop or a throw moves her in the frame.
@@ -255,6 +267,7 @@ func _take_screenshot(delta: float) -> void:
 	_screenshot_after -= delta
 	if _screenshot_after <= 0.0:
 		if _frames_saved == 0:
+			print("sounds played: ", _audio.played)
 			print("%d frames a second, %.2f ms a step, %d in the horde" % [
 				Engine.get_frames_per_second(), _overlay.step_milliseconds, arena.creatures.size()])
 		_frames_saved += 1
@@ -297,9 +310,12 @@ func _read_pause() -> void:
 		return
 	if Input.is_action_just_pressed("move_up"):
 		_menu_choice = wrapi(_menu_choice - 1, 0, MENU.size())
+		_audio.interface("menu_move")
 	if Input.is_action_just_pressed("move_down"):
 		_menu_choice = wrapi(_menu_choice + 1, 0, MENU.size())
+		_audio.interface("menu_move")
 	if Input.is_action_just_pressed("menu_choose"):
+		_audio.interface("menu_choose")
 		match MENU[_menu_choice]:
 			"carry_on":
 				if cat.alive():
@@ -320,11 +336,14 @@ func _read_pause() -> void:
 func _read_settings() -> void:
 	if Input.is_action_just_pressed("pause"):
 		_menu_page = "pause"
+		_audio.interface("menu_back")
 		return
 	if Input.is_action_just_pressed("move_up"):
 		_setting_choice = wrapi(_setting_choice - 1, 0, SETTING_ROWS.size())
+		_audio.interface("menu_move")
 	if Input.is_action_just_pressed("move_down"):
 		_setting_choice = wrapi(_setting_choice + 1, 0, SETTING_ROWS.size())
+		_audio.interface("menu_move")
 	var row: Array = SETTING_ROWS[_setting_choice]
 	var direction := 0
 	if Input.is_action_just_pressed("move_left"):
@@ -339,6 +358,7 @@ func _read_settings() -> void:
 		return
 	settings.step(row[0], row[1], direction)
 	_settings_changed()
+	_audio.interface("menu_choose" if direction > 0 else "menu_back")
 
 
 ## Puts changed settings into effect, in the run too, and keeps them.
@@ -390,6 +410,7 @@ func _read_controls() -> void:
 			_start_weapon = "handgun"
 		if not _start_weapon.is_empty():
 			_dress()
+			_audio.interface("menu_choose")
 		return
 	cat.steering = Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	if _walk != Vector2.ZERO:
@@ -403,11 +424,13 @@ func _read_controls() -> void:
 	for index in 3:
 		if Input.is_action_just_pressed("pick_%d" % (index + 1)):
 			if Input.is_action_pressed("banish"):
-				cat.banish(index, arena.random)
-			else:
-				cat.play(index)
+				if cat.banish(index, arena.random):
+					_audio.interface("banish")
+			elif cat.play(index):
+				_audio.interface("card")
 	if Input.is_action_just_pressed("reroll"):
-		cat.reroll(arena.random)
+		if cat.reroll(arena.random):
+			_audio.interface("reroll")
 	_overlay.reading = Input.is_action_pressed("read_cards") or _always_reading
 	_overlay.banishing = Input.is_action_pressed("banish")
 	# Shortcuts for settings: they change the saved settings, as the menu would.

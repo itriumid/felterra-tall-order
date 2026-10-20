@@ -20,6 +20,8 @@ var flash := {}
 var _rounds_seen := {}
 ## Droplets in the air, and the stains they leave: real particles, landing where they fall.
 var _droplets: Array[Dictionary] = []
+## Hits handed over since the last frame, to throw blood or dust for.
+var _pending: Array[Dictionary] = []
 var _stains: Array[Dictionary] = []
 const MOST_STAINS := 900
 const STAIN_DRIES := 15.0
@@ -28,6 +30,11 @@ var _dust: Array[Dictionary] = []
 ## How far each cat and creature has walked, and where it was last frame.
 var _walked := {}
 var _last := {}
+
+
+## Hits from the simulation's steps since the last frame.
+func take_events(events: Array[Dictionary]) -> void:
+	_pending.append_array(events)
 
 
 func _process(delta: float) -> void:
@@ -255,7 +262,7 @@ func _draw_smear(weapon: Weapon, paw: Vector2) -> void:
 ## where they land; stains dry, and in time are gone. With blood off, the same hits throw up
 ## dust and fur, which leave nothing.
 func _bleed(delta: float) -> void:
-	for event in arena.events:
+	for event in _pending:
 		if event.by == "stomp" or event.by == "fall":
 			# The ground thrown up: dust and clods, no blood.
 			for index in 18:
@@ -273,7 +280,7 @@ func _bleed(delta: float) -> void:
 				"color": Palette.BLOOD if blood else (Palette.RAT_LIGHT if index % 2 == 0 else Palette.SMOKE),
 				"stains": blood,
 			})
-	arena.events.clear()
+	_pending.clear()
 	var flying: Array[Dictionary] = []
 	for droplet in _droplets:
 		droplet.rise -= Body.GRAVITY * delta
