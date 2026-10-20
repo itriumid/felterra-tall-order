@@ -148,7 +148,9 @@ Level-ups arrive as **cards**. A card offers a choice of three; you hold it unti
 - **A pause menu exists in both.** Solo, it stops the world. Online, it opens over a world that
   keeps running, and its panel is see-through so you can see what's coming.
 - Held cards can be read in the pause menu, and are only played in action.
-- **The pause menu**: carry on, blood on or off, aim mode, start again, leave the game. It opens
+- **The pause menu**: carry on, settings, start again, leave the game. **Settings**: graphics
+  (full screen, window size, vertical sync), audio (overall, music, effects and interface
+  volumes, each its own bus) and gameplay (aim mode, blood), kept for next time. It opens
   on its own when a run ends, ready to start again. Its see-through panel is a checkerboard of
   palette pixels, not a blend.
 - **Card text is short.** If a card needs a paragraph, the upgrade is too complicated.

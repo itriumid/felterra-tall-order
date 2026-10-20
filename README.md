@@ -17,15 +17,16 @@ of the jungle, the light under the canopy, and gear you can try on.
 | W A S D or the arrow keys | Left stick | Move |
 | Space | A | Dodge |
 | 1 or 2 | Left bumper or up | Choose what you start with: knife or handgun |
-| T | X | Change how weapons choose a target |
-| B | | Blood on or off (also in the pause menu) |
+| T | X | Change how weapons choose a target (also in the settings) |
+| B | | Blood on or off (also in the settings) |
 | G | Y | Try on gear (until upgrades hand it out) |
 | 1, 2, 3 | Bumpers and up | Play a choice from a level-up card |
 | R | Down | Reroll the card |
 | X with 1, 2 or 3 | B | Banish that choice for the rest of the run |
 | Tab (hold) | Back | Read the cards in full |
-| Escape | Start | Pause: carry on, blood, aim, start again, leave. It opens on its own when she's down |
+| Escape | Start | Pause: carry on, settings, start again, leave. It opens on its own when she's down |
 | W and S, then Enter or Space | Stick, then A | Choose in the pause menu |
+| A and D, or the arrows | Stick | Change a setting: graphics, audio volumes, aim and blood. Settings are kept for next time |
 | F3 | | Frame rate and timings |
 | F11 | | Full screen |
 
