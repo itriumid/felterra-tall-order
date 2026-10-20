@@ -1,0 +1,264 @@
+class_name Overlay
+extends Node2D
+## The interface over the world: her health, level, dodge and aim at a glance; the cards she's
+## holding; the choice a run starts with; the pause menu; and with F3, what the machine is doing.
+
+const CARD_FRAMES: Array[Color] = [Palette.OFF_WHITE, Palette.LEAF_LIGHT, Palette.CLOTH_LIGHT, Palette.BRASS_LIGHT]
+const CARD_SIZE := Vector2(150, 70)
+const AIM_NAMES := {"nearest": "Nearest", "toughest": "Toughest", "crowd": "Crowd"}
+
+var arena: Arena
+var cat: Cat
+var show_numbers := false
+## Waiting for the player to choose a weapon to start with.
+var choosing := false
+## Tab held: the cards' stats are explained. X held: picking banishes.
+var reading := false
+var banishing := false
+## The pause menu's lines while it's open (empty when it isn't), and which is chosen.
+var menu: Array[String] = []
+var menu_choice := 0
+var step_milliseconds := 0.0
+
+
+func _process(_delta: float) -> void:
+	queue_redraw()
+
+
+func _draw() -> void:
+	if not menu.is_empty():
+		_dither()
+	_draw_status()
+	_draw_score()
+	if show_numbers:
+		_draw_numbers()
+	if not menu.is_empty():
+		_draw_menu()
+	elif choosing:
+		_draw_start()
+	elif not cat.offers.is_empty():
+		_draw_cards()
+
+
+## Health, level and dodge as bars with their icons, and how her weapons choose.
+func _draw_status() -> void:
+	var box := Rect2(4, 4, 150, 44)
+	InterfaceArt.panel(self, box)
+	var x := box.position.x + 5
+	var y := box.position.y + 5
+	var sturdy := cat.health > 1000.0
+	InterfaceArt.icon(self, Vector2(x, y), "health", Palette.SCARF_RED)
+	InterfaceArt.bar(self, Rect2(x + 10, y + 1, 92, 5), 1.0 if sturdy else cat.health / cat.max_health, Palette.SCARF_RED)
+	PixelFont.draw(self, Vector2(x + 106, y - 1), "Sturdy" if sturdy else "%d/%d" % [ceili(cat.health), roundi(cat.max_health)], Palette.OFF_WHITE)
+	y += 11
+	InterfaceArt.icon(self, Vector2(x, y), "level", Palette.BRASS_LIGHT)
+	InterfaceArt.bar(self, Rect2(x + 10, y + 1, 92, 5), float(arena.experience) / Arena.experience_needed(arena.level), Palette.BRASS_LIGHT)
+	PixelFont.draw(self, Vector2(x + 106, y - 1), "Level %d" % arena.level, Palette.OFF_WHITE)
+	y += 11
+	var ready := cat.dodge_ready_in <= 0.0
+	InterfaceArt.icon(self, Vector2(x, y), "dodge", Palette.LEAF_LIGHT if ready else Palette.SMOKE)
+	InterfaceArt.bar(self, Rect2(x + 10, y + 1, 40, 5), 1.0 - cat.dodge_ready_in / Cat.DODGE_COOLDOWN, Palette.LEAF_LIGHT if ready else Palette.SMOKE)
+	InterfaceArt.icon(self, Vector2(x + 58, y), "aim", Palette.OFF_WHITE)
+	PixelFont.draw(self, Vector2(x + 68, y - 1), AIM_NAMES[cat.aim_mode], Palette.OFF_WHITE)
+	InterfaceArt.key_cap(self, Vector2(box.end.x - 14, y - 2), "T")
+
+
+func _draw_score() -> void:
+	var screen := get_viewport_rect().size
+	var kills := "%d" % arena.kills
+	var time := "%d:%02d" % [int(arena.time) / 60, int(arena.time) % 60]
+	var width := 10 + PixelFont.width(kills) + 12 + 10 + PixelFont.width(time) + 10
+	var box := Rect2(screen.x - width - 4, 4, width, 18)
+	InterfaceArt.panel(self, box)
+	var x := box.position.x + 5
+	InterfaceArt.icon(self, Vector2(x, box.position.y + 5), "kills", Palette.OFF_WHITE)
+	PixelFont.draw(self, Vector2(x + 10, box.position.y + 4), kills, Palette.OFF_WHITE)
+	x += 10 + PixelFont.width(kills) + 12
+	InterfaceArt.icon(self, Vector2(x, box.position.y + 5), "time", Palette.OFF_WHITE)
+	PixelFont.draw(self, Vector2(x + 10, box.position.y + 4), time, Palette.OFF_WHITE)
+
+
+func _draw_numbers() -> void:
+	var lines: Array[String] = [
+		"%d frames a second, a step takes %.2f ms" % [Engine.get_frames_per_second(), step_milliseconds],
+		"%d in the horde, %d fallen, %d rounds in the air" % [arena.creatures.size(), arena.fallen.size(), arena.shots.size()],
+	]
+	var width := 0
+	for line in lines:
+		width = maxi(width, PixelFont.width(line))
+	var box := Rect2(4, 52, width + 10, lines.size() * PixelFont.LINE_HEIGHT + 8)
+	InterfaceArt.panel(self, box)
+	for index in lines.size():
+		PixelFont.draw(self, box.position + Vector2(5, 4 + index * PixelFont.LINE_HEIGHT), lines[index], Palette.OFF_WHITE)
+
+
+## The oldest offer held, as three cards along the bottom.
+func _draw_cards() -> void:
+	var offer: Array = cat.offers[0]
+	var screen := get_viewport_rect().size
+	var gap := 8.0
+	var total := offer.size() * CARD_SIZE.x + (offer.size() - 1) * gap
+	var x := floorf((screen.x - total) / 2.0)
+	var y := screen.y - CARD_SIZE.y - 6
+	var explained: Array[String] = []
+	for index in offer.size():
+		var choice: Dictionary = offer[index]
+		var card := Upgrades.describe(choice)
+		_draw_card(Rect2(x, y, CARD_SIZE.x, CARD_SIZE.y), str(index + 1), choice.rarity, card)
+		for line: String in card.explain:
+			if not line in explained:
+				explained.append(line)
+		x += CARD_SIZE.x + gap
+	var keys: Array[String] = []
+	if banishing:
+		keys.append_array(["X", "and a number banishes"])
+	else:
+		keys.append_array(["R", "reroll (%d)" % cat.rerolls, "Tab", "read", "X", "banish"])
+	if cat.offers.size() > 1:
+		keys.append_array(["", "%d more held" % (cat.offers.size() - 1)])
+	var line_width := InterfaceArt.key_line_width(keys)
+	InterfaceArt.key_line(self, Vector2(floorf((screen.x - line_width) / 2.0), y - 15), keys)
+	if reading:
+		_draw_explained(explained, y - 20)
+
+
+## One card: the rarity's ribbon, frame and pips; the key that plays it; a picture of what it is;
+## its name, and what it gives.
+func _draw_card(box: Rect2, key: String, rarity: int, card: Dictionary) -> void:
+	var color: Color = CARD_FRAMES[rarity]
+	InterfaceArt.panel(self, box)
+	_rarity_frame(box, rarity)
+	# The ribbon: the rarity in words, on its own color.
+	var ribbon := Rect2(box.position + Vector2(2, 2), Vector2(box.size.x - 4, 11))
+	draw_rect(ribbon, color)
+	PixelFont.draw(self, ribbon.position + Vector2(14, 1), card.get("ribbon", Upgrades.RARITY_NAMES[rarity]), Palette.GRAPHITE)
+	for pip in rarity + 1:
+		draw_rect(Rect2(ribbon.end.x - 5 - pip * 4, ribbon.position.y + 4, 2, 3), Palette.GRAPHITE)
+	# The key that plays it, on pink.
+	var badge := Rect2(box.position + Vector2(2, 2), Vector2(10, 11))
+	draw_rect(badge, Palette.PINK)
+	PixelFont.draw(self, badge.position + Vector2(3, 1), key, Palette.GRAPHITE)
+	# The picture, sunk into the card.
+	var picture := Rect2(box.position + Vector2(5, 17), Vector2(26, 22))
+	InterfaceArt.well(self, picture)
+	var preview := Sprites.preview(card.item)
+	draw_texture(preview, (picture.position + (picture.size - preview.get_size()) / 2.0).floor())
+	var text_x := picture.end.x + 5
+	InterfaceArt.bold(self, Vector2(text_x, box.position.y + 18), card.name, Palette.OFF_WHITE)
+	for index in (card.lines as Array).size():
+		PixelFont.draw(self, Vector2(text_x, box.position.y + 30 + index * PixelFont.LINE_HEIGHT), card.lines[index], Palette.LEAF_LIGHT)
+	if card.unfamiliar:
+		PixelFont.draw(self, Vector2(box.end.x - 9, box.end.y - 13), "?", Palette.PINK)
+
+
+## Rarity in the frame's shape, not just its color: common plain, uncommon with its corners cut,
+## rare doubled, legendary heavy with its corners filled.
+func _rarity_frame(box: Rect2, rarity: int) -> void:
+	var color: Color = CARD_FRAMES[rarity]
+	draw_rect(box, color, false, 1.0)
+	if rarity >= Upgrades.Rarity.RARE:
+		draw_rect(box.grow(1), color, false, 1.0)
+	if rarity == Upgrades.Rarity.UNCOMMON:
+		for corner in [box.position, Vector2(box.end.x - 1, box.position.y), Vector2(box.position.x, box.end.y - 1), box.end - Vector2.ONE]:
+			draw_rect(Rect2(corner, Vector2.ONE), Palette.PANEL_DARK)
+	if rarity == Upgrades.Rarity.LEGENDARY:
+		for corner in [box.position, Vector2(box.end.x - 3, box.position.y), Vector2(box.position.x, box.end.y - 3), box.end - Vector2(3, 3)]:
+			draw_rect(Rect2(corner - Vector2.ONE, Vector2(4, 4)), color)
+
+
+## What the stats on the cards mean, one line each.
+func _draw_explained(lines: Array[String], bottom: float) -> void:
+	var width := 0
+	for line in lines:
+		width = maxi(width, PixelFont.width(line))
+	var screen := get_viewport_rect().size
+	var height := lines.size() * PixelFont.LINE_HEIGHT + 10
+	var box := Rect2(floorf((screen.x - width - 12) / 2.0), bottom - height - 4, width + 12, height)
+	InterfaceArt.panel(self, box)
+	for index in lines.size():
+		var parts := lines[index].split(": ", true, 1)
+		InterfaceArt.bold(self, box.position + Vector2(6, 5 + index * PixelFont.LINE_HEIGHT), parts[0] + ":", Palette.PINK)
+		if parts.size() > 1:
+			PixelFont.draw(self, box.position + Vector2(6 + InterfaceArt.bold_width(parts[0] + ":") + 4, 5 + index * PixelFont.LINE_HEIGHT), parts[1], Palette.OFF_WHITE)
+
+
+## The choice a run starts with, as two cards.
+func _draw_start() -> void:
+	var screen := get_viewport_rect().size
+	var title := "Choose what you start with"
+	var cards := [
+		{"name": "Knife", "item": "knife", "ribbon": "Melee", "lines": ["Close and quick", "Never runs out"], "unfamiliar": false},
+		{"name": "Handgun", "item": "handgun", "ribbon": "Ranged", "lines": ["Slow, but", "it reaches"], "unfamiliar": false},
+	]
+	var gap := 10.0
+	var total := cards.size() * CARD_SIZE.x + gap
+	var top := floorf(screen.y / 2.0 - CARD_SIZE.y / 2.0)
+	var frame := Rect2(floorf((screen.x - total) / 2.0) - 10, top - 24, total + 20, CARD_SIZE.y + 34)
+	InterfaceArt.panel(self, frame)
+	InterfaceArt.bold(self, Vector2(floorf((screen.x - InterfaceArt.bold_width(title)) / 2.0), top - 18), title, Palette.PINK)
+	for index in cards.size():
+		_draw_card(Rect2(frame.position.x + 10 + index * (CARD_SIZE.x + gap), top, CARD_SIZE.x, CARD_SIZE.y), str(index + 1), Upgrades.Rarity.COMMON, cards[index])
+
+
+## The see-through panel behind the menu: a checkerboard of palette pixels, not a blend.
+func _dither() -> void:
+	var screen := get_viewport_rect().size
+	for y in int(screen.y):
+		for x in range(y % 2, int(screen.x), 2):
+			draw_rect(Rect2(x, y, 1, 1), Palette.GRAPHITE)
+
+
+## The pause menu, and beside it the cards she's holding, to read but not to play.
+func _draw_menu() -> void:
+	var screen := get_viewport_rect().size
+	var title := "Paused" if cat.alive() else "She's down"
+	var width := InterfaceArt.bold_width(title)
+	for line in menu:
+		width = maxi(width, PixelFont.width(line) + 14)
+	var row := PixelFont.LINE_HEIGHT + 3
+	var held_width := _held_width()
+	var left := screen.x - held_width - 12
+	var box := Rect2(floorf(left / 2.0 - width / 2.0) - 10, floorf(screen.y / 2.0 - (menu.size() * row + 24) / 2.0), width + 20, menu.size() * row + 28)
+	InterfaceArt.panel(self, box)
+	InterfaceArt.bold(self, box.position + Vector2(10, 7), title, Palette.PINK)
+	for index in menu.size():
+		var at := box.position + Vector2(6, 22 + index * row)
+		if index == menu_choice:
+			# The chosen row on pink, its text in graphite.
+			draw_rect(Rect2(at - Vector2(0, 2), Vector2(box.size.x - 12, row)), Palette.PINK)
+			PixelFont.draw(self, at + Vector2(2, 0), "→", Palette.GRAPHITE)
+			PixelFont.draw(self, at + Vector2(12, 0), menu[index], Palette.GRAPHITE)
+		else:
+			PixelFont.draw(self, at + Vector2(12, 0), menu[index], Palette.OFF_WHITE)
+	_draw_held(Vector2(screen.x - held_width - 6, box.position.y))
+
+
+func _held_lines() -> Array[String]:
+	var lines: Array[String] = []
+	for offer: Array in cat.offers.slice(0, 3):
+		for choice: Dictionary in offer:
+			var card := Upgrades.describe(choice)
+			lines.append("%s (%s): %s" % [card.name, Upgrades.RARITY_NAMES[choice.rarity].to_lower(), ", ".join(card.lines).to_lower()])
+		lines.append("")
+	if lines.is_empty():
+		lines.append("None yet")
+	else:
+		lines[-1] = "Played in action, with 1, 2 and 3"
+	return lines
+
+
+func _held_width() -> float:
+	var width := InterfaceArt.bold_width("Cards held: %d" % cat.offers.size())
+	for line in _held_lines():
+		width = maxi(width, PixelFont.width(line))
+	return width + 20
+
+
+func _draw_held(at: Vector2) -> void:
+	var lines := _held_lines()
+	var title := "Cards held: %d" % cat.offers.size()
+	var box := Rect2(at, Vector2(_held_width(), lines.size() * PixelFont.LINE_HEIGHT + 28))
+	InterfaceArt.panel(self, box)
+	InterfaceArt.bold(self, box.position + Vector2(10, 7), title, Palette.PINK)
+	for index in lines.size():
+		PixelFont.draw(self, box.position + Vector2(10, 22 + index * PixelFont.LINE_HEIGHT), lines[index], Palette.OFF_WHITE)
