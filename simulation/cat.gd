@@ -53,6 +53,8 @@ var dodging_for := 0.0
 var safe_for := 0.0
 var dodge_ready_in := 0.0
 var staggered_for := 0.0
+## Hits that have landed on her, counted, so the view and the sound know when one does.
+var hits_taken := 0
 var _dodge_direction := Vector2.RIGHT
 
 
@@ -155,6 +157,7 @@ func hurt(damage: float, knock: Vector2) -> bool:
 		return false
 	# Armor takes a flat amount off each hit, but never all of it.
 	health = maxf(health - maxf(damage - armor, damage * 0.2), 0.0)
+	hits_taken += 1
 	# Knocked off her feet only from her feet: a cat already in the air isn't thrown higher.
 	if not body.airborne():
 		body.push(knock, 0.8)
