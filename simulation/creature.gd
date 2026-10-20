@@ -13,6 +13,8 @@ var body := Body.new()
 var health := 2.0
 ## Experience its fall is worth to the crew.
 var worth := 1
+## Where it ambles when there's no cat to run at, or nowhere (INF).
+var wander_to := Vector2.INF
 var bite_ready_in := 0.0
 
 
@@ -31,6 +33,8 @@ func step(delta: float, prey: Cat) -> void:
 		var wanted := Vector2.ZERO
 		if prey != null and prey.alive():
 			wanted = (prey.body.position - body.position).normalized() * SPEED
+		elif wander_to.is_finite():
+			wanted = (wander_to - body.position).limit_length(1.0) * SPEED * 0.35
 		# Feet on the ground: it claws back to the pace it wants, so a knock carries it a way.
 		body.velocity = body.velocity.move_toward(wanted, GRIP * delta)
 	body.step(delta)

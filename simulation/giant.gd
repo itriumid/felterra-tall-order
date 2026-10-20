@@ -44,6 +44,8 @@ var fall_speed := 0.0
 var fall_direction := Vector2.RIGHT
 var fallen_for := 0.0
 var _last_knock := Vector2.RIGHT
+## Where he walks when there's no cat to go after, or nowhere (INF).
+var wander_to := Vector2.INF
 
 
 func _init() -> void:
@@ -86,7 +88,10 @@ func _walk(delta: float, arena: Arena) -> void:
 	stomp_ready_in = maxf(stomp_ready_in - delta, 0.0)
 	var prey := arena.nearest_cat(body.position)
 	if prey == null:
-		body.velocity = Vector2.ZERO
+		var toward_wander := (wander_to - body.position) if wander_to.is_finite() else Vector2.ZERO
+		body.velocity = toward_wander.limit_length(1.0) * SPEED * 0.6
+		if toward_wander.length_squared() > 0.01:
+			facing = toward_wander.normalized()
 		return
 	var toward := prey.body.position - body.position
 	facing = toward.normalized()
