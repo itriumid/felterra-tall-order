@@ -22,6 +22,9 @@ name="FelterraTallOrder_${version}"
 cd "$here"
 rm -rf build/windows build/macos build/linux build/linux_arm "$out"
 mkdir -p build/windows build/macos build/linux build/linux_arm "$out"
+# As an absolute path: the zipping below happens from inside each platform's folder, where a
+# relative one would point nowhere.
+out="$(cd "$out" && pwd)"
 # Importing builds the class name cache; it can report editor errors that don't matter here.
 "$godot" --headless --path . --import > /dev/null 2>&1 || true
 for preset in "Windows" "macOS" "Linux" "Linux ARM"; do
