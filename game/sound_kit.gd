@@ -10,7 +10,7 @@ const VARIANTS := 3
 
 ## Every sound there is, by name. The director plays them by these names.
 const NAMES: Array[String] = [
-	"shot_handgun", "shot_submachine_gun", "swing", "hit_small", "squeak", "hit_big",
+	"shot_handgun", "shot_submachine_gun", "swing", "hit_small", "squeak", "hit_big", "bark", "hit_dog", "yelp",
 	"footstep_giant", "stomp", "fall", "dodge", "hurt", "bite",
 	"level_up", "card", "reroll", "banish", "menu_move", "menu_choose", "menu_back",
 ]
@@ -42,6 +42,13 @@ static func _render(sound_name: String, random: RandomNumberGenerator) -> Packed
 			return _mix([_sweep(0.11, 260.0 * wobble, 95.0, 0.035), _noise(0.05, 0.008, 1800.0, random, 1)], [0.9, 0.5])
 		"squeak":
 			return _chirp(0.13, [1700.0 * wobble, 2600.0 * wobble, 1300.0 * wobble], 0.25)
+		"bark":
+			# Two sharp barks, falling in pitch.
+			return _mix([_chirp(0.09, [720.0 * wobble, 430.0 * wobble], 0.4), _noise(0.09, 0.03, 1800.0, random, 2)], [0.8, 0.4]) + _mix([_chirp(0.11, [680.0 * wobble, 380.0 * wobble], 0.4), _noise(0.1, 0.03, 1600.0, random, 2)], [0.9, 0.4])
+		"hit_dog":
+			return _mix([_sweep(0.16, 190.0 * wobble, 70.0, 0.06), _noise(0.08, 0.015, 1200.0, random, 1)], [1.0, 0.5])
+		"yelp":
+			return _chirp(0.18, [900.0 * wobble, 1300.0 * wobble, 600.0 * wobble], 0.35)
 		"hit_big":
 			return _mix([_sweep(0.22, 120.0 * wobble, 42.0, 0.08), _noise(0.12, 0.03, 600.0, random, 1)], [1.0, 0.5])
 		"footstep_giant":

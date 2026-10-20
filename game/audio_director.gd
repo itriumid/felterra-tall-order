@@ -7,7 +7,7 @@ extends Node
 
 ## Players for sounds in the world, and the most of any one sound playing at once.
 const VOICES := 24
-const LIMITS := {"squeak": 3, "hit_small": 6, "footstep_giant": 4, "swing": 4, "bite": 3}
+const LIMITS := {"squeak": 3, "hit_small": 6, "footstep_giant": 4, "swing": 4, "bite": 3, "bark": 3}
 const DEFAULT_LIMIT := 4
 ## Ground a giant covers between footfalls, in meters: half his stride.
 const GIANT_STEP := 0.7
@@ -51,10 +51,15 @@ func take_events(events: Array[Dictionary]) -> void:
 		match event.by:
 			"stomp": play_at("stomp", event.position, 0.0)
 			"fall": play_at("fall", event.position, 2.0)
-			"bite": play_at("bite", event.position, -6.0)
+			"bite": play_at("bite", event.position, -6.0 if event.get("kind", "rat") == "rat" else -2.0)
+			"lunge": play_at("bark", event.position, -4.0)
 			_:
 				if event.get("giant", false):
 					play_at("hit_big", event.position, -3.0)
+				elif event.get("kind", "rat") == "dog":
+					play_at("hit_dog", event.position, -5.0)
+					if event.killed:
+						play_at("yelp", event.position, -6.0)
 				else:
 					play_at("hit_small", event.position, -6.0)
 					if event.killed:

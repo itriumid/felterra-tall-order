@@ -4,7 +4,7 @@ extends Node
 ##
 ## Development aids: --horde=<count> starts with that many in the clearing; --no-spawn stops more
 ## coming; --at=<x>,<y> starts the cat there, in meters; --gear=<0 to 2> picks the gear; --sturdy keeps the cat alive; --screenshot=<path> saves
-## --giant=<count> starts with giants close by, --giant-from=<x>,<y> that far from her; --start=<knife or handgun> skips choosing; --no-blood starts with blood off; --screenshot=<path> saves
+## --dogs=<count> starts with guard dogs close by; --giant=<count> starts with giants close by, --giant-from=<x>,<y> that far from her; --start=<knife or handgun> skips choosing; --no-blood starts with blood off; --screenshot=<path> saves
 ## a frame after --screenshot-after seconds (default 4) and quits; --frames=<count> saves that
 ## many, a twentieth of a second apart, as <path>_1.png and on; --walk=<x>,<y> steers the cat
 ## that way on her own; --fallen=<count> scatters that many bodies.
@@ -75,6 +75,7 @@ var _menu_choice := 0
 var _start := Arena.SIZE / 2.0
 var _fallen := 0
 var _giants := 0
+var _dogs := 0
 var _giant_from := Vector2(3.5, -1.0)
 var _walk := Vector2.ZERO
 var _frames := 1
@@ -105,6 +106,8 @@ func _ready() -> void:
 		elif argument.begins_with("--giant-from="):
 			var parts := argument.trim_prefix("--giant-from=").split(",")
 			_giant_from = Vector2(parts[0].to_float(), parts[1].to_float())
+		elif argument.begins_with("--dogs="):
+			_dogs = argument.trim_prefix("--dogs=").to_int()
 		elif argument.begins_with("--giant="):
 			_giants = argument.trim_prefix("--giant=").to_int()
 		elif argument == "--no-spawn":
@@ -217,6 +220,8 @@ func _begin(horde: int, spawning: bool) -> void:
 		arena.add_creature(arena.edge_point() * 0.7 + Arena.SIZE * 0.15)
 	for index in _giants:
 		arena.add_giant(_start + _giant_from + Vector2(index, index))
+	for index in _dogs:
+		arena.add_creature(_start + Vector2.from_angle(index * 2.1) * 4.0, "dog")
 	for index in _fallen:
 		var body := Body.new()
 		body.radius = 0.08
