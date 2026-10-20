@@ -330,6 +330,28 @@ on whole pixels. A larger display face drawn the same way for titles, card names
 and outlined digits for damage numbers. Outside the game (store page, logo, trailer), Plus
 Jakarta Sans.
 
+## Sound
+
+**Every effect is synthesized in code**, like the art is drawn in it: a few shared building
+blocks (a tone that sweeps, filtered noise, a pulse wave, the stepped noise of old sound chips),
+so every sound belongs to the same game, and there's nothing to license.
+
+- **The simulation drives it.** A shot plays for each round fired; a blade whooshes with each
+  swing, deeper for a keris, quicker for a kerambit; a rat's hit is a small high thud and its fall
+  a squeak, a giant's hit is deep; a giant's footfalls land with his stride, his stomp booms and
+  his fall thunders.
+- **Sounds sit where they happen** and fade with distance from the view; the interface's play
+  flat, on their own bus.
+- **Voices are limited per sound**, so a horde never drowns the rest.
+- Each sound comes in a few variants, played a little off pitch, so repeats never ring the same.
+
+**Music**, as a direction (it's still to be composed): chiptune and bitpop in the spirit of
+Megabonk's soundtrack, fast (about 150 to 165 beats a minute), in a major key, bright and a
+little comical, with **gamelan bronze answering the chiptune lead** between its phrases, the
+kentongan tapping the off-beats and kendang fills closing them. It adapts: the main theme
+carries the run, and **when a giant walks in, a rock layer joins** (a backbeat and a
+power-chord riff), so a giant is heard arriving before he's seen.
+
 ## First prototype
 
 Placeholder art; it tests the three biggest risks, all technical:
