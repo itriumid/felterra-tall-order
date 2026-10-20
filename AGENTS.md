@@ -100,6 +100,11 @@ The design is in `docs/design.md`; read it before changing how the game plays.
 - **Measure the horde in its worst case**, crushed around a cat, with
   `tools/benchmark_horde.gd`. A horde still on its way in costs a fraction of one that has
   arrived.
+- **Releases come from a signed `v*` tag** matching `config/version` in `project.godot`, and land
+  as a draft that's published by hand; see `CONTRIBUTING.md`. Never tag or publish unless asked.
+  Every build is made by `tools/export.sh`, locally, in the Export check and in the Release
+  workflow alike. The presets are in `export_presets.cfg`; `icon.png` is drawn by
+  `tools/build_icon.gd` from the cat's sprite.
 - **Every sound is synthesized**, in `game/sound_kit.gd`, from a few shared building blocks: no
   recordings, nothing to license. A sound plays because the simulation did something (a round
   fired, a hit landed, a foot came down), never on a timer. Listen to the whole kit with
