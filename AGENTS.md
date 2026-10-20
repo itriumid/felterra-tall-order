@@ -102,6 +102,10 @@ The design is in `docs/design.md`; read it before changing how the game plays.
   fired, a hit landed, a foot came down), never on a timer. Listen to the whole kit with
   `godot --headless --path . --script tools/sound_sheet.gd -- <output>.wav`. Development runs are
   silent unless `--sound` is given.
+- **The soundtrack is a placeholder, synthesized in layers** (`game/music_kit.gd`) that all loop
+  in step; `game/music_director.gd` fades them to the run. Real music replaces the layers one for
+  one. Hear it through a scripted fight with
+  `godot --headless --path . --script tools/music_demo.gd -- <output>.wav`.
 - **Development flags never read or write the player's settings file**, so trying things out
   can't change someone's settings.
 - **Look the art over** with `tools/sprite_sheet.gd`, which lays every sprite out magnified on

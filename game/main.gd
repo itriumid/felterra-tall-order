@@ -42,6 +42,7 @@ var _overlay: Overlay
 var _muzzle_light: PointLight2D
 var _entities: EntitiesView
 var _audio: AudioDirector
+var _music: MusicDirector
 var _ground: GroundView
 var _outfit := 0
 ## The weapon she starts with, once chosen: until then the run waits.
@@ -171,6 +172,9 @@ func _build_scene() -> void:
 	_audio = AudioDirector.new()
 	add_child(_audio)
 	_audio.setup(_world)
+	_music = MusicDirector.new()
+	add_child(_music)
+	_music.setup()
 	var interface := CanvasLayer.new()
 	interface.layer = 10
 	add_child(interface)
@@ -198,6 +202,8 @@ func _begin(horde: int, spawning: bool) -> void:
 	_entities.arena = arena
 	_ground.arena = arena
 	_audio.watch(arena)
+	_music.arena = arena
+	_music.cat = cat
 	_overlay.arena = arena
 	_overlay.cat = cat
 
