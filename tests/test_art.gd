@@ -78,3 +78,9 @@ func test_every_piece_of_gear_can_be_drawn_and_previewed() -> void:
 		var drawn := id == "vest" or id == "boots" or id == "gloves" or Sprites.WORN.has(id) or Sprites.HATS.has(id)
 		check(drawn, "%s has no drawing on the cat" % id)
 		check(Sprites.preview(id) != null, "%s has no card picture" % id)
+
+
+func test_a_carriage_return_does_not_widen_the_art() -> void:
+	var unix := Sprites.image("\nkk\nkk\n").get_size()
+	var windows := Sprites.image("\r\nkk\r\nkk\r\n").get_size()
+	check(unix == windows, "art with Windows line endings is %s, not %s" % [windows, unix])

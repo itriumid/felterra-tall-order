@@ -572,7 +572,7 @@ static func cat_anchor(view: String, flip: bool, anchor: String) -> Vector2:
 
 static func image(art: String) -> Image:
 	# Art opens with a line break after its quotes; blank rows after that are clear rows, kept.
-	var rows := art.trim_prefix("\n").rstrip("\n").split("\n")
+	var rows := art.replace("\r", "").trim_prefix("\n").rstrip("\n").split("\n")
 	var width := 0
 	for row in rows:
 		width = maxi(width, row.length())
