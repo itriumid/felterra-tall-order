@@ -11,6 +11,19 @@ so far is a prototype, from the title to the end of a run: one cat with a knife 
 level-up cards, gear and evolving weapons, synthesized sound and adaptive music, a logged clearing, a horde of rats coming out
 of the jungle, the light under the canopy, and gear you can try on.
 
+## Download
+
+Builds for Windows, macOS (Apple Silicon and Intel) and Linux (x86-64 and ARM) are on the
+[releases page](https://github.com/itriumid/felterra-tall-order/releases). Each is a zip: unpack it
+and run the game inside.
+
+The builds aren't signed by a publisher Windows or macOS knows yet, so each warns the first time:
+
+- **Windows:** SmartScreen says it protected your PC. Choose **More info**, then **Run anyway**.
+- **macOS:** it says the app can't be checked for malicious software. Open **System Settings →
+  Privacy & Security**, find Felterra Tall Order near the bottom, and choose **Open Anyway**.
+- **Linux:** if it won't start, make it executable: `chmod +x felterra_tall_order.x86_64`.
+
 ## Controls
 
 | Keyboard | Gamepad | Action |
@@ -48,6 +61,9 @@ after cloning.
 # Run the tests (import once first on a fresh checkout)
 godot --headless --path . --import
 godot --headless --path . --script tests/run_tests.gd
+
+# Export every platform into build/release, as a release does (needs Godot's export templates)
+GODOT=/path/to/godot tools/export.sh
 
 # How long a simulation step takes with a horde of each size
 timeout 300 godot --headless --path . --script tools/benchmark_horde.gd

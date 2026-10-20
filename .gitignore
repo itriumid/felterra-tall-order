@@ -4,4 +4,4 @@
 .godot/
 
 # Exported builds.
-/exports/
+/build/
