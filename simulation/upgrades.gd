@@ -11,7 +11,10 @@ const AMOUNTS: Array[float] = [1.0, 1.6, 2.4, 3.5]
 ## How often each tier turns up, before luck.
 const WEIGHTS: Array[float] = [60.0, 28.0, 10.0, 2.0]
 const CHOICES := 3
-const TOP_LEVEL := 5
+## Weapons take levels up to WEAPON_TOP, then evolve along their family, or at the last of it
+## take mastery; gear takes levels up to GEAR_TOP, then mastery. Two tracks, tuned apart.
+const WEAPON_TOP := 10
+const GEAR_TOP := 5
 
 ## Stats come from what she wears, never on their own: each piece of gear gives some, and more
 ## with each level. What each stat is called and what it does, in one line.
@@ -43,7 +46,16 @@ const GEAR := {
 const SLOTS: Array[String] = ["head", "body", "neck", "eyes", "paws", "feet", "waist"]
 ## Weapons a card can hand her, if she has paws free for them.
 const WEAPONS: Array[String] = ["knife", "handgun", "submachine_gun"]
-const WEAPON_NAMES := {"knife": "Knife", "handgun": "Handgun", "submachine_gun": "Submachine gun"}
+const WEAPON_NAMES := {
+	"knife": "Knife", "keris": "Keris", "kerambit": "Kerambit",
+	"handgun": "Handgun", "submachine_gun": "Submachine gun",
+}
+## What a weapon at the top level can become: the families it evolves along. A weapon not listed
+## is the last of its family, and takes mastery from there.
+const EVOLVES := {"knife": "keris", "keris": "kerambit", "handgun": "submachine_gun"}
+## Past the top level, mastery: unlimited levels, each worth this share of an ordinary one. It's
+## what lets a long run keep growing.
+const MASTERY := 0.5
 ## What a level gives a weapon, before rarity.
 const LEVEL_DAMAGE := 0.15
 const LEVEL_TEMPO := 0.08
@@ -72,20 +84,31 @@ static func available(cat: Cat) -> Array[String]:
 	for id: String in GEAR:
 		var slot: String = GEAR[id].slot
 		if cat.gear.get(slot, "") == id:
-			if cat.gear_levels.get(id, 1) < TOP_LEVEL:
-				ids.append("gear_level:" + id)
+			ids.append(("gear_level:" if cat.gear_levels.get(id, 1) < GEAR_TOP else "gear_mastery:") + id)
 		elif cat.gear.get(slot, "") == "":
 			ids.append("gear:" + id)
 	var paws_used := 0
 	for weapon in cat.weapons:
 		paws_used += weapon.hands
-		if weapon.level < TOP_LEVEL:
+		if weapon.level < WEAPON_TOP:
 			ids.append("level:" + weapon.name)
+		elif EVOLVES.has(weapon.name):
+			ids.append("evolve:" + weapon.name)
+		else:
+			ids.append("mastery:" + weapon.name)
 	for weapon_name in WEAPONS:
-		var held := cat.weapons.any(func(weapon: Weapon) -> bool: return weapon.name == weapon_name)
-		if not held and paws_used + Weapon.named(weapon_name).hands <= Cat.PAWS:
+		var family_held := cat.weapons.any(func(weapon: Weapon) -> bool: return _family(weapon.name) == _family(weapon_name))
+		if not family_held and paws_used + Weapon.named(weapon_name).hands <= Cat.PAWS:
 			ids.append("weapon:" + weapon_name)
 	return ids.filter(func(id: String) -> bool: return not cat.banished.has(id))
+
+
+## The first weapon of a family: a keris is a knife that grew up.
+static func _family(weapon_name: String) -> String:
+	for from: String in EVOLVES:
+		if EVOLVES[from] == weapon_name:
+			return _family(from)
+	return weapon_name
 
 
 ## A fresh offer of three different choices, as [{id, rarity}].
@@ -101,22 +124,36 @@ static func offer(cat: Cat, random: RandomNumberGenerator, leaving_out: Array[St
 static func apply(cat: Cat, choice: Dictionary) -> void:
 	var id: String = choice.id
 	var amount: float = AMOUNTS[choice.rarity]
-	if id.begins_with("gear:") or id.begins_with("gear_level:"):
-		var gear_id := id.trim_prefix("gear:").trim_prefix("gear_level:")
+	if id.begins_with("gear"):
+		var gear_id := id.get_slice(":", 1)
 		var gear: Dictionary = GEAR[gear_id]
+		var share := 1.0
 		if id.begins_with("gear:"):
 			cat.gear[gear.slot] = gear_id
 			cat.gear_levels[gear_id] = 1
 		else:
 			cat.gear_levels[gear_id] = cat.gear_levels.get(gear_id, 1) + 1
+			if id.begins_with("gear_mastery:"):
+				share = MASTERY
 		for stat: String in gear.stats:
-			cat.raise(stat, gear.stats[stat] * amount)
-	elif id.begins_with("level:"):
+			cat.raise(stat, gear.stats[stat] * amount * share)
+	elif id.begins_with("level:") or id.begins_with("mastery:"):
+		var share := MASTERY if id.begins_with("mastery:") else 1.0
 		for weapon in cat.weapons:
-			if weapon.name == id.trim_prefix("level:"):
+			if weapon.name == id.get_slice(":", 1):
 				weapon.level += 1
-				weapon.power += LEVEL_DAMAGE * amount
-				weapon.tempo += LEVEL_TEMPO * amount
+				weapon.power += LEVEL_DAMAGE * amount * share
+				weapon.tempo += LEVEL_TEMPO * amount * share
+	elif id.begins_with("evolve:"):
+		for index in cat.weapons.size():
+			var old: Weapon = cat.weapons[index]
+			if old.name != id.get_slice(":", 1):
+				continue
+			# It keeps everything its levels gave it, and rarity adds a little more.
+			var grown := Weapon.named(EVOLVES[old.name])
+			grown.power = old.power + LEVEL_DAMAGE * (amount - 1.0)
+			grown.tempo = old.tempo + LEVEL_TEMPO * (amount - 1.0)
+			cat.weapons[index] = grown
 	elif id.begins_with("weapon:"):
 		var weapon := Weapon.named(id.trim_prefix("weapon:"))
 		# A rarer find comes better made: a level up for each tier above common.
@@ -133,22 +170,37 @@ static func describe(choice: Dictionary) -> Dictionary:
 	var id: String = choice.id
 	var amount: float = AMOUNTS[choice.rarity]
 	var card := {"lines": [], "explain": [], "unfamiliar": false, "item": "", "kind": ""}
-	if id.begins_with("gear:") or id.begins_with("gear_level:"):
-		var gear_id := id.trim_prefix("gear:").trim_prefix("gear_level:")
+	if id.begins_with("gear"):
+		var gear_id := id.get_slice(":", 1)
 		var gear: Dictionary = GEAR[gear_id]
+		var mastery := id.begins_with("gear_mastery:")
 		card.item = gear_id
 		card.kind = "gear"
-		card.name = gear.name if id.begins_with("gear:") else gear.name + " up"
+		card.name = gear.name if id.begins_with("gear:") else gear.name + (" mastery" if mastery else " up")
 		for stat: String in gear.stats:
-			card.lines.append(_amount_text(STATS[stat].format, gear.stats[stat] * amount))
+			card.lines.append(_amount_text(STATS[stat].format, gear.stats[stat] * amount * (MASTERY if mastery else 1.0)))
 			card.explain.append("%s: %s" % [STATS[stat].name, STATS[stat].explain])
 			card.unfamiliar = card.unfamiliar or stat in UNFAMILIAR
-	elif id.begins_with("level:"):
-		card.item = id.trim_prefix("level:")
+		if mastery:
+			card.explain.append("Mastery: past level %d, there's no limit; each is worth half a level" % GEAR_TOP)
+	elif id.begins_with("evolve:"):
+		var from := id.get_slice(":", 1)
+		card.item = EVOLVES[from]
 		card.kind = "weapon"
-		card.name = WEAPON_NAMES[card.item] + " up"
-		card.lines = ["+%d%% damage" % roundi(LEVEL_DAMAGE * amount * 100.0), "+%d%% attack speed" % roundi(LEVEL_TEMPO * amount * 100.0)]
-		card.explain = ["Weapon levels: each raises its damage and attack speed, up to level %d" % TOP_LEVEL]
+		card.name = WEAPON_NAMES[card.item]
+		card.lines = ["The %s evolves" % WEAPON_NAMES[from].to_lower(), "Keeps all its levels"]
+		card.explain = ["Evolving: at level %d a weapon can grow into the next of its family" % WEAPON_TOP]
+	elif id.begins_with("level:") or id.begins_with("mastery:"):
+		var mastery := id.begins_with("mastery:")
+		var share := MASTERY if mastery else 1.0
+		card.item = id.get_slice(":", 1)
+		card.kind = "weapon"
+		card.name = WEAPON_NAMES[card.item] + (" mastery" if mastery else " up")
+		card.lines = ["+%d%% damage" % roundi(LEVEL_DAMAGE * amount * share * 100.0), "+%d%% attack speed" % roundi(LEVEL_TEMPO * amount * share * 100.0)]
+		if mastery:
+			card.explain = ["Mastery: past level %d, there's no limit; each is worth half a level" % WEAPON_TOP]
+			return card
+		card.explain = ["Weapon levels: each raises its damage and attack speed; at level %d it evolves" % WEAPON_TOP]
 	else:
 		card.item = id.trim_prefix("weapon:")
 		card.kind = "weapon"

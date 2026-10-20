@@ -439,7 +439,10 @@ func _gain_experience(amount: int) -> void:
 		experience -= experience_needed(level)
 		level += 1
 		for cat in cats:
-			cat.offers.append(Upgrades.offer(cat, random))
+			var offer := Upgrades.offer(cat, random)
+			# Never an empty card: with mastery there's always something, but if not, no card.
+			if not offer.is_empty():
+				cat.offers.append(offer)
 
 
 func _keep_inside(body: Body) -> void:
