@@ -46,6 +46,13 @@ faction's shape:
 A felled human is a large body that falls and **crushes what's under it**, his own dogs
 included. Tricking a giant into flattening his own horde is a real tactic.
 
+**Guard dogs** are the company's own, in its hi-vis harness: real-sized, taller than an upright
+cat and twice as long, and faster than she is, so a dog can't simply be outrun. They come in
+packs of three from about a minute in. A dog that gets close crouches (the warning), then
+lunges: a real leap through the air that bites if it reaches her, and that a dodge gets her out
+from under; it lands, and needs a moment before it runs again. A dog is heavier than a rat, so a
+round shoves it less.
+
 ## The first map
 
 A clearing the company has cut in an Indonesian tropical forest.
