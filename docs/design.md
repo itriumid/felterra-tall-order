@@ -130,6 +130,11 @@ mutation you already have strengthens it without taking another slot.
 
 ## Runs
 
+- **The flow:** the title (the clearing, with the horde ambling about and now and then a giant)
+  offers Play, Settings and Leave. Play goes to the choice of knife or handgun, then the run.
+  When she's down, a summary of the run (time survived, level reached, kills, giants felled)
+  marks any new best in words as well as color, and offers Go again, Back to the title, or
+  Leave. The best run is kept beside the settings.
 - A run lasts **15 to 30 minutes**. Progress carries over between runs.
 - **Endless mode**: the giants never stop coming; factions arrive and start to mix.
 - **The hub is the cats' village** at the forest's edge. It grows between runs: rescued cats
