@@ -61,7 +61,10 @@ The design is in `docs/design.md`; read it before changing how the game plays.
 
 - **Before calling a change done**, run the tests:
   `godot --headless --path . --import`, then
-  `godot --headless --path . --script tests/run_tests.gd`. Run long probes and tools under
+  `godot --headless --path . --script tests/run_tests.gd`, and play the menus through:
+  `timeout 120 godot --headless --path . --script tools/check_menus.gd -- --title`. A screenshot
+  only shows a page; the menu check chooses from them, and fails on any engine error. A new page
+  or choice gets a step there. Run long probes and tools under
   `timeout`; a stuck loop pegs a core until killed.
 - **The simulation (`simulation/`) never touches nodes or the screen.** It runs headless: the
   tests run it that way, and so will the host of an online game. Views live in `game/`.

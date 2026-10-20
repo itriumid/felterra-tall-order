@@ -84,3 +84,7 @@ jobs:
         run: '"$GODOT" --headless --path . --import || true'
       - name: Run the tests
         run: '"$GODOT" --headless --path . --script tests/run_tests.gd'
+      # The menus played the way a player would: every path pressed through, failing on a step that
+      # lands on the wrong page or on any error the engine reports along the way.
+      - name: Check the menus
+        run: '"$GODOT" --headless --path . --script tools/check_menus.gd -- --title'
