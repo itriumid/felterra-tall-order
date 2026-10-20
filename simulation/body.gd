@@ -12,6 +12,8 @@ var height := 0.0
 var velocity := Vector2.ZERO
 var vertical_speed := 0.0
 var radius := 0.1
+## What it is or was ("rat", "dog"), so the fallen are drawn as what they were.
+var kind := ""
 ## How tall it stands, for what passes over it.
 var tall := 0.1
 ## The share of its falling speed a bounce keeps.

@@ -15,6 +15,12 @@ const MOST_CREATURES := 600
 const GIANTS_FROM := 25.0
 const GIANT_INTERVAL := 40.0
 const MOST_GIANTS := 3
+## The company's guard dogs come in packs from DOGS_FROM seconds in, one pack every DOG_INTERVAL,
+## no more than MOST_DOGS at once.
+const DOGS_FROM := 50.0
+const DOG_INTERVAL := 35.0
+const DOG_PACK := 3
+const MOST_DOGS := 12
 const FELLED_LASTS := 40.0
 ## The fallen stay where they lie, up to this many. Past that, the oldest crumble away over
 ## FADE_TIME seconds rather than vanishing.
@@ -45,6 +51,7 @@ var level := 1
 var events: Array[Dictionary] = []
 var _since_spawn := 0.0
 var _since_giant := GIANT_INTERVAL - GIANTS_FROM
+var _since_dogs := DOG_INTERVAL - DOGS_FROM
 var _grid := {}
 
 
@@ -66,8 +73,8 @@ func add_giant(where: Vector2) -> Giant:
 	return giant
 
 
-func add_creature(where: Vector2) -> Creature:
-	var creature := Creature.new()
+func add_creature(where: Vector2, kind := "rat") -> Creature:
+	var creature := Creature.new(kind)
 	creature.body.position = where
 	creatures.append(creature)
 	return creature
@@ -81,7 +88,7 @@ func step() -> void:
 		cat.step(STEP, self)
 		_keep_inside(cat.body)
 	for creature in creatures:
-		creature.step(STEP, nearest_cat(creature.body.position))
+		creature.step(STEP, nearest_cat(creature.body.position), self)
 		_keep_inside(creature.body)
 	for giant in giants:
 		giant.step(STEP, self)
@@ -286,8 +293,10 @@ func _separate() -> void:
 		if creature.body.airborne():
 			continue
 		var cell := _cell_of(creature.body.position)
-		for x in range(cell.x - 1, cell.x + 2):
-			for y in range(cell.y - 1, cell.y + 2):
+		# A dog is wider than a cell: it looks two round, a rat one.
+		var span := 2 if creature.body.radius > CELL / 2.0 else 1
+		for x in range(cell.x - span, cell.x + span + 1):
+			for y in range(cell.y - span, cell.y + span + 1):
 				for other: Creature in _grid.get(Vector2i(x, y), []):
 					if other == creature or other.body.airborne():
 						continue
@@ -306,18 +315,21 @@ func _bite() -> void:
 		if not cat.alive():
 			continue
 		var cell := _cell_of(cat.body.position)
-		for x in range(cell.x - 1, cell.x + 2):
-			for y in range(cell.y - 1, cell.y + 2):
+		# Two cells round: a dog is wider than a cell.
+		for x in range(cell.x - 2, cell.x + 3):
+			for y in range(cell.y - 2, cell.y + 3):
 				for creature: Creature in _grid.get(Vector2i(x, y), []):
 					var apart := cat.body.position - creature.body.position
-					# A rat bites what it can reach: along the ground and up off it.
-					if creature.bite_ready_in > 0.0 or creature.body.airborne() \
+					# It bites what it can reach: along the ground and up off it, on its feet or in
+					# the middle of a lunge.
+					if creature.bite_ready_in > 0.0 or (creature.body.airborne() and not creature.lunging()) \
 							or apart.length() > cat.body.radius + creature.body.radius + 0.02 \
-							or cat.body.height > creature.body.height + creature.body.tall:
+							or cat.body.height > creature.body.height + creature.body.tall \
+							or creature.body.height > cat.body.height + Cat.TALL:
 						continue
-					creature.bite_ready_in = Creature.BITE_INTERVAL
-					if cat.hurt(Creature.BITE_DAMAGE, apart.normalized() * 0.6):
-						events.append({"position": cat.body.position, "height": 0.15, "direction": apart.normalized(), "killed": false, "by": "bite", "giant": false})
+					creature.bite_ready_in = creature.stat("bite_interval")
+					if cat.hurt(creature.stat("bite"), apart.normalized() * 0.6):
+						events.append({"position": cat.body.position, "height": 0.15, "direction": apart.normalized(), "killed": false, "by": "bite", "giant": false, "kind": creature.kind})
 
 
 func _fly_shots() -> void:
@@ -343,8 +355,9 @@ func _fly_shots() -> void:
 func _first_hit(shot: Shot) -> Object:
 	var from := shot.previous
 	var to := shot.position
-	var lowest := _cell_of(Vector2(minf(from.x, to.x), minf(from.y, to.y)) - Vector2.ONE * CELL)
-	var highest := _cell_of(Vector2(maxf(from.x, to.x), maxf(from.y, to.y)) + Vector2.ONE * CELL)
+	# Widened by the widest creature, so a round grazing a dog's edge isn't missed.
+	var lowest := _cell_of(Vector2(minf(from.x, to.x), minf(from.y, to.y)) - Vector2.ONE * (CELL + 0.25))
+	var highest := _cell_of(Vector2(maxf(from.x, to.x), maxf(from.y, to.y)) + Vector2.ONE * (CELL + 0.25))
 	var first: Object = null
 	var first_along := INF
 	for x in range(lowest.x, highest.x + 1):
@@ -401,13 +414,15 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 		return
 	var creature: Creature = target
 	creature.health -= damage
-	creature.body.push(direction * knock, lift)
+	# A push is shared over its mass: a dog takes a hit a rat would fly from.
+	var heft: float = creature.stat("heft")
+	creature.body.push(direction * knock / heft, lift / heft)
 	# The view drains these as it draws; headless, nothing does, so the oldest go.
 	if events.size() >= 256:
 		events.pop_front()
 	events.append({
 		"position": creature.body.position, "height": creature.body.height + creature.body.tall * 0.5,
-		"direction": direction, "killed": not creature.alive(), "by": by, "giant": false,
+		"direction": direction, "killed": not creature.alive(), "by": by, "giant": false, "kind": creature.kind,
 	})
 	if creature.alive():
 		return
@@ -479,6 +494,14 @@ func _spawn() -> void:
 	if _since_giant >= GIANT_INTERVAL and giants.filter(func(giant: Giant) -> bool: return giant.standing()).size() < MOST_GIANTS:
 		_since_giant = 0.0
 		add_giant(edge_point())
+	_since_dogs += STEP
+	if _since_dogs >= DOG_INTERVAL:
+		_since_dogs = 0.0
+		var dogs := creatures.filter(func(creature: Creature) -> bool: return creature.kind == "dog").size()
+		# A pack comes out of the jungle together.
+		var gate := edge_point()
+		for index in mini(DOG_PACK, MOST_DOGS - dogs):
+			add_creature((gate + Vector2(random.randf_range(-0.6, 0.6), random.randf_range(-0.6, 0.6))).clamp(Vector2.ONE * 0.3, SIZE - Vector2.ONE * 0.3), "dog")
 	if creatures.size() >= MOST_CREATURES:
 		return
 	_since_spawn += STEP
