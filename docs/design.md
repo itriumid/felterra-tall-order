@@ -352,6 +352,13 @@ kentongan tapping the off-beats and kendang fills closing them. It adapts: the m
 carries the run, and **when a giant walks in, a rock layer joins** (a backbeat and a
 power-chord riff), so a giant is heard arriving before he's seen.
 
+Until it's composed, a **placeholder in the same shape** plays: six layers synthesized in code,
+all the same eight-bar loop so they stay in step (drums with the kentongan and kendang, the
+octave bass, chords that turn to angklung, the chiptune lead, the gamelan answer, and the rock
+layer). Drums, bass and the gamelan always play; the chords, then the lead, come in as the horde
+thickens around her; the rock layer whenever a giant is on his feet; and everything drops back
+in the pause menu. Real music replaces the layers one for one.
+
 ## First prototype
 
 Placeholder art; it tests the three biggest risks, all technical:
