@@ -20,9 +20,17 @@ const OUTFITS: Array[Dictionary] = [
 	{"body": "vest", "head": "hard_hat", "neck": "bell_collar", "eyes": "goggles", "paws": "gloves", "feet": "boots", "waist": "jamu_flask", "weapons": []},
 	{"body": "vest", "head": "caping", "neck": "scarf", "weapons": ["knife", "submachine_gun"]},
 ]
-const AIM_MODES: Array[String] = ["nearest", "toughest", "crowd"]
 ## The pause menu. Solo, it stops the world; online, it opens over a world that keeps running.
-const MENU: Array[String] = ["carry_on", "blood", "aim", "start_again", "leave"]
+const MENU: Array[String] = ["carry_on", "settings", "start_again", "leave"]
+## The settings page: each row's section, setting and name, by section.
+const SETTING_ROWS: Array[Array] = [
+	["graphics", "full_screen", "Full screen"], ["graphics", "window_scale", "Window size"],
+	["graphics", "vsync", "Vertical sync"],
+	["audio", "master", "Volume"], ["audio", "music", "Music"], ["audio", "effects", "Effects"],
+	["audio", "interface", "Interface"],
+	["gameplay", "aim", "Aim"], ["gameplay", "blood", "Blood"],
+	["", "back", "Back"],
+]
 ## There's no online play yet; when there is, the menu won't stop the world there.
 const ONLINE := false
 
@@ -38,6 +46,13 @@ var _outfit := 0
 ## The weapon she starts with, once chosen: until then the run waits.
 var _start_weapon := ""
 var _menu_open := false
+## Which page of the menu is showing, and the row chosen on the settings page.
+var _menu_page := "pause"
+var _setting_choice := 0
+var settings := Settings.new()
+## Settings are read and written only in a real session: a development flag never touches them.
+var _keeping_settings := false
+var _open_settings_first := false
 var _menu_after := -1.0
 ## For screenshots: show the cards' explanations as if Tab were held.
 var _always_reading := false
@@ -50,7 +65,6 @@ var _walk := Vector2.ZERO
 var _frames := 1
 var _frames_saved := 0
 var _sturdy := false
-var _entities_blood := true
 var _behind := 0.0
 var _screenshot_path := ""
 var _screenshot_after := 4.0
@@ -85,11 +99,13 @@ func _ready() -> void:
 		elif argument.begins_with("--start="):
 			_start_weapon = argument.trim_prefix("--start=")
 		elif argument == "--no-blood":
-			_entities_blood = false
+			settings.set_value("gameplay", "blood", false)
 		elif argument == "--reading":
 			_always_reading = true
 		elif argument == "--menu":
 			_menu_open = true
+		elif argument == "--settings":
+			_open_settings_first = true
 		elif argument.begins_with("--menu-after="):
 			_menu_after = argument.trim_prefix("--menu-after=").to_float()
 		elif argument == "--sturdy":
@@ -101,11 +117,17 @@ func _ready() -> void:
 	# A screenshot can't wait for someone to choose, unless it's of the choice itself.
 	if not _screenshot_path.is_empty() and _start_weapon.is_empty() and not "--choose" in OS.get_cmdline_user_args():
 		_start_weapon = "handgun"
+	_keeping_settings = OS.get_cmdline_user_args().is_empty()
+	if _keeping_settings:
+		settings.load_from()
+	settings.apply()
 	_build_scene()
-	_entities.blood = _entities_blood
+	_entities.blood = settings.get_value("gameplay", "blood")
 	_begin(horde, spawning)
-	if _menu_open:
+	if _menu_open or _open_settings_first:
 		_open_menu()
+		if _open_settings_first:
+			_menu_page = "settings"
 
 
 func _build_scene() -> void:
@@ -154,6 +176,7 @@ func _begin(horde: int, spawning: bool) -> void:
 	arena = Arena.new()
 	arena.spawning = spawning
 	cat = arena.add_cat(_start)
+	cat.aim_mode = settings.get_value("gameplay", "aim")
 	_dress()
 	if _sturdy:
 		cat.health = 1.0e9
@@ -244,6 +267,7 @@ func _take_screenshot(delta: float) -> void:
 
 func _open_menu() -> void:
 	_menu_open = true
+	_menu_page = "pause"
 	_menu_choice = 0 if cat.alive() else MENU.find("start_again")
 	if not ONLINE:
 		get_tree().paused = true
@@ -252,10 +276,22 @@ func _open_menu() -> void:
 func _close_menu() -> void:
 	_menu_open = false
 	_overlay.menu = []
+	_overlay.setting_rows = []
 	get_tree().paused = false
 
 
 func _read_menu() -> void:
+	if _menu_page == "settings":
+		_read_settings()
+	else:
+		_read_pause()
+	_overlay.menu = _menu_lines()
+	_overlay.menu_choice = _menu_choice
+	_overlay.setting_rows = _setting_lines() if _menu_page == "settings" else []
+	_overlay.setting_choice = _setting_choice
+
+
+func _read_pause() -> void:
 	if Input.is_action_just_pressed("pause") and cat.alive():
 		_close_menu()
 		return
@@ -268,10 +304,9 @@ func _read_menu() -> void:
 			"carry_on":
 				if cat.alive():
 					_close_menu()
-			"blood":
-				_entities.blood = not _entities.blood
-			"aim":
-				cat.aim_mode = AIM_MODES[(AIM_MODES.find(cat.aim_mode) + 1) % AIM_MODES.size()]
+			"settings":
+				_menu_page = "settings"
+				_setting_choice = 0
 			"start_again":
 				_close_menu()
 				_start_weapon = ""
@@ -279,8 +314,40 @@ func _read_menu() -> void:
 				_begin(0, true)
 			"leave":
 				get_tree().quit()
-	_overlay.menu = _menu_lines()
-	_overlay.menu_choice = _menu_choice
+
+
+## The settings page: up and down choose a row, left and right change it, Escape goes back.
+func _read_settings() -> void:
+	if Input.is_action_just_pressed("pause"):
+		_menu_page = "pause"
+		return
+	if Input.is_action_just_pressed("move_up"):
+		_setting_choice = wrapi(_setting_choice - 1, 0, SETTING_ROWS.size())
+	if Input.is_action_just_pressed("move_down"):
+		_setting_choice = wrapi(_setting_choice + 1, 0, SETTING_ROWS.size())
+	var row: Array = SETTING_ROWS[_setting_choice]
+	var direction := 0
+	if Input.is_action_just_pressed("move_left"):
+		direction = -1
+	elif Input.is_action_just_pressed("move_right") or Input.is_action_just_pressed("menu_choose"):
+		direction = 1
+	if direction == 0:
+		return
+	if row[1] == "back":
+		if Input.is_action_just_pressed("menu_choose"):
+			_menu_page = "pause"
+		return
+	settings.step(row[0], row[1], direction)
+	_settings_changed()
+
+
+## Puts changed settings into effect, in the run too, and keeps them.
+func _settings_changed() -> void:
+	settings.apply()
+	cat.aim_mode = settings.get_value("gameplay", "aim")
+	_entities.blood = settings.get_value("gameplay", "blood")
+	if _keeping_settings:
+		settings.save()
 
 
 func _menu_lines() -> Array[String]:
@@ -288,11 +355,31 @@ func _menu_lines() -> Array[String]:
 	for item in MENU:
 		match item:
 			"carry_on": lines.append("Carry on" if cat.alive() else "Carry on (she's down)")
-			"blood": lines.append("Blood: %s" % ("on" if _entities.blood else "off, dust and fur instead"))
-			"aim": lines.append("Aim: %s" % cat.aim_mode)
+			"settings": lines.append("Settings")
 			"start_again": lines.append("Start again")
 			"leave": lines.append("Leave the game")
 	return lines
+
+
+## Each settings row as the page shows it: {section, name, value, volume}. A volume shows as a
+## bar; the rest as words.
+func _setting_lines() -> Array[Dictionary]:
+	var rows: Array[Dictionary] = []
+	for row: Array in SETTING_ROWS:
+		var line := {"section": row[0], "name": row[2], "value": "", "volume": -1}
+		if row[1] != "back":
+			var value: Variant = settings.get_value(row[0], row[1])
+			match row[1]:
+				"window_scale": line.value = "%d by %d" % [640 * int(value), 360 * int(value)]
+				"aim": line.value = {"nearest": "Nearest", "toughest": "Toughest first", "crowd": "Thickest crowd"}[value]
+				"blood": line.value = "On" if value else "Off: dust and fur instead"
+				_:
+					if value is bool:
+						line.value = "On" if value else "Off"
+					else:
+						line.volume = int(value)
+		rows.append(line)
+	return rows
 
 
 func _read_controls() -> void:
@@ -323,15 +410,18 @@ func _read_controls() -> void:
 		cat.reroll(arena.random)
 	_overlay.reading = Input.is_action_pressed("read_cards") or _always_reading
 	_overlay.banishing = Input.is_action_pressed("banish")
+	# Shortcuts for settings: they change the saved settings, as the menu would.
 	if Input.is_action_just_pressed("change_aim"):
-		cat.aim_mode = AIM_MODES[(AIM_MODES.find(cat.aim_mode) + 1) % AIM_MODES.size()]
+		settings.step("gameplay", "aim", 1)
+		_settings_changed()
 	if Input.is_action_just_pressed("toggle_blood"):
-		_entities.blood = not _entities.blood
+		settings.step("gameplay", "blood", 1)
+		_settings_changed()
 	if Input.is_action_just_pressed("toggle_overlay"):
 		_overlay.show_numbers = not _overlay.show_numbers
 	if Input.is_action_just_pressed("toggle_fullscreen"):
-		var full := DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if full else DisplayServer.WINDOW_MODE_FULLSCREEN)
+		settings.step("graphics", "full_screen", 1)
+		_settings_changed()
 	# Escape opens the menu; when she's down, it opens on its own, ready to start again.
 	if Input.is_action_just_pressed("pause") or not cat.alive():
 		_open_menu()
