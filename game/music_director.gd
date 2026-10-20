@@ -49,12 +49,14 @@ static func targets(horde_near: int, giant_standing: bool, paused: bool) -> Dict
 
 
 func _process(delta: float) -> void:
-	if _players.is_empty() or arena == null or cat == null:
+	if _players.is_empty() or arena == null:
 		return
+	# Behind the title there's no cat: the horde around her counts as none.
 	var near := 0
-	for creature in arena.creatures:
-		if creature.body.position.distance_to(cat.body.position) < NEAR:
-			near += 1
+	if cat != null:
+		for creature in arena.creatures:
+			if creature.body.position.distance_to(cat.body.position) < NEAR:
+				near += 1
 	var giant := arena.giants.any(func(each: Giant) -> bool: return each.standing())
 	var wanted := targets(near, giant, get_tree().paused)
 	for layer: String in _players:

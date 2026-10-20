@@ -20,8 +20,13 @@ const OUTFITS: Array[Dictionary] = [
 	{"body": "vest", "head": "hard_hat", "neck": "bell_collar", "eyes": "goggles", "paws": "gloves", "feet": "boots", "waist": "jamu_flask", "weapons": []},
 	{"body": "vest", "head": "caping", "neck": "scarf", "weapons": ["knife", "submachine_gun"]},
 ]
-## The pause menu. Solo, it stops the world; online, it opens over a world that keeps running.
-const MENU: Array[String] = ["carry_on", "settings", "start_again", "leave"]
+## The menus, as pages of choices. The title runs a world behind it; the pause menu and the
+## summary of a run stop it (solo; online, the pause menu opens over a world that keeps running).
+const PAGES := {
+	"title": ["play", "settings", "leave"],
+	"pause": ["carry_on", "settings", "start_again", "title", "leave"],
+	"summary": ["go_again", "title", "leave"],
+}
 ## The settings page: each row's section, setting and name, by section.
 const SETTING_ROWS: Array[Array] = [
 	["graphics", "full_screen", "Full screen"], ["graphics", "window_scale", "Window size"],
@@ -47,14 +52,22 @@ var _ground: GroundView
 var _outfit := 0
 ## The weapon she starts with, once chosen: until then the run waits.
 var _start_weapon := ""
-var _menu_open := false
-## Which page of the menu is showing, and the row chosen on the settings page.
-var _menu_page := "pause"
+## Which page is showing ("" while playing), the page the settings return to, and the rows chosen.
+var _page := ""
+var _settings_from := "pause"
 var _setting_choice := 0
+var records := Records.new()
+## Which of the last run's numbers beat the best.
+var _beaten: Array[String] = []
 var settings := Settings.new()
-## Settings are read and written only in a real session: a development flag never touches them.
+## Settings and records are read and written only in a real session: a development flag never
+## touches them.
 var _keeping_settings := false
 var _open_settings_first := false
+var _open_menu_first := false
+var _open_title_first := false
+## For screenshots: she goes down this many seconds into the run (never, below 0).
+var _down_after := -1.0
 var _menu_after := -1.0
 ## For screenshots: show the cards' explanations as if Tab were held.
 var _always_reading := false
@@ -105,7 +118,11 @@ func _ready() -> void:
 		elif argument == "--reading":
 			_always_reading = true
 		elif argument == "--menu":
-			_menu_open = true
+			_open_menu_first = true
+		elif argument == "--title":
+			_open_title_first = true
+		elif argument.begins_with("--down-after="):
+			_down_after = argument.trim_prefix("--down-after=").to_float()
 		elif argument == "--settings":
 			_open_settings_first = true
 		elif argument.begins_with("--menu-after="):
@@ -122,16 +139,22 @@ func _ready() -> void:
 	_keeping_settings = OS.get_cmdline_user_args().is_empty()
 	if _keeping_settings:
 		settings.load_from()
+		records.load_from()
 	settings.apply()
 	# A development run is silent unless asked: screenshots shouldn't blast whoever's nearby.
 	AudioServer.set_bus_mute(0, not _keeping_settings and not "--sound" in OS.get_cmdline_user_args())
 	_build_scene()
 	_entities.blood = settings.get_value("gameplay", "blood")
-	_begin(horde, spawning)
-	if _menu_open or _open_settings_first:
-		_open_menu()
-		if _open_settings_first:
-			_menu_page = "settings"
+	# A real session opens on the title; a development run goes straight into the fight it set up.
+	if _keeping_settings or _open_title_first:
+		_show_title()
+	else:
+		_begin(horde, spawning)
+		if _open_menu_first or _open_settings_first:
+			_open_page("pause")
+			if _open_settings_first:
+				_settings_from = "pause"
+				_page = "settings"
 
 
 func _build_scene() -> void:
@@ -199,13 +222,34 @@ func _begin(horde: int, spawning: bool) -> void:
 		body.radius = 0.08
 		body.position = _start + Vector2(arena.random.randf_range(-7.0, 7.0), arena.random.randf_range(-4.0, 4.0))
 		arena.fallen.append(body)
-	_entities.arena = arena
-	_ground.arena = arena
-	_audio.watch(arena)
-	_music.arena = arena
-	_music.cat = cat
-	_overlay.arena = arena
-	_overlay.cat = cat
+	_watch(arena, cat)
+	# The view starts on her, even if a menu opens before the first frame moves it.
+	_camera.position = World.to_screen(cat.body.position)
+
+
+## Every view follows this arena, and this cat (or none, behind the title).
+func _watch(watched: Arena, watched_cat: Cat) -> void:
+	_entities.arena = watched
+	_ground.arena = watched
+	_audio.watch(watched)
+	_music.arena = watched
+	_music.cat = watched_cat
+	_overlay.arena = watched
+	_overlay.cat = watched_cat
+
+
+## The title, over a clearing where the horde ambles about and now and then a giant walks.
+func _show_title() -> void:
+	arena = Arena.new()
+	arena.spawning = false
+	cat = null
+	for index in 30:
+		arena.add_creature(Vector2(arena.random.randf_range(2.0, Arena.SIZE.x - 2.0), arena.random.randf_range(2.0, Arena.SIZE.y - 2.0)))
+	arena.add_giant(Arena.SIZE / 2.0 + Vector2(4.0, 2.0))
+	_watch(arena, null)
+	_start_weapon = ""
+	_outfit = 0
+	_open_page("title")
 
 
 ## Puts the outfit on her, with the weapon she chose to start with unless the outfit names its
@@ -233,19 +277,38 @@ func _soft_light(size: Vector2i) -> GradientTexture2D:
 
 
 func _process(delta: float) -> void:
-	if _menu_open:
-		_read_menu()
+	if not _page.is_empty():
+		_read_page()
+		if _page == "title":
+			_step_world(delta)
+			_camera.position = World.to_screen(Arena.SIZE / 2.0)
 		_take_screenshot(delta)
 		return
 	_read_controls()
 	if _menu_after >= 0.0 and arena.time >= _menu_after:
 		_menu_after = -1.0
-		_open_menu()
+		_open_page("pause")
 	_overlay.choosing = _start_weapon.is_empty()
 	if _start_weapon.is_empty():
 		_camera.position = World.to_screen(cat.body.position)
 		_take_screenshot(delta)
 		return
+	if _down_after >= 0.0 and arena.time >= _down_after:
+		_down_after = -1.0
+		cat.health = 0.0
+	_step_world(delta)
+	# On her spot on the ground, not her height: a hop or a throw moves her in the frame.
+	_camera.position = World.to_screen(cat.body.position)
+	_muzzle_light.position = World.to_screen(cat.body.position, Cat.GUN_HEIGHT) + cat.aim * 10.0
+	_muzzle_light.energy = 1.6 * _entities.flash.get(cat, 0.0)
+	if not cat.alive():
+		_end_run()
+	_take_screenshot(delta)
+
+
+## Steps the simulation to catch up with the time passed, and hands its hits to the blood and
+## the sound.
+func _step_world(delta: float) -> void:
 	_behind = minf(_behind + delta, Arena.STEP * 5.0)
 	var started := Time.get_ticks_usec()
 	var steps := 0
@@ -253,18 +316,22 @@ func _process(delta: float) -> void:
 		_behind -= Arena.STEP
 		arena.step()
 		steps += 1
-	# Hits from these steps, for the blood and the sound alike.
 	var events: Array[Dictionary] = arena.events.duplicate()
 	arena.events.clear()
 	_entities.take_events(events)
 	_audio.take_events(events)
 	if steps > 0:
 		_overlay.step_milliseconds = (Time.get_ticks_usec() - started) / 1000.0 / steps
-	# On her spot on the ground, not her height: a hop or a throw moves her in the frame.
-	_camera.position = World.to_screen(cat.body.position)
-	_muzzle_light.position = World.to_screen(cat.body.position, Cat.GUN_HEIGHT) + cat.aim * 10.0
-	_muzzle_light.energy = 1.6 * _entities.flash.get(cat, 0.0)
-	_take_screenshot(delta)
+
+
+## She's down: the run's numbers go into the records, and its summary opens.
+func _end_run() -> void:
+	_beaten = records.record(Records.of(arena))
+	if _keeping_settings:
+		records.save()
+	_overlay.summary = Records.of(arena)
+	_overlay.beaten = _beaten
+	_open_page("summary")
 
 
 func _take_screenshot(delta: float) -> void:
@@ -284,64 +351,72 @@ func _take_screenshot(delta: float) -> void:
 			get_tree().quit()
 
 
-func _open_menu() -> void:
-	_menu_open = true
-	_menu_page = "pause"
-	_menu_choice = 0 if cat.alive() else MENU.find("start_again")
-	if not ONLINE:
-		get_tree().paused = true
+func _open_page(page: String) -> void:
+	_page = page
+	_menu_choice = 0
+	if not ONLINE or page == "summary":
+		get_tree().paused = page != "title"
 
 
-func _close_menu() -> void:
-	_menu_open = false
-	_overlay.menu = []
-	_overlay.setting_rows = []
+func _close_page() -> void:
+	_page = ""
+	_overlay.menu.clear()
+	_overlay.setting_rows.clear()
 	get_tree().paused = false
 
 
-func _read_menu() -> void:
-	if _menu_page == "settings":
+func _read_page() -> void:
+	if _page == "settings":
 		_read_settings()
 	else:
-		_read_pause()
+		_read_choices()
+	_overlay.page = _page if _page != "settings" else _settings_from
 	_overlay.menu = _menu_lines()
 	_overlay.menu_choice = _menu_choice
-	_overlay.setting_rows = _setting_lines() if _menu_page == "settings" else []
+	_overlay.setting_rows.clear()
+	if _page == "settings":
+		_overlay.setting_rows = _setting_lines()
 	_overlay.setting_choice = _setting_choice
 
 
-func _read_pause() -> void:
-	if Input.is_action_just_pressed("pause") and cat.alive():
-		_close_menu()
+## A page of choices: up and down choose, Enter or Space takes it, Escape closes the pause menu.
+func _read_choices() -> void:
+	var choices: Array = PAGES[_page]
+	if Input.is_action_just_pressed("pause") and _page == "pause":
+		_close_page()
 		return
 	if Input.is_action_just_pressed("move_up"):
-		_menu_choice = wrapi(_menu_choice - 1, 0, MENU.size())
+		_menu_choice = wrapi(_menu_choice - 1, 0, choices.size())
 		_audio.interface("menu_move")
 	if Input.is_action_just_pressed("move_down"):
-		_menu_choice = wrapi(_menu_choice + 1, 0, MENU.size())
+		_menu_choice = wrapi(_menu_choice + 1, 0, choices.size())
 		_audio.interface("menu_move")
-	if Input.is_action_just_pressed("menu_choose"):
-		_audio.interface("menu_choose")
-		match MENU[_menu_choice]:
-			"carry_on":
-				if cat.alive():
-					_close_menu()
-			"settings":
-				_menu_page = "settings"
-				_setting_choice = 0
-			"start_again":
-				_close_menu()
-				_start_weapon = ""
-				_outfit = 0
-				_begin(0, true)
-			"leave":
-				get_tree().quit()
+	if not Input.is_action_just_pressed("menu_choose"):
+		return
+	_audio.interface("menu_choose")
+	match choices[_menu_choice]:
+		"carry_on":
+			_close_page()
+		"settings":
+			_settings_from = _page
+			_page = "settings"
+			_setting_choice = 0
+		"play", "start_again", "go_again":
+			_close_page()
+			_start_weapon = ""
+			_outfit = 0
+			_begin(0, true)
+		"title":
+			_close_page()
+			_show_title()
+		"leave":
+			get_tree().quit()
 
 
 ## The settings page: up and down choose a row, left and right change it, Escape goes back.
 func _read_settings() -> void:
 	if Input.is_action_just_pressed("pause"):
-		_menu_page = "pause"
+		_page = _settings_from
 		_audio.interface("menu_back")
 		return
 	if Input.is_action_just_pressed("move_up"):
@@ -360,7 +435,7 @@ func _read_settings() -> void:
 		return
 	if row[1] == "back":
 		if Input.is_action_just_pressed("menu_choose"):
-			_menu_page = "pause"
+			_page = _settings_from
 		return
 	settings.step(row[0], row[1], direction)
 	_settings_changed()
@@ -370,7 +445,8 @@ func _read_settings() -> void:
 ## Puts changed settings into effect, in the run too, and keeps them.
 func _settings_changed() -> void:
 	settings.apply()
-	cat.aim_mode = settings.get_value("gameplay", "aim")
+	if cat != null:
+		cat.aim_mode = settings.get_value("gameplay", "aim")
 	_entities.blood = settings.get_value("gameplay", "blood")
 	if _keeping_settings:
 		settings.save()
@@ -378,12 +454,12 @@ func _settings_changed() -> void:
 
 func _menu_lines() -> Array[String]:
 	var lines: Array[String] = []
-	for item in MENU:
-		match item:
-			"carry_on": lines.append("Carry on" if cat.alive() else "Carry on (she's down)")
-			"settings": lines.append("Settings")
-			"start_again": lines.append("Start again")
-			"leave": lines.append("Leave the game")
+	var page := _page if _page != "settings" else _settings_from
+	for item: String in PAGES[page]:
+		lines.append({
+			"play": "Play", "carry_on": "Carry on", "settings": "Settings", "start_again": "Start again",
+			"go_again": "Go again", "title": "Back to the title", "leave": "Leave the game",
+		}[item])
 	return lines
 
 
@@ -451,6 +527,5 @@ func _read_controls() -> void:
 	if Input.is_action_just_pressed("toggle_fullscreen"):
 		settings.step("graphics", "full_screen", 1)
 		_settings_changed()
-	# Escape opens the menu; when she's down, it opens on its own, ready to start again.
-	if Input.is_action_just_pressed("pause") or not cat.alive():
-		_open_menu()
+	if Input.is_action_just_pressed("pause"):
+		_open_page("pause")
