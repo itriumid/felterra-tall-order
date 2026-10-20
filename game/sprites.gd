@@ -1,0 +1,686 @@
+class_name Sprites
+extends RefCounted
+## Placeholder art, drawn pixel by pixel as text so every color comes from the palette. Each
+## sprite is its rows from the top; each letter is a palette color, a dot is clear.
+##
+## Gear is layered over the body and placed by anchor points marked on the body: the paw a gun
+## is held in, where a hat sits. Guns that aim are drawn at three angles and mirrored for the
+## other five; nothing is rotated in code.
+
+const LEGEND := {
+	"k": Palette.OUTLINE, "o": Palette.FUR_SHADOW, "O": Palette.FUR, "y": Palette.FUR_LIGHT,
+	"w": Palette.CREAM, "p": Palette.NOSE, "g": Palette.EYE, "e": Palette.EYE_DARK,
+	"v": Palette.CLOTH_SHADOW, "V": Palette.CLOTH, "L": Palette.CLOTH_LIGHT,
+	"b": Palette.LEATHER, "B": Palette.LEATHER_LIGHT, "h": Palette.BRASS, "H": Palette.BRASS_LIGHT,
+	"d": Palette.STEEL_DARK, "S": Palette.STEEL, "s": Palette.STEEL_LIGHT,
+	"r": Palette.RAT_SHADOW, "R": Palette.RAT, "q": Palette.RAT_LIGHT, "t": Palette.RAT_TAIL,
+	"c": Palette.SCARF_RED,
+}
+
+## The cat, in three views: toward the viewer ("front"), away ("back") and side-on facing right
+## ("side", mirrored for left). Each view is its body from the ears to the hips, and four frames
+## of legs below it: feet together, the near foot up, together, the far foot up. Only the legs
+## change from frame to frame, so a layer drawn for a view fits every frame of it.
+const CAT_UPPER := {
+	"front": """
+......k.......k.........
+.....kyk.....kOk........
+.....kpOk...kOpk........
+.....kpOOkkkOOpk........
+....kyOOOOOOOOOOk.......
+....kyyOOOOOOOOok.......
+....kyOOOOOOOOOok.......
+....kOOgekOOgekok.......
+....kOOeekOOeekok.......
+....kyOOOwwwOOOok.......
+.....kyOwwpwwOok........
+......kkoyyyokk.........
+.......kyOOOok..........
+......kyOOOOOok.........
+.....kyyOOOOOook...kk...
+....kyykOOOOOkook.kyOk..
+....kyk.kyOOok.kOk.kOk..
+....kwk.kyOOok.kwk.kOk..
+.....k..kyOOok..k.kOk...
+""",
+	"back": """
+......k.......k.........
+.....kyk.....kOk........
+.....kyOk...kOok........
+.....kyOOkkkOOok........
+....kyOOOOOOOOOOk.......
+....kyyOOOOOOOOok.......
+....kyOOOOOOOOOok.......
+....kyOOOOOOOOOok.......
+....kyOOOOOOOOOok.......
+....kyOOOOOOOOOok.......
+.....kyOOOOOOOok........
+......kkoOOOOkk.........
+.......kyOOOok..........
+......kyOOOOOok.........
+.....kyyOOOOOook...kk...
+....kyykOOOOOkook.kyOk..
+....kyk.kyOOok.kOk.kOk..
+....kwk.kyOOok.kwk.kOk..
+.....k..kyOOok..k.kOk...
+""",
+	"side": """
+...........k...k........
+..........kOk.kOk.......
+..........kOOkkpOk......
+.........kyOOOOOOOk.....
+........kyOOOOOOOOOk....
+........kyyOOOOOOOOk....
+........kyOOOOOOgekk....
+........kyOOOOOOeekwk...
+........kOOOOOOOOwwpk...
+.........koOOOOOwwwk....
+..........kkoOOOkkk.....
+...........kyOOOk.......
+..........kyOOOOok......
+..........kyOOOOOk......
+...kk.....kyOOOOOk......
+..kOk.....kyOkOOOk......
+..kOk.....kyOkOOok......
+...kOk....kyOkwkok......
+....kOkk..kyOOOOk.......
+""",
+}
+const CAT_LEGS := {
+	"front": [
+		"""
+........kyOOOok..kOk....
+........kyOkkOk.kOk.....
+.......kyOk.kOkkOk......
+.......kwwk.kwwkk.......
+.......kkkk.kkkk........
+""",
+		"""
+........kyOOOok..kOk....
+........kyOkkOk.kOk.....
+.......kwwk.kOkkOk......
+.......kkkk.kwwkk.......
+............kkkk........
+""",
+		"",
+		"""
+........kyOOOok..kOk....
+........kyOkkOk.kOk.....
+.......kyOk.kwwkOk......
+.......kwwk.kkkkk.......
+.......kkkk.............
+""",
+	],
+	"side": [
+		"""
+......kkOkkyOOOok.......
+..........kyOkOk........
+..........kyOkOk........
+..........kwwkwwk.......
+..........kkkkkkk.......
+""",
+		"""
+......kkOkkyOOOok.......
+.........kyOk.kOk.......
+........kyOk...kOk......
+........kwwk...kwwk.....
+........kkkk...kkkk.....
+""",
+		"",
+		"""
+......kkOkkyOOOok.......
+.........kOOk.kyk.......
+........kOOk...kyk......
+........kwwk...kwwk.....
+........kkkk...kkkk.....
+""",
+	],
+}
+## The arms aren't part of the body: they're drawn from the shoulder to wherever the paw is
+## doing something, so they move with the weapon. These are the pixels where the drawn arms
+## were, cleared (".") or filled in with fur where the arm crossed the body, per view.
+const ARMLESS := {
+	"front": {"clear": [Rect2i(0, 15, 7, 4), Rect2i(14, 15, 4, 4)]},
+	"back": {"clear": [Rect2i(0, 15, 7, 4), Rect2i(14, 15, 4, 4)]},
+	"side": {"fill": [Rect2i(13, 15, 1, 2), Rect2i(13, 17, 3, 1)]},
+}
+## Shoulders, where the arms hang from: the near one and the far one in the side view.
+const SHOULDERS := {
+	"front": {"left": Vector2(6, 15), "right": Vector2(14, 15)},
+	"back": {"left": Vector2(6, 15), "right": Vector2(14, 15)},
+	"side": {"left": Vector2(12, 15), "right": Vector2(13, 15)},
+}
+## How far a paw can reach from the shoulder, in pixels.
+const ARM_REACH := 5.0
+
+## Where the feet stand, and the anchors gear hangs on, in each view facing right or the viewer.
+const CAT_FEET := Vector2(11, 23)
+const CAT_ANCHORS := {
+	"front": {"right_paw": Vector2(16, 17), "left_paw": Vector2(5, 17), "head": Vector2(0, 0)},
+	"back": {"right_paw": Vector2(16, 17), "left_paw": Vector2(5, 17), "head": Vector2(0, 0)},
+	"side": {"right_paw": Vector2(14, 17), "left_paw": Vector2(14, 17), "head": Vector2(3, 0)},
+}
+
+## The vest, one drawing for each view.
+const VESTS := {
+	"front": """
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+.......kLVhVVk..........
+......kLVVhVVvk.........
+......kLVVVVVvk.........
+.......kLVVVvk..........
+........kBBhBk..........
+........kvVVvk..........
+........kvVVvk..........
+""",
+	"back": """
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+.......kLVVVVk..........
+......kLVVVVVvk.........
+......kLVVVVVvk.........
+.......kLVVVvk..........
+........kBBBBk..........
+........kvVVvk..........
+........kvVVvk..........
+""",
+	"side": """
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+..........kLVVVk........
+..........kLVVVVk.......
+..........kLVVVVk.......
+..........kL...Vk.......
+..........kB...Bk.......
+...........kv..vk.......
+""",
+}
+
+## Gear worn above the waist, in each view, drawn in the body's own frame so it sits where it
+## belongs; round hats are one drawing for every view, moved by the head anchor.
+const HARD_HAT := """
+........kkkkkk..........
+......kkHHHHhhkk........
+.....kHHHHHhhhhhk.......
+.....kHHhhhhhhhbk.......
+...kkkkkkkkkkkkkkkk.....
+"""
+const GOGGLES := {
+	"front": """
+........................
+........................
+........................
+........................
+........................
+........................
+......kkkk.kkkk.........
+....bbkLLk.kLLkbb.......
+......kLLk.kLLk.........
+......kkkk.kkkk.........
+""",
+	"side": """
+........................
+........................
+........................
+........................
+........................
+...............kkkk.....
+.........bbbbbbkLLk.....
+...............kLLk.....
+...............kkkk.....
+""",
+	"back": """
+........................
+........................
+........................
+........................
+........................
+........................
+........................
+....bbbbbbbbbbbbb.......
+""",
+}
+const BELL_COLLAR := {
+	"front": "\n\n\n\n\n\n\n\n\n\n\n\n\n.......kccccck..........\n..........H.............",
+	"side": "\n\n\n\n\n\n\n\n\n\n\n\n\n..........kccccccck.....\n................H.......",
+	"back": "\n\n\n\n\n\n\n\n\n\n\n\n\n.......kccccck..........",
+}
+const SCARF := {
+	"front": "\n\n\n\n\n\n\n\n\n\n\n\n.......kcccck...........\n......kcccccck..........\n...........cc...........\n...........cc...........\n............c...........",
+	"side": "\n\n\n\n\n\n\n\n\n\n\n\n..........kcccccck......\n.......cccccccccck......\n......cc................\n.....c..................",
+	"back": "\n\n\n\n\n\n\n\n\n\n\n\n.......kcccck...........\n......kcccccck..........\n........cc..............\n........cc..............",
+}
+const JAMU_FLASK := {
+	"front": "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n..............kbk.......\n.............ksssk......\n.............kHHHk......\n.............kkkkk......",
+	"side": "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n..............kbk.......\n.............ksssk......\n.............kHHHk......\n.............kkkkk......",
+	"back": "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n.....kbk................\n....ksssk...............\n....kHHHk...............\n....kkkkk...............",
+}
+
+## The caping, the conical farmer's hat. It's round, so one drawing sits on every view.
+const CAPING := """
+..........kk............
+........kkHhkk..........
+......kkHHhhbhkk........
+....kkHHhhhhhhbbkk......
+..kkkkkkkkkkkkkkkkkk....
+"""
+
+
+## The submachine gun at three angles, each with the grip it's held by and the muzzle.
+const GUN_EAST := """
+..kkkkkkk...
+.kSssssSSkkk
+.kddSdddkk..
+..kdk.kdk...
+..kk..kk....
+"""
+const GUN_NORTHEAST := """
+.......kk
+......ksk
+.....ksk.
+....ksSk.
+..kkSSk..
+.kdSSk...
+kddkdk...
+kdk.k....
+kk.......
+"""
+const GUN_NORTH := """
+..k..
+.ksk.
+.ksk.
+.ksk.
+kSSSk
+kdSdk
+kddkk
+kdk..
+kk...
+"""
+## The handgun every cat starts with, at the same three angles.
+const HANDGUN_EAST := """
+kkkkkkk.
+kSssSSSk
+kdkkkkk.
+kdk.....
+kk......
+"""
+const HANDGUN_NORTHEAST := """
+....kk
+...ksk
+..ksk.
+kkSk..
+kdk...
+kk....
+"""
+const HANDGUN_NORTH := """
+.k..
+ksk.
+ksk.
+kSkk
+kddk
+kdk.
+kk..
+"""
+## The knife every cat may start with: handle and blade, at the same three angles.
+const KNIFE_EAST := """
+kkk.....
+kbbkSssk
+kkkkkkk.
+"""
+const KNIFE_NORTHEAST := """
+...kk
+..ksk
+.kSk.
+kbk..
+kk...
+"""
+const KNIFE_NORTH := """
+.k.
+ksk
+ksk
+kSk
+kkk
+kbk
+kkk
+"""
+## Everything a cat holds in a paw, each at three drawn angles with where it's gripped and where
+## it fires or points.
+const GUNS := {
+	"knife": {
+		"east": {"art": KNIFE_EAST, "grip": Vector2(1, 1), "muzzle": Vector2(7, 1)},
+		"northeast": {"art": KNIFE_NORTHEAST, "grip": Vector2(1, 3), "muzzle": Vector2(4, 0)},
+		"north": {"art": KNIFE_NORTH, "grip": Vector2(1, 5), "muzzle": Vector2(1, 0)},
+	},
+	"submachine_gun": {
+		"east": {"art": GUN_EAST, "grip": Vector2(3, 3), "muzzle": Vector2(11, 1)},
+		"northeast": {"art": GUN_NORTHEAST, "grip": Vector2(2, 6), "muzzle": Vector2(8, 0)},
+		"north": {"art": GUN_NORTH, "grip": Vector2(2, 7), "muzzle": Vector2(2, 0)},
+	},
+	"handgun": {
+		"east": {"art": HANDGUN_EAST, "grip": Vector2(1, 3), "muzzle": Vector2(7, 1)},
+		"northeast": {"art": HANDGUN_NORTHEAST, "grip": Vector2(1, 4), "muzzle": Vector2(5, 0)},
+		"north": {"art": HANDGUN_NORTH, "grip": Vector2(1, 5), "muzzle": Vector2(1, 0)},
+	},
+}
+
+## A rat, running right: four frames of a gallop, stretched, gathered, mid-air, gathered.
+const RAT_STRIDES: Array[String] = [
+	"""
+.......kk..
+...kkkkqRk.
+..kqqqqRRkk
+ttkRRRRRRRp
+..krrrrrrk.
+..k......k.
+""",
+	"""
+.......kk..
+...kkkkqRk.
+..kqqqqRRkk
+ttkRRRRRRRp
+..krrrrrrk.
+....k..k...
+""",
+	"""
+.......kk..
+...kkkkqRk.
+..kqqqqRRkk
+ttkRRRRRRRp
+..krrrrrrk.
+...k....k..
+""",
+	"""
+.......kk..
+...kkkkqRk.
+..kqqqqRRkk
+ttkRRRRRRRp
+..krrrrrrk.
+....k..k...
+""",
+]
+## In the gathered frames the rat is off the ground, as a galloping rat is.
+const RAT_LIFT: Array[int] = [0, 1, 1, 1]
+const RAT_FEET := Vector2(6, 5)
+
+static var _cache := {}
+
+
+## Every piece of art here, by name, so a test can check them all against the palette.
+static func all_art() -> Dictionary:
+	var art := {"caping": CAPING, "hard_hat": HARD_HAT}
+	for name: String in WORN:
+		for view: String in WORN[name]:
+			art["%s_%s" % [name, view]] = WORN[name][view]
+	for view: String in CAT_UPPER:
+		for frame in 4:
+			art["cat_%s_%d" % [view, frame]] = cat_body_art(view, frame)
+		art["vest_" + view] = VESTS[view]
+	for weapon: String in GUNS:
+		for direction: String in GUNS[weapon]:
+			art["%s_%s" % [weapon, direction]] = GUNS[weapon][direction].art
+	for index in RAT_STRIDES.size():
+		art["rat_%d" % index] = RAT_STRIDES[index]
+	return art
+
+
+## Gear drawn per view, by gear id.
+const WORN := {"goggles": GOGGLES, "bell_collar": BELL_COLLAR, "scarf": SCARF, "jamu_flask": JAMU_FLASK}
+## Hats, drawn once for every view and placed by the head anchor.
+const HATS := {"caping": CAPING, "hard_hat": HARD_HAT}
+
+
+## The cat's whole body in a view and a frame of its walk: the body, and that frame's legs. In
+## boots, her feet are leather.
+static func cat_body_art(view: String, frame: int, boots := false, arms := false) -> String:
+	var legs: Array = CAT_LEGS["side" if view == "side" else "front"]
+	var drawn: String = legs[frame % 4]
+	if drawn.is_empty():
+		drawn = legs[0]
+	var upper := (CAT_UPPER[view] as String).strip_edges().split("\n")
+	# Seen from the front or back, a walk reads as weight shifting: with one foot up, the body
+	# leans a pixel over the foot that's down. The planted foot doesn't move.
+	var lean: int = 0 if view == "side" else [0, 1, 0, -1][frame % 4]
+	var rows: Array[String] = []
+	for row in upper:
+		if lean > 0:
+			rows.append("." + row.left(row.length() - 1))
+		elif lean < 0:
+			rows.append(row.right(row.length() - 1) + ".")
+		else:
+			rows.append(row)
+	var legs_rows := drawn.strip_edges().split("\n")
+	for row in legs_rows:
+		rows.append(row.replace("w", "B") if boots else row)
+	if not arms:
+		_remove_arms(rows, view, lean)
+	return "\n".join(rows)
+
+
+## How far the body leans in a frame of the walk, seen from the front or back.
+static func lean(view: String, frame: int) -> int:
+	return 0 if view == "side" else [0, 1, 0, -1][frame % 4]
+
+
+## A card's picture of an item: the cat seen from the front, wearing it, framed on where it's
+## worn. Weapons are shown on their own.
+static func preview(item: String) -> Texture2D:
+	var key := "preview|" + item
+	if _cache.has(key):
+		return _cache[key]
+	var picture: Image
+	if GUNS.has(item):
+		# A weapon is shown in her paw: on its own, a gun is a few pixels.
+		picture = image(cat_body_art("front", 0, false, true))
+		var held: Dictionary = GUNS[item].east
+		var paw: Vector2 = CAT_ANCHORS.front.right_paw
+		picture.blend_rect(image(held.art), Rect2i(Vector2i.ZERO, image(held.art).get_size()), Vector2i(paw - held.grip))
+		picture = picture.get_region(Rect2i(1, 6, 22, 18))
+	else:
+		var art := cat_body_art("front", 0, item == "boots", true)
+		if item == "gloves":
+			# Gloved paws, where the drawn arms end.
+			var rows := art.split("\n")
+			for y in range(15, 19):
+				rows[y] = rows[y].replace("w", "B")
+			art = "\n".join(rows)
+		picture = image(art)
+		var layer := ""
+		if item == "vest":
+			layer = VESTS.front
+		elif WORN.has(item):
+			layer = WORN[item].front
+		if not layer.is_empty():
+			picture.blend_rect(image(layer), Rect2i(0, 0, 24, 24), Vector2i.ZERO)
+		if HATS.has(item):
+			picture.blend_rect(image(HATS[item]), Rect2i(0, 0, 24, 5), Vector2i.ZERO)
+		var window := {"boots": 8, "gloves": 6, "jamu_flask": 6, "vest": 5}.get(item, 0) as int
+		picture = picture.get_region(Rect2i(0, window, 22, 18))
+	var texture := ImageTexture.create_from_image(picture)
+	_cache[key] = texture
+	return texture
+
+
+static func _remove_arms(rows: Array[String], view: String, lean: int) -> void:
+	var plan: Dictionary = ARMLESS[view]
+	for area: Rect2i in plan.get("clear", []):
+		for y in range(area.position.y, area.end.y):
+			for x in range(area.position.x + lean, area.end.x + lean):
+				if x >= 0 and x < rows[y].length():
+					rows[y] = rows[y].left(x) + "." + rows[y].substr(x + 1)
+	for area: Rect2i in plan.get("fill", []):
+		for y in range(area.position.y, area.end.y):
+			for x in range(area.position.x, area.end.x):
+				rows[y] = rows[y].left(x) + "O" + rows[y].substr(x + 1)
+
+
+## The view to draw a cat facing a direction in, and whether to mirror it.
+static func cat_view(facing: Vector2) -> Array:
+	if absf(facing.y) > absf(facing.x):
+		return ["front" if facing.y > 0.0 else "back", false]
+	return ["side", facing.x < 0.0]
+
+
+## A shoulder in a view, mirrored if the view is, and moved by the walk's lean.
+static func shoulder(view: String, flip: bool, side: String, frame: int) -> Vector2:
+	var point: Vector2 = SHOULDERS[view][side]
+	if flip:
+		point.x = 23 - point.x
+	if view != "side":
+		point.x += [0, 1, 0, -1][frame % 4]
+	return point
+
+
+## An anchor for a view, mirrored if the view is. Paws are points on the body; the head is an
+## offset the hat is moved by, so it mirrors about the hat's own place.
+static func cat_anchor(view: String, flip: bool, anchor: String) -> Vector2:
+	var point: Vector2 = CAT_ANCHORS[view][anchor]
+	if flip:
+		point.x = -point.x if anchor == "head" else 23 - point.x
+	return point
+
+
+static func image(art: String) -> Image:
+	# Art opens with a line break after its quotes; blank rows after that are clear rows, kept.
+	var rows := art.replace("\r", "").trim_prefix("\n").rstrip("\n").split("\n")
+	var width := 0
+	for row in rows:
+		width = maxi(width, row.length())
+	var picture := Image.create_empty(width, rows.size(), false, Image.FORMAT_RGBA8)
+	for y in rows.size():
+		for x in rows[y].length():
+			var key := rows[y][x]
+			if LEGEND.has(key):
+				picture.set_pixel(x, y, LEGEND[key])
+	return picture
+
+
+## The art with some of its pixels gone, for remains crumbling away: stage 0 is whole, and each
+## stage up to STAGES drops more, in a fixed scattered order so it dissolves rather than fades.
+const STAGES := 4
+
+
+static func crumbled(art: String, stage: int, flip_x := false, flip_y := false) -> CanvasTexture:
+	var key := "crumbled|%s|%d|%s|%s" % [art.hash(), stage, flip_x, flip_y]
+	if _cache.has(key):
+		return _cache[key]
+	var picture := image(art)
+	if flip_x:
+		picture.flip_x()
+	if flip_y:
+		picture.flip_y()
+	for y in picture.get_height():
+		for x in picture.get_width():
+			# A fixed scatter: each pixel has its own moment to go.
+			var moment := float((x * 7 + y * 13 + x * y * 3) % 17) / 17.0
+			if moment < float(stage) / STAGES:
+				picture.set_pixel(x, y, Color(0, 0, 0, 0))
+	var texture := CanvasTexture.new()
+	texture.diffuse_texture = ImageTexture.create_from_image(picture)
+	_cache[key] = texture
+	return texture
+
+
+## The art as a texture lit by the scene's lights, with a normal map raised from its own shape:
+## each pixel tilts toward the nearest edge, so light from one side models the form.
+static func lit(art: String, flip_x := false, flip_y := false) -> CanvasTexture:
+	var key := "%s|%s|%s" % [art.hash(), flip_x, flip_y]
+	if _cache.has(key):
+		return _cache[key]
+	var picture := image(art)
+	if flip_x:
+		picture.flip_x()
+	if flip_y:
+		picture.flip_y()
+	var texture := CanvasTexture.new()
+	texture.diffuse_texture = ImageTexture.create_from_image(picture)
+	texture.normal_texture = ImageTexture.create_from_image(_normals(picture))
+	_cache[key] = texture
+	return texture
+
+
+static func _normals(picture: Image) -> Image:
+	var width := picture.get_width()
+	var height := picture.get_height()
+	var depth := PackedFloat32Array()
+	depth.resize(width * height)
+	for y in height:
+		for x in width:
+			depth[y * width + x] = _depth(picture, x, y)
+	var normals := Image.create_empty(width, height, false, Image.FORMAT_RGBA8)
+	for y in height:
+		for x in width:
+			if picture.get_pixel(x, y).a == 0.0:
+				continue
+			var left := depth[y * width + maxi(x - 1, 0)]
+			var right := depth[y * width + mini(x + 1, width - 1)]
+			var up := depth[maxi(y - 1, 0) * width + x]
+			var down := depth[mini(y + 1, height - 1) * width + x]
+			var normal := Vector3(left - right, down - up, 1.6).normalized()
+			normals.set_pixel(x, y, Color(normal.x * 0.5 + 0.5, normal.y * 0.5 + 0.5, normal.z * 0.5 + 0.5))
+	return normals
+
+
+## How far a pixel is from the sprite's edge, up to three: a rough bulge to light.
+static func _depth(picture: Image, x: int, y: int) -> float:
+	if picture.get_pixel(x, y).a == 0.0:
+		return 0.0
+	for reach in range(1, 4):
+		for offset: Vector2i in [Vector2i(reach, 0), Vector2i(-reach, 0), Vector2i(0, reach), Vector2i(0, -reach)]:
+			var other := Vector2i(x, y) + offset
+			if other.x < 0 or other.y < 0 or other.x >= picture.get_width() or other.y >= picture.get_height() \
+					or picture.get_pixel(other.x, other.y).a == 0.0:
+				return float(reach)
+	return 3.0
+
+
+## The gun pointing as near as it can to a direction, as {texture, grip, muzzle}: the drawn angle
+## closest to it, mirrored into place.
+static func gun_toward(weapon: String, direction: Vector2) -> Dictionary:
+	var octant := wrapi(roundi(direction.angle() / (PI / 4.0)), 0, 8)
+	# Screen y points down, so octant 2 is south, 6 is north.
+	var choice: Array = [
+		["east", false, false], ["northeast", false, true], ["north", false, true], ["northeast", true, true],
+		["east", true, false], ["northeast", true, false], ["north", false, false], ["northeast", false, false],
+	][octant]
+	var drawing: Dictionary = GUNS[weapon][choice[0]]
+	var size := image(drawing.art).get_size()
+	var grip: Vector2 = drawing.grip
+	var muzzle: Vector2 = drawing.muzzle
+	if choice[1]:
+		grip.x = size.x - 1 - grip.x
+		muzzle.x = size.x - 1 - muzzle.x
+	if choice[2]:
+		grip.y = size.y - 1 - grip.y
+		muzzle.y = size.y - 1 - muzzle.y
+	return {"texture": lit(drawing.art, choice[1], choice[2]), "grip": grip, "muzzle": muzzle, "behind": octant >= 5 and octant <= 7}
