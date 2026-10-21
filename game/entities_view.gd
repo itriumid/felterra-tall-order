@@ -30,6 +30,9 @@ const MOST_STAINS := 900
 const STAIN_DRIES := 15.0
 const STAIN_LASTS := 45.0
 var _dust: Array[Dictionary] = []
+## How long the view has run, for the drone's rotors, and the support rounds counted last frame.
+var _clock := 0.0
+var _support_rounds := {}
 ## How far each cat and creature has walked, and where it was last frame.
 var _walked := {}
 var _last := {}
@@ -51,6 +54,12 @@ func _process(delta: float) -> void:
 		flash[cat] = maxf(flash.get(cat, 0.0) - delta / FLASH_TIME, 0.0)
 		if cat.dodging_for > 0.0 and not cat.body.airborne():
 			_kick_dust(cat.body)
+		var cannon: Support = cat.supports.get("set_down")
+		if cannon != null and cannon.weapon != null:
+			if cannon.weapon.rounds_fired != _support_rounds.get(cannon, cannon.weapon.rounds_fired):
+				_puff(cannon)
+			_support_rounds[cannon] = cannon.weapon.rounds_fired
+	_clock += delta
 	_settle_dust(delta)
 	_bleed(delta)
 	_pace()
@@ -89,15 +98,28 @@ func _draw() -> void:
 		standing.append([remains.body.position.y, remains])
 	for giant in arena.giants:
 		standing.append([giant.body.position.y, giant])
+	for cat in arena.cats:
+		for slot: String in cat.supports:
+			var support: Support = cat.supports[slot]
+			if support.deployed:
+				standing.append([support.body.position.y, support])
 	standing.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	for stain in _stains:
 		draw_rect(Rect2(World.to_screen(stain.position), Vector2.ONE), Palette.BLOOD if stain.age < STAIN_DRIES else Palette.BLOOD_DRY)
+	for cat in arena.cats:
+		var mines: Support = cat.supports.get("set_down")
+		if mines != null:
+			for mine in mines.mines:
+				var art := Sprites.MINE if mine.armed_in <= 0.0 else Sprites.MINE_ARMING
+				draw_texture(Sprites.lit(art), World.to_screen(mine.body.position) - Vector2(4, 3))
 	for entry in standing:
 		_draw_shadow(entry[1])
 	for entry in standing:
 		var thing: Variant = entry[1]
 		if thing is Cat:
 			_draw_cat(thing)
+		elif thing is Support:
+			_draw_support(thing)
 		elif thing is Giant:
 			_draw_giant(thing)
 		elif thing is Creature:
@@ -117,7 +139,13 @@ func _draw() -> void:
 	for droplet in _droplets:
 		draw_rect(Rect2(World.to_screen(droplet.position, droplet.height), Vector2.ONE), droplet.color)
 	for shot in arena.shots:
-		draw_line(World.to_screen(shot.previous, shot.previous_height), World.to_screen(shot.position, shot.height), Palette.SPARK)
+		if shot.falls:
+			# A stone in flight, its shadow on the ground under it.
+			draw_rect(Rect2(World.to_screen(shot.position), Vector2(2, 1)), Palette.GROUND_SHADOW)
+			draw_rect(Rect2(World.to_screen(shot.position, shot.height) - Vector2(1, 1), Vector2(3, 3)), Palette.OUTLINE)
+			draw_rect(Rect2(World.to_screen(shot.position, shot.height) - Vector2(1, 1), Vector2(2, 2)), Palette.STEEL)
+		else:
+			draw_line(World.to_screen(shot.previous, shot.previous_height), World.to_screen(shot.position, shot.height), Palette.SPARK)
 
 
 func _draw_shadow(thing: Variant) -> void:
@@ -126,7 +154,7 @@ func _draw_shadow(thing: Variant) -> void:
 	if thing is Giant:
 		_draw_giant_shadow(thing)
 		return
-	var body: Body = thing.body if thing is Cat or thing is Creature else thing
+	var body: Body = thing.body if thing is Cat or thing is Creature or thing is Support else thing
 	# A pixel ellipse on the ground, narrower the higher the body is.
 	var width := roundi(body.radius * 2.0 * World.PIXELS_PER_METER * clampf(1.0 - body.height, 0.5, 1.0))
 	var center := World.to_screen(body.position)
@@ -188,6 +216,7 @@ func _draw_cat(cat: Cat) -> void:
 	for arm in arms:
 		if arm.behind:
 			_draw_arm(arm)
+	_draw_pack(cat, view, flip, top_left + Vector2(Sprites.lean(view, frame), 0), "behind")
 	draw_texture(Sprites.lit(Sprites.cat_body_art(view, frame, cat.gear.get("feet", "") == "boots"), flip), top_left)
 	# Everything above the waist leans with the body as she walks.
 	var leaning := top_left + Vector2(Sprites.lean(view, frame), 0)
@@ -197,12 +226,67 @@ func _draw_cat(cat: Cat) -> void:
 		var item: String = cat.gear.get(slot, "")
 		if Sprites.WORN.has(item):
 			draw_texture(Sprites.lit(Sprites.WORN[item][view], flip), leaning)
+	_draw_pack(cat, view, flip, leaning, "over")
 	var hat: String = cat.gear.get("head", "")
 	if Sprites.HATS.has(hat):
 		draw_texture(Sprites.lit(Sprites.HATS[hat]), leaning + Sprites.cat_anchor(view, flip, "head"))
 	for arm in arms:
 		if not arm.behind:
 			_draw_arm(arm)
+
+
+## Her pack and what's on it, at one depth: behind her or over her. The cannon's tube shows only
+## while it's on her back, and the drone only while it's docked on top.
+func _draw_pack(cat: Cat, view: String, flip: bool, at: Vector2, depth: String) -> void:
+	if cat.supports.is_empty():
+		return
+	var drone: Support = cat.supports.get("drone")
+	# Docked, the drone sits on top of the pack: behind her head unless she's turned away.
+	var drone_depth := "over" if view == "back" else "behind"
+	if drone != null and not drone.deployed and depth == drone_depth and depth == "behind":
+		_draw_docked(drone, view, flip, at)
+	if Sprites.PACK[view].has(depth):
+		draw_texture(Sprites.lit(Sprites.PACK[view][depth], flip), at)
+	for slot: String in cat.supports:
+		var support: Support = cat.supports[slot]
+		if not Sprites.MOUNTS.has(support.name) or not Sprites.MOUNTS[support.name][view].has(depth):
+			continue
+		if support.name == "meriam_bambu" and (support.deployed or support.rebuilt_in > 0.0):
+			continue
+		draw_texture(Sprites.lit(Sprites.MOUNTS[support.name][view][depth], flip), at)
+	if drone != null and not drone.deployed and depth == drone_depth and depth == "over":
+		_draw_docked(drone, view, flip, at)
+
+
+func _draw_docked(drone: Support, view: String, flip: bool, at: Vector2) -> void:
+	var dock: Vector2 = Sprites.DOCK[view]
+	if flip:
+		dock.x = 24 - dock.x - Sprites.image(Sprites.DRONE_DOCKED).get_width()
+	draw_texture(Sprites.lit(Sprites.DRONE_DOCKED), at + dock)
+
+
+## A support out on its own: the drone in the air, rotors spinning, or the cannon on its stand
+## facing what it last fired at.
+func _draw_support(support: Support) -> void:
+	if support.name == "gun_drone":
+		var frame := int(_clock * 30.0) % 2
+		draw_texture(Sprites.lit(Sprites.DRONE_FRAMES[frame]), World.to_screen(support.body.position, support.body.height) - Vector2(5, 5))
+	elif support.name == "meriam_bambu":
+		var left := support.weapon.aim.x < 0.0
+		var texture := Sprites.lit(Sprites.MERIAM_BAMBU, left)
+		var feet := Vector2(texture.get_width() - 11, 10) if left else Vector2(10, 10)
+		draw_texture(texture, World.to_screen(support.body.position) - feet)
+
+
+## Smoke out of the cannon's mouth as it fires.
+func _puff(cannon: Support) -> void:
+	var mouth := cannon.body.position + cannon.weapon.aim * 0.3
+	for index in 10:
+		_droplets.append({
+			"position": mouth, "height": 0.25, "rise": randf_range(0.6, 1.6),
+			"velocity": cannon.weapon.aim * randf_range(0.5, 1.5) + Vector2(randf_range(-0.4, 0.4), randf_range(-0.4, 0.4)),
+			"color": Palette.SMOKE if index % 3 else Palette.SPARK, "stains": false,
+		})
 
 
 ## Where each arm reaches, and what it holds. A paw with a gun reaches toward what she's aiming at
@@ -299,6 +383,26 @@ func _bleed(delta: float) -> void:
 					"position": event.position, "height": event.height, "rise": randf_range(0.2, 1.4),
 					"velocity": Vector2.from_angle(TAU * index / 14.0) * randf_range(1.5, 3.0),
 					"color": Palette.SPARK if index % 2 else Palette.STEEL_LIGHT, "stains": false,
+				})
+			continue
+		if event.by == "blast":
+			# Earth and smoke thrown up, and a flash, as wide as the blast; no blood of its own.
+			var radius: float = event.get("radius", 1.0)
+			for index in int(16 * radius) + 6:
+				_droplets.append({
+					"position": event.position, "height": 0.02, "rise": randf_range(1.0, 3.0),
+					"velocity": Vector2.from_angle(randf() * TAU) * randf_range(0.5, 2.5) * radius,
+					"color": [Palette.SMOKE, Palette.MUD_LIGHT, Palette.SPARK][index % 3], "stains": false,
+				})
+			continue
+		if event.by == "crack" or event.by == "set_down":
+			# Bamboo splitting, or set down on the ground: splinters, or a little dust.
+			var cracking: bool = event.by == "crack"
+			for index in 12 if cracking else 5:
+				_droplets.append({
+					"position": event.position, "height": 0.1, "rise": randf_range(0.5, 1.8),
+					"velocity": Vector2.from_angle(randf() * TAU) * randf_range(0.3, 1.2),
+					"color": (Palette.DRY_GRASS if index % 2 else Palette.MOSS) if cracking else Palette.SMOKE, "stains": false,
 				})
 			continue
 		if event.by == "landing":

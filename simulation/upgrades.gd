@@ -50,6 +50,14 @@ const WEAPON_NAMES := {
 	"knife": "Knife", "keris": "Keris", "kerambit": "Kerambit",
 	"handgun": "Handgun", "submachine_gun": "Submachine gun",
 }
+## Support, by id: what she carries on her back, and the slot it takes there.
+const SUPPORT := {
+	"gun_drone": {"name": "Gun drone", "lines": ["A drone on her pack", "Flies out and fires"]},
+	"meriam_bambu": {"name": "Meriam bambu", "lines": ["A bamboo cannon", "Set down, it lobs stones"]},
+	"mines": {"name": "Mines", "lines": ["Pouches of mines", "Dropped as they close"]},
+}
+## What each support slot is called on a card.
+const SUPPORT_SLOT_NAMES := {"drone": "drone", "set_down": "set-down"}
 ## What a weapon at the top level can become: the families it evolves along. A weapon not listed
 ## is the last of its family, and takes mastery from there.
 const EVOLVES := {"knife": "keris", "keris": "kerambit", "handgun": "submachine_gun"}
@@ -107,6 +115,13 @@ static func available(cat: Cat) -> Array[String]:
 			ids.append("evolve:" + weapon.name)
 		else:
 			ids.append("mastery:" + weapon.name)
+	for support_name: String in SUPPORT:
+		var slot: String = Support.SLOTS[support_name]
+		var held: Support = cat.supports.get(slot)
+		if held == null:
+			ids.append("support:" + support_name)
+		elif held.name == support_name:
+			ids.append(("support_level:" if held.level < WEAPON_TOP else "support_mastery:") + support_name)
 	for mutation: String in MUTATIONS:
 		if cat.has(mutation):
 			ids.append("mutation_up:" + mutation)
@@ -170,6 +185,20 @@ static func apply(cat: Cat, choice: Dictionary) -> void:
 			grown.power = old.power + LEVEL_DAMAGE * (amount - 1.0)
 			grown.tempo = old.tempo + LEVEL_TEMPO * (amount - 1.0)
 			cat.weapons[index] = grown
+	elif id.begins_with("support:"):
+		var support := Support.named(id.trim_prefix("support:"))
+		# A rarer find comes better made, as a weapon does.
+		for tier in choice.rarity:
+			support.level += 1
+			support.power += LEVEL_DAMAGE
+			support.tempo += LEVEL_TEMPO
+		cat.supports[support.slot] = support
+	elif id.begins_with("support_level:") or id.begins_with("support_mastery:"):
+		var support: Support = cat.supports[Support.SLOTS[id.get_slice(":", 1)]]
+		var share := MASTERY if id.begins_with("support_mastery:") else 1.0
+		support.level += 1
+		support.power += LEVEL_DAMAGE * amount * share
+		support.tempo += LEVEL_TEMPO * amount * share
 	elif id.begins_with("mutation"):
 		var mutation := id.get_slice(":", 1)
 		cat.mutations[mutation] = cat.strength(mutation) + amount
@@ -224,6 +253,23 @@ static func describe(choice: Dictionary) -> Dictionary:
 			card.explain = ["Mastery: past level %d, there's no limit; each is worth half a level" % WEAPON_TOP]
 			return card
 		card.explain = ["Weapon levels: each raises its damage and attack speed; at level %d it evolves" % WEAPON_TOP]
+	elif id.begins_with("support"):
+		var support_name := id.get_slice(":", 1)
+		card.item = support_name
+		card.kind = "support"
+		var slot_name: String = SUPPORT_SLOT_NAMES[Support.SLOTS[support_name]]
+		if id.begins_with("support:"):
+			card.name = SUPPORT[support_name].name
+			card.lines = (SUPPORT[support_name].lines as Array).duplicate()
+			card.explain = ["Support: on her back, one drone and one thing set down; this is her %s" % slot_name]
+		else:
+			var mastery := id.begins_with("support_mastery:")
+			var share := MASTERY if mastery else 1.0
+			card.name = SUPPORT[support_name].name + (" mastery" if mastery else " up")
+			card.lines = ["+%d%% damage" % roundi(LEVEL_DAMAGE * amount * share * 100.0), "+%d%% attack speed" % roundi(LEVEL_TEMPO * amount * share * 100.0)]
+			card.explain = ["Support levels: each raises its damage and how often it fires"]
+			if mastery:
+				card.explain.append("Mastery: past level %d, there's no limit; each is worth half a level" % WEAPON_TOP)
 	elif id.begins_with("mutation"):
 		var mutation := id.get_slice(":", 1)
 		card.item = mutation

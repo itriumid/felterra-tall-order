@@ -57,7 +57,10 @@ reopened — and skip it otherwise.
 Felterra: Tall Order, a 2D pixel-art auto-shooter roguelike in Godot 4.7, written in GDScript
 with the Compatibility renderer. Cats fight giants: a human company clearing their forest. It
 ships for desktop (Windows, macOS and Linux), with cooperative play for one to four players.
-The design is in `docs/design.md`; read it before changing how the game plays.
+The design is in `docs/design.md`; read it before changing how the game plays. Every enemy,
+weapon, support, gear, dodge mutation and stat, built or planned, is listed in
+`docs/catalog.md`: building one means marking its row Built there, and a test fails until the
+catalog and the code agree.
 
 - **Before calling a change done**, run the tests:
   `godot --headless --path . --import`, then
@@ -93,7 +96,7 @@ The design is in `docs/design.md`; read it before changing how the game plays.
   `godot --path . -- --screenshot=<path>.png --screenshot-after=4` (add `--horde=<count>`,
   `--no-spawn`, `--at=<x>,<y>`, `--gear=<0 to 2>`, `--sturdy`, `--fallen=<count>`,
   `--walk=<x>,<y>`, `--dogs=<count>`, `--chainsaw=<count>`, `--mutations=<id>,<id>`, `--dodge-every=<seconds>`,
-  `--offer=<id>,<id>,<id>`, `--giant=<count>`, `--giant-from=<x>,<y>`, `--menu`, `--menu-after=<seconds>`, `--settings`, `--sound`, `--title`, `--down-after=<seconds>`, `--start=<knife or handgun>`, `--no-blood`, or `--frames=<count>` for a
+  `--offer=<id>,<id>,<id>`, `--support=<id>,<id>`, `--giant=<count>`, `--giant-from=<x>,<y>`, `--menu`, `--menu-after=<seconds>`, `--settings`, `--sound`, `--title`, `--down-after=<seconds>`, `--start=<knife or handgun>`, `--no-blood`, or `--frames=<count>` for a
   sequence). It opens a window, saves one
   640 by 360 frame and quits; the window takes keyboard focus, so warn whoever is at the
   machine first. Check its log for `SCRIPT ERROR`, and check the frame itself: a frame that

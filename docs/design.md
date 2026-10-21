@@ -34,7 +34,7 @@ game is the point.
 Many factions over time; **humans are the first**.
 
 Humans are at **real scale**, about five to six times a cat's height. That sets the whole
-faction's shape:
+faction's shape (each enemy, built and planned, is in [`catalog.md`](catalog.md)):
 
 | Role | Who |
 |---|---|
@@ -108,24 +108,7 @@ Modern weapons anyone could find, plus what a country has uniquely. Indonesia co
 other countries' weapons join later, each with its own shape and feel. Everything is something
 that could be built.
 
-**Modern**
-
-| Kind | Weapons |
-|---|---|
-| **Blades** | Knife (start), machete, greatsword |
-| **Handguns** | Handgun (start), submachine gun |
-| **Rifles** | Rifle, automatic rifle (heavier, harder-hitting), assault rifle, sniper rifle (slow, long, pierces a line) |
-| **Other guns** | Shotgun (a cone), grenade launcher |
-| **Thrown and set down** | Lamp oil (sets up fire), mines, gun drone, net drone |
-
-**Indonesia**
-
-| Kind | Weapons |
-|---|---|
-| **Blades** | Keris (an upgrade, the cats' heritage blade), kerambit (the curved claw blade: fast, with critical hits), golok (Indonesia's machete, with its own shape and feel), celurit (a sickle: hooks a leg and trips) |
-| **Staffs** | Rattan staff (heavy knockback) |
-| **Ranged** | Ketapel (a slingshot: stones that ricochet), sumpit (the Dayak blowpipe: darts that poison and slow) |
-| **Explosive** | Petasan (firecrackers), meriam bambu (the bamboo cannon, as a turret you set down) |
+Every weapon, built and planned, is in [`catalog.md`](catalog.md).
 
 ### The dodge
 
@@ -134,32 +117,8 @@ little under a second. Over a run it takes up to **three mutations**, each chang
 dodge *does*, not just its numbers. Upgrading a mutation you already have strengthens it without
 taking another slot, and, as everywhere, a card's rarity changes only how much it gives.
 
-| Kind | Mutations |
-|---|---|
-| **Attack** | Rolling slash (cut what you pass through, harder the faster you roll), pounce (end the roll in a leap onto the nearest enemy, a real jump over the horde), ankle cutter (rolling between a giant's legs brings him down) |
-| **Survival** | Jamu flask (a sip of herbal tonic heals a little, capped per minute), shake it off (rolling puts out fire and sheds oil), land on your feet (knockback ends in a free roll) |
-| **Traps** | Powder trail (a trail that the first spark ignites, anyone's spark), caltrops, oil slick |
-| **Movement** | More charges, long leap |
-| **Timing** | Riposte: dodge just as a hit lands and strike back at once |
-| **Crew** | Rescue roll (rolling through a downed crewmate revives faster), slipstream (rolling past a crewmate speeds them up) |
-
-**Built so far:** rolling slash, pounce, ankle cutter, land on your feet, more charges, long leap
-and riposte. The rest wait on what they act on: fire and oil for shake it off and the traps,
-downed crewmates for the crew's. The jamu flask needs a new name first: it's also the waist
-slot's gear.
-
-- **Rolling slash:** every creature the roll touches is cut once, by 3 a common card's worth, more
-  the faster the roll.
-- **Pounce:** as the roll ends, a leap onto the nearest enemy within 3 meters (by the aim mode),
-  led to where it will be; landing hits what's under her.
-- **Ankle cutter:** rolling between a giant's legs cuts 12 percent of his full health, once a roll.
-- **Land on your feet:** a knock off her feet ends in a free roll, safe for a moment.
-- **More charges:** another charge for each card; a rarer card brings them back faster.
-- **Long leap:** the roll leaves the ground, high enough at the top to clear a rat and the
-  chainsaw's sweep, and longer with each card.
-- **Riposte:** a hit that lands while she's safe in a roll is answered at once, against everything
-  within 0.9 meters, once a roll.
-- What the dodge deals grows with damage from gear, the same as her weapons.
+Every mutation, built and planned, is in [`catalog.md`](catalog.md). Some wait on what they act
+on: fire and oil, or crewmates who can be downed.
 
 ## Runs
 
@@ -207,30 +166,13 @@ Level-ups arrive as **cards**. A card offers a choice of three; you hold it unti
 something you can see on her. Each slot holds one item, and the same item's card again levels
 it up, to level 5, then into mastery.
 
-| Slot | Items, and what a common level gives |
-|---|---|
-| **Head** | Caping (regeneration, luck), hard hat, looted from the giants (armor, health) |
-| **Body** | Vest (armor, health) |
-| **Neck** | Bell collar (luck), red scarf (speed) |
-| **Eyes** | Goggles (reach) |
-| **Paws** | Gloves (damage, attack speed) |
-| **Feet** | Boots (speed, armor) |
-| **Waist** | Jamu flask (adrenaline) |
+The gear for each slot (head, body, neck, eyes, paws, feet and waist) is in
+[`catalog.md`](catalog.md).
 
-The stats, and what each means. A card shows the short form; holding Tab explains each one, and
-a card with a stat most players won't know is marked as worth reading.
-
-| Stat | Does |
-|---|---|
-| **Health** | How much she can take before she's down |
-| **Armor** | Each hit takes this much less |
-| **Regeneration** | Health that comes back on its own, every second |
-| **Adrenaline** | A share of the damage she deals comes back to her as health. Grounded, not magic: it's what other games call lifesteal, and the game explains it |
-| **Damage** | Every weapon she holds hits harder |
-| **Attack speed** | Every weapon fires and swings sooner |
-| **Reach** | Guns reach further, blades reach longer |
-| **Speed** | She runs faster |
-| **Luck** | Rarer cards turn up more often |
+The stats, and what each means, are in [`catalog.md`](catalog.md) too. A card shows a stat's
+short form; holding Tab explains each one, and a card with a stat most players won't know is
+marked as worth reading. Adrenaline is what other games call lifesteal: grounded, not magic, and
+the game explains it.
 
 ### Rarity
 
@@ -252,6 +194,13 @@ raising the odds.
   cradle on top of the pack when there's nothing to shoot; the meriam bambu is a bamboo tube
   strapped across it until she sets it down; mines ride in pouches on the straps. Each comes
   with its mount, and the pack shows from every side.
+- **Support works on its own,** as her weapons do, and takes levels the same way. The drone lifts
+  off when something comes in reach, hovers off her shoulder and fires down, and docks when it's
+  quiet. The cannon is set down where she stands when something comes in reach, and stays there:
+  stones lobbed over the horde burst where they land. A bamboo tube cracks after eight shots and
+  she cuts a new one, so there's nothing to go back for. Mines are dropped while enemies are near,
+  four down at most, and the first foot on one sets it off, a giant's boot included; they never
+  hurt the crew.
 
 ### Controls
 

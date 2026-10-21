@@ -46,7 +46,7 @@ func test_rarity_changes_how_much_never_what() -> void:
 func test_stats_only_come_from_gear() -> void:
 	var cat := Cat.new()
 	for id in Upgrades.available(cat):
-		check(id.begins_with("gear:") or id.begins_with("level:") or id.begins_with("weapon:") or id.begins_with("mutation:"), "%s is offered on its own" % id)
+		check(id.begins_with("gear:") or id.begins_with("level:") or id.begins_with("weapon:") or id.begins_with("mutation:") or id.begins_with("support:"), "%s is offered on its own" % id)
 
 
 func test_the_same_gear_again_levels_it_up() -> void:

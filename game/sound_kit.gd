@@ -11,7 +11,7 @@ const VARIANTS := 3
 ## Every sound there is, by name. The director plays them by these names.
 const NAMES: Array[String] = [
 	"shot_handgun", "shot_submachine_gun", "swing", "hit_small", "squeak", "hit_big", "bark", "hit_dog", "yelp", "saw_rev", "saw_cut",
-	"pounce", "riposte",
+	"pounce", "riposte", "shot_drone", "meriam", "blast", "crack", "mine_drop",
 	"footstep_giant", "stomp", "fall", "dodge", "hurt", "bite",
 	"level_up", "card", "reroll", "banish", "menu_move", "menu_choose", "menu_back",
 ]
@@ -65,6 +65,19 @@ static func _render(sound_name: String, random: RandomNumberGenerator) -> Packed
 			return _mix([_sweep(1.3, 55.0 * wobble, 22.0, 0.45), _noise(1.3, 0.55, 280.0, random, 1), _crackle(1.0, random)], [1.0, 0.75, 0.35])
 		"dodge":
 			return _whoosh(0.22, 500.0 * wobble, 1400.0 * wobble, random, 0.35)
+		"shot_drone":
+			# A small gun on a light frame: a thinner, higher crack.
+			return _mix([_noise(0.1, 0.02, 5200.0 * wobble, random, 2), _sweep(0.08, 320.0 * wobble, 120.0, 0.03)], [0.7, 0.5])
+		"meriam":
+			# The bamboo cannon: a deep, hollow boom, the tube ringing under it.
+			return _mix([_sweep(0.8, 95.0 * wobble, 34.0, 0.26), _noise(0.6, 0.2, 520.0, random, 1), _chirp(0.25, [180.0 * wobble, 150.0 * wobble], 0.5)], [1.0, 0.7, 0.25])
+		"blast":
+			return _mix([_sweep(0.8, 72.0 * wobble, 26.0, 0.28), _noise(0.8, 0.28, 900.0, random, 1), _crackle(0.6, random)], [1.0, 0.8, 0.4])
+		"crack":
+			# Bamboo splitting: a dry snap and splinters.
+			return _mix([_noise(0.22, 0.03, 3600.0, random, 2), _crackle(0.3, random)], [0.8, 0.5])
+		"mine_drop":
+			return _chirp(0.07, [1500.0 * wobble, 1350.0 * wobble], 0.3)
 		"pounce":
 			# Paws coming down hard: a soft thump with a scuff of grit.
 			return _mix([_sweep(0.14, 170.0 * wobble, 60.0, 0.05), _noise(0.1, 0.03, 1500.0, random, 2)], [0.9, 0.4])
