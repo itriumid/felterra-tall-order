@@ -242,13 +242,67 @@ func saw(giant: Giant, from_angle: float, to_angle: float) -> void:
 		var into := angle_difference(from_angle, offset.angle())
 		return signf(into) == signf(sweep) and absf(into) <= absf(sweep) + 0.02
 	for creature in creatures.duplicate():
-		if creature.body.height < 0.5 and passes.call(creature.body.position - giant.body.position, creature.body.radius):
+		if creature.body.height < Giant.SAW_HEIGHT and passes.call(creature.body.position - giant.body.position, creature.body.radius):
 			strike(creature, 100.0, (creature.body.position - giant.body.position).normalized(), 2.0, 0.6, "saw")
 	for cat in cats:
 		var offset := cat.body.position - giant.body.position
-		if cat.body.height < 0.5 and passes.call(offset, cat.body.radius):
+		if cat.body.height < Giant.SAW_HEIGHT and passes.call(offset, cat.body.radius):
 			if cat.hurt(Giant.SAW_DAMAGE, offset.normalized() * Giant.SAW_KNOCK):
 				events.append({"position": cat.body.position, "height": 0.2, "direction": offset.normalized(), "killed": false, "by": "saw", "giant": false, "kind": "cat"})
+
+
+## The creatures a rolling cat is touching, at heights she passes: what a rolling slash cuts.
+func rolled_into(cat: Cat) -> Array[Creature]:
+	var touching: Array[Creature] = []
+	var cell := _cell_of(cat.body.position)
+	for x in range(cell.x - 2, cell.x + 3):
+		for y in range(cell.y - 2, cell.y + 3):
+			for creature: Creature in _grid.get(Vector2i(x, y), []):
+				if creature.alive() and _touching(cat.body, creature.body, 0.06):
+					touching.append(creature)
+	return touching
+
+
+## The giants standing over a rolling cat: she's between his legs.
+func legs_rolled_between(cat: Cat) -> Array[Giant]:
+	var over: Array[Giant] = []
+	for giant in giants:
+		if giant.standing() and cat.body.height < Giant.TALL * 0.4 \
+				and cat.body.position.distance_to(giant.body.position) <= giant.body.radius + cat.body.radius:
+			over.append(giant)
+	return over
+
+
+## A riposte: a hit dodged as it landed, answered at once against everything around her.
+func riposte(cat: Cat, damage: float) -> void:
+	events.append({"position": cat.body.position, "height": 0.2, "direction": cat.facing, "killed": false, "by": "strike_back", "giant": false, "kind": "cat"})
+	for creature: Creature in creatures.duplicate():
+		var apart := creature.body.position - cat.body.position
+		if apart.length() <= Cat.RIPOSTE_REACH + creature.body.radius:
+			strike(creature, damage, apart.normalized(), 2.0, 1.0, "riposte", cat)
+	for giant in giants:
+		var apart := giant.body.position - cat.body.position
+		if giant.standing() and apart.length() <= Cat.RIPOSTE_REACH + giant.body.radius:
+			strike(giant, damage, apart.normalized(), 0.0, 0.0, "riposte", cat)
+
+
+## A pounce comes down: what's under her takes it, and what's around is thrown.
+func land_pounce(cat: Cat, damage: float) -> void:
+	events.append({"position": cat.body.position, "height": 0.0, "direction": cat.facing, "killed": false, "by": "landing", "giant": false, "kind": "cat"})
+	for creature: Creature in creatures.duplicate():
+		var apart := creature.body.position - cat.body.position
+		if apart.length() <= Cat.POUNCE_RADIUS + creature.body.radius:
+			strike(creature, damage, apart.normalized() if apart.length() > 0.001 else cat.facing, 1.6, 1.2, "pounce", cat)
+	for giant in giants:
+		var apart := giant.body.position - cat.body.position
+		if giant.standing() and apart.length() <= Cat.POUNCE_RADIUS + giant.body.radius:
+			strike(giant, damage, cat.facing, 0.0, 0.0, "pounce", cat)
+
+
+## Whether two bodies overlap, along the ground and in height, with a little give.
+func _touching(a: Body, b: Body, give: float) -> bool:
+	return a.position.distance_to(b.position) <= a.radius + b.radius + give \
+			and a.height <= b.height + b.tall and b.height <= a.height + a.tall
 
 
 ## A felled giant hits the ground along his length: everything in that strip is crushed.

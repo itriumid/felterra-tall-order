@@ -15,9 +15,11 @@ const KINDS := {
 	"worker": {"health": 60.0, "speed": 1.1, "worth": 15},
 	"chainsaw": {"health": 90.0, "speed": 0.9, "worth": 30},
 }
-## The chainsaw's sweep: how far it reaches, the arc it cuts, the rev before it (the warning),
-## how long the cut takes, how often he can, and what it does to a cat.
+## The chainsaw's sweep: how far it reaches, how high off the ground it cuts (his shins: a cat
+## leaping clears it), the arc it cuts, the rev before it (the warning), how long the cut takes,
+## how often he can, and what it does to a cat.
 const SAW_REACH := 1.5
+const SAW_HEIGHT := 0.35
 const SAW_ARC := deg_to_rad(140.0)
 const REV_TIME := 0.6
 const SWEEP_TIME := 0.35
