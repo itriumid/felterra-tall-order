@@ -119,7 +119,14 @@ Modern weapons anyone could find, plus what a country has uniquely. Indonesia co
 other countries' weapons join later, each with its own shape and feel. Everything is something
 that could be built.
 
-Every weapon, built and planned, is in [`catalog.md`](catalog.md).
+Every weapon, built and planned, is in [`catalog.md`](catalog.md). Weapons differ by more than
+their numbers: rounds can come several to a shot (the shotgun's cone), go through what they hit
+(the crossbow, the sniper rifle, the bow), or glance off to the next (the ketapel's stones); they
+can poison and slow (the sumpit), set alight (the flare gun), leave burning oil (lamp oil) or
+nails (the nail gun) where they land, or pop as firecrackers (petasan). Blades can trip (the
+celurit), hook what they catch in toward her (the kujang), thrust in a line instead of swinging
+(the tombak, the rencong), or break after so many hits and be sharpened again (bambu runcing).
+Families can branch: a rifle grows into the automatic rifle or the sniper rifle, a card for each.
 
 ### The dodge
 
