@@ -11,7 +11,8 @@ const SPAWN_RATE := 1.5
 const SPAWN_GROWTH := 0.05
 const MOST_CREATURES := 600
 ## Giants come out of the jungle from GIANTS_FROM seconds in, one every GIANT_INTERVAL, no
-## more than MOST_GIANTS standing at once; the felled lie where they fall for FELLED_LASTS.
+## more than MOST_GIANTS standing at once; the felled lie where they fall for FELLED_LASTS. From
+## CHAINSAW_FROM, every CHAINSAW_EVERY-th giant carries a chainsaw.
 const GIANTS_FROM := 25.0
 const GIANT_INTERVAL := 40.0
 const MOST_GIANTS := 3
@@ -22,6 +23,8 @@ const DOG_INTERVAL := 35.0
 const DOG_PACK := 3
 const MOST_DOGS := 12
 const FELLED_LASTS := 40.0
+const CHAINSAW_FROM := 120.0
+const CHAINSAW_EVERY := 2
 ## The fallen stay where they lie, up to this many. Past that, the oldest crumble away over
 ## FADE_TIME seconds rather than vanishing.
 const MOST_FALLEN := 600
@@ -51,6 +54,7 @@ var level := 1
 var events: Array[Dictionary] = []
 var _since_spawn := 0.0
 var _since_giant := GIANT_INTERVAL - GIANTS_FROM
+var _giants_sent := 0
 var _since_dogs := DOG_INTERVAL - DOGS_FROM
 var _grid := {}
 
@@ -66,8 +70,8 @@ func add_cat(where: Vector2) -> Cat:
 	return cat
 
 
-func add_giant(where: Vector2) -> Giant:
-	var giant := Giant.new()
+func add_giant(where: Vector2, kind := "worker") -> Giant:
+	var giant := Giant.new(kind)
 	giant.body.position = where
 	giants.append(giant)
 	return giant
@@ -226,6 +230,25 @@ func stomp(giant: Giant, at: Vector2) -> void:
 		elif apart.length() <= Giant.SHOCK_RADIUS:
 			cat.hurt(Giant.SHOCK_DAMAGE, apart.normalized() * Giant.SHOCK_KNOCK)
 	events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "stomp", "giant": true})
+
+
+## A chainsaw sweeping across the ground, from one angle to the next around the giant holding it:
+## anything in its reach that it passes, at a cat's height, is cut. His own horde too.
+func saw(giant: Giant, from_angle: float, to_angle: float) -> void:
+	var sweep := angle_difference(from_angle, to_angle)
+	var passes := func(offset: Vector2, radius: float) -> bool:
+		if offset.length() > Giant.SAW_REACH + radius or offset.length() < Giant.RADIUS:
+			return false
+		var into := angle_difference(from_angle, offset.angle())
+		return signf(into) == signf(sweep) and absf(into) <= absf(sweep) + 0.02
+	for creature in creatures.duplicate():
+		if creature.body.height < 0.5 and passes.call(creature.body.position - giant.body.position, creature.body.radius):
+			strike(creature, 100.0, (creature.body.position - giant.body.position).normalized(), 2.0, 0.6, "saw")
+	for cat in cats:
+		var offset := cat.body.position - giant.body.position
+		if cat.body.height < 0.5 and passes.call(offset, cat.body.radius):
+			if cat.hurt(Giant.SAW_DAMAGE, offset.normalized() * Giant.SAW_KNOCK):
+				events.append({"position": cat.body.position, "height": 0.2, "direction": offset.normalized(), "killed": false, "by": "saw", "giant": false, "kind": "cat"})
 
 
 ## A felled giant hits the ground along his length: everything in that strip is crushed.
@@ -410,7 +433,7 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 		if not giant.alive():
 			kills += 1
 			giants_felled += 1
-			_gain_experience(Giant.WORTH)
+			_gain_experience(giant.worth)
 		return
 	var creature: Creature = target
 	creature.health -= damage
@@ -493,7 +516,9 @@ func _spawn() -> void:
 	_since_giant += STEP
 	if _since_giant >= GIANT_INTERVAL and giants.filter(func(giant: Giant) -> bool: return giant.standing()).size() < MOST_GIANTS:
 		_since_giant = 0.0
-		add_giant(edge_point())
+		_giants_sent += 1
+		var chainsaw := time >= CHAINSAW_FROM and _giants_sent % CHAINSAW_EVERY == 0
+		add_giant(edge_point(), "chainsaw" if chainsaw else "worker")
 	_since_dogs += STEP
 	if _since_dogs >= DOG_INTERVAL:
 		_since_dogs = 0.0

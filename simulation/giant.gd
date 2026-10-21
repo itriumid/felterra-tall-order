@@ -3,8 +3,27 @@ extends RefCounted
 ## A human at real scale: a logging worker, five or six times a cat's height. Slow, heavy, and
 ## dangerous underfoot. He walks at the nearest cat and stomps; felled, he topples like the tall
 ## body he is and crushes what he lands on.
+##
+## The chainsaw worker is the elite: tougher, slower, in ear defenders, and instead of stomping
+## he revs his saw (its arc marked on the ground, the warning) and sweeps it at a cat's height
+## across the ground in front of him, cutting whatever is there, his own horde included.
 
-enum State { WALKING, WINDING, FALLING, FALLEN }
+enum State { WALKING, WINDING, FALLING, FALLEN, REVVING, SWEEPING }
+
+## Each kind: its health, its walking speed, and the experience felling it is worth.
+const KINDS := {
+	"worker": {"health": 60.0, "speed": 1.1, "worth": 15},
+	"chainsaw": {"health": 90.0, "speed": 0.9, "worth": 30},
+}
+## The chainsaw's sweep: how far it reaches, the arc it cuts, the rev before it (the warning),
+## how long the cut takes, how often he can, and what it does to a cat.
+const SAW_REACH := 1.5
+const SAW_ARC := deg_to_rad(140.0)
+const REV_TIME := 0.6
+const SWEEP_TIME := 0.35
+const SAW_INTERVAL := 2.6
+const SAW_DAMAGE := 4.0
+const SAW_KNOCK := 2.6
 
 const TALL := 1.75
 const RADIUS := 0.25
@@ -29,8 +48,17 @@ const FALLEN_WIDTH := 0.35
 const FALL_DAMAGE := 4.0
 const WORTH := 15
 
+var kind := "worker"
 var body := Body.new()
 var health := MOST_HEALTH
+var most_health := MOST_HEALTH
+var speed := SPEED
+var worth := WORTH
+## The chainsaw: the angle the sweep is centered on, where the saw is pointing in it, and the
+## time left revving or sweeping.
+var sweep_center := 0.0
+var saw_angle := 0.0
+var saw_for := 0.0
 var state := State.WALKING
 var facing := Vector2.RIGHT
 var stomp_ready_in := 1.0
@@ -48,9 +76,15 @@ var _last_knock := Vector2.RIGHT
 var wander_to := Vector2.INF
 
 
-func _init() -> void:
+func _init(giant_kind := "worker") -> void:
+	kind = giant_kind
+	most_health = KINDS[kind].health
+	health = most_health
+	speed = KINDS[kind].speed
+	worth = KINDS[kind].worth
 	body.radius = RADIUS
 	body.tall = TALL
+	body.kind = kind
 
 
 func alive() -> bool:
@@ -58,7 +92,11 @@ func alive() -> bool:
 
 
 func standing() -> bool:
-	return state == State.WALKING or state == State.WINDING
+	return state in [State.WALKING, State.WINDING, State.REVVING, State.SWEEPING]
+
+
+func has_chainsaw() -> bool:
+	return kind == "chainsaw"
 
 
 ## Hurt by a hit; the direction it came from decides which way he falls.
@@ -78,6 +116,8 @@ func step(delta: float, arena: Arena) -> void:
 	match state:
 		State.WALKING: _walk(delta, arena)
 		State.WINDING: _wind(delta, arena)
+		State.REVVING: _rev(delta, arena)
+		State.SWEEPING: _sweep(delta, arena)
 		State.FALLING: _fall(delta, arena)
 		State.FALLEN: fallen_for += delta
 	if standing():
@@ -89,12 +129,24 @@ func _walk(delta: float, arena: Arena) -> void:
 	var prey := arena.nearest_cat(body.position)
 	if prey == null:
 		var toward_wander := (wander_to - body.position) if wander_to.is_finite() else Vector2.ZERO
-		body.velocity = toward_wander.limit_length(1.0) * SPEED * 0.6
+		body.velocity = toward_wander.limit_length(1.0) * speed * 0.6
 		if toward_wander.length_squared() > 0.01:
 			facing = toward_wander.normalized()
 		return
 	var toward := prey.body.position - body.position
 	facing = toward.normalized()
+	if has_chainsaw():
+		if toward.length() <= SAW_REACH * 0.85 and stomp_ready_in <= 0.0:
+			# He commits to the way she is now; the rev is her warning to be elsewhere.
+			state = State.REVVING
+			saw_for = REV_TIME
+			sweep_center = facing.angle()
+			saw_angle = sweep_center - SAW_ARC * 0.5
+			body.velocity = Vector2.ZERO
+			arena.events.append({"position": body.position, "height": 0.9, "direction": facing, "killed": false, "by": "rev", "giant": true, "kind": kind})
+			return
+		body.velocity = facing * speed if toward.length() > SAW_REACH * 0.6 else Vector2.ZERO
+		return
 	if toward.length() <= STOMP_REACH and stomp_ready_in <= 0.0:
 		state = State.WINDING
 		wind_for = WIND_TIME
@@ -102,7 +154,26 @@ func _walk(delta: float, arena: Arena) -> void:
 		foot = prey.body.position
 		body.velocity = Vector2.ZERO
 		return
-	body.velocity = facing * SPEED if toward.length() > STOMP_REACH * 0.6 else Vector2.ZERO
+	body.velocity = facing * speed if toward.length() > STOMP_REACH * 0.6 else Vector2.ZERO
+
+
+func _rev(delta: float, arena: Arena) -> void:
+	saw_for = maxf(saw_for - delta, 0.0)
+	if saw_for <= 0.0:
+		state = State.SWEEPING
+		saw_for = SWEEP_TIME
+		arena.events.append({"position": body.position, "height": 0.3, "direction": facing, "killed": false, "by": "cut", "giant": true, "kind": kind})
+
+
+## The saw sweeps across its arc; each step, what it passed through is cut.
+func _sweep(delta: float, arena: Arena) -> void:
+	var before := saw_angle
+	saw_for = maxf(saw_for - delta, 0.0)
+	saw_angle = sweep_center - SAW_ARC * 0.5 + SAW_ARC * (1.0 - saw_for / SWEEP_TIME)
+	arena.saw(self, before, saw_angle)
+	if saw_for <= 0.0:
+		state = State.WALKING
+		stomp_ready_in = SAW_INTERVAL
 
 
 func _wind(delta: float, arena: Arena) -> void:
