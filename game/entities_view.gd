@@ -110,6 +110,10 @@ func _draw() -> void:
 	standing.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	for stain in _stains:
 		draw_rect(Rect2(World.to_screen(stain.position), Vector2.ONE), Palette.BLOOD if stain.age < STAIN_DRIES else Palette.BLOOD_DRY)
+	for piece in arena.pickups:
+		standing.append([piece.body.position.y, piece])
+	for cage in arena.cages:
+		standing.append([cage.body.position.y if not cage.opened else cage.runner.position.y, cage])
 	for cat in arena.cats:
 		var mines: Support = cat.supports.get("set_down")
 		if mines != null:
@@ -126,6 +130,12 @@ func _draw() -> void:
 			_draw_support(thing)
 		elif thing is Machine:
 			_draw_machine(thing)
+		elif thing is Cage:
+			_draw_cage(thing)
+		elif thing is Pickup:
+			var art: String = Sprites.SALVAGE[absi(hash(thing)) % Sprites.SALVAGE.size()]
+			var texture := Sprites.lit(art)
+			draw_texture(texture, World.to_screen(thing.body.position, thing.body.height) - Vector2(texture.get_width() / 2, texture.get_height() - 1))
 		elif thing is Giant:
 			_draw_giant(thing)
 		elif thing is Creature:
@@ -162,6 +172,11 @@ func _draw_shadow(thing: Variant) -> void:
 		return
 	if thing is Machine:
 		_draw_machine_shadow(thing)
+		return
+	if thing is Cage:
+		var cage: Cage = thing
+		if not cage.opened:
+			draw_rect(Rect2(World.to_screen(cage.body.position) + Vector2(-12, -1), Vector2(24, 3)), Palette.GROUND_SHADOW)
 		return
 	var body: Body = thing.body if thing is Cat or thing is Creature or thing is Support else thing
 	# A pixel ellipse on the ground, narrower the higher the body is.
@@ -391,6 +406,37 @@ func _exhaust(machine: Machine, delta: float) -> void:
 	})
 
 
+## A cage: the cat inside seen through its bars, a padlock on the front, and while the lock is
+## being picked, how far along it is. Opened, the cat running home, its legs stepping with the
+## ground it covers.
+func _draw_cage(cage: Cage) -> void:
+	if cage.opened:
+		var running := Sprites.cat_view(cage.runner.velocity)
+		var stride := Sprites.cat_body_art(running[0], int(cage.ran / CAT_STRIDE * 4.0) % 4)
+		draw_texture(Sprites.lit(Sprites.coat(stride, cage.prisoner.coat), running[1]), World.to_screen(cage.runner.position) - Sprites.CAT_FEET)
+		return
+	var feet := World.to_screen(cage.body.position)
+	var inside := Sprites.lit(Sprites.coat(Sprites.cat_body_art("side", 0), cage.prisoner.coat), absi(hash(cage)) % 2 == 0)
+	draw_texture(inside, feet - Sprites.CAT_FEET)
+	var box := Rect2(feet + Vector2(-13, -20), Vector2(26, 21))
+	draw_rect(box.grow(1), Palette.OUTLINE, false, 1.0)
+	draw_rect(Rect2(box.position, Vector2(box.size.x, 2)), Palette.STEEL_LIGHT)
+	draw_rect(Rect2(box.position + Vector2(0, box.size.y - 2), Vector2(box.size.x, 2)), Palette.STEEL_DARK)
+	var x := box.position.x
+	while x <= box.end.x - 1:
+		draw_rect(Rect2(Vector2(x, box.position.y + 2), Vector2(1, box.size.y - 4)), Palette.STEEL)
+		x += 3
+	# The padlock.
+	draw_rect(Rect2(feet + Vector2(-3, -11), Vector2(6, 6)), Palette.OUTLINE)
+	draw_rect(Rect2(feet + Vector2(-2, -10), Vector2(4, 4)), Palette.BRASS)
+	draw_rect(Rect2(feet + Vector2(-2, -10), Vector2(4, 1)), Palette.BRASS_LIGHT)
+	draw_rect(Rect2(feet + Vector2(-1, -13), Vector2(2, 2)), Palette.STEEL)
+	if cage.picked > 0.0:
+		var bar := Rect2(feet + Vector2(-12, -26), Vector2(24, 3))
+		draw_rect(bar, Palette.GRAPHITE)
+		draw_rect(Rect2(bar.position + Vector2(1, 1), Vector2(roundf(22 * cage.picked), 1)), Palette.LEAF_LIGHT)
+
+
 ## Her pack and what's on it, at one depth: behind her or over her. The cannon's tube shows only
 ## while it's on her back, and the drone only while it's docked on top.
 func _draw_pack(cat: Cat, view: String, flip: bool, at: Vector2, depth: String) -> void:
@@ -578,6 +624,21 @@ func _bleed(delta: float) -> void:
 					"position": event.position, "height": event.height, "rise": randf_range(0.3, 1.4),
 					"velocity": event.direction * randf_range(-1.2, -0.3) + Vector2(randf_range(-0.8, 0.8), randf_range(-0.8, 0.8)),
 					"color": Palette.BURNT if fluid else (Palette.SPARK if index % 2 else Palette.STEEL_LIGHT), "stains": false,
+				})
+			continue
+		if event.by == "cage_open":
+			for index in 8:
+				_droplets.append({
+					"position": event.position, "height": 0.3, "rise": randf_range(0.6, 1.6),
+					"velocity": Vector2.from_angle(randf() * TAU) * randf_range(0.4, 1.2),
+					"color": Palette.STEEL_LIGHT if index % 2 else Palette.SPARK, "stains": false,
+				})
+			continue
+		if event.by == "pickup":
+			for index in 3:
+				_droplets.append({
+					"position": event.position, "height": 0.15, "rise": randf_range(0.8, 1.4),
+					"velocity": Vector2(randf_range(-0.3, 0.3), randf_range(-0.3, 0.3)), "color": Palette.SPARK, "stains": false,
 				})
 			continue
 		if event.by == "landing":

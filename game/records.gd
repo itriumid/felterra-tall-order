@@ -31,6 +31,11 @@ func save(path := PATH) -> bool:
 	return file.save(path) == OK
 
 
+## Back to nothing: no best run yet.
+func clear() -> void:
+	best = {"time": 0.0, "level": 0, "kills": 0, "giants": 0}
+
+
 func load_from(path := PATH) -> void:
 	var file := ConfigFile.new()
 	if file.load(path) != OK:

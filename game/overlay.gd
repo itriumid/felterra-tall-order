@@ -48,6 +48,7 @@ func _draw() -> void:
 	_draw_status()
 	_draw_score()
 	_draw_boss()
+	_draw_cage_markers()
 	if show_numbers:
 		_draw_numbers()
 	if not setting_rows.is_empty():
@@ -87,6 +88,20 @@ func _draw_status() -> void:
 	InterfaceArt.icon(self, Vector2(x + 58, y), "aim", Palette.OFF_WHITE)
 	PixelFont.draw(self, Vector2(x + 68, y - 1), AIM_NAMES[cat.aim_mode], Palette.OFF_WHITE)
 	InterfaceArt.key_cap(self, Vector2(box.end.x - 14, y - 2), "T")
+
+
+## Cages out of sight: a mark at the edge of the screen, the way to each.
+func _draw_cage_markers() -> void:
+	var screen := get_viewport_rect()
+	var to_screen := get_viewport().get_canvas_transform()
+	for cage in arena.cages:
+		if cage.opened:
+			continue
+		var at: Vector2 = to_screen * World.to_screen(cage.body.position, 0.25)
+		if screen.grow(-4).has_point(at):
+			continue
+		var edge := at.clamp(Vector2(6, 54), screen.size - Vector2(13, 13))
+		InterfaceArt.icon(self, edge.floor(), "cage", Palette.PINK)
 
 
 ## A machine at work: its name and its health, across the top of the screen.
@@ -343,7 +358,7 @@ func _draw_settings() -> void:
 				PixelFont.draw(self, Vector2(bar_x - 10, y), "←", ink)
 				PixelFont.draw(self, Vector2(right - 7, y), "→", ink)
 		elif row.value != "":
-			var value: String = ("← %s →" % row.value) if chosen else String(row.value)
+			var value: String = ("← %s →" % row.value) if chosen and not row.get("action", false) else String(row.value)
 			PixelFont.draw(self, Vector2(right - PixelFont.width(value), y), value, ink)
 		y += row_height
 	var keys: Array[String] = ["W S", "choose", "A D", "change", "Esc", "back"]
@@ -384,6 +399,8 @@ func _draw_summary() -> void:
 		["level", "Level reached", str(summary.get("level", 1))],
 		["kills", "Kills", str(summary.get("kills", 0))],
 		["giants", "Giants felled", str(summary.get("giants", 0))],
+		["rescued", "Cats rescued", str(summary.get("rescued", 0))],
+		["salvage", "Salvage", str(summary.get("salvage", 0))],
 	]
 	var row_height := PixelFont.LINE_HEIGHT + 2
 	var width := 220.0

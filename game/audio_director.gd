@@ -63,6 +63,10 @@ func take_events(events: Array[Dictionary]) -> void:
 			"set_down": play_at("pounce", event.position, -8.0, 0.7)
 			"boom": play_at("hydraulic", event.position, -3.0)
 			"jaws_shut": play_at("jaws", event.position, 0.0)
+			"cage_open":
+				play_at("cage_open", event.position, -4.0)
+				play_at("meow", event.position, -3.0)
+			"pickup": play_at("pickup", event.position, -10.0)
 			_:
 				if event.get("kind", "") == "machine":
 					play_at("machine_break" if event.killed else "clang", event.position, 2.0 if event.killed else -8.0)
@@ -105,6 +109,9 @@ func _process(_delta: float) -> void:
 			play_at("hurt", cat.body.position, -6.0)
 	if _counted(arena, "level", arena.level) and arena.level > 1:
 		interface("level_up")
+	for cage in arena.cages:
+		if _counted(cage, "clicks", cage.clicks):
+			play_at("lock_click", cage.body.position, -10.0)
 	for machine in arena.machines:
 		# Its tracks clank as they run, link by link.
 		var link := floori(machine.tracks_run / 0.5)

@@ -17,7 +17,36 @@ const LEGEND := {
 	"c": Palette.SCARF_RED,
 	"n": Palette.DOG_SHADOW, "N": Palette.DOG, "m": Palette.DOG_LIGHT, "x": Palette.HI_VIS,
 	"a": Palette.MOSS, "A": Palette.DRY_GRASS,
+	"u": Palette.GRAY_FUR_SHADOW, "U": Palette.GRAY_FUR, "i": Palette.GRAY_FUR_LIGHT,
+	"f": Palette.BLACK_FUR_SHADOW, "F": Palette.BLACK_FUR, "j": Palette.BLACK_FUR_LIGHT,
+	"l": Palette.CREAM_FUR_SHADOW, "z": Palette.CREAM_FUR, "Z": Palette.CREAM_FUR_LIGHT,
 }
+## The letters a cat's fur is drawn in, shadow, base and light, for each coat: the art is drawn
+## orange, and another coat swaps its letters.
+const COATS := {"orange": "oOy", "gray": "uUi", "black": "fFj", "cream": "lzZ"}
+## Salvage lying about: a bolt, a plate, a spanner.
+const SALVAGE: Array[String] = [
+	"""
+.kkk.
+kSssk
+.kdk.
+.kdk.
+..k..
+""",
+	"""
+kkkkk
+kssSk
+kSSdk
+kkkkk
+""",
+	"""
+kk...kk
+ksk.ksk
+.kSSSk.
+..kdk..
+...k...
+""",
+]
 
 ## The cat, in three views: toward the viewer ("front"), away ("back") and side-on facing right
 ## ("side", mirrored for left). Each view is its body from the ears to the hips, and four frames
@@ -575,6 +604,10 @@ static func all_art() -> Dictionary:
 	for frame in DRONE_FRAMES.size():
 		art["drone_%d" % frame] = DRONE_FRAMES[frame]
 	art["drone_docked"] = DRONE_DOCKED
+	for index in SALVAGE.size():
+		art["salvage_%d" % index] = SALVAGE[index]
+	for coat_name: String in COATS:
+		art["cat_coat_" + coat_name] = coat(cat_body_art("side", 0), coat_name)
 	art["meriam_bambu"] = MERIAM_BAMBU
 	art["mine"] = MINE
 	art["mine_arming"] = MINE_ARMING
@@ -1213,6 +1246,18 @@ static func crumbled(art: String, stage: int, flip_x := false, flip_y := false) 
 
 ## The art as a texture lit by the scene's lights, with a normal map raised from its own shape:
 ## each pixel tilts toward the nearest edge, so light from one side models the form.
+## Art of a cat in another coat: its fur's letters swapped for that coat's.
+static func coat(art: String, coat_name: String) -> String:
+	var letters: String = COATS.get(coat_name, COATS.orange)
+	if letters == COATS.orange:
+		return art
+	var swapped := ""
+	for character in art:
+		var index: int = (COATS.orange as String).find(character)
+		swapped += letters[index] if index >= 0 else character
+	return swapped
+
+
 static func lit(art: String, flip_x := false, flip_y := false) -> CanvasTexture:
 	var key := "%s|%s|%s" % [art.hash(), flip_x, flip_y]
 	if _cache.has(key):

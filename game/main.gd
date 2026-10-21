@@ -10,7 +10,8 @@ extends Node
 ## that way on her own; --fallen=<count> scatters that many bodies; --mutations=<id>,<id> gives
 ## her those dodge mutations, a common card of each; --dodge-every=<seconds> dodges on her own;
 ## --offer=<id>,<id>,<id> hands her a card of those choices, common, uncommon and rare;
-## --support=<id>,<id> puts those on her back; --machine starts with a feller buncher close by.
+## --support=<id>,<id> puts those on her back; --machine starts with a feller buncher close by;
+## --cage=<count> sets that many cages around her, the first right beside her, the rest far off.
 
 ## Sun through the canopy's gaps: where it reaches the ground, in meters.
 const SHAFTS: Array[Vector2] = [
@@ -37,6 +38,7 @@ const SETTING_ROWS: Array[Array] = [
 	["audio", "master", "Volume"], ["audio", "music", "Music"], ["audio", "effects", "Effects"],
 	["audio", "interface", "Interface"],
 	["gameplay", "aim", "Aim"], ["gameplay", "blood", "Blood"],
+	["progress", "reset", "Reset all progress"],
 	["", "back", "Back"],
 ]
 ## There's no online play yet; when there is, the menu won't stop the world there.
@@ -60,6 +62,10 @@ var _page := ""
 var _settings_from := "pause"
 var _setting_choice := 0
 var records := Records.new()
+## The village and what's been brought home to it; and the reset's question: "" before it's
+## asked, "asking" once it has been, "done" after.
+var village := Village.new()
+var _reset_state := ""
 ## Which of the last run's numbers beat the best.
 var _beaten: Array[String] = []
 var settings := Settings.new()
@@ -85,6 +91,7 @@ var _dodge_every := 0.0
 var _offer: PackedStringArray = []
 var _support: PackedStringArray = []
 var _machine := false
+var _cages := 0
 var _since_dodge := 0.0
 var _giant_from := Vector2(3.5, -1.0)
 var _walk := Vector2.ZERO
@@ -118,6 +125,8 @@ func _ready() -> void:
 			_giant_from = Vector2(parts[0].to_float(), parts[1].to_float())
 		elif argument.begins_with("--chainsaw="):
 			_chainsaws = argument.trim_prefix("--chainsaw=").to_int()
+		elif argument.begins_with("--cage="):
+			_cages = argument.trim_prefix("--cage=").to_int()
 		elif argument == "--machine":
 			_machine = true
 		elif argument.begins_with("--support="):
@@ -165,6 +174,7 @@ func _ready() -> void:
 	if _keeping_settings:
 		settings.load_from()
 		records.load_from()
+		village.load_from()
 	settings.apply()
 	# A development run is silent unless asked: screenshots shouldn't blast whoever's nearby.
 	AudioServer.set_bus_mute(0, not _keeping_settings and not "--sound" in OS.get_cmdline_user_args())
@@ -261,6 +271,8 @@ func _begin(horde: int, spawning: bool) -> void:
 		arena.add_giant(_start + _giant_from + Vector2(-index, index), "chainsaw")
 	if _machine:
 		arena.add_machine(_start + Vector2(6.5, 1.5), PI)
+	for index in _cages:
+		arena.add_cage((_start + (Vector2(0.5, 0.0) if index == 0 else Vector2.from_angle(index * 2.4) * 12.0)).clamp(Vector2.ONE * 1.5, Arena.SIZE - Vector2.ONE * 1.5))
 	for index in _dogs:
 		arena.add_creature(_start + Vector2.from_angle(index * 2.1) * 4.0, "dog")
 	for index in _fallen:
@@ -373,9 +385,13 @@ func _step_world(delta: float) -> void:
 ## She's down: the run's numbers go into the records, and its summary opens.
 func _end_run() -> void:
 	_beaten = records.record(Records.of(arena))
+	village.bring_home(arena)
 	if _keeping_settings:
 		records.save()
+		village.save()
 	_overlay.summary = Records.of(arena)
+	_overlay.summary.rescued = arena.rescued.size()
+	_overlay.summary.salvage = arena.salvage
 	_overlay.beaten = _beaten
 	_open_page("summary")
 
@@ -467,6 +483,7 @@ func _read_choices() -> void:
 func _read_settings() -> void:
 	if Input.is_action_just_pressed("pause"):
 		_page = _settings_from
+		_reset_state = ""
 		_audio.interface("menu_back")
 		return
 	if Input.is_action_just_pressed("move_up"):
@@ -475,6 +492,8 @@ func _read_settings() -> void:
 	if Input.is_action_just_pressed("move_down"):
 		_setting_choice = wrapi(_setting_choice + 1, 0, SETTING_ROWS.size())
 		_audio.interface("menu_move")
+	if Input.is_action_just_pressed("move_up") or Input.is_action_just_pressed("move_down") or Input.is_action_just_pressed("pause"):
+		_reset_state = ""
 	var row: Array = SETTING_ROWS[_setting_choice]
 	var direction := 0
 	if Input.is_action_just_pressed("move_left"):
@@ -487,9 +506,30 @@ func _read_settings() -> void:
 		if Input.is_action_just_pressed("menu_choose"):
 			_page = _settings_from
 		return
+	if row[1] == "reset":
+		if Input.is_action_just_pressed("menu_choose"):
+			_reset_progress()
+		return
 	settings.step(row[0], row[1], direction)
 	_settings_changed()
 	_audio.interface("menu_choose" if direction > 0 else "menu_back")
+
+
+## Reset all progress: the first press asks, the second does it. The village and the best run go
+## back to nothing; the settings stay as they are. Choosing any other row first takes the
+## question back.
+func _reset_progress() -> void:
+	if _reset_state != "asking":
+		_reset_state = "asking"
+		_audio.interface("menu_choose")
+		return
+	village.clear()
+	records.clear()
+	if _keeping_settings:
+		village.save()
+		records.save()
+	_reset_state = "done"
+	_audio.interface("banish")
 
 
 ## Puts changed settings into effect, in the run too, and keeps them.
@@ -518,8 +558,11 @@ func _menu_lines() -> Array[String]:
 func _setting_lines() -> Array[Dictionary]:
 	var rows: Array[Dictionary] = []
 	for row: Array in SETTING_ROWS:
-		var line := {"section": row[0], "name": row[2], "value": "", "volume": -1}
-		if row[1] != "back":
+		var line := {"section": row[0], "name": row[2], "value": "", "volume": -1, "action": false}
+		if row[1] == "reset":
+			line.action = true
+			line.value = {"": "", "asking": "Press again: it can't be undone", "done": "Done"}[_reset_state]
+		elif row[1] != "back":
 			var value: Variant = settings.get_value(row[0], row[1])
 			match row[1]:
 				"window_scale": line.value = "%d by %d" % [640 * int(value), 360 * int(value)]
