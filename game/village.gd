@@ -8,6 +8,10 @@ const PATH := "user://village.cfg"
 
 var cats: Array[Dictionary] = []
 var salvage := 0
+## Whether the story's opening has been told: it's told once, on the first walk into the village.
+var intro_seen := false
+## The buildings brought back from ruin, by name.
+var restored: Array[String] = []
 
 
 ## What a run brought home: its rescued cats join, its salvage goes on the pile.
@@ -20,12 +24,16 @@ func bring_home(arena: Arena) -> void:
 func clear() -> void:
 	cats.clear()
 	salvage = 0
+	intro_seen = false
+	restored.clear()
 
 
 func save(path := PATH) -> bool:
 	var file := ConfigFile.new()
 	file.set_value("village", "cats", cats)
 	file.set_value("village", "salvage", salvage)
+	file.set_value("village", "intro_seen", intro_seen)
+	file.set_value("village", "restored", restored)
 	return file.save(path) == OK
 
 
@@ -42,3 +50,10 @@ func load_from(path := PATH) -> void:
 	var saved_salvage: Variant = file.get_value("village", "salvage", 0)
 	if saved_salvage is int:
 		salvage = maxi(saved_salvage, 0)
+	intro_seen = file.get_value("village", "intro_seen", false) == true
+	var saved_restored: Variant = file.get_value("village", "restored", [])
+	if saved_restored is Array:
+		restored.clear()
+		for name: Variant in saved_restored:
+			if name is String and name in VillageMap.building_names():
+				restored.append(name)

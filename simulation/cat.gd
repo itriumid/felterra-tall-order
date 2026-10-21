@@ -44,6 +44,8 @@ const STAGGER_TIME := 0.25
 const GUN_HEIGHT := 0.2
 
 var body := Body.new()
+## Her coat: orange, gray, black or cream. The view draws her fur in it.
+var coat := "orange"
 var health := MOST_HEALTH
 var max_health := MOST_HEALTH
 ## Stats, raised by cards and gear. Bonuses are shares added to one: 0.1 is ten percent more.

@@ -1,0 +1,100 @@
+extends TestCase
+## The village as a place: the cats she's rescued live in it, huts go up as more join, the houses
+## are solid, a cutscene can walk her to a spot, and walking out on the path to the clearing is the
+## way into a run.
+
+
+func _rescued(count: int) -> Array:
+	var cats: Array = []
+	for index in count:
+		cats.append({"name": Cage.NAMES[index % Cage.NAMES.size()], "coat": Cage.COATS[index % Cage.COATS.size()]})
+	return cats
+
+
+func test_the_cats_she_rescued_live_there() -> void:
+	var map := VillageMap.new(_rescued(3))
+	check(map.villagers.size() == 3, "%d villagers for 3 rescued" % map.villagers.size())
+	check(map.villagers[1].coat == Cage.COATS[1] and map.names[1] == Cage.NAMES[1], "a villager came out in the wrong coat or name")
+	for villager in map.villagers:
+		check(villager.body.position.x > VillageMap.VILLAGE_FROM, "a villager lives out in the forest")
+
+
+func test_everything_starts_in_ruins() -> void:
+	var map := VillageMap.new()
+	check(map.buildings.size() == VillageMap.building_names().size(), "%d buildings stand" % map.buildings.size())
+	check(map.buildings.all(func(each: Dictionary) -> bool: return not each.restored), "something stood restored before anything was")
+
+
+func test_restored_buildings_stand_restored() -> void:
+	var map := VillageMap.new([], ["smithy", "hut_2"])
+	var restored := map.buildings.filter(func(each: Dictionary) -> bool: return each.restored).map(func(each: Dictionary) -> String: return each.name)
+	check(restored == ["smithy", "hut_2"], "restored: %s" % str(restored))
+
+
+func test_what_is_restored_is_kept() -> void:
+	var village := Village.new()
+	village.restored.assign(["longhouse", "not_a_building"])
+	var path := "user://test_village_restored.cfg"
+	village.save(path)
+	var loaded := Village.new()
+	loaded.load_from(path)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	check(loaded.restored == ["longhouse"], "the village came back with %s restored" % str(loaded.restored))
+
+
+func test_the_houses_are_solid() -> void:
+	var map := VillageMap.new()
+	map.cat.body.position = Vector2(VillageMap.LONGHOUSE.get_center().x, VillageMap.LONGHOUSE.end.y + 0.6)
+	map.cat.steering = Vector2.UP
+	for step in 120:
+		map.step(Arena.STEP)
+	check(not VillageMap.LONGHOUSE.has_point(map.cat.body.position), "she walked into the longhouse")
+
+
+func test_in_the_forest_she_keeps_to_the_path() -> void:
+	var map := VillageMap.new()
+	map.cat.steering = Vector2.UP
+	for step in 120:
+		map.step(Arena.STEP)
+	# Stopped right at the path's edge: meters on the map are only as exact as a float.
+	check(map.cat.body.position.y >= VillageMap.PATH_TOP - 0.001, "she wandered off the path into the trees")
+
+
+func test_a_cutscene_walks_her_there() -> void:
+	var map := VillageMap.new()
+	map.walk_to(VillageMap.HOME_SPOT)
+	for step in 60 * 20:
+		map.step(Arena.STEP)
+	check(not map.walking() and map.cat.body.position.distance_to(VillageMap.HOME_SPOT) < 0.1, "she stopped at %s" % map.cat.body.position)
+
+
+func test_the_path_out_starts_a_run() -> void:
+	var map := VillageMap.new()
+	map.cat.body.position = VillageMap.RETURN_SPOT
+	check(not map.leaving(), "she was leaving from the middle of the village")
+	map.cat.steering = Vector2.RIGHT
+	for step in 120:
+		map.step(Arena.STEP)
+	check(map.leaving(), "she walked out along the path and never left")
+
+
+func test_off_the_path_the_village_edge_is_a_wall() -> void:
+	var map := VillageMap.new()
+	map.cat.body.position = Vector2(VillageMap.SIZE.x - 1.0, 1.2)
+	map.cat.steering = Vector2.RIGHT
+	for step in 120:
+		map.step(Arena.STEP)
+	check(not map.leaving(), "she left the village through the trees")
+
+
+func test_the_opening_is_remembered_once_told() -> void:
+	var village := Village.new()
+	village.intro_seen = true
+	var path := "user://test_village_intro.cfg"
+	village.save(path)
+	var loaded := Village.new()
+	loaded.load_from(path)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	check(loaded.intro_seen, "the opening would be told again")
+	loaded.clear()
+	check(not loaded.intro_seen, "a reset didn't bring the opening back")
