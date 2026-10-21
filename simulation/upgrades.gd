@@ -53,6 +53,17 @@ const WEAPON_NAMES := {
 ## What a weapon at the top level can become: the families it evolves along. A weapon not listed
 ## is the last of its family, and takes mastery from there.
 const EVOLVES := {"knife": "keris", "keris": "kerambit", "handgun": "submachine_gun"}
+## Dodge mutations: each changes what the dodge does. A cat takes up to Cat.MOST_MUTATIONS a run,
+## and a card for one she has strengthens it. What each is called, and what it does in one line.
+const MUTATIONS := {
+	"rolling_slash": {"name": "Rolling slash", "explain": "The roll cuts what it passes through, harder the faster she rolls"},
+	"pounce": {"name": "Pounce", "explain": "As the roll ends, she leaps onto the nearest enemy, over the horde"},
+	"ankle_cutter": {"name": "Ankle cutter", "explain": "Rolling between a giant's legs cuts a share of his health"},
+	"land_on_feet": {"name": "Land on your feet", "explain": "Knocked off her feet, she rolls out of it, for free"},
+	"more_charges": {"name": "More charges", "explain": "Dodges she can hold; a rarer card brings them back faster"},
+	"long_leap": {"name": "Long leap", "explain": "The roll leaves the ground: over rats, and over a chainsaw's sweep"},
+	"riposte": {"name": "Riposte", "explain": "A hit dodged just as it lands, she answers at once"},
+}
 ## Past the top level, mastery: unlimited levels, each worth this share of an ordinary one. It's
 ## what lets a long run keep growing.
 const MASTERY := 0.5
@@ -96,6 +107,11 @@ static func available(cat: Cat) -> Array[String]:
 			ids.append("evolve:" + weapon.name)
 		else:
 			ids.append("mastery:" + weapon.name)
+	for mutation: String in MUTATIONS:
+		if cat.has(mutation):
+			ids.append("mutation_up:" + mutation)
+		elif cat.mutations.size() < Cat.MOST_MUTATIONS:
+			ids.append("mutation:" + mutation)
 	for weapon_name in WEAPONS:
 		var family_held := cat.weapons.any(func(weapon: Weapon) -> bool: return _family(weapon.name) == _family(weapon_name))
 		if not family_held and paws_used + Weapon.named(weapon_name).hands <= Cat.PAWS:
@@ -154,6 +170,13 @@ static func apply(cat: Cat, choice: Dictionary) -> void:
 			grown.power = old.power + LEVEL_DAMAGE * (amount - 1.0)
 			grown.tempo = old.tempo + LEVEL_TEMPO * (amount - 1.0)
 			cat.weapons[index] = grown
+	elif id.begins_with("mutation"):
+		var mutation := id.get_slice(":", 1)
+		cat.mutations[mutation] = cat.strength(mutation) + amount
+		cat.mutation_cards[mutation] = cat.mutation_cards.get(mutation, 0) + 1
+		if mutation == "more_charges":
+			# The new charge comes ready.
+			cat.dodge_charges += 1.0
 	elif id.begins_with("weapon:"):
 		var weapon := Weapon.named(id.trim_prefix("weapon:"))
 		# A rarer find comes better made: a level up for each tier above common.
@@ -201,6 +224,15 @@ static func describe(choice: Dictionary) -> Dictionary:
 			card.explain = ["Mastery: past level %d, there's no limit; each is worth half a level" % WEAPON_TOP]
 			return card
 		card.explain = ["Weapon levels: each raises its damage and attack speed; at level %d it evolves" % WEAPON_TOP]
+	elif id.begins_with("mutation"):
+		var mutation := id.get_slice(":", 1)
+		card.item = mutation
+		card.kind = "mutation"
+		card.name = MUTATIONS[mutation].name + ("" if id.begins_with("mutation:") else " up")
+		card.lines = _mutation_lines(mutation, amount, id.begins_with("mutation:"))
+		card.explain = ["%s: %s" % [MUTATIONS[mutation].name, MUTATIONS[mutation].explain],
+			"Dodge mutations: %d a run; another card for one makes it stronger" % Cat.MOST_MUTATIONS]
+		card.unfamiliar = true
 	else:
 		card.item = id.trim_prefix("weapon:")
 		card.kind = "weapon"
@@ -208,6 +240,34 @@ static func describe(choice: Dictionary) -> Dictionary:
 		card.lines = ["A new weapon", "Level %d" % (1 + choice.rarity)]
 		card.explain = ["Paws: a weapon takes a free one, and she has two"]
 	return card
+
+
+## What a card for a mutation gives, at its rarity's amount, in two short lines: what it does, for
+## a new one, or what it adds, for one she has.
+static func _mutation_lines(mutation: String, amount: float, fresh: bool) -> Array:
+	var leap_time := 2.0 * Cat.LEAP_LIFT / Body.GRAVITY
+	match mutation:
+		"rolling_slash":
+			return ["The roll cuts" if fresh else "Sharper", "%s%.1f damage a cut" % ["" if fresh else "+", Cat.SLASH_DAMAGE * amount]]
+		"pounce":
+			return ["Ends in a pounce" if fresh else "Harder", "%s%.1f damage landing" % ["" if fresh else "+", Cat.POUNCE_DAMAGE * amount]]
+		"ankle_cutter":
+			return ["Roll through his legs" if fresh else "Deeper", "%s%d%% of his health" % ["" if fresh else "+", roundi(Cat.ANKLE_SHARE * amount * 100.0)]]
+		"land_on_feet":
+			if fresh:
+				return ["Knocked, she rolls", "Safe for %.2f seconds" % (Cat.RECOVER_SAFE_TIME + Cat.RECOVER_SAFE_GROWTH * amount)]
+			return ["Safer", "+%.2f seconds safe" % (Cat.RECOVER_SAFE_GROWTH * amount)]
+		"more_charges":
+			if amount > 1.0:
+				return ["+1 dodge charge", "Recharge %d%% faster" % roundi(Cat.RECHARGE_GROWTH * (amount - 1.0) * 100.0)]
+			return ["+1 dodge charge"]
+		"long_leap":
+			if fresh:
+				return ["The roll is a leap", "%.1f meters long" % (Cat.DODGE_SPEED * (Cat.LEAP_SPEED + Cat.LEAP_GROWTH * amount) * leap_time)]
+			return ["Further", "+%.1f meters" % (Cat.DODGE_SPEED * Cat.LEAP_GROWTH * amount * leap_time)]
+		"riposte":
+			return ["Dodge as a hit lands" if fresh else "Sharper", "%s%.1f damage back" % ["" if fresh else "+", Cat.RIPOSTE_DAMAGE * amount]]
+	return []
 
 
 static func _amount_text(text: String, value: float) -> String:

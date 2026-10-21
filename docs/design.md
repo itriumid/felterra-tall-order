@@ -53,6 +53,13 @@ lunges: a real leap through the air that bites if it reaches her, and that a dod
 from under; it lands, and needs a moment before it runs again. A dog is heavier than a rat, so a
 round shoves it less.
 
+The **chainsaw worker** is the first elite: a giant in ear defenders, tougher and slower than a
+worker, from two minutes in (every other giant after that). Instead of stomping, he revs the saw
+for a little over half a second, its arc marked on the ground in hi-vis (the warning), then
+sweeps it at shin height across the ground in front of him. Whatever is in the arc is cut,
+his own rats and dogs included, so luring the horde into it is a tactic; a dodge gets her
+through it, a long leap clears it, and behind him is safe.
+
 ## The first map
 
 A clearing the company has cut in an Indonesian tropical forest.
@@ -122,9 +129,10 @@ that could be built.
 
 ### The dodge
 
-A short roll, with a moment where hits don't land, and a cooldown. Over a run it takes up to
-**three mutations**, each changing what the dodge *does*, not just its numbers. Upgrading a
-mutation you already have strengthens it without taking another slot.
+A short roll, with a moment where hits don't land. It takes a charge, which comes back in a
+little under a second. Over a run it takes up to **three mutations**, each changing what the
+dodge *does*, not just its numbers. Upgrading a mutation you already have strengthens it without
+taking another slot, and, as everywhere, a card's rarity changes only how much it gives.
 
 | Kind | Mutations |
 |---|---|
@@ -134,6 +142,24 @@ mutation you already have strengthens it without taking another slot.
 | **Movement** | More charges, long leap |
 | **Timing** | Riposte: dodge just as a hit lands and strike back at once |
 | **Crew** | Rescue roll (rolling through a downed crewmate revives faster), slipstream (rolling past a crewmate speeds them up) |
+
+**Built so far:** rolling slash, pounce, ankle cutter, land on your feet, more charges, long leap
+and riposte. The rest wait on what they act on: fire and oil for shake it off and the traps,
+downed crewmates for the crew's. The jamu flask needs a new name first: it's also the waist
+slot's gear.
+
+- **Rolling slash:** every creature the roll touches is cut once, by 3 a common card's worth, more
+  the faster the roll.
+- **Pounce:** as the roll ends, a leap onto the nearest enemy within 3 meters (by the aim mode),
+  led to where it will be; landing hits what's under her.
+- **Ankle cutter:** rolling between a giant's legs cuts 12 percent of his full health, once a roll.
+- **Land on your feet:** a knock off her feet ends in a free roll, safe for a moment.
+- **More charges:** another charge for each card; a rarer card brings them back faster.
+- **Long leap:** the roll leaves the ground, high enough at the top to clear a rat and the
+  chainsaw's sweep, and longer with each card.
+- **Riposte:** a hit that lands while she's safe in a roll is answered at once, against everything
+  within 0.9 meters, once a roll.
+- What the dodge deals grows with damage from gear, the same as her weapons.
 
 ## Runs
 

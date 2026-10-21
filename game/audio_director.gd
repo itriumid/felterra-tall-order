@@ -53,6 +53,11 @@ func take_events(events: Array[Dictionary]) -> void:
 			"fall": play_at("fall", event.position, 2.0)
 			"bite": play_at("bite", event.position, -6.0 if event.get("kind", "rat") == "rat" else -2.0)
 			"lunge": play_at("bark", event.position, -4.0)
+			"rev": play_at("saw_rev", event.position, -3.0)
+			"cut": play_at("saw_cut", event.position, -2.0)
+			"leap": play_at("dodge", event.position, -6.0, 0.8)
+			"landing": play_at("pounce", event.position, -4.0)
+			"strike_back": play_at("riposte", event.position, -4.0)
 			_:
 				if event.get("giant", false):
 					play_at("hit_big", event.position, -3.0)
@@ -79,7 +84,7 @@ func _process(_delta: float) -> void:
 				# Deeper for a keris, quicker for a kerambit.
 				var pitch: float = {"keris": 0.85, "kerambit": 1.25}.get(weapon.name, 1.0)
 				play_at("swing", cat.body.position, -10.0, pitch)
-		if _counted(cat, "dodges", 1 if cat.dodging_for > 0.0 else 0) and cat.dodging_for > 0.0:
+		if _counted(cat, "dodges", cat.dodges):
 			play_at("dodge", cat.body.position, -8.0)
 		if _counted(cat, "hurt", cat.hits_taken):
 			play_at("hurt", cat.body.position, -6.0)

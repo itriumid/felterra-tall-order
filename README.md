@@ -8,8 +8,8 @@ pixel art, honest physics, and cooperative play for one to four, online or on on
 
 It's at the very beginning: the design is in [`docs/design.md`](docs/design.md), and what runs
 so far is a prototype, from the title to the end of a run: one cat with a knife or a handgun,
-level-up cards, gear and evolving weapons, synthesized sound and adaptive music, a logged clearing, a horde of rats and packs of guard dogs coming out
-of the jungle, the light under the canopy, and gear you can try on.
+level-up cards, gear, evolving weapons and dodge mutations, synthesized sound and adaptive music, a logged clearing, a horde of rats, packs of guard dogs and chainsaw workers
+coming out of the jungle, the light under the canopy, and gear you can try on.
 
 ## Download
 
@@ -29,7 +29,7 @@ The builds aren't signed by a publisher Windows or macOS knows yet, so each warn
 | Keyboard | Gamepad | Action |
 |---|---|---|
 | W A S D or the arrow keys | Left stick | Move |
-| Space | A | Dodge |
+| Space | A | Dodge (a charge each; mutations from the cards change what it does) |
 | 1 or 2 | Left bumper or up | Choose what you start with: knife or handgun |
 | T | X | Change how weapons choose a target (also in the settings) |
 | B | | Blood on or off (also in the settings) |

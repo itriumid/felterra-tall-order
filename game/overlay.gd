@@ -74,9 +74,13 @@ func _draw_status() -> void:
 	InterfaceArt.bar(self, Rect2(x + 10, y + 1, 92, 5), float(arena.experience) / Arena.experience_needed(arena.level), Palette.BRASS_LIGHT)
 	PixelFont.draw(self, Vector2(x + 106, y - 1), "Level %d" % arena.level, Palette.OFF_WHITE)
 	y += 11
-	var ready := cat.dodge_ready_in <= 0.0
+	var ready := cat.dodge_charges >= 1.0
+	var charges := cat.most_charges()
 	InterfaceArt.icon(self, Vector2(x, y), "dodge", Palette.LEAF_LIGHT if ready else Palette.SMOKE)
-	InterfaceArt.bar(self, Rect2(x + 10, y + 1, 40, 5), 1.0 - cat.dodge_ready_in / Cat.DODGE_COOLDOWN, Palette.LEAF_LIGHT if ready else Palette.SMOKE)
+	InterfaceArt.bar(self, Rect2(x + 10, y + 1, 40, 5), cat.dodge_charges / charges, Palette.LEAF_LIGHT if ready else Palette.SMOKE)
+	# With more than one charge, the bar is cut into one stretch for each.
+	for charge in range(1, charges):
+		draw_rect(Rect2(x + 10 + roundf(40.0 * charge / charges), y + 1, 1, 5), Palette.PANEL_DARK)
 	InterfaceArt.icon(self, Vector2(x + 58, y), "aim", Palette.OFF_WHITE)
 	PixelFont.draw(self, Vector2(x + 68, y - 1), AIM_NAMES[cat.aim_mode], Palette.OFF_WHITE)
 	InterfaceArt.key_cap(self, Vector2(box.end.x - 14, y - 2), "T")

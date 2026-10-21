@@ -11,7 +11,8 @@ const SPAWN_RATE := 1.5
 const SPAWN_GROWTH := 0.05
 const MOST_CREATURES := 600
 ## Giants come out of the jungle from GIANTS_FROM seconds in, one every GIANT_INTERVAL, no
-## more than MOST_GIANTS standing at once; the felled lie where they fall for FELLED_LASTS.
+## more than MOST_GIANTS standing at once; the felled lie where they fall for FELLED_LASTS. From
+## CHAINSAW_FROM, every CHAINSAW_EVERY-th giant carries a chainsaw.
 const GIANTS_FROM := 25.0
 const GIANT_INTERVAL := 40.0
 const MOST_GIANTS := 3
@@ -22,6 +23,8 @@ const DOG_INTERVAL := 35.0
 const DOG_PACK := 3
 const MOST_DOGS := 12
 const FELLED_LASTS := 40.0
+const CHAINSAW_FROM := 120.0
+const CHAINSAW_EVERY := 2
 ## The fallen stay where they lie, up to this many. Past that, the oldest crumble away over
 ## FADE_TIME seconds rather than vanishing.
 const MOST_FALLEN := 600
@@ -51,6 +54,7 @@ var level := 1
 var events: Array[Dictionary] = []
 var _since_spawn := 0.0
 var _since_giant := GIANT_INTERVAL - GIANTS_FROM
+var _giants_sent := 0
 var _since_dogs := DOG_INTERVAL - DOGS_FROM
 var _grid := {}
 
@@ -66,8 +70,8 @@ func add_cat(where: Vector2) -> Cat:
 	return cat
 
 
-func add_giant(where: Vector2) -> Giant:
-	var giant := Giant.new()
+func add_giant(where: Vector2, kind := "worker") -> Giant:
+	var giant := Giant.new(kind)
 	giant.body.position = where
 	giants.append(giant)
 	return giant
@@ -226,6 +230,79 @@ func stomp(giant: Giant, at: Vector2) -> void:
 		elif apart.length() <= Giant.SHOCK_RADIUS:
 			cat.hurt(Giant.SHOCK_DAMAGE, apart.normalized() * Giant.SHOCK_KNOCK)
 	events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "stomp", "giant": true})
+
+
+## A chainsaw sweeping across the ground, from one angle to the next around the giant holding it:
+## anything in its reach that it passes, at a cat's height, is cut. His own horde too.
+func saw(giant: Giant, from_angle: float, to_angle: float) -> void:
+	var sweep := angle_difference(from_angle, to_angle)
+	var passes := func(offset: Vector2, radius: float) -> bool:
+		if offset.length() > Giant.SAW_REACH + radius or offset.length() < Giant.RADIUS:
+			return false
+		var into := angle_difference(from_angle, offset.angle())
+		return signf(into) == signf(sweep) and absf(into) <= absf(sweep) + 0.02
+	for creature in creatures.duplicate():
+		if creature.body.height < Giant.SAW_HEIGHT and passes.call(creature.body.position - giant.body.position, creature.body.radius):
+			strike(creature, 100.0, (creature.body.position - giant.body.position).normalized(), 2.0, 0.6, "saw")
+	for cat in cats:
+		var offset := cat.body.position - giant.body.position
+		if cat.body.height < Giant.SAW_HEIGHT and passes.call(offset, cat.body.radius):
+			if cat.hurt(Giant.SAW_DAMAGE, offset.normalized() * Giant.SAW_KNOCK):
+				events.append({"position": cat.body.position, "height": 0.2, "direction": offset.normalized(), "killed": false, "by": "saw", "giant": false, "kind": "cat"})
+
+
+## The creatures a rolling cat is touching, at heights she passes: what a rolling slash cuts.
+func rolled_into(cat: Cat) -> Array[Creature]:
+	var touching: Array[Creature] = []
+	var cell := _cell_of(cat.body.position)
+	for x in range(cell.x - 2, cell.x + 3):
+		for y in range(cell.y - 2, cell.y + 3):
+			for creature: Creature in _grid.get(Vector2i(x, y), []):
+				if creature.alive() and _touching(cat.body, creature.body, 0.06):
+					touching.append(creature)
+	return touching
+
+
+## The giants standing over a rolling cat: she's between his legs.
+func legs_rolled_between(cat: Cat) -> Array[Giant]:
+	var over: Array[Giant] = []
+	for giant in giants:
+		if giant.standing() and cat.body.height < Giant.TALL * 0.4 \
+				and cat.body.position.distance_to(giant.body.position) <= giant.body.radius + cat.body.radius:
+			over.append(giant)
+	return over
+
+
+## A riposte: a hit dodged as it landed, answered at once against everything around her.
+func riposte(cat: Cat, damage: float) -> void:
+	events.append({"position": cat.body.position, "height": 0.2, "direction": cat.facing, "killed": false, "by": "strike_back", "giant": false, "kind": "cat"})
+	for creature: Creature in creatures.duplicate():
+		var apart := creature.body.position - cat.body.position
+		if apart.length() <= Cat.RIPOSTE_REACH + creature.body.radius:
+			strike(creature, damage, apart.normalized(), 2.0, 1.0, "riposte", cat)
+	for giant in giants:
+		var apart := giant.body.position - cat.body.position
+		if giant.standing() and apart.length() <= Cat.RIPOSTE_REACH + giant.body.radius:
+			strike(giant, damage, apart.normalized(), 0.0, 0.0, "riposte", cat)
+
+
+## A pounce comes down: what's under her takes it, and what's around is thrown.
+func land_pounce(cat: Cat, damage: float) -> void:
+	events.append({"position": cat.body.position, "height": 0.0, "direction": cat.facing, "killed": false, "by": "landing", "giant": false, "kind": "cat"})
+	for creature: Creature in creatures.duplicate():
+		var apart := creature.body.position - cat.body.position
+		if apart.length() <= Cat.POUNCE_RADIUS + creature.body.radius:
+			strike(creature, damage, apart.normalized() if apart.length() > 0.001 else cat.facing, 1.6, 1.2, "pounce", cat)
+	for giant in giants:
+		var apart := giant.body.position - cat.body.position
+		if giant.standing() and apart.length() <= Cat.POUNCE_RADIUS + giant.body.radius:
+			strike(giant, damage, cat.facing, 0.0, 0.0, "pounce", cat)
+
+
+## Whether two bodies overlap, along the ground and in height, with a little give.
+func _touching(a: Body, b: Body, give: float) -> bool:
+	return a.position.distance_to(b.position) <= a.radius + b.radius + give \
+			and a.height <= b.height + b.tall and b.height <= a.height + a.tall
 
 
 ## A felled giant hits the ground along his length: everything in that strip is crushed.
@@ -410,7 +487,7 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 		if not giant.alive():
 			kills += 1
 			giants_felled += 1
-			_gain_experience(Giant.WORTH)
+			_gain_experience(giant.worth)
 		return
 	var creature: Creature = target
 	creature.health -= damage
@@ -493,7 +570,9 @@ func _spawn() -> void:
 	_since_giant += STEP
 	if _since_giant >= GIANT_INTERVAL and giants.filter(func(giant: Giant) -> bool: return giant.standing()).size() < MOST_GIANTS:
 		_since_giant = 0.0
-		add_giant(edge_point())
+		_giants_sent += 1
+		var chainsaw := time >= CHAINSAW_FROM and _giants_sent % CHAINSAW_EVERY == 0
+		add_giant(edge_point(), "chainsaw" if chainsaw else "worker")
 	_since_dogs += STEP
 	if _since_dogs >= DOG_INTERVAL:
 		_since_dogs = 0.0
