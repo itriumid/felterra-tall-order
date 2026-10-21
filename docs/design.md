@@ -173,9 +173,18 @@ on: fire and oil, or crewmates who can be downed.
     smithy, forging). Restored, the village is bright and lived-in: walls painted in reds, teal,
     yellow and pink, trimmed in cream; bunting under every eave; flowers in the grass; the
     longhouse's painted band and its umbul-umbul, the tall flags on bamboo poles, at the way in.
-  - **It gives back unlocks and a starting piece**: the smith forges weapons and gear into the
-    card pool, rescued cats open buildings and starting choices, and a forged piece can be worn
-    from a run's start. Never a stat on its own: stats only come from gear.
+  - **Restoring takes salvage and cats to help**: walk up to a ruin's door and press Enter. The
+    smithy is cheapest (15 salvage, a cat), the huts climb from 10 salvage and a cat to 26 and
+    six, and the longhouse is last (40 and six). The cats who help stay rescued.
+  - **It gives back unlocks and a starting piece**: once restored, the smith forges gear and
+    support into the cards a run can offer (6 to 20 salvage each); until then a run can offer
+    the knife, the handgun, the caping, the red scarf, the boots and every dodge mutation. A
+    forged piece of gear can be worn from a run's start. The longhouse's elder lets a run start
+    with any weapon forged. Never a stat on its own: stats only come from gear.
+  - **Housed cats weave cloth**: each restored hut houses two rescued cats, and every run brings
+    in a cloth for each. The first hut is the weaver's, who sells looks for cloth (her coat, the
+    umbul-umbul's colors), its own currency so a look never competes with forging. The full
+    list is in the catalog.
   - **Progress can be reset** from the settings: it asks once more, then the village and the
     best run go back to nothing, and the settings stay.
 - Maps push deeper into the camp: the clearings, the sawpits, the log slide to the river, the

@@ -178,6 +178,40 @@ What gear gives. A card shows the short form; holding Tab explains each one.
 | **Critical hits** | Idea | A chance for a hit to land twice as hard. The kerambit's, in the design |
 | **Knockback** | Idea | Every hit shoves harder |
 
+## Buildings
+
+The village's, every one a ruin at the start. Restoring one takes salvage and rescued cats to
+help, and opens what it holds.
+
+| Name | Status | What it opens |
+|---|---|---|
+| **Smithy** | Built | The smith forges gear and support into the cards, and a forged piece to wear from the start |
+| **Huts** | Built | Six, each home to two rescued cats, who weave cloth while she's away. The first is the weaver's, who sells looks |
+| **Longhouse** | Built | The elder's: a run can start with any weapon the smith has forged |
+| **Well** | Idea | Water for the village; a place the cats gather and talk |
+| **Watchtower** | Idea | A look over the forest: shows what the next run holds |
+| **Healer's hut** | Idea | Jamu brewed between runs |
+| **Market** | Idea | Trade salvage for cloth, and back |
+
+## Looks
+
+Bought from the weaver with cloth: looks only, never stats.
+
+| Name | Status | What it is |
+|---|---|---|
+| **Orange coat** | Built | Her own coat, from the start |
+| **Gray coat** | Built | 6 cloth |
+| **Black coat** | Built | 8 cloth |
+| **Cream coat** | Built | 8 cloth |
+| **Festival banners** | Built | The umbul-umbul in red, yellow, cream and teal, from the start |
+| **Rhodonite banners** | Built | Pink and graphite. 10 cloth |
+| **Lagoon banners** | Built | Teal, cream and blue. 10 cloth |
+| **Tabby and spotted coats** | Idea | Patterns over the coats: stripes, spots, a white chest |
+| **Scarf colors** | Idea | The red scarf in other colors |
+| **Weapon wraps** | Idea | Cloth wound round a weapon's grip, in her colors |
+| **House paint** | Idea | Each hut's walls in a color she picks |
+| **Lanterns** | Idea | Paper lanterns strung over the path at dusk |
+
 ## Ideas
 
 Anything not yet in a section above. Give each a name, the status Idea, and a line on what it

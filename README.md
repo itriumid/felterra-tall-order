@@ -40,6 +40,7 @@ The builds aren't signed by a publisher Windows or macOS knows yet, so each warn
 | Tab (hold) | Back | Read the cards in full |
 | Escape | Start | Pause: carry on, settings, start again, back to the village, leave |
 | W A S D or the arrow keys | Left stick | In the village: walk about. The path out on its far side leads to a run |
+| Enter | A | In the village, at a door: restore a ruin, or use what it holds (the smith's forge, the weaver's looks) |
 | Enter | A | In a cutscene: finish the line, or move on to the next |
 | Escape | Start | In a cutscene: skip it |
 | W and S, then Enter or Space | Stick, then A | Choose in the pause menu |
