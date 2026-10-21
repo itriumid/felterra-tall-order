@@ -53,6 +53,13 @@ lunges: a real leap through the air that bites if it reaches her, and that a dod
 from under; it lands, and needs a moment before it runs again. A dog is heavier than a rat, so a
 round shoves it less.
 
+The **chainsaw worker** is the first elite: a giant in ear defenders, tougher and slower than a
+worker, from two minutes in (every other giant after that). Instead of stomping, he revs the saw
+for a little over half a second, its arc marked on the ground in hi-vis (the warning), then
+sweeps it at a cat's height across the ground in front of him. Whatever is in the arc is cut,
+his own rats and dogs included, so luring the horde into it is a tactic; a dodge gets her
+through it, and behind him is safe.
+
 ## The first map
 
 A clearing the company has cut in an Indonesian tropical forest.
