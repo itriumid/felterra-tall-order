@@ -23,6 +23,8 @@ workers are giants.
 | **Rat** | Built | From the supply crates. Small and quick, comes in numbers, bites |
 | **Guard dog** | Built | The company's, in a hi-vis harness. Faster than a cat; crouches, then lunges through the air. In packs of three |
 | **Gull** | Planned | At the camp |
+| **Cockroach** | Idea | From the supply crates too: tiny, in swarms, crunched underfoot by her and the giants alike |
+| **Survey drone** | Idea | The company's: flies over the clearing and marks her for the giants, who come faster while it sees her |
 
 ### Giants
 
@@ -31,6 +33,9 @@ workers are giants.
 | **Worker** | Built | A mini-boss: slow, heavy, stomps (the boot's shadow is the warning). Felled, he topples and crushes what he lands on |
 | **Chainsaw worker** | Built | The first elite: revs (the arc on the ground is the warning), then sweeps the saw at shin height, cutting his own horde too |
 | **Lantern worker** | Planned | A dropped lantern is a fire |
+| **Foreman** | Idea | Stays back with a megaphone; while he shouts, the workers near him hurry |
+| **Fumigator** | Idea | Sprays smoke for the pests: it hides what's in it, and makes her cough |
+| **Tree climber** | Idea | In spikes and a harness, up a trunk: drops what he cuts on whatever is below |
 
 ### Bosses
 
@@ -43,6 +48,8 @@ Machines.
 | **Excavator** | Planned | |
 | **Logging truck** | Planned | One you can tip over |
 | **Helicopter** | Planned | At the end: something giant a cat can't even reach |
+| **Wood chipper** | Idea | Pulls in what's near its chute, his own horde too; feeding it a giant's lost boot jams it |
+| **Skidder** | Idea | Drags logs across the clearing on a chain: a sweeping wall to get out of the way of |
 
 ## Weapons
 
@@ -65,6 +72,9 @@ a country has uniquely, Indonesia first.
 | **Shotgun** | Planned | A cone |
 | **Grenade launcher** | Planned | |
 | **Lamp oil** | Planned | Thrown: sets up fire |
+| **Nail gun** | Idea | Looted from the camp's toolboxes: fast, short, and the nails stay where they land |
+| **Flare gun** | Idea | One bright, slow shot that lights the canopy's shade and sets what it hits alight |
+| **Crossbow** | Idea | Slow, quiet, and a bolt goes through a rat into the next |
 
 ### Indonesia
 
@@ -78,6 +88,13 @@ a country has uniquely, Indonesia first.
 | **Ketapel** | Planned | A slingshot: stones that ricochet |
 | **Sumpit** | Planned | The Dayak blowpipe: darts that poison and slow |
 | **Petasan** | Planned | Firecrackers |
+| **Tombak** | Idea | The spear: long reach in a straight line |
+| **Bambu runcing** | Idea | The sharpened bamboo spear of the independence fight: cheap, and it breaks, so she carries several |
+| **Mandau** | Idea | The Dayak sword: heavy, wide swings |
+| **Rencong** | Idea | The Acehnese dagger: a quick thrust, not a swing |
+| **Badik** | Idea | The Bugis and Makassar knife: short, deadly up close |
+| **Kujang** | Idea | The Sundanese blade, with its hooked edge |
+| **Panah** | Idea | The bow: arrows that arc over the horde |
 
 ## Support
 
@@ -90,6 +107,9 @@ neither, and each comes with its mount.
 | **Net drone** | Planned | Drone |
 | **Meriam bambu** | Planned | Set down: the bamboo cannon, as a turret. Strapped across the pack until she sets it down |
 | **Mines** | Planned | Set down. Ride in pouches on the pack's straps |
+| **Layang-layang** | Idea | Drone: a fighting kite whose glass-coated string cuts what it crosses |
+| **Ranjau bambu** | Idea | Set down: a bed of bamboo spikes that the horde runs onto |
+| **Radio** | Idea | Set down: plays loud, and the horde goes to it instead of her |
 
 ## Gear
 
@@ -107,6 +127,13 @@ level gives.
 | **Gloves** | Built | Paws | Damage, attack speed |
 | **Boots** | Built | Feet | Speed, armor |
 | **Jamu flask** | Built | Waist | Adrenaline |
+| **Peci** | Idea | Head | Luck, health |
+| **Batik shirt** | Idea | Body | Health, luck |
+| **Raincoat** | Idea | Body | Armor; sheds oil and rain |
+| **Headlamp** | Idea | Eyes | Reach, more in the shade |
+| **Rubber boots** | Idea | Feet | Armor, and fire doesn't catch from below |
+| **Sarong** | Idea | Waist | Speed, armor |
+| **Tool belt** | Idea | Waist | Attack speed |
 
 ## Dodge mutations
 
@@ -129,6 +156,9 @@ it. What the dodge deals grows with damage from her gear, the same as her weapon
 | **Oil slick** | Planned | Traps | Waits on oil |
 | **Rescue roll** | Planned | Crew | Rolling through a downed crewmate revives them faster. Waits on downed crewmates |
 | **Slipstream** | Planned | Crew | Rolling past a crewmate speeds them up |
+| **Dust cloud** | Idea | Attack | The roll throws up dust that the horde loses her in, for a moment |
+| **Scent trail** | Idea | Traps | The roll leaves a scent the horde follows before her |
+| **Chain roll** | Idea | Movement | A kill during a roll gives the charge back |
 
 ## Stats
 
@@ -145,6 +175,8 @@ What gear gives. A card shows the short form; holding Tab explains each one.
 | **Reach** | Built | Guns reach further, blades reach longer |
 | **Speed** | Built | She runs faster |
 | **Luck** | Built | Rarer cards turn up more often |
+| **Critical hits** | Idea | A chance for a hit to land twice as hard. The kerambit's, in the design |
+| **Knockback** | Idea | Every hit shoves harder |
 
 ## Ideas
 
