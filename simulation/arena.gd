@@ -25,6 +25,10 @@ const MOST_DOGS := 12
 const FELLED_LASTS := 40.0
 const CHAINSAW_FROM := 120.0
 const CHAINSAW_EVERY := 2
+## A machine comes out of the jungle from MACHINE_FROM seconds in, and another every
+## MACHINE_INTERVAL after, one working at a time.
+const MACHINE_FROM := 300.0
+const MACHINE_INTERVAL := 300.0
 ## The fallen stay where they lie, up to this many. Past that, the oldest crumble away over
 ## FADE_TIME seconds rather than vanishing.
 const MOST_FALLEN := 600
@@ -36,6 +40,8 @@ var cats: Array[Cat] = []
 var creatures: Array[Creature] = []
 ## The giants: walking, falling, or lying where they fell.
 var giants: Array[Giant] = []
+## The machines, the bosses: working, or wrecked where they stopped.
+var machines: Array[Machine] = []
 var shots: Array[Shot] = []
 var fallen: Array[Body] = []
 ## The oldest of the fallen crumbling away, as {body, left}: seconds until it's gone.
@@ -44,6 +50,7 @@ var random := RandomNumberGenerator.new()
 var time := 0.0
 var kills := 0
 var giants_felled := 0
+var machines_broken := 0
 var spawning := true
 ## The crew's experience, shared: every kill counts for all of them, and every level-up hands
 ## each cat an offer.
@@ -55,6 +62,7 @@ var events: Array[Dictionary] = []
 var _since_spawn := 0.0
 var _since_giant := GIANT_INTERVAL - GIANTS_FROM
 var _giants_sent := 0
+var _since_machine := MACHINE_INTERVAL - MACHINE_FROM
 var _since_dogs := DOG_INTERVAL - DOGS_FROM
 var _grid := {}
 
@@ -75,6 +83,15 @@ func add_giant(where: Vector2, kind := "worker") -> Giant:
 	giant.body.position = where
 	giants.append(giant)
 	return giant
+
+
+func add_machine(where: Vector2, heading := 0.0) -> Machine:
+	var machine := Machine.new()
+	machine.body.position = where
+	machine.heading = heading
+	machine.head = machine.point(Machine.REST_FORWARD, Machine.BOOM_ROOT.y)
+	machines.append(machine)
+	return machine
 
 
 func add_creature(where: Vector2, kind := "rat") -> Creature:
@@ -98,6 +115,9 @@ func step() -> void:
 		giant.step(STEP, self)
 		_keep_inside(giant.body)
 	giants = giants.filter(func(giant: Giant) -> bool: return giant.fallen_for < FELLED_LASTS)
+	for machine in machines:
+		machine.step(STEP, self)
+		_keep_inside(machine.body)
 	_separate()
 	_shoulder_through()
 	_wander()
@@ -141,6 +161,11 @@ func _targets() -> Array:
 	for giant in giants:
 		if giant.standing():
 			targets.append(giant)
+	for machine in machines:
+		if machine.standing():
+			targets.append(machine)
+		if machine.joint.alive():
+			targets.append(machine.joint)
 	return targets
 
 
@@ -185,6 +210,17 @@ func cut(center: Vector2, height: float, reach: float, weapon: Weapon, from_angl
 		var into := angle_difference(from_angle, offset.angle())
 		if offset.length() < giant.body.radius + 0.12 or (signf(into) == signf(sweep) and absf(into) <= absf(sweep)):
 			cut_through.append(giant)
+	# A machine is cut where the blade meets it, and its joint while it's down on the ground.
+	for machine in machines:
+		for part: Object in [machine, machine.joint]:
+			if not part.alive() or (part == machine and not machine.standing()):
+				continue
+			var offset: Vector2 = part.body.position - center
+			if offset.length() > reach + part.body.radius:
+				continue
+			var into := angle_difference(from_angle, offset.angle())
+			if offset.length() < part.body.radius + 0.12 or (signf(into) == signf(sweep) and absf(into) <= absf(sweep)):
+				cut_through.append(part)
 	return cut_through
 
 
@@ -251,6 +287,22 @@ func saw(giant: Giant, from_angle: float, to_angle: float) -> void:
 				events.append({"position": cat.body.position, "height": 0.2, "direction": offset.normalized(), "killed": false, "by": "saw", "giant": false, "kind": "cat"})
 
 
+## A feller buncher's jaws shutting on a point: what's between them is cut, cats, giants and its
+## own horde alike.
+func jaws(machine: Machine, at: Vector2) -> void:
+	events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "jaws_shut", "giant": true, "kind": machine.kind})
+	for creature: Creature in creatures.duplicate():
+		if creature.body.position.distance_to(at) <= Machine.JAW_RADIUS + creature.body.radius and creature.body.height < 1.0:
+			strike(creature, 100.0, Vector2.ZERO, 0.0, 0.0, "jaws")
+	for giant in giants:
+		if giant.standing() and giant.body.position.distance_to(at) <= Machine.JAW_RADIUS + giant.body.radius:
+			strike(giant, 30.0, (giant.body.position - at).normalized(), 0.0, 0.0, "jaws")
+	for cat in cats:
+		var apart := cat.body.position - at
+		if apart.length() <= Machine.JAW_RADIUS + cat.body.radius and cat.body.height < 0.6:
+			cat.hurt(Machine.BITE_DAMAGE, (apart.normalized() if apart.length() > 0.001 else Vector2.DOWN) * Machine.BITE_KNOCK)
+
+
 ## Whether anything is standing on a point: a creature on the ground, or a giant's boot.
 func stepped_on(at: Vector2, reach: float) -> bool:
 	var cell := _cell_of(at)
@@ -261,6 +313,9 @@ func stepped_on(at: Vector2, reach: float) -> bool:
 					return true
 	for giant in giants:
 		if giant.standing() and giant.body.position.distance_to(at) <= reach + giant.body.radius:
+			return true
+	for machine in machines:
+		if machine.covers(at, reach):
 			return true
 	return false
 
@@ -277,6 +332,16 @@ func blast(at: Vector2, radius: float, damage: float, knock: float, lift: float,
 		var apart := giant.body.position - at
 		if giant.standing() and apart.length() <= radius + giant.body.radius:
 			strike(giant, damage, apart.normalized() if apart.length() > 0.001 else Vector2.RIGHT, knock, 0.0, by, attacker)
+	_strike_machines(at, radius, damage, by, attacker)
+
+
+## Strikes every machine within reach of a point, and its joint if that's in reach too.
+func _strike_machines(at: Vector2, reach: float, damage: float, by: String, attacker: Cat) -> void:
+	for machine in machines:
+		if machine.joint.alive() and machine.joint.body.position.distance_to(at) <= reach + machine.joint.body.radius:
+			strike(machine.joint, damage, Vector2.ZERO, 0.0, 0.0, by, attacker)
+		elif machine.standing() and machine.covers(at, reach):
+			strike(machine, damage, Vector2.ZERO, 0.0, 0.0, by, attacker)
 
 
 ## The creatures a rolling cat is touching, at heights she passes: what a rolling slash cuts.
@@ -312,6 +377,7 @@ func riposte(cat: Cat, damage: float) -> void:
 		var apart := giant.body.position - cat.body.position
 		if giant.standing() and apart.length() <= Cat.RIPOSTE_REACH + giant.body.radius:
 			strike(giant, damage, apart.normalized(), 0.0, 0.0, "riposte", cat)
+	_strike_machines(cat.body.position, Cat.RIPOSTE_REACH, damage, "riposte", cat)
 
 
 ## A pounce comes down: what's under her takes it, and what's around is thrown.
@@ -325,6 +391,7 @@ func land_pounce(cat: Cat, damage: float) -> void:
 		var apart := giant.body.position - cat.body.position
 		if giant.standing() and apart.length() <= Cat.POUNCE_RADIUS + giant.body.radius:
 			strike(giant, damage, cat.facing, 0.0, 0.0, "pounce", cat)
+	_strike_machines(cat.body.position, Cat.POUNCE_RADIUS, damage, "pounce", cat)
 
 
 ## Whether two bodies overlap, along the ground and in height, with a little give.
@@ -499,6 +566,20 @@ func _first_hit(shot: Shot) -> Object:
 		if passing >= 0.0 and passing <= Giant.TALL and along < first_along:
 			first_along = along
 			first = giant
+	# A machine stops a round where the round meets its steel, its joint where that's open.
+	for machine in machines:
+		for part: Object in [machine.joint, machine]:
+			if not part.alive() or (part == machine and not machine.standing()):
+				continue
+			var closest := Geometry2D.get_closest_point_to_segment(part.body.position, from, to)
+			var inside: bool = machine.covers(closest) if part == machine else closest.distance_to(part.body.position) <= part.body.radius
+			if not inside:
+				continue
+			var along := from.distance_to(closest)
+			var passing := lerpf(shot.previous_height, shot.height, along / maxf(from.distance_to(to), 0.0001))
+			if passing >= part.body.height - 0.1 and passing <= part.body.height + part.body.tall and along < first_along:
+				first_along = along
+				first = part
 	return first
 
 
@@ -509,6 +590,18 @@ func _strike(creature: Object, shot: Shot) -> void:
 ## A hit on a creature, from a round or a blade: it's hurt, thrown, and falls if it's done for.
 func strike(target: Object, damage: float, direction: Vector2, knock: float, lift: float, by: String, attacker: Cat = null) -> void:
 	if not target.alive():
+		return
+	if target is Machine or target is Machine.Joint:
+		var on_joint: bool = target is Machine.Joint
+		var machine: Machine = target.machine if on_joint else target
+		var through := machine.take(damage, on_joint)
+		if attacker != null:
+			attacker.heal(through * attacker.adrenaline)
+		events.append({"position": target.body.position, "height": minf(0.6, target.body.height + 0.2), "direction": direction, "killed": not machine.alive(), "by": by, "giant": true, "kind": "joint" if on_joint else "machine"})
+		if not machine.alive():
+			kills += 1
+			machines_broken += 1
+			_gain_experience(machine.worth)
 		return
 	var dealt: float = minf(damage, target.health)
 	if attacker != null:
@@ -608,6 +701,12 @@ func _spawn() -> void:
 		_giants_sent += 1
 		var chainsaw := time >= CHAINSAW_FROM and _giants_sent % CHAINSAW_EVERY == 0
 		add_giant(edge_point(), "chainsaw" if chainsaw else "worker")
+	_since_machine += STEP
+	if _since_machine >= MACHINE_INTERVAL and not machines.any(func(machine: Machine) -> bool: return machine.standing()):
+		_since_machine = 0.0
+		# It drives in out of the jungle, facing the clearing.
+		var gate := edge_point()
+		add_machine(gate.clamp(Vector2.ONE * 1.6, SIZE - Vector2.ONE * 1.6), (SIZE / 2.0 - gate).angle())
 	_since_dogs += STEP
 	if _since_dogs >= DOG_INTERVAL:
 		_since_dogs = 0.0

@@ -43,7 +43,7 @@ Machines.
 
 | Name | Status | What it does |
 |---|---|---|
-| **Feller buncher** | Planned | Grabs and cuts trees in one bite |
+| **Feller buncher** | Built | Grabs and cuts trees in one bite. Crawls on its tracks, crushing the horde while they turn; swings its boom out over her (the head's shadow is the warning), and bites. After a bite the head sits on the ground, its hydraulic joint exposed for double damage; its steel shrugs off most of a hit elsewhere. Five minutes in |
 | **Bulldozer** | Planned | |
 | **Excavator** | Planned | |
 | **Logging truck** | Planned | One you can tip over |
