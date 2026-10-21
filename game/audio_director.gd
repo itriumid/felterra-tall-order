@@ -9,6 +9,20 @@ extends Node
 const VOICES := 24
 const LIMITS := {"squeak": 3, "hit_small": 6, "footstep_giant": 4, "swing": 4, "bite": 3, "bark": 3}
 const DEFAULT_LIMIT := 4
+## What each weapon sounds like firing, and how its swing is pitched: deeper for the heavy, quicker
+## for the light.
+const SHOTS := {
+	"submachine_gun": "shot_submachine_gun", "rifle": "shot_rifle", "automatic_rifle": "shot_rifle",
+	"assault_rifle": "shot_rifle", "sniper_rifle": "shot_heavy", "shotgun": "shot_heavy",
+	"crossbow": "shot_twang", "panah": "shot_twang", "ketapel": "shot_twang", "sumpit": "shot_puff",
+	"grenade_launcher": "shot_thunk", "lamp_oil": "shot_thunk", "petasan": "shot_thunk",
+	"nail_gun": "shot_nail", "flare_gun": "shot_flare",
+}
+const SWING_PITCHES := {
+	"keris": 0.85, "kerambit": 1.25, "greatsword": 0.6, "rattan_staff": 0.7, "mandau": 0.8,
+	"machete": 0.9, "golok": 0.85, "tombak": 0.9, "bambu_runcing": 0.95, "rencong": 1.3,
+	"badik": 1.2, "celurit": 1.05, "kujang": 1.0,
+}
 ## Ground a giant covers between footfalls, in meters: half his stride.
 const GIANT_STEP := 0.7
 
@@ -58,9 +72,20 @@ func take_events(events: Array[Dictionary]) -> void:
 			"leap": play_at("dodge", event.position, -6.0, 0.8)
 			"landing": play_at("pounce", event.position, -4.0)
 			"strike_back": play_at("riposte", event.position, -4.0)
-			"blast": play_at("blast", event.position, 0.0 if event.get("kind", "") == "mines" else -3.0, 1.0 if event.get("kind", "") == "mines" else 1.3)
+			"blast":
+				match event.get("kind", ""):
+					"petasan": play_at("pop", event.position, -6.0)
+					"net_drone": play_at("net", event.position, -6.0)
+					"mines": play_at("blast", event.position, 0.0)
+					_: play_at("blast", event.position, -3.0, 1.3)
+			"ignite": play_at("ignite", event.position, -4.0)
+			"snap": play_at("crack", event.position, -6.0, 1.3)
 			"crack": play_at("crack", event.position, -4.0)
-			"set_down": play_at("pounce", event.position, -8.0, 0.7)
+			"set_down":
+				if event.get("kind", "") == "radio":
+					play_at("radio", event.position, -6.0)
+				else:
+					play_at("pounce", event.position, -8.0, 0.7)
 			"boom": play_at("hydraulic", event.position, -3.0)
 			"jaws_shut": play_at("jaws", event.position, 0.0)
 			"cage_open":
@@ -92,15 +117,15 @@ func _process(_delta: float) -> void:
 	for cat in arena.cats:
 		for weapon in cat.weapons:
 			if _counted(weapon, "rounds", weapon.rounds_fired):
-				play_at("shot_" + ("submachine_gun" if weapon.name == "submachine_gun" else "handgun"), cat.body.position, -4.0)
+				play_at(SHOTS.get(weapon.name, "shot_handgun"), cat.body.position, -4.0)
 			if _counted(weapon, "swings", weapon.swings):
-				# Deeper for a keris, quicker for a kerambit.
-				var pitch: float = {"keris": 0.85, "kerambit": 1.25}.get(weapon.name, 1.0)
-				play_at("swing", cat.body.position, -10.0, pitch)
+				# Deeper for a heavy blade, quicker for a light one.
+				play_at("swing", cat.body.position, -10.0, SWING_PITCHES.get(weapon.name, 1.0))
 		for slot: String in cat.supports:
 			var support: Support = cat.supports[slot]
 			if support.weapon != null and _counted(support.weapon, "rounds", support.weapon.rounds_fired):
-				play_at("shot_drone" if support.name == "gun_drone" else "meriam", support.body.position, -8.0 if support.name == "gun_drone" else -1.0)
+				var fired: String = {"gun_drone": "shot_drone", "net_drone": "shot_thunk"}.get(support.name, "meriam")
+				play_at(fired, support.body.position, -1.0 if fired == "meriam" else -8.0)
 			if support.name == "mines" and _counted(support, "dropped", support.mines_dropped):
 				play_at("mine_drop", cat.body.position, -10.0)
 		if _counted(cat, "dodges", cat.dodges):

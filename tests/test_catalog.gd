@@ -7,6 +7,8 @@ const CATALOG := "res://docs/catalog.md"
 const CREATURE_NAMES := {"rat": "Rat", "dog": "Guard dog"}
 const GIANT_NAMES := {"worker": "Worker", "chainsaw": "Chainsaw worker"}
 const MACHINE_NAMES := {"feller_buncher": "Feller buncher"}
+## The village's buildings by kind, as the catalog names them.
+const BUILDING_NAMES := {"longhouse": "Longhouse", "smithy": "Smithy", "hut": "Huts"}
 
 
 ## Each row's name, by its status: {"Built": [names], "Planned": [...], ...}.
@@ -42,6 +44,13 @@ func _in_the_game() -> Array[String]:
 		names.append(Upgrades.SUPPORT[support].name)
 	for mutation: String in Upgrades.MUTATIONS:
 		names.append(Upgrades.MUTATIONS[mutation].name)
+	var kinds := {}
+	for building in VillageMap.new().buildings:
+		kinds[building.kind] = true
+	for kind: String in kinds:
+		names.append(BUILDING_NAMES.get(kind, "(building %s)" % kind))
+	for look: String in Village.LOOKS:
+		names.append(Village.LOOKS[look].name)
 	for stat: String in Upgrades.STATS:
 		names.append(Upgrades.STATS[stat].name)
 	return names

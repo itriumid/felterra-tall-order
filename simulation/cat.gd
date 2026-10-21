@@ -44,6 +44,8 @@ const STAGGER_TIME := 0.25
 const GUN_HEIGHT := 0.2
 
 var body := Body.new()
+## Her coat: orange, gray, black or cream. The view draws her fur in it.
+var coat := "orange"
 var health := MOST_HEALTH
 var max_health := MOST_HEALTH
 ## Stats, raised by cards and gear. Bonuses are shares added to one: 0.1 is ten percent more.
@@ -55,11 +57,17 @@ var attack_speed_bonus := 0.0
 var reach_bonus := 0.0
 var speed_bonus := 0.0
 var luck := 0.0
+## The chance a hit lands twice as hard, and how much harder her hits shove.
+var critical := 0.0
+var knockback_bonus := 0.0
 ## Offers from level-ups, held until played, oldest first; each is a list of choices.
 var offers: Array = []
 var rerolls := 2
 ## Choices banished for the rest of the run, by id.
 var banished := {}
+## Cards she can't be offered yet, by id: what the village's smith hasn't forged. Empty, anything
+## can turn up.
+var locked: Array[String] = []
 ## Where the player is steering, as a direction no longer than 1.
 var steering := Vector2.ZERO
 ## The way she faces and the way her gun points, as unit vectors.
@@ -196,6 +204,8 @@ func raise(stat: String, amount: float) -> void:
 		"reach": reach_bonus += amount
 		"speed": speed_bonus += amount
 		"luck": luck += amount
+		"critical": critical += amount
+		"knockback": knockback_bonus += amount
 
 
 func heal(amount: float) -> void:

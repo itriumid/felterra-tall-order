@@ -12,8 +12,10 @@ const AIM_NAMES := {"nearest": "Nearest", "toughest": "Toughest", "crowd": "Crow
 var arena: Arena
 var cat: Cat
 var show_numbers := false
-## Waiting for the player to choose a weapon to start with.
+## Waiting for the player to choose a weapon to start with, and the forged weapon offered beside
+## the knife and the handgun once the longhouse is restored ("" if none).
 var choosing := false
+var start_extra := ""
 ## Tab held: the cards' stats are explained. X held: picking banishes.
 var reading := false
 var banishing := false
@@ -29,6 +31,21 @@ var page := ""
 var summary := {}
 var beaten: Array[String] = []
 var step_milliseconds := 0.0
+## Where she is ("run", or "village" for the village and the walk into it), the village when
+## she's there, and the line of the story's opening being written out, if one is.
+var place := "run"
+var village_map: VillageMap
+var intro := ""
+## A cutscene playing: its keys show along the bottom, so skipping it is never a secret.
+var cutscene := false
+## In the village: what's kept there (for its counts), what Enter does at the door she's at, a
+## line the village has just said, and a shop's page while one is open.
+var village_record: Village
+var door := ""
+var message := ""
+var shop_title := ""
+var shop_rows: Array[Dictionary] = []
+var shop_choice := 0
 
 
 func _process(_delta: float) -> void:
@@ -40,6 +57,19 @@ func _draw() -> void:
 		_draw_title()
 		if not setting_rows.is_empty():
 			_draw_settings()
+		return
+	if place == "village":
+		_draw_village()
+		if not shop_rows.is_empty():
+			_dither()
+			_draw_shop()
+			return
+		if not menu.is_empty():
+			_dither()
+			if not setting_rows.is_empty():
+				_draw_settings()
+			else:
+				_draw_menu()
 		return
 	if not menu.is_empty():
 		_dither()
@@ -88,6 +118,97 @@ func _draw_status() -> void:
 	InterfaceArt.icon(self, Vector2(x + 58, y), "aim", Palette.OFF_WHITE)
 	PixelFont.draw(self, Vector2(x + 68, y - 1), AIM_NAMES[cat.aim_mode], Palette.OFF_WHITE)
 	InterfaceArt.key_cap(self, Vector2(box.end.x - 14, y - 2), "T")
+
+
+## In the village: the story's opening as it's told, the names of the cats near her, and once
+## she's near the path out, where it goes.
+func _draw_village() -> void:
+	if village_map == null:
+		return
+	var screen := get_viewport_rect().size
+	if cutscene:
+		if not intro.is_empty():
+			# Written over the scene, a shadow under each letter so it reads on leaves or earth.
+			var at := Vector2(floorf((screen.x - PixelFont.width(intro)) / 2.0), 46)
+			PixelFont.draw(self, at + Vector2(1, 1), intro, Palette.GRAPHITE)
+			PixelFont.draw(self, at, intro, Palette.OFF_WHITE)
+		var keys: Array[String] = ["Esc", "skip"]
+		if not intro.is_empty():
+			keys = ["Enter", "next", "Esc", "skip"]
+		var width := InterfaceArt.key_line_width(keys)
+		InterfaceArt.key_line(self, Vector2(screen.x - width - 8, screen.y - 16), keys)
+		return
+	if village_record != null:
+		_draw_village_counts()
+	_shadowed(message, screen.y - 38, Palette.PINK)
+	if not door.is_empty():
+		var keys: Array[String] = ["Enter", door]
+		var width := InterfaceArt.key_line_width(keys)
+		InterfaceArt.key_line(self, Vector2(floorf((screen.x - width) / 2.0), screen.y - 24), keys)
+	var to_screen := get_viewport().get_canvas_transform()
+	var her := village_map.cat.body.position
+	for index in village_map.villagers.size():
+		var villager := village_map.villagers[index]
+		if villager.body.position.distance_to(her) > 1.6:
+			continue
+		var name: String = village_map.names[index]
+		var above: Vector2 = to_screen * World.to_screen(villager.body.position, 0.6)
+		var at := Vector2(floorf(above.x - PixelFont.width(name) / 2.0), floorf(above.y))
+		PixelFont.draw(self, at + Vector2(1, 1), name, Palette.GRAPHITE)
+		PixelFont.draw(self, at, name, Palette.PINK)
+	if door.is_empty() and her.x > VillageMap.EXIT_FROM - 3.5 and her.y > VillageMap.PATH_TOP - 1.0 and her.y < VillageMap.PATH_BOTTOM + 1.0:
+		var hint := "On along the path: to the clearing"
+		var at := Vector2(floorf((screen.x - PixelFont.width(hint)) / 2.0), screen.y - 24)
+		PixelFont.draw(self, at + Vector2(1, 1), hint, Palette.GRAPHITE)
+		PixelFont.draw(self, at, hint, Palette.OFF_WHITE)
+
+
+## Text over the scene, centered, with a shadow under it so it reads on leaves or earth.
+func _shadowed(text: String, y: float, color: Color) -> void:
+	if text.is_empty():
+		return
+	var at := Vector2(floorf((get_viewport_rect().size.x - PixelFont.width(text)) / 2.0), y)
+	PixelFont.draw(self, at + Vector2(1, 1), text, Palette.GRAPHITE)
+	PixelFont.draw(self, at, text, color)
+
+
+## What the village has: salvage, cloth, and its cats.
+func _draw_village_counts() -> void:
+	var counts := [["salvage", village_record.salvage, Palette.STEEL_LIGHT], ["cloth", village_record.cloth, Palette.PINK], ["cats", village_record.cats.size(), Palette.BRASS_LIGHT]]
+	var box := Rect2(4, 4, 130, 18)
+	InterfaceArt.panel(self, box)
+	var x := box.position.x + 5
+	for count: Array in counts:
+		InterfaceArt.icon(self, Vector2(x, box.position.y + 5), count[0], count[2])
+		PixelFont.draw(self, Vector2(x + 10, box.position.y + 4), str(count[1]), Palette.OFF_WHITE)
+		x += 42
+
+
+## A shop's page: what can be had, what each costs, and where it stands; what the village has to
+## spend on top, and the keys below.
+func _draw_shop() -> void:
+	var screen := get_viewport_rect().size
+	var row := PixelFont.LINE_HEIGHT + 3
+	var width := 280.0
+	var height := 30 + shop_rows.size() * row + 6
+	var box := Rect2(floorf((screen.x - width) / 2.0), floorf((screen.y - height) / 2.0), width, height)
+	InterfaceArt.panel(self, box)
+	InterfaceArt.bold(self, box.position + Vector2(10, 7), shop_title, Palette.PINK)
+	if village_record != null:
+		var have := "%d salvage, %d cloth" % [village_record.salvage, village_record.cloth]
+		PixelFont.draw(self, Vector2(box.end.x - 10 - PixelFont.width(have), box.position.y + 7), have, Palette.SMOKE)
+	for index in shop_rows.size():
+		var entry: Dictionary = shop_rows[index]
+		var at := box.position + Vector2(6, 26 + index * row)
+		var chosen := index == shop_choice
+		if chosen:
+			draw_rect(Rect2(at - Vector2(0, 2), Vector2(box.size.x - 12, row)), Palette.PINK)
+		var ink := Palette.GRAPHITE if chosen else (Palette.OFF_WHITE if entry.can else Palette.SMOKE)
+		PixelFont.draw(self, at + Vector2(10, 0), entry.name, ink)
+		PixelFont.draw(self, Vector2(box.end.x - 16 - PixelFont.width(entry.state), at.y), entry.state, ink)
+	var keys: Array[String] = ["W S", "choose", "Enter", "take", "Esc", "back"]
+	var keys_width := InterfaceArt.key_line_width(keys)
+	InterfaceArt.key_line(self, Vector2(floorf((screen.x - keys_width) / 2.0), box.end.y + 6), keys)
 
 
 ## Cages out of sight: a mark at the edge of the screen, the way to each.
@@ -244,8 +365,10 @@ func _draw_start() -> void:
 		{"name": "Knife", "item": "knife", "ribbon": "Melee", "lines": ["Close and quick", "Never runs out"], "unfamiliar": false},
 		{"name": "Handgun", "item": "handgun", "ribbon": "Ranged", "lines": ["Slow, but", "it reaches"], "unfamiliar": false},
 	]
+	if not start_extra.is_empty():
+		cards.append({"name": Upgrades.WEAPON_NAMES[start_extra], "item": start_extra, "ribbon": "Forged", "lines": ["From the smithy", "A or D: another"], "unfamiliar": false})
 	var gap := 10.0
-	var total := cards.size() * CARD_SIZE.x + gap
+	var total := cards.size() * CARD_SIZE.x + (cards.size() - 1) * gap
 	var top := floorf(screen.y / 2.0 - CARD_SIZE.y / 2.0)
 	var frame := Rect2(floorf((screen.x - total) / 2.0) - 10, top - 24, total + 20, CARD_SIZE.y + 34)
 	InterfaceArt.panel(self, frame)
@@ -262,7 +385,8 @@ func _dither() -> void:
 			draw_rect(Rect2(x, y, 1, 1), Palette.GRAPHITE)
 
 
-## The pause menu, and beside it the cards she's holding, to read but not to play.
+## The pause menu, and beside it the cards she's holding, to read but not to play. In the
+## village there's no run, so no cards: the menu sits in the middle on its own.
 func _draw_menu() -> void:
 	var screen := get_viewport_rect().size
 	var title := "Paused"
@@ -270,8 +394,8 @@ func _draw_menu() -> void:
 	for line in menu:
 		width = maxi(width, PixelFont.width(line) + 14)
 	var row := PixelFont.LINE_HEIGHT + 3
-	var held_width := _held_width()
-	var left := screen.x - held_width - 12
+	var held_width := _held_width() if cat != null else 0.0
+	var left := screen.x - held_width - 12 if cat != null else screen.x
 	var box := Rect2(floorf(left / 2.0 - width / 2.0) - 10, floorf(screen.y / 2.0 - (menu.size() * row + 24) / 2.0), width + 20, menu.size() * row + 28)
 	InterfaceArt.panel(self, box)
 	InterfaceArt.bold(self, box.position + Vector2(10, 7), title, Palette.PINK)
@@ -284,7 +408,8 @@ func _draw_menu() -> void:
 			PixelFont.draw(self, at + Vector2(12, 0), menu[index], Palette.GRAPHITE)
 		else:
 			PixelFont.draw(self, at + Vector2(12, 0), menu[index], Palette.OFF_WHITE)
-	_draw_held(Vector2(screen.x - held_width - 6, box.position.y))
+	if cat != null:
+		_draw_held(Vector2(screen.x - held_width - 6, box.position.y))
 
 
 func _held_lines() -> Array[String]:

@@ -11,8 +11,35 @@ extends RefCounted
 ## the straps: while enemies are near, she drops one every few seconds, and the first foot on one
 ## sets it off, a giant's boot included.
 
+## The net drone fires nets that pin down what they land on. The layang-layang, a fighting kite,
+## circles her on its string, and the glass-coated string cuts what it crosses. The ranjau bambu
+## is a bed of bamboo spikes she sets down that pricks and slows the horde on it, until it's
+## trampled flat. The radio, set down and turned up loud, draws the horde to it instead of her
+## until its battery's flat.
+
 ## Which slot each takes: a drone, or something set down. One of each.
-const SLOTS := {"gun_drone": "drone", "meriam_bambu": "set_down", "mines": "set_down"}
+const SLOTS := {
+	"gun_drone": "drone", "net_drone": "drone", "layang_layang": "drone",
+	"meriam_bambu": "set_down", "mines": "set_down", "ranjau_bambu": "set_down", "radio": "set_down",
+}
+## The kite: how far out it flies, how high, how far its string sags in the middle, how fast it
+## circles, and what its string does to what it crosses, and how often to each.
+const KITE_REACH := 2.2
+const KITE_HEIGHT := 0.8
+const STRING_SAG := 0.55
+const KITE_TURN := 1.6
+const STRING_DAMAGE := 1.4
+const STRING_INTERVAL := 0.5
+## The spike bed: how wide, what each prick does, how long it lasts, and how long a new one takes.
+const SPIKES_RADIUS := 0.8
+const SPIKES_DAMAGE := 1.0
+const SPIKES_LAST := 12.0
+const SPIKES_REBUILD := 6.0
+## The radio: how many of the horde close by before she sets it down, how long its battery lasts,
+## and how long a fresh one takes.
+const RADIO_CROWD := 6
+const BATTERY := 7.0
+const BATTERY_REBUILD := 10.0
 
 ## The drone: where it hovers, off her shoulder and up; how fast it flies and turns; and how long
 ## it waits with nothing in reach before it docks.
@@ -65,6 +92,13 @@ var mines: Array[Dictionary] = []
 var _next_mine_in := 0.0
 ## Mines that have gone off, and been dropped, counted.
 var mines_dropped := 0
+## The kite's way round her, and when its string can next cut each creature; the spike bed lying
+## down; and the radio's battery and the decoy it puts out.
+var _turned := 0.0
+var _cut_ready := {}
+var _bed = null
+var _battery := 0.0
+var _decoy: Cat
 
 
 static func named(support_name: String) -> Support:
@@ -86,6 +120,24 @@ static func named(support_name: String) -> Support:
 			support.weapon = gun
 			support.body.radius = 0.12
 			support.body.tall = 0.1
+		"net_drone":
+			var nets := Weapon.new()
+			nets.name = "net_drone"
+			nets.reach = 6.0
+			nets.interval = 1.8
+			nets.damage = 0.3
+			nets.muzzle_speed = 12.0
+			nets.lobbed = true
+			nets.blast = 0.6
+			nets.trips = 1.6
+			nets.knock = 0.0
+			nets.lift = 0.0
+			support.weapon = nets
+			support.body.radius = 0.12
+			support.body.tall = 0.1
+		"layang_layang":
+			support.body.radius = 0.15
+			support.body.tall = 0.2
 		"meriam_bambu":
 			var cannon := Weapon.new()
 			cannon.name = "meriam_bambu"
@@ -110,7 +162,12 @@ func hit_for(cat: Cat) -> float:
 
 
 func _base_damage() -> float:
-	return MINE_DAMAGE if name == "mines" else weapon.damage
+	match name:
+		"mines": return MINE_DAMAGE
+		"layang_layang": return STRING_DAMAGE
+		"ranjau_bambu": return SPIKES_DAMAGE
+		"radio": return 0.0
+	return weapon.damage
 
 
 func step(delta: float, cat: Cat, arena: Arena) -> void:
@@ -119,9 +176,12 @@ func step(delta: float, cat: Cat, arena: Arena) -> void:
 		weapon.power = power
 		weapon.tempo = tempo
 	match name:
-		"gun_drone": _fly(delta, cat, arena)
+		"gun_drone", "net_drone": _fly(delta, cat, arena)
+		"layang_layang": _kite(delta, cat, arena)
 		"meriam_bambu": _cannon(delta, cat, arena)
 		"mines": _mines(delta, cat, arena)
+		"ranjau_bambu": _spikes(delta, cat, arena)
+		"radio": _radio(delta, cat, arena)
 
 
 ## The drone: off the pack while there's something to shoot, docked when there isn't.
@@ -176,6 +236,87 @@ func _cannon(delta: float, cat: Cat, arena: Arena) -> void:
 			rebuilt_in = REBUILD_TIME
 			cracks += 1
 			arena.events.append({"position": body.position, "height": 0.1, "direction": Vector2.ZERO, "killed": false, "by": "crack", "giant": false, "kind": name})
+
+
+## The kite: up and circling her while anything's near, its string cutting what it crosses; down
+## and folded in her pack when it's quiet.
+func _kite(delta: float, cat: Cat, arena: Arena) -> void:
+	deployed = cat.alive() and arena.target_for(cat.body.position, KITE_REACH + 2.0, "nearest") != null
+	if not deployed:
+		body.position = cat.body.position
+		body.height = cat.body.height + DOCKED_HEIGHT
+		return
+	_turned += KITE_TURN * (1.0 + tempo + cat.attack_speed_bonus) * delta
+	body.position = cat.body.position + Vector2.from_angle(_turned) * KITE_REACH
+	body.height = KITE_HEIGHT
+	var holder := cat.body.position
+	for creature: Creature in arena.creatures.duplicate():
+		if _cut_ready.get(creature, 0.0) > arena.time:
+			continue
+		var closest := Geometry2D.get_closest_point_to_segment(creature.body.position, holder, body.position)
+		# The string runs from her paw up to the kite, sagging in the middle: it cuts what reaches
+		# up to it where it passes.
+		var along := holder.distance_to(closest) / KITE_REACH
+		var string_height := string_height_at(along)
+		if closest.distance_to(creature.body.position) <= creature.body.radius + 0.05 and creature.body.height + creature.body.tall >= string_height:
+			_cut_ready[creature] = arena.time + STRING_INTERVAL
+			arena.strike(creature, hit_for(cat), (creature.body.position - holder).normalized().orthogonal(), 1.0, 0.4, "string", cat)
+
+
+## How high the kite's string is, a share of the way from her paw to the kite.
+static func string_height_at(along: float) -> float:
+	return maxf(lerpf(0.3, KITE_HEIGHT, along) - STRING_SAG * sin(PI * along), 0.02)
+
+
+## The spike bed: set down where she stands when the horde closes, pricking what's on it until it's
+## trampled flat; then a new one's cut.
+func _spikes(delta: float, cat: Cat, arena: Arena) -> void:
+	if _bed != null and not _bed in arena.hazards:
+		_bed = null
+		deployed = false
+		rebuilt_in = SPIKES_REBUILD
+	if deployed:
+		return
+	if rebuilt_in > 0.0:
+		rebuilt_in = maxf(rebuilt_in - delta, 0.0)
+		return
+	if not cat.alive() or cat.body.airborne() or arena.target_for(cat.body.position, MINE_WATCH, "nearest") == null:
+		return
+	deployed = true
+	body.position = cat.body.position
+	_bed = {"position": body.position, "radius": SPIKES_RADIUS, "damage": hit_for(cat), "left": SPIKES_LAST * (1.0 + tempo), "kind": "spikes", "by": cat, "ready": {}}
+	arena.hazards.append(_bed)
+	arena.events.append({"position": body.position, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "set_down", "giant": false, "kind": name})
+
+
+## The radio: set down when the horde crowds her, playing loud enough that it goes for the radio
+## instead, until the battery's flat; then a fresh one takes a while.
+func _radio(delta: float, cat: Cat, arena: Arena) -> void:
+	if deployed:
+		_battery -= delta
+		if _battery <= 0.0:
+			deployed = false
+			arena.decoys.erase(_decoy)
+			_decoy = null
+			rebuilt_in = BATTERY_REBUILD
+		return
+	if rebuilt_in > 0.0:
+		rebuilt_in = maxf(rebuilt_in - delta, 0.0)
+		return
+	if not cat.alive() or cat.body.airborne():
+		return
+	var crowd := arena.creatures.filter(func(creature: Creature) -> bool: return creature.body.position.distance_to(cat.body.position) < MINE_WATCH).size()
+	if crowd < RADIO_CROWD:
+		return
+	deployed = true
+	body.position = cat.body.position
+	_battery = BATTERY * (1.0 + power)
+	# What the horde goes for: something where the radio is, that it can't actually bite.
+	_decoy = Cat.new()
+	_decoy.weapons.clear()
+	_decoy.body.position = body.position
+	arena.decoys.append(_decoy)
+	arena.events.append({"position": body.position, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "set_down", "giant": false, "kind": name})
 
 
 ## Mines: dropped where she stands while enemies are near, armed a moment later, and set off by

@@ -12,6 +12,9 @@ const ICONS := {
 	"kills": "x.x.x.. x.x.x.. .xxx... xxxxx.. xxxxx.. .xxx... .......",
 	"time": "..xxx.. .x.x.x. x..x..x x..xx.x x.....x .x...x. ..xxx..",
 	"cage": "xxxxxxx x.x.x.x x.x.x.x x.x.x.x x.x.x.x x.x.x.x xxxxxxx",
+	"salvage": "..xxx.. .xx.xx. xx...xx .xx.xx. ..xxx.. ...x... ...x...",
+	"cloth": "xxxxxxx x.x.x.x xxxxxxx x.x.x.x xxxxxxx x.x.x.x xxxxxxx",
+	"cats": "x.....x xx...xx xxxxxxx x.xxx.x xxxxxxx .xxxxx. ..xxx..",
 }
 
 

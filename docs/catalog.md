@@ -63,18 +63,18 @@ a country has uniquely, Indonesia first.
 | **Knife** | Built | A starting choice. Close and quick, never runs out. Evolves into the keris |
 | **Handgun** | Built | A starting choice. Slow, but it reaches. Evolves into the submachine gun |
 | **Submachine gun** | Built | The handgun grown up: fast and loose |
-| **Machete** | Planned | Evolves into the greatsword |
-| **Greatsword** | Planned | Two-handed |
-| **Rifle** | Planned | Evolves into the automatic rifle, or the sniper rifle |
-| **Automatic rifle** | Planned | Heavier, harder-hitting. Evolves into the assault rifle |
-| **Assault rifle** | Planned | Two-handed |
-| **Sniper rifle** | Planned | Two-handed: slow, long, pierces a line |
-| **Shotgun** | Planned | A cone |
-| **Grenade launcher** | Planned | |
-| **Lamp oil** | Planned | Thrown: sets up fire |
-| **Nail gun** | Idea | Looted from the camp's toolboxes: fast, short, and the nails stay where they land |
-| **Flare gun** | Idea | One bright, slow shot that lights the canopy's shade and sets what it hits alight |
-| **Crossbow** | Idea | Slow, quiet, and a bolt goes through a rat into the next |
+| **Machete** | Built | A broad blade, quick and wide. Evolves into the greatsword |
+| **Greatsword** | Built | Two-handed: slow, very wide, very hard, and it throws what it hits |
+| **Rifle** | Built | Long, hard-hitting rounds. Evolves into the automatic rifle, or the sniper rifle |
+| **Automatic rifle** | Built | The rifle firing fast and loose. Evolves into the assault rifle |
+| **Assault rifle** | Built | Two-handed: faster still, and further |
+| **Sniper rifle** | Built | Two-handed: slow, very long, and a round goes through four in a line |
+| **Shotgun** | Built | Two-handed: seven pellets in a cone, close |
+| **Grenade launcher** | Built | Two-handed: lobs a grenade that bursts a meter wide |
+| **Lamp oil** | Built | Thrown: the flask breaks where it lands and the oil burns, setting alight whatever stands in it |
+| **Nail gun** | Built | Looted from the camp's toolboxes: fast, short, and nails that miss stay where they land, in the next foot on them |
+| **Flare gun** | Built | One bright, slow shot that sets what it hits alight |
+| **Crossbow** | Built | Two-handed: slow, and a bolt goes through one and into the next |
 
 ### Indonesia
 
@@ -82,19 +82,19 @@ a country has uniquely, Indonesia first.
 |---|---|---|
 | **Keris** | Built | The knife grown up: the cats' heritage blade, its wavy edge longer and harder. Evolves into the kerambit |
 | **Kerambit** | Built | The curved claw blade: very fast, very close |
-| **Golok** | Planned | Indonesia's machete, with its own shape and feel |
-| **Celurit** | Planned | A sickle: hooks a leg and trips |
-| **Rattan staff** | Planned | Heavy knockback |
-| **Ketapel** | Planned | A slingshot: stones that ricochet |
-| **Sumpit** | Planned | The Dayak blowpipe: darts that poison and slow |
-| **Petasan** | Planned | Firecrackers |
-| **Tombak** | Idea | The spear: long reach in a straight line |
-| **Bambu runcing** | Idea | The sharpened bamboo spear of the independence fight: cheap, and it breaks, so she carries several |
-| **Mandau** | Idea | The Dayak sword: heavy, wide swings |
-| **Rencong** | Idea | The Acehnese dagger: a quick thrust, not a swing |
-| **Badik** | Idea | The Bugis and Makassar knife: short, deadly up close |
-| **Kujang** | Idea | The Sundanese blade, with its hooked edge |
-| **Panah** | Idea | The bow: arrows that arc over the horde |
+| **Golok** | Built | Indonesia's machete: heavier, harder |
+| **Celurit** | Built | A sickle: hooks a leg and trips, leaving what it hits down a moment |
+| **Rattan staff** | Built | Two-handed: a full sweep around her with heavy knockback |
+| **Ketapel** | Built | A slingshot: stones that glance off one into the next, twice |
+| **Sumpit** | Built | The Dayak blowpipe: darts that poison and slow |
+| **Petasan** | Built | Firecrackers, thrown: they land and pop, four times |
+| **Tombak** | Built | Two-handed: the spear, a long thrust in a straight line |
+| **Bambu runcing** | Built | Two-handed: the sharpened bamboo spear of the independence fight. It breaks after fourteen hits, and she sharpens a new one |
+| **Mandau** | Built | The Dayak sword: heavy, wide swings |
+| **Rencong** | Built | The Acehnese dagger: a quick thrust, not a swing |
+| **Badik** | Built | The Bugis and Makassar knife: short, deadly up close |
+| **Kujang** | Built | The Sundanese blade, its hooked edge pulling what it catches in toward her |
+| **Panah** | Built | The bow: arrows lobbed over the horde, each going through one |
 
 ## Support
 
@@ -104,12 +104,12 @@ neither, and each comes with its mount.
 | Name | Status | What it does |
 |---|---|---|
 | **Gun drone** | Built | Drone. Lifts off her pack when something is in reach, hovers off her shoulder and fires down at it; docks again when it's quiet |
-| **Net drone** | Planned | Drone |
+| **Net drone** | Built | Drone: lobs nets that pin down what they land on |
 | **Meriam bambu** | Built | Set down: the bamboo cannon, as a turret. Strapped across the pack until something is in reach; lobs stones that burst where they land, and after eight shots the tube cracks and she cuts a new one |
 | **Mines** | Built | Set down. Ride in pouches on the pack's straps; she drops one every few seconds while enemies are near, up to four, and a foot sets one off, a giant's boot included |
-| **Layang-layang** | Idea | Drone: a fighting kite whose glass-coated string cuts what it crosses |
-| **Ranjau bambu** | Idea | Set down: a bed of bamboo spikes that the horde runs onto |
-| **Radio** | Idea | Set down: plays loud, and the horde goes to it instead of her |
+| **Layang-layang** | Built | Drone: a fighting kite circling her, whose glass-coated string cuts what it crosses |
+| **Ranjau bambu** | Built | Set down: a bed of bamboo spikes that pricks and slows the horde on it, until it's trampled flat |
+| **Radio** | Built | Set down when the horde crowds her: it plays loud, and the horde goes for it instead of her until its battery's flat |
 
 ## Gear
 
@@ -127,13 +127,17 @@ level gives.
 | **Gloves** | Built | Paws | Damage, attack speed |
 | **Boots** | Built | Feet | Speed, armor |
 | **Jamu flask** | Built | Waist | Adrenaline |
-| **Peci** | Idea | Head | Luck, health |
-| **Batik shirt** | Idea | Body | Health, luck |
-| **Raincoat** | Idea | Body | Armor; sheds oil and rain |
-| **Headlamp** | Idea | Eyes | Reach, more in the shade |
-| **Rubber boots** | Idea | Feet | Armor, and fire doesn't catch from below |
-| **Sarong** | Idea | Waist | Speed, armor |
-| **Tool belt** | Idea | Waist | Attack speed |
+| **Bandana** | Built | Neck | Attack speed |
+| **Sunglasses** | Built | Eyes | Critical hits |
+| **Wristbands** | Built | Paws | Knockback, damage |
+| **Sandals** | Built | Feet | Speed |
+| **Peci** | Built | Head | Luck, health |
+| **Batik shirt** | Built | Body | Health, luck |
+| **Raincoat** | Built | Body | Armor |
+| **Headlamp** | Built | Eyes | Reach |
+| **Rubber boots** | Built | Feet | Armor |
+| **Sarong** | Built | Waist | Speed, armor |
+| **Tool belt** | Built | Waist | Attack speed |
 
 ## Dodge mutations
 
@@ -175,8 +179,42 @@ What gear gives. A card shows the short form; holding Tab explains each one.
 | **Reach** | Built | Guns reach further, blades reach longer |
 | **Speed** | Built | She runs faster |
 | **Luck** | Built | Rarer cards turn up more often |
-| **Critical hits** | Idea | A chance for a hit to land twice as hard. The kerambit's, in the design |
-| **Knockback** | Idea | Every hit shoves harder |
+| **Critical hits** | Built | A chance for a hit to land twice as hard |
+| **Knockback** | Built | Every hit shoves harder |
+
+## Buildings
+
+The village's, every one a ruin at the start. Restoring one takes salvage and rescued cats to
+help, and opens what it holds.
+
+| Name | Status | What it opens |
+|---|---|---|
+| **Smithy** | Built | The smith forges gear and support into the cards, and a forged piece to wear from the start |
+| **Huts** | Built | Six, each home to two rescued cats, who weave cloth while she's away. The first is the weaver's, who sells looks |
+| **Longhouse** | Built | The elder's: a run can start with any weapon the smith has forged |
+| **Well** | Idea | Water for the village; a place the cats gather and talk |
+| **Watchtower** | Idea | A look over the forest: shows what the next run holds |
+| **Healer's hut** | Idea | Jamu brewed between runs |
+| **Market** | Idea | Trade salvage for cloth, and back |
+
+## Looks
+
+Bought from the weaver with cloth: looks only, never stats.
+
+| Name | Status | What it is |
+|---|---|---|
+| **Orange coat** | Built | Her own coat, from the start |
+| **Gray coat** | Built | 6 cloth |
+| **Black coat** | Built | 8 cloth |
+| **Cream coat** | Built | 8 cloth |
+| **Festival banners** | Built | The umbul-umbul in red, yellow, cream and teal, from the start |
+| **Rhodonite banners** | Built | Pink and graphite. 10 cloth |
+| **Lagoon banners** | Built | Teal, cream and blue. 10 cloth |
+| **Tabby and spotted coats** | Idea | Patterns over the coats: stripes, spots, a white chest |
+| **Scarf colors** | Idea | The red scarf in other colors |
+| **Weapon wraps** | Idea | Cloth wound round a weapon's grip, in her colors |
+| **House paint** | Idea | Each hut's walls in a color she picks |
+| **Lanterns** | Idea | Paper lanterns strung over the path at dusk |
 
 ## Ideas
 

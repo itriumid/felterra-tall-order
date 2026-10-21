@@ -96,7 +96,7 @@ catalog and the code agree.
   `godot --path . -- --screenshot=<path>.png --screenshot-after=4` (add `--horde=<count>`,
   `--no-spawn`, `--at=<x>,<y>`, `--gear=<0 to 2>`, `--sturdy`, `--fallen=<count>`,
   `--walk=<x>,<y>`, `--dogs=<count>`, `--chainsaw=<count>`, `--mutations=<id>,<id>`, `--dodge-every=<seconds>`,
-  `--offer=<id>,<id>,<id>`, `--support=<id>,<id>`, `--machine`, `--cage=<count>`, `--giant=<count>`, `--giant-from=<x>,<y>`, `--menu`, `--menu-after=<seconds>`, `--settings`, `--sound`, `--title`, `--down-after=<seconds>`, `--start=<knife or handgun>`, `--no-blood`, or `--frames=<count>` for a
+  `--offer=<id>,<id>,<id>`, `--support=<id>,<id>`, `--machine`, `--cage=<count>`, `--village`, `--villagers=<count>`, `--restored=<all or names>`, `--salvage=<count>`, `--cloth=<count>`, `--at-door=<building>`, `--shop`, `--intro`, `--giant=<count>`, `--giant-from=<x>,<y>`, `--menu`, `--menu-after=<seconds>`, `--settings`, `--sound`, `--title`, `--down-after=<seconds>`, `--start=<knife or handgun>`, `--no-blood`, or `--frames=<count>` for a
   sequence). It opens a window, saves one
   640 by 360 frame and quits; the window takes keyboard focus, so warn whoever is at the
   machine first. Check its log for `SCRIPT ERROR`, and check the frame itself: a frame that
@@ -118,6 +118,10 @@ catalog and the code agree.
   in step; `game/music_director.gd` fades them to the run. Real music replaces the layers one for
   one. Hear it through a scripted fight with
   `godot --headless --path . --script tools/music_demo.gd -- <output>.wav`.
+- **Every cutscene is the player's to skip**, through `game/cutscene.gd`: Escape skips it whole,
+  Enter hurries a line, the keys show on screen, and the Story lines setting makes lines wait for
+  Enter. That's what WCAG AA asks of moving and timed content; a scene that can't be skipped
+  doesn't ship.
 - **Development flags never read or write the player's settings or records files**, so trying
   things out can't change someone's settings or best run. A run with no flags opens on the
   title, as the game does; one with flags goes straight into the fight they set up.

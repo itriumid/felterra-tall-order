@@ -38,7 +38,11 @@ The builds aren't signed by a publisher Windows or macOS knows yet, so each warn
 | R | Down | Reroll the card |
 | X with 1, 2 or 3 | B | Banish that choice for the rest of the run |
 | Tab (hold) | Back | Read the cards in full |
-| Escape | Start | Pause: carry on, settings, start again, back to the title, leave |
+| Escape | Start | Pause: carry on, settings, start again, back to the village, leave |
+| W A S D or the arrow keys | Left stick | In the village: walk about. The path out on its far side leads to a run |
+| Enter | A | In the village, at a door: restore a ruin, or use what it holds (the smith's forge, the weaver's looks) |
+| Enter | A | In a cutscene: finish the line, or move on to the next |
+| Escape | Start | In a cutscene: skip it |
 | W and S, then Enter or Space | Stick, then A | Choose in the pause menu |
 | A and D, or the arrows | Stick | Change a setting: graphics, audio volumes, aim and blood. Settings are kept for next time |
 | Enter twice, on Reset all progress | A twice | Start the village and the best run over; the settings stay |

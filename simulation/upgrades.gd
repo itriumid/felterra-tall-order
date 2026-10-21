@@ -28,9 +28,11 @@ const STATS := {
 	"reach": {"name": "Reach", "explain": "Guns reach further, blades reach longer", "format": "+%d%% reach"},
 	"speed": {"name": "Speed", "explain": "She runs faster", "format": "+%d%% speed"},
 	"luck": {"name": "Luck", "explain": "Rarer cards turn up more often", "format": "+%.1f luck"},
+	"critical": {"name": "Critical hits", "explain": "A chance for a hit to land twice as hard", "format": "+%d%% critical"},
+	"knockback": {"name": "Knockback", "explain": "Every hit shoves harder", "format": "+%d%% knockback"},
 }
 ## Stats that most players won't know: a card marks them as worth reading in full.
-const UNFAMILIAR: Array[String] = ["adrenaline", "regeneration", "luck"]
+const UNFAMILIAR: Array[String] = ["adrenaline", "regeneration", "luck", "critical"]
 ## Gear, by id: the slot it's worn in, and what a common level of it gives.
 const GEAR := {
 	"vest": {"name": "Vest", "slot": "body", "stats": {"armor": 0.4, "health": 2.0}},
@@ -42,25 +44,55 @@ const GEAR := {
 	"gloves": {"name": "Gloves", "slot": "paws", "stats": {"damage": 0.1, "attack_speed": 0.05}},
 	"boots": {"name": "Boots", "slot": "feet", "stats": {"speed": 0.05, "armor": 0.1}},
 	"jamu_flask": {"name": "Jamu flask", "slot": "waist", "stats": {"adrenaline": 0.03}},
+	"peci": {"name": "Peci", "slot": "head", "stats": {"luck": 0.4, "health": 1.0}},
+	"batik_shirt": {"name": "Batik shirt", "slot": "body", "stats": {"health": 3.0, "luck": 0.2}},
+	"raincoat": {"name": "Raincoat", "slot": "body", "stats": {"armor": 0.6}},
+	"headlamp": {"name": "Headlamp", "slot": "eyes", "stats": {"reach": 0.1}},
+	"sunglasses": {"name": "Sunglasses", "slot": "eyes", "stats": {"critical": 0.04}},
+	"bandana": {"name": "Bandana", "slot": "neck", "stats": {"attack_speed": 0.05}},
+	"wristbands": {"name": "Wristbands", "slot": "paws", "stats": {"knockback": 0.15, "damage": 0.05}},
+	"rubber_boots": {"name": "Rubber boots", "slot": "feet", "stats": {"armor": 0.25}},
+	"sandals": {"name": "Sandals", "slot": "feet", "stats": {"speed": 0.07}},
+	"sarong": {"name": "Sarong", "slot": "waist", "stats": {"speed": 0.03, "armor": 0.2}},
+	"tool_belt": {"name": "Tool belt", "slot": "waist", "stats": {"attack_speed": 0.06}},
 }
 const SLOTS: Array[String] = ["head", "body", "neck", "eyes", "paws", "feet", "waist"]
 ## Weapons a card can hand her, if she has paws free for them.
-const WEAPONS: Array[String] = ["knife", "handgun", "submachine_gun"]
+## A weapon a family grows into isn't offered on its own: it's reached by evolving.
+const WEAPONS: Array[String] = [
+	"knife", "handgun", "machete", "rifle", "shotgun", "grenade_launcher", "nail_gun", "flare_gun",
+	"crossbow", "lamp_oil", "golok", "celurit", "rattan_staff", "ketapel", "sumpit", "petasan",
+	"tombak", "bambu_runcing", "mandau", "rencong", "badik", "kujang", "panah",
+]
 const WEAPON_NAMES := {
 	"knife": "Knife", "keris": "Keris", "kerambit": "Kerambit",
 	"handgun": "Handgun", "submachine_gun": "Submachine gun",
+	"machete": "Machete", "greatsword": "Greatsword", "rifle": "Rifle", "automatic_rifle": "Automatic rifle",
+	"assault_rifle": "Assault rifle", "sniper_rifle": "Sniper rifle", "shotgun": "Shotgun",
+	"grenade_launcher": "Grenade launcher", "nail_gun": "Nail gun", "flare_gun": "Flare gun",
+	"crossbow": "Crossbow", "lamp_oil": "Lamp oil", "golok": "Golok", "celurit": "Celurit",
+	"rattan_staff": "Rattan staff", "ketapel": "Ketapel", "sumpit": "Sumpit", "petasan": "Petasan",
+	"tombak": "Tombak", "bambu_runcing": "Bambu runcing", "mandau": "Mandau", "rencong": "Rencong",
+	"badik": "Badik", "kujang": "Kujang", "panah": "Panah",
 }
 ## Support, by id: what she carries on her back, and the slot it takes there.
 const SUPPORT := {
 	"gun_drone": {"name": "Gun drone", "lines": ["A drone on her pack", "Flies out and fires"]},
 	"meriam_bambu": {"name": "Meriam bambu", "lines": ["A bamboo cannon", "Set down, it lobs stones"]},
 	"mines": {"name": "Mines", "lines": ["Pouches of mines", "Dropped as they close"]},
+	"net_drone": {"name": "Net drone", "lines": ["A drone with nets", "Holds them down"]},
+	"layang_layang": {"name": "Layang-layang", "lines": ["A fighting kite", "Its string cuts"]},
+	"ranjau_bambu": {"name": "Ranjau bambu", "lines": ["A bed of bamboo spikes", "Set down as they close"]},
+	"radio": {"name": "Radio", "lines": ["A loud radio", "The horde goes to it"]},
 }
 ## What each support slot is called on a card.
 const SUPPORT_SLOT_NAMES := {"drone": "drone", "set_down": "set-down"}
 ## What a weapon at the top level can become: the families it evolves along. A weapon not listed
 ## is the last of its family, and takes mastery from there.
-const EVOLVES := {"knife": "keris", "keris": "kerambit", "handgun": "submachine_gun"}
+const EVOLVES := {
+	"knife": ["keris"], "keris": ["kerambit"], "handgun": ["submachine_gun"],
+	"machete": ["greatsword"], "rifle": ["automatic_rifle", "sniper_rifle"], "automatic_rifle": ["assault_rifle"],
+}
 ## Dodge mutations: each changes what the dodge does. A cat takes up to Cat.MOST_MUTATIONS a run,
 ## and a card for one she has strengthens it. What each is called, and what it does in one line.
 const MUTATIONS := {
@@ -112,7 +144,9 @@ static func available(cat: Cat) -> Array[String]:
 		if weapon.level < WEAPON_TOP:
 			ids.append("level:" + weapon.name)
 		elif EVOLVES.has(weapon.name):
-			ids.append("evolve:" + weapon.name)
+			# A family can branch: a card for each way it can grow.
+			for grown: String in EVOLVES[weapon.name]:
+				ids.append("evolve:" + weapon.name + ("" if grown == EVOLVES[weapon.name][0] else ">" + grown))
 		else:
 			ids.append("mastery:" + weapon.name)
 	for support_name: String in SUPPORT:
@@ -131,15 +165,27 @@ static func available(cat: Cat) -> Array[String]:
 		var family_held := cat.weapons.any(func(weapon: Weapon) -> bool: return _family(weapon.name) == _family(weapon_name))
 		if not family_held and paws_used + Weapon.named(weapon_name).hands <= Cat.PAWS:
 			ids.append("weapon:" + weapon_name)
-	return ids.filter(func(id: String) -> bool: return not cat.banished.has(id))
+	return ids.filter(func(id: String) -> bool: return not cat.banished.has(id) and not id in cat.locked)
 
 
 ## The first weapon of a family: a keris is a knife that grew up.
 static func _family(weapon_name: String) -> String:
 	for from: String in EVOLVES:
-		if EVOLVES[from] == weapon_name:
+		if weapon_name in EVOLVES[from]:
 			return _family(from)
 	return weapon_name
+
+
+## What an evolve card grows a weapon into: the first of its family's next, unless it names one.
+static func evolves_into(id: String) -> String:
+	var from := id.get_slice(":", 1)
+	if from.contains(">"):
+		return from.get_slice(">", 1)
+	return EVOLVES[from][0]
+
+
+static func evolves_from(id: String) -> String:
+	return id.get_slice(":", 1).get_slice(">", 0)
 
 
 ## A fresh offer of three different choices, as [{id, rarity}].
@@ -178,10 +224,10 @@ static func apply(cat: Cat, choice: Dictionary) -> void:
 	elif id.begins_with("evolve:"):
 		for index in cat.weapons.size():
 			var old: Weapon = cat.weapons[index]
-			if old.name != id.get_slice(":", 1):
+			if old.name != evolves_from(id):
 				continue
 			# It keeps everything its levels gave it, and rarity adds a little more.
-			var grown := Weapon.named(EVOLVES[old.name])
+			var grown := Weapon.named(evolves_into(id))
 			grown.power = old.power + LEVEL_DAMAGE * (amount - 1.0)
 			grown.tempo = old.tempo + LEVEL_TEMPO * (amount - 1.0)
 			cat.weapons[index] = grown
@@ -236,8 +282,8 @@ static func describe(choice: Dictionary) -> Dictionary:
 		if mastery:
 			card.explain.append("Mastery: past level %d, there's no limit; each is worth half a level" % GEAR_TOP)
 	elif id.begins_with("evolve:"):
-		var from := id.get_slice(":", 1)
-		card.item = EVOLVES[from]
+		var from := evolves_from(id)
+		card.item = evolves_into(id)
 		card.kind = "weapon"
 		card.name = WEAPON_NAMES[card.item]
 		card.lines = ["The %s evolves" % WEAPON_NAMES[from].to_lower(), "Keeps all its levels"]

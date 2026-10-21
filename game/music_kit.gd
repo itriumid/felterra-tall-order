@@ -6,11 +6,28 @@ extends RefCounted
 ## that rings past the end of the loop wraps round to its start, so the loop has no seam.
 ##
 ## It stands in until real music is composed; the layers it makes are the ones real music fills.
+##
+## The village has its own, from the same instruments: slower, no drums, the bronze up front, the
+## lead's melody played half as often and softly, as something remembered. The story's opening
+## has its own too, slower still: a lone suling, the bamboo flute, over a soft pad and a gong.
 
 const RATE := 22050
 const TEMPO := 154.0
 const BARS := 8
 const LAYERS: Array[String] = ["drums", "bass", "chords", "lead", "gamelan", "rock"]
+const VILLAGE_TEMPO := 92.0
+const VILLAGE_LAYERS: Array[String] = ["village_bronze", "village_chords", "village_melody"]
+## I, vi, IV, V: settled, homely.
+const VILLAGE_CHORDS := [["D3", "F#3", "A3"], ["B2", "D3", "F#3"], ["G2", "B2", "D3"], ["A2", "C#3", "E3"]]
+## The bronze's figure through each bar: degrees of pelog, two to a beat.
+const VILLAGE_FIGURE := [0, 2, 4, 2, 3, 2, 0, 1]
+const INTRO_TEMPO := 72.0
+const INTRO_LAYERS: Array[String] = ["intro_pad", "intro_suling"]
+## The suling's tune, a note to a beat ("" rests), over D, then B minor, G, and A.
+const INTRO_TUNE := [
+	"A4", "", "B4", "D5", "", "", "B4", "", "A4", "", "F#4", "", "", "", "", "",
+	"E4", "", "F#4", "A4", "", "B4", "A4", "", "F#4", "", "E4", "", "D4", "", "", "",
+]
 
 ## I, V, vi, IV in D major: bright and heroic.
 const CHORDS := [["D3", "F#3", "A3"], ["A2", "C#3", "E3"], ["B2", "D3", "F#3"], ["G2", "B2", "D3"]]
@@ -25,12 +42,12 @@ const ANSWER := [0, 2, 3, 2, 4, 3, 2, 0]
 static var _random := RandomNumberGenerator.new()
 
 
-static func beat() -> float:
-	return 60.0 / TEMPO
+static func beat(tempo := TEMPO) -> float:
+	return 60.0 / tempo
 
 
-static func loop_samples() -> int:
-	return int(BARS * 4 * beat() * RATE)
+static func loop_samples(tempo := TEMPO) -> int:
+	return int(BARS * 4 * beat(tempo) * RATE)
 
 
 ## Every layer, as a looping stream. Slow enough to make that it belongs on a worker thread.
@@ -39,6 +56,82 @@ static func make_all() -> Dictionary:
 	var layers := {}
 	for layer in LAYERS:
 		layers[layer] = make(layer)
+	return layers
+
+
+## The village's layers, as looping streams, all in step with each other.
+static func make_village() -> Dictionary:
+	_random.seed = 40
+	var layers := {}
+	var b := beat(VILLAGE_TEMPO)
+	for layer in VILLAGE_LAYERS:
+		var mix := PackedFloat32Array()
+		mix.resize(loop_samples(VILLAGE_TEMPO))
+		var notes := {}
+		for bar in BARS:
+			var chord: Array = VILLAGE_CHORDS[bar % 4]
+			match layer:
+				"village_bronze":
+					# The figure on the low bronze, and the gong-like root under every second bar.
+					for step in VILLAGE_FIGURE.size():
+						var degree: int = VILLAGE_FIGURE[(step + bar) % VILLAGE_FIGURE.size()] + 7
+						var pitch := 440.0 * pow(2.0, (PELOG[degree % 7] + 1200 * (degree / 7)) / 1200.0) / 2.0
+						_place(mix, _cached(notes, "bronze%d" % degree, func() -> PackedFloat32Array: return _bronze(pitch)), (bar * 4) * b + step * b / 2.0, 0.22 if step % 2 == 0 else 0.14)
+					if bar % 2 == 0:
+						var root := _pitch(chord[0]) / 2.0
+						_place(mix, _cached(notes, "gong%.1f" % root, func() -> PackedFloat32Array: return _bronze(root)), bar * 4 * b, 0.4)
+				"village_chords":
+					for name: String in chord:
+						var pitch := _pitch(name) * 2.0
+						_place(mix, _cached(notes, "angklung" + name, func() -> PackedFloat32Array: return _angklung(pitch, b * 3.8)), bar * 4 * b, 0.12)
+					var low := _pitch(chord[0]) / 2.0
+					_place(mix, _cached(notes, "low%.1f" % low, func() -> PackedFloat32Array: return _bass(low, b * 1.6)), bar * 4 * b, 0.22)
+					_place(mix, _cached(notes, "low%.1f" % low, func() -> PackedFloat32Array: return _bass(low, b * 1.6)), (bar * 4 + 2) * b, 0.16)
+				"village_melody":
+					# The run's melody, every other note, held long: the same tune, at rest.
+					if bar % 2 == 0:
+						for step in range(0, 16, 2):
+							var name: String = LEAD[(bar / 2 % 2) * 16 + step]
+							if name.is_empty():
+								continue
+							var pitch := _pitch(name)
+							_place(mix, _cached(notes, "soft%s" % name, func() -> PackedFloat32Array: return _chip_lead(pitch, b * 0.9)), (bar * 4) * b + step * b / 2.0, 0.08)
+		layers[layer] = _to_loop(mix)
+	return layers
+
+
+## The opening's layers: the pad's chords breathing in and out under a gong, and the suling.
+static func make_intro() -> Dictionary:
+	_random.seed = 41
+	var layers := {}
+	var b := beat(INTRO_TEMPO)
+	for layer in INTRO_LAYERS:
+		var mix := PackedFloat32Array()
+		mix.resize(loop_samples(INTRO_TEMPO))
+		var notes := {}
+		for bar in BARS:
+			var chord: Array = VILLAGE_CHORDS[(bar / 2) % 4]
+			match layer:
+				"intro_pad":
+					if bar % 2 == 0:
+						for name: String in chord:
+							var pitch := _pitch(name)
+							_place(mix, _cached(notes, "pad" + name, func() -> PackedFloat32Array: return _pad(pitch, b * 8.0)), bar * 4 * b, 0.1)
+						var root := _pitch(chord[0]) / 2.0
+						_place(mix, _cached(notes, "gong%.1f" % root, func() -> PackedFloat32Array: return _bronze(root)), bar * 4 * b, 0.3)
+				"intro_suling":
+					if bar % 4 == 0:
+						for step in 16:
+							var name: String = INTRO_TUNE[(bar / 4 % 2) * 16 + step]
+							if name.is_empty():
+								continue
+							# Held to the next note, as a flute breathes from one to the next.
+							var length := 1
+							while step + length < 16 and (INTRO_TUNE[(bar / 4 % 2) * 16 + step + length] as String).is_empty():
+								length += 1
+							var pitch := _pitch(name)
+							_place(mix, _cached(notes, "suling%s%d" % [name, length], func() -> PackedFloat32Array: return _suling(pitch, b * length * 0.95)), (bar * 4 + step) * b, 0.16)
+		layers[layer] = _to_loop(mix)
 	return layers
 
 
@@ -228,6 +321,31 @@ static func _bronze(pitch: float) -> PackedFloat32Array:
 		for partial: Array in [[1.0, 1.0, 0.25], [2.76, 0.45, 0.12], [5.4, 0.25, 0.06]]:
 			value += partial[1] * sin(TAU * pitch * partial[0] * time) * exp(-time / partial[2])
 		samples[index] = value * minf(time / 0.002, 1.0)
+	return samples
+
+
+## A soft pad: a tone and its octave, swelling in slowly and fading slowly.
+static func _pad(pitch: float, seconds: float) -> PackedFloat32Array:
+	var samples := _samples(seconds)
+	for index in samples.size():
+		var time := float(index) / RATE
+		var swell := minf(time / (seconds * 0.35), 1.0) * minf((seconds - time) / (seconds * 0.4), 1.0)
+		samples[index] = (sin(TAU * pitch * time) + 0.35 * sin(TAU * pitch * 2.0 * time + 0.3)) * swell
+	return samples
+
+
+## The suling: a bamboo flute, near a pure tone, with breath in it and a vibrato that grows as the
+## note is held.
+static func _suling(pitch: float, seconds: float) -> PackedFloat32Array:
+	var samples := _samples(seconds)
+	var phase := 0.0
+	var breath := 0.0
+	for index in samples.size():
+		var time := float(index) / RATE
+		phase += TAU * pitch * (1.0 + 0.008 * sin(TAU * 5.0 * time) * minf(time / 0.4, 1.0)) / RATE
+		breath = 0.9 * breath + 0.1 * _random.randf_range(-1.0, 1.0)
+		var shape := minf(time / 0.08, 1.0) * minf((seconds - time) / 0.15, 1.0)
+		samples[index] = (sin(phase) + 0.12 * sin(phase * 2.0) + breath * 0.25) * shape
 	return samples
 
 
