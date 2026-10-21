@@ -715,8 +715,8 @@ func _spring_hazards() -> void:
 	for hazard in hazards:
 		hazard.left -= STEP
 		var used := false
-		for creature in creatures.duplicate():
-			if creature.body.airborne() or creature.body.position.distance_to(hazard.position) > hazard.radius + creature.body.radius:
+		for creature in _near(hazard.position, hazard.radius + 0.25):
+			if not creature.alive() or creature.body.airborne() or creature.body.position.distance_to(hazard.position) > hazard.radius + creature.body.radius:
 				continue
 			if hazard.kind == "nail":
 				strike(creature, hazard.damage, Vector2.ZERO, 0.0, 0.0, "nail", hazard.by)
@@ -731,6 +731,18 @@ func _spring_hazards() -> void:
 		elif hazard.kind == "spikes":
 			events.append({"position": hazard.position, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "trampled", "giant": false, "kind": "ranjau_bambu"})
 	hazards = lying
+
+
+## The creatures in the grid's cells within reach of a point: what's near, without looking at all.
+func _near(where: Vector2, reach: float) -> Array[Creature]:
+	var near: Array[Creature] = []
+	var lowest := _cell_of(where - Vector2.ONE * reach)
+	var highest := _cell_of(where + Vector2.ONE * reach)
+	for x in range(lowest.x, highest.x + 1):
+		for y in range(lowest.y, highest.y + 1):
+			for creature: Creature in _grid.get(Vector2i(x, y), []):
+				near.append(creature)
+	return near
 
 
 ## Firecrackers, popping one after another where they landed, each a small blast.
