@@ -11,10 +11,21 @@ const WALL := 0.9
 const ROOF := 0.55
 ## Where the umbul-umbul stand: two at the village's way in, two before the longhouse.
 const FLAG_POLES: Array[Vector2] = [Vector2(12.8, 3.3), Vector2(12.8, 6.9), Vector2(15.2, 3.1), Vector2(20.8, 3.1)]
+## The umbul-umbul's colorways, bought from the weaver: festival, the brand's rhodonite, lagoon.
+const BANNERS := {
+	"festival": [Palette.SCARF_RED, Palette.BRASS_LIGHT, Palette.CREAM, Palette.PAINT_TEAL],
+	"rhodonite": [Palette.PINK, Palette.GRAPHITE, Palette.PINK, Palette.CREAM],
+	"lagoon": [Palette.PAINT_TEAL, Palette.CREAM, Palette.CLOTH_LIGHT, Palette.CREAM],
+}
 ## Paint for restored walls and bunting: each hut its own.
 const PAINTS: Array[Color] = [Palette.SCARF_RED, Palette.PAINT_TEAL, Palette.BRASS_LIGHT, Palette.PINK, Palette.CLOTH_LIGHT, Palette.LEAF_LIGHT]
 
 var village: VillageMap
+## The umbul-umbul's colors, as the village wears them, and a building being restored right now,
+## with how long its dust has left to settle.
+var banners := "festival"
+var _restoring := ""
+var _restoring_for := 0.0
 var _ground: ImageTexture
 var _trees: Array[Dictionary] = []
 var _leaves: Array[Dictionary] = []
@@ -66,7 +77,23 @@ func _process(delta: float) -> void:
 	_walked = walked
 	_last = last
 	_clock += delta
+	_restoring_for = maxf(_restoring_for - delta, 0.0)
+	_settle_dust(delta)
 	queue_redraw()
+
+
+## A building just restored: a burst of dust and wood chips over it as it comes back.
+func restoring(building_name: String) -> void:
+	for building in village.buildings:
+		if building.name != building_name:
+			continue
+		var footprint: Rect2 = building.footprint
+		for index in 40:
+			_dust.append({
+				"position": Vector2(randf_range(footprint.position.x, footprint.end.x), footprint.end.y + randf_range(-0.2, 0.3)),
+				"height": randf_range(0.0, 1.0), "velocity": Vector2(randf_range(-0.8, 0.8), randf_range(-0.3, 0.3)),
+				"rise": randf_range(0.4, 1.4), "life": randf_range(0.5, 1.2),
+			})
 
 
 func _draw() -> void:
@@ -101,6 +128,8 @@ func _draw() -> void:
 			_draw_flag(thing.pole, thing.restored)
 		else:
 			_draw_building(thing)
+	for speck in _dust:
+		draw_rect(Rect2(World.to_screen(speck.position, speck.height), Vector2.ONE), Palette.SMOKE)
 	for cluster in _leaves:
 		draw_texture(cluster.texture, cluster.at)
 
@@ -263,7 +292,7 @@ func _draw_flag(foot: Vector2, restored: bool) -> void:
 	# The tip bows over, and the banner hangs from it.
 	var tip := top + Vector2(6, 3)
 	draw_line(top, tip, Palette.DRY_GRASS)
-	var colors: Array[Color] = [Palette.SCARF_RED, Palette.BRASS_LIGHT, Palette.CREAM, Palette.PAINT_TEAL]
+	var colors: Array[Color] = BANNERS.get(banners, BANNERS.festival)
 	for band in 14:
 		var sway := roundf(sin(_clock * 2.0 + band * 0.4 + foot.x) * minf(band * 0.4, 3.0))
 		draw_rect(Rect2(tip + Vector2(-2 + sway, 1 + band * 4), Vector2(4, 4)), colors[band / 3 % colors.size()])

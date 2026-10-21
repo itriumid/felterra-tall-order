@@ -14,7 +14,9 @@ extends Node
 ## --cage=<count> sets that many cages around her, the first right beside her, the rest far off;
 ## --village starts in the village instead of a fight; --intro tells the story's opening again;
 ## --villagers=<count> puts that many rescued cats in it, for this run only; --restored=<all, or
-## names> shows those buildings brought back from ruin.
+## names> shows those buildings brought back from ruin; --salvage=<count> and --cloth=<count> give
+## the village that much to spend; --at-door=<building> stands her at its door; --shop opens what
+## that door holds.
 
 ## The light under the canopy in the clearing, and at the village, where it's open to the sky.
 const SHADE := Color(0.62, 0.68, 0.62)
@@ -95,6 +97,15 @@ var _shade: CanvasModulate
 ## over it.
 var _cutscene: Cutscene
 var _open_village_first := false
+## Whether the runs this session go out from the village, so starting again keeps its rules.
+var _ran_from_village := false
+var _at_door := ""
+var _open_shop_first := false
+## A line the village says (what was restored, or why not), and for how long more; and the row
+## chosen in a shop.
+var _village_message := ""
+var _village_message_for := 0.0
+var _shop_choice := 0
 var _force_intro := false
 ## Which of the last run's numbers beat the best.
 var _beaten: Array[String] = []
@@ -160,6 +171,14 @@ func _ready() -> void:
 		elif argument.begins_with("--villagers="):
 			for index in argument.trim_prefix("--villagers=").to_int():
 				village.cats.append({"name": Cage.NAMES[index % Cage.NAMES.size()], "coat": Cage.COATS[index % Cage.COATS.size()]})
+		elif argument.begins_with("--salvage="):
+			village.salvage = argument.trim_prefix("--salvage=").to_int()
+		elif argument.begins_with("--cloth="):
+			village.cloth = argument.trim_prefix("--cloth=").to_int()
+		elif argument.begins_with("--at-door="):
+			_at_door = argument.trim_prefix("--at-door=")
+		elif argument == "--shop":
+			_open_shop_first = true
 		elif argument.begins_with("--restored="):
 			var names := argument.trim_prefix("--restored=")
 			village.restored.assign(VillageMap.building_names() if names == "all" else Array(names.split(",", false)))
@@ -226,6 +245,12 @@ func _ready() -> void:
 	elif _open_village_first:
 		_enter_village(VillageMap.HOME_SPOT)
 		_place = "village"
+		for building in village_map.buildings:
+			if building.name == _at_door:
+				var footprint: Rect2 = building.footprint
+				village_map.cat.body.position = Vector2(footprint.get_center().x, footprint.end.y + 0.45)
+		if _open_shop_first and not _at_door.is_empty():
+			_use(_at_door)
 		if _force_intro:
 			_enter_village(VillageMap.TITLE_SPOT)
 			_arrive(true)
@@ -366,6 +391,8 @@ func _show_title() -> void:
 func _enter_village(spot: Vector2) -> void:
 	village_map = VillageMap.new(village.cats, village.restored)
 	village_map.cat.body.position = spot
+	village_map.cat.coat = village.coat
+	_village_view.banners = village.banners
 	_village_view.village = village_map
 	_show_layer(true)
 	_music.place = "village"
@@ -437,12 +464,135 @@ func _in_village(delta: float) -> void:
 	if Input.is_action_just_pressed("pause"):
 		_open_page("village_pause")
 		return
+	_village_message_for = maxf(_village_message_for - delta, 0.0)
+	var door := village_map.at_door()
+	_overlay.door = _door_prompt(door)
+	_overlay.message = _village_message if _village_message_for > 0.0 else ""
+	_overlay.village_record = village
+	if Input.is_action_just_pressed("menu_choose") and not door.is_empty():
+		_use(door)
+		return
 	village_map.cat.steering = Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	if _walk != Vector2.ZERO:
 		village_map.cat.steering = _walk
 	_step_village(delta)
 	if village_map.leaving():
 		_begin(0, true)
+		_from_the_village()
+
+
+## What Enter does at a building's door, in words: restore it, or use what it holds.
+func _door_prompt(building: String) -> String:
+	if building.is_empty():
+		return ""
+	var name := _building_name(building)
+	if not village.is_restored(building):
+		var cost: Dictionary = Village.RESTORE[building]
+		var helpers := "%d %s" % [cost.cats, "cat" if cost.cats == 1 else "cats"]
+		return "Restore %s: %d salvage, %s to help" % [name, cost.salvage, helpers]
+	match building:
+		"smithy": return "The smithy: forge"
+		"hut_0": return "The weaver's hut: looks"
+		"longhouse": return "The elder's longhouse"
+	return "%s, home to two" % name.capitalize()
+
+
+func _building_name(building: String) -> String:
+	match building:
+		"smithy": return "the smithy"
+		"longhouse": return "the longhouse"
+		"hut_0": return "the weaver's hut"
+	return "a hut"
+
+
+## Enter at a door: a ruin is restored if the village can manage it, and a restored building is
+## used: the smith's forge, the weaver's looks.
+func _use(building: String) -> void:
+	if not village.is_restored(building):
+		var why := village.cant_restore(building)
+		if not why.is_empty():
+			_say("Not yet: %s %s" % [_building_name(building), why])
+			_audio.interface("menu_back")
+			return
+		village.restore(building)
+		village_map.show_restored(building)
+		_keep_village()
+		_village_view.restoring(building)
+		_audio.interface("level_up")
+		_say("Restored %s%s" % [_building_name(building), (": " + Village.OPENS[building]) if Village.OPENS.has(building) else ""])
+		return
+	match building:
+		"smithy":
+			_shop_choice = 0
+			_open_page("forge")
+		"hut_0":
+			_shop_choice = 0
+			_open_page("looks")
+
+
+func _say(line: String) -> void:
+	_village_message = line
+	_village_message_for = 4.0
+
+
+func _keep_village() -> void:
+	if _keeping_settings:
+		village.save()
+
+
+## The forge's rows, or the looks': what each is, what it costs, and where it stands.
+func _shop_rows() -> Array[Dictionary]:
+	var rows: Array[Dictionary] = []
+	if _page == "forge":
+		for id: String in Village.FORGE:
+			var card := Upgrades.describe({"id": id, "rarity": Upgrades.Rarity.COMMON})
+			var forged := id in village.forged
+			var state := "forged" if forged else ("%d salvage" % Village.FORGE[id])
+			if forged and id.begins_with("gear:"):
+				state = "worn from the start" if village.starting_piece == id else "forged: wear from the start?"
+			rows.append({"id": id, "name": card.name, "state": state, "can": forged or village.salvage >= Village.FORGE[id]})
+	else:
+		for id: String in Village.LOOKS:
+			var owned := id in village.looks
+			var worn := (id == "coat:" + village.coat) or (id == "banners:" + village.banners)
+			var state := "worn" if worn else ("owned: wear it?" if owned else "%d cloth" % Village.LOOKS[id].cloth)
+			rows.append({"id": id, "name": Village.LOOKS[id].name, "state": state, "can": owned or village.cloth >= Village.LOOKS[id].cloth})
+	return rows
+
+
+## A shop page: up and down choose, Enter forges or buys (or, for something had, wears it), and
+## Escape goes back to the village.
+func _read_shop() -> void:
+	var rows := _shop_rows()
+	if Input.is_action_just_pressed("pause"):
+		_close_page()
+		_audio.interface("menu_back")
+		return
+	if Input.is_action_just_pressed("move_up"):
+		_shop_choice = wrapi(_shop_choice - 1, 0, rows.size())
+		_audio.interface("menu_move")
+	if Input.is_action_just_pressed("move_down"):
+		_shop_choice = wrapi(_shop_choice + 1, 0, rows.size())
+		_audio.interface("menu_move")
+	if Input.is_action_just_pressed("menu_choose"):
+		var id: String = rows[_shop_choice].id
+		var done := false
+		if _page == "forge":
+			if id in village.forged:
+				done = id.begins_with("gear:") and village.wear_from_start("" if village.starting_piece == id else id)
+			else:
+				done = village.forge(id)
+		else:
+			done = village.buy_look(id) and village.wear_look(id)
+		_audio.interface("menu_choose" if done else "menu_back")
+		if done:
+			_keep_village()
+			village_map.cat.coat = village.coat
+			_village_view.banners = village.banners
+	_overlay.shop_title = "The smithy" if _page == "forge" else "The weaver's hut"
+	_overlay.shop_rows = _shop_rows()
+	_overlay.shop_choice = _shop_choice
+	_overlay.village_record = village
 
 
 func _step_village(delta: float) -> void:
@@ -468,6 +618,11 @@ func _dress() -> void:
 	if (outfit.weapons as Array).is_empty():
 		outfit.weapons = [_start_weapon if not _start_weapon.is_empty() else "handgun"]
 	cat.wear(outfit)
+	# The piece she starts in stays on: its stats were given once, when the run began.
+	if _ran_from_village and not village.starting_piece.is_empty():
+		var piece := village.starting_piece.trim_prefix("gear:")
+		cat.gear[Upgrades.GEAR[piece].slot] = piece
+		cat.gear_levels[piece] = 1
 
 
 ## A soft pool of light: the one smooth thing on screen.
@@ -553,6 +708,18 @@ func _end_run() -> void:
 	_open_page("summary")
 
 
+## A run out from the village carries what it gives: only what's been forged can turn up on the
+## cards, she wears the piece she's chosen to start in, and her own coat.
+func _from_the_village() -> void:
+	_ran_from_village = true
+	cat.coat = village.coat
+	for id: String in Village.FORGE:
+		if not id in village.forged:
+			cat.locked.append(id)
+	if not village.starting_piece.is_empty():
+		Upgrades.apply(cat, {"id": village.starting_piece, "rarity": Upgrades.Rarity.COMMON})
+
+
 ## What she's rescued and picked up goes home to the village, and the village is kept.
 func _bring_home() -> void:
 	village.bring_home(arena)
@@ -593,6 +760,7 @@ func _open_page(page: String) -> void:
 
 func _close_page() -> void:
 	_page = ""
+	_overlay.shop_rows.clear()
 	_overlay.page = ""
 	_overlay.menu.clear()
 	_overlay.setting_rows.clear()
@@ -600,6 +768,10 @@ func _close_page() -> void:
 
 
 func _read_page() -> void:
+	if _page in ["forge", "looks"]:
+		_read_shop()
+		_overlay.page = _page
+		return
 	if _page == "settings":
 		_read_settings()
 	else:
@@ -645,7 +817,10 @@ func _read_choices() -> void:
 			_close_page()
 			_start_weapon = ""
 			_outfit = 0
+			var from_the_village := cat != null and not cat.locked.is_empty() or _ran_from_village
 			_begin(0, true)
+			if from_the_village:
+				_from_the_village()
 		"home":
 			_close_page()
 			_go_home()

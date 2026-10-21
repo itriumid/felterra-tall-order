@@ -12,6 +12,13 @@ const STEPS := [
 	["menu_choose", "", {"_place": "arriving"}], ["menu_choose", "", {"_place": "arriving"}],
 	["pause", "", {"_place": "village"}],
 	["pause", "village_pause"], ["menu_choose", "", {"_place": "village"}],
+	# With salvage, cloth and cats to spare: restore the smithy and forge a vest; restore the
+	# weaver's hut and buy a gray coat, and wear it.
+	["grant", ""], ["to_smithy", ""], ["menu_choose", "", {"village.restored": ["smithy"]}],
+	["menu_choose", "forge"], ["menu_choose", "forge", {"village.forged": ["gear:vest"]}], ["pause", ""],
+	["to_weaver", ""], ["menu_choose", "", {"village.restored": ["smithy", "hut_0"]}],
+	["menu_choose", "looks"], ["move_down", "looks"], ["menu_choose", "looks", {"village.coat": "gray"}], ["pause", ""],
+	["to_home", ""],
 	# Out along the path to the clearing, and a run.
 	["leave_village", "", {"_place": "run"}], ["pick_1", ""],
 	["pause", "pause"], ["menu_choose", ""],
@@ -72,9 +79,19 @@ func _process(_delta: float) -> bool:
 		elif action == "leave_village":
 			# Walked to the end of the path out.
 			_main.village_map.cat.body.position = Vector2(VillageMap.SIZE.x - 0.1, VillageMap.RETURN_SPOT.y)
+		elif action == "grant":
+			_main.village.salvage = 200
+			_main.village.cloth = 50
+			for index in 6:
+				_main.village.cats.append({"name": Cage.NAMES[index], "coat": "gray"})
+		elif action in ["to_smithy", "to_weaver", "to_home"]:
+			# Walked up to a door, or back into the open.
+			var spots := {"to_smithy": VillageMap.SMITHY, "to_weaver": VillageMap.HUTS[0]}
+			var footprint: Rect2 = spots.get(action, Rect2(VillageMap.HOME_SPOT, Vector2.ZERO))
+			_main.village_map.cat.body.position = Vector2(footprint.get_center().x, footprint.end.y + 0.45) if action != "to_home" else VillageMap.HOME_SPOT
 		else:
 			Input.action_press(action)
-	elif phase == 1 and action != "down" and action != "leave_village":
+	elif phase == 1 and InputMap.has_action(action):
 		Input.action_release(action)
 	elif phase == 5:
 		var wanted: String = STEPS[_step][1]
@@ -83,8 +100,11 @@ func _process(_delta: float) -> bool:
 		if STEPS[_step].size() > 2:
 			var expected: Dictionary = STEPS[_step][2]
 			for property: String in expected:
-				if _main.get(property) != expected[property]:
-					_failures.append("step %d (%s): %s is '%s', wanted '%s'" % [_step + 1, action, property, _main.get(property), expected[property]])
+				var found: Variant = _main
+				for part in property.split("."):
+					found = found.get(part)
+				if found != expected[property]:
+					_failures.append("step %d (%s): %s is '%s', wanted '%s'" % [_step + 1, action, property, found, expected[property]])
 		_step += 1
 	return false
 
