@@ -57,7 +57,9 @@ func _process(delta: float) -> void:
 		for creature in arena.creatures:
 			if creature.body.position.distance_to(cat.body.position) < NEAR:
 				near += 1
-	var giant := arena.giants.any(func(each: Giant) -> bool: return each.standing())
+	# A machine at work counts as a giant: the rock comes in for it too.
+	var giant := arena.giants.any(func(each: Giant) -> bool: return each.standing()) \
+			or arena.machines.any(func(each: Machine) -> bool: return each.standing())
 	var wanted := targets(near, giant, get_tree().paused)
 	for layer: String in _players:
 		_levels[layer] = move_toward(_levels[layer], wanted[layer], delta * FADE)

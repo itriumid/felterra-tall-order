@@ -5,6 +5,8 @@ extends Node2D
 
 const CARD_FRAMES: Array[Color] = [Palette.OFF_WHITE, Palette.LEAF_LIGHT, Palette.CLOTH_LIGHT, Palette.BRASS_LIGHT]
 const CARD_SIZE := Vector2(150, 70)
+## What each machine is called on its health bar.
+const BOSS_NAMES := {"feller_buncher": "Feller buncher"}
 const AIM_NAMES := {"nearest": "Nearest", "toughest": "Toughest", "crowd": "Crowd"}
 
 var arena: Arena
@@ -45,6 +47,7 @@ func _draw() -> void:
 		return
 	_draw_status()
 	_draw_score()
+	_draw_boss()
 	if show_numbers:
 		_draw_numbers()
 	if not setting_rows.is_empty():
@@ -84,6 +87,19 @@ func _draw_status() -> void:
 	InterfaceArt.icon(self, Vector2(x + 58, y), "aim", Palette.OFF_WHITE)
 	PixelFont.draw(self, Vector2(x + 68, y - 1), AIM_NAMES[cat.aim_mode], Palette.OFF_WHITE)
 	InterfaceArt.key_cap(self, Vector2(box.end.x - 14, y - 2), "T")
+
+
+## A machine at work: its name and its health, across the top of the screen.
+func _draw_boss() -> void:
+	for machine in arena.machines:
+		if not machine.standing():
+			continue
+		var screen := get_viewport_rect().size
+		var box := Rect2(floorf(screen.x / 2.0 - 90.0), 4, 180, 22)
+		InterfaceArt.panel(self, box)
+		InterfaceArt.bold(self, box.position + Vector2(6, 3), BOSS_NAMES[machine.kind], Palette.OFF_WHITE)
+		InterfaceArt.bar(self, Rect2(box.position + Vector2(6, 14), Vector2(box.size.x - 12, 5)), machine.health / machine.most_health, Palette.HI_VIS)
+		return
 
 
 func _draw_score() -> void:

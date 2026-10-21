@@ -59,6 +59,8 @@ func _process(delta: float) -> void:
 			if cannon.weapon.rounds_fired != _support_rounds.get(cannon, cannon.weapon.rounds_fired):
 				_puff(cannon)
 			_support_rounds[cannon] = cannon.weapon.rounds_fired
+	for machine in arena.machines:
+		_exhaust(machine, delta)
 	_clock += delta
 	_settle_dust(delta)
 	_bleed(delta)
@@ -98,6 +100,8 @@ func _draw() -> void:
 		standing.append([remains.body.position.y, remains])
 	for giant in arena.giants:
 		standing.append([giant.body.position.y, giant])
+	for machine in arena.machines:
+		standing.append([machine.body.position.y, machine])
 	for cat in arena.cats:
 		for slot: String in cat.supports:
 			var support: Support = cat.supports[slot]
@@ -120,6 +124,8 @@ func _draw() -> void:
 			_draw_cat(thing)
 		elif thing is Support:
 			_draw_support(thing)
+		elif thing is Machine:
+			_draw_machine(thing)
 		elif thing is Giant:
 			_draw_giant(thing)
 		elif thing is Creature:
@@ -153,6 +159,9 @@ func _draw_shadow(thing: Variant) -> void:
 		return
 	if thing is Giant:
 		_draw_giant_shadow(thing)
+		return
+	if thing is Machine:
+		_draw_machine_shadow(thing)
 		return
 	var body: Body = thing.body if thing is Cat or thing is Creature or thing is Support else thing
 	# A pixel ellipse on the ground, narrower the higher the body is.
@@ -233,6 +242,153 @@ func _draw_cat(cat: Cat) -> void:
 	for arm in arms:
 		if not arm.behind:
 			_draw_arm(arm)
+
+
+## The machine's shadow, its footprint on the ground; and while the boom swings out to bite, the
+## head's shadow where it will come down, rimmed in hi-vis: the warning, like a boot's.
+func _draw_machine_shadow(machine: Machine) -> void:
+	var corners := _footprint(machine, machine.body.position, Machine.LENGTH + 0.2, Machine.WIDTH + 0.2, 0.0)
+	draw_colored_polygon(corners, Palette.GROUND_SHADOW)
+	if machine.state in [Machine.State.AIMING, Machine.State.BITING]:
+		var share := 1.0 - (machine.state_for / Machine.AIM_TIME if machine.state == Machine.State.AIMING else 0.0)
+		# The shadow grows as the head closes in over her; its rim is dotted, like the saw's arc.
+		var center := World.to_screen(machine.bite_at)
+		var across := Machine.JAW_RADIUS * World.PIXELS_PER_METER * lerpf(0.6, 1.0, share)
+		var down := across * 0.5
+		for row in range(-int(down), int(down) + 1):
+			var half := roundf(across * sqrt(maxf(1.0 - pow(row / down, 2.0), 0.0)))
+			draw_rect(Rect2(center + Vector2(-half, row), Vector2(half * 2.0 + 1.0, 1)), Palette.GROUND_SHADOW)
+		var angle := 0.0
+		while angle < TAU:
+			draw_rect(Rect2((center + Vector2(cos(angle) * (across + 1.0), sin(angle) * (down + 1.0))).round(), Vector2.ONE), Palette.HI_VIS)
+			angle += 0.22
+
+
+## A feller buncher, as boxes projected the way the scene is: two tracks, the deck over them, the
+## engine housing behind and the cab in front, then the boom out to its head. Each box shows the
+## faces turned toward the viewer, its left faces lit and its right ones shaded, light coming from
+## the top left, and draws far to near. The treads step with the ground the tracks have run.
+func _draw_machine(machine: Machine) -> void:
+	var parts: Array[Dictionary] = []
+	for across in [-0.75, 0.75]:
+		parts.append({"box": [machine.point(0.0, across), Machine.LENGTH, 0.5, 0.0, 0.5], "colors": [Palette.STEEL, Palette.STEEL_DARK, Palette.STEEL_DARK], "treads": true})
+	parts.append({"box": [machine.point(0.0, 0.0), 2.6, 1.7, 0.5, 1.05], "colors": [Palette.BRASS_LIGHT, Palette.BRASS_LIGHT, Palette.BRASS]})
+	parts.append({"box": [machine.point(-0.85, 0.0), 0.9, 1.5, 1.05, 1.6], "colors": [Palette.BRASS_LIGHT, Palette.BRASS_LIGHT, Palette.BRASS]})
+	parts.append({"box": [machine.point(-1.05, 0.5), 0.15, 0.15, 1.6, 2.0], "colors": [Palette.OUTLINE, Palette.STEEL_DARK, Palette.STEEL_DARK]})
+	parts.append({"box": [machine.point(0.45, -0.35), 1.0, 0.95, 1.05, 2.0], "colors": [Palette.BRASS_LIGHT, Palette.STEEL_LIGHT, Palette.STEEL], "cab": true})
+	# Lower boxes first, so what sits on the deck draws over it; at the same level, far to near.
+	for part in parts:
+		part.depth = float(part.box[3]) * 100.0 + (part.box[0] as Vector2).y
+	parts.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.depth < b.depth)
+	var boom_drawn := false
+	var root_depth := 105.0 + machine.root().y
+	for part in parts:
+		# The boom rises from the deck's front: it draws among what's on the deck, by depth.
+		if not boom_drawn and part.depth > root_depth:
+			_draw_boom(machine)
+			boom_drawn = true
+		var face := _box(machine, part.box, part.colors, part.get("treads", false))
+		if part.get("cab", false) and machine.standing() and not face.is_empty():
+			# The operator, in hi-vis, behind the glass of the face turned toward the viewer.
+			var seat := World.to_screen(face.ground, 1.5)
+			draw_rect(Rect2(seat + Vector2(-2, -5), Vector2(4, 4)), Palette.SKIN)
+			draw_rect(Rect2(seat + Vector2(-3, -1), Vector2(6, 5)), Palette.HI_VIS)
+	if not boom_drawn:
+		_draw_boom(machine)
+
+
+## The boom from its root on the deck, up over an elbow and down to the head; the head with its
+## saw disc and its jaws, open as it swings and shut once it's bitten; and the hydraulic joint on
+## top, its hoses red, flashing while it's open to hits.
+func _draw_boom(machine: Machine) -> void:
+	var root := World.to_screen(machine.root(), Machine.ROOT_HEIGHT)
+	var top := machine.head_height + 0.6
+	var elbow_ground := machine.root().lerp(machine.head, 0.45)
+	var elbow := World.to_screen(elbow_ground, maxf(Machine.ROOT_HEIGHT, top) + 0.5)
+	var head_top := World.to_screen(machine.head, top)
+	_thick(root, elbow, 5, Palette.BRASS, 0.0)
+	_thick(elbow, head_top, 4, Palette.BRASS, 0.0)
+	# The hydraulic ram along the boom's back.
+	_thick(root + Vector2(0, -3), elbow + Vector2(0, -3), 2, Palette.STEEL_LIGHT, 0.0)
+	var head_bottom := World.to_screen(machine.head, machine.head_height)
+	_thick(head_top, head_bottom + Vector2(0, -3), 8, Palette.STEEL_DARK, 0.0)
+	var shut := machine.state in [Machine.State.STUCK] or not machine.standing()
+	var spread := 3 if shut else 9
+	for side in [-1, 1]:
+		_thick(head_bottom + Vector2(side * 3, -4), head_bottom + Vector2(side * spread, 0), 2, Palette.STEEL, 0.0)
+	draw_rect(Rect2(head_bottom + Vector2(-4, -1), Vector2(8, 2)), Palette.STEEL_LIGHT)
+	var joint := head_top + Vector2(0, -2)
+	draw_rect(Rect2(joint - Vector2(3, 2), Vector2(6, 4)), Palette.OUTLINE)
+	draw_rect(Rect2(joint - Vector2(2, 1), Vector2(4, 2)), Palette.SCARF_RED)
+	if machine.exposed() and int(_clock * 8.0) % 2 == 0:
+		draw_rect(Rect2(joint - Vector2(4, 3), Vector2(8, 6)), Palette.SPARK, false, 1.0)
+
+
+## One box of the machine: [center over the ground, length along its heading, width across,
+## bottom, top], in colors [top, lit side, shaded side]. Returns the face most turned toward the
+## viewer, as {ground: its middle over the ground}, or nothing if none shows.
+func _box(machine: Machine, box: Array, colors: Array, treads := false) -> Dictionary:
+	var center: Vector2 = box[0]
+	var bottom: float = box[3]
+	var top: float = box[4]
+	var ground := _footprint_ground(machine, center, box[1], box[2])
+	var nearest := {}
+	var nearest_y := 0.001
+	for index in 4:
+		var a: Vector2 = ground[index]
+		var b: Vector2 = ground[(index + 1) % 4]
+		var outward := (a + b) / 2.0 - center
+		# Only the faces turned toward the viewer show.
+		if outward.y <= 0.001:
+			continue
+		if outward.normalized().y > nearest_y:
+			nearest_y = outward.normalized().y
+			nearest = {"ground": (a + b) / 2.0}
+		var face := PackedVector2Array([World.to_screen(a, bottom), World.to_screen(b, bottom), World.to_screen(b, top), World.to_screen(a, top)])
+		draw_colored_polygon(face, colors[1] if outward.x < 0.0 else colors[2])
+		draw_polyline(face + PackedVector2Array([face[0]]), Palette.OUTLINE)
+	var lid := PackedVector2Array()
+	for point in ground:
+		lid.append(World.to_screen(point, top))
+	draw_colored_polygon(lid, colors[0])
+	draw_polyline(lid + PackedVector2Array([lid[0]]), Palette.OUTLINE)
+	if treads:
+		var along := machine.facing()
+		var across := along.orthogonal() * (float(box[2]) * 0.5)
+		var spacing := 0.25
+		var shift := fposmod(machine.tracks_run, spacing)
+		var offset := -float(box[1]) * 0.5 + shift
+		while offset < float(box[1]) * 0.5:
+			var at := center + along * offset
+			draw_line(World.to_screen(at - across, top), World.to_screen(at + across, top), Palette.STEEL_DARK)
+			offset += spacing
+	return nearest
+
+
+func _footprint_ground(machine: Machine, center: Vector2, length: float, width: float) -> Array[Vector2]:
+	var along := machine.facing() * length * 0.5
+	var across := machine.facing().orthogonal() * width * 0.5
+	return [center + along + across, center + along - across, center - along - across, center - along + across]
+
+
+func _footprint(machine: Machine, center: Vector2, length: float, width: float, height: float) -> PackedVector2Array:
+	var corners := PackedVector2Array()
+	for point in _footprint_ground(machine, center, length, width):
+		corners.append(World.to_screen(point, height))
+	return corners
+
+
+## Exhaust out of the stack while it works: thicker and darker once it's broken, then thinning out.
+func _exhaust(machine: Machine, delta: float) -> void:
+	var working := machine.standing()
+	var rate := 6.0 if working else 14.0 * clampf(1.0 - machine.broken_for / 20.0, 0.0, 1.0)
+	if randf() > rate * delta:
+		return
+	_droplets.append({
+		"position": machine.point(-1.05, 0.5), "height": 2.05, "rise": randf_range(0.4, 1.0),
+		"velocity": Vector2(randf_range(-0.2, 0.2), randf_range(-0.3, -0.1)),
+		"color": Palette.SMOKE if working else Palette.BURNT, "stains": false, "floats": true, "life": randf_range(1.0, 2.0),
+	})
 
 
 ## Her pack and what's on it, at one depth: behind her or over her. The cannon's tube shows only
@@ -405,6 +561,25 @@ func _bleed(delta: float) -> void:
 					"color": (Palette.DRY_GRASS if index % 2 else Palette.MOSS) if cracking else Palette.SMOKE, "stains": false,
 				})
 			continue
+		if event.by == "jaws_shut":
+			# Wood chips and earth thrown up where the jaws came down.
+			for index in 16:
+				_droplets.append({
+					"position": event.position, "height": 0.05, "rise": randf_range(0.8, 2.4),
+					"velocity": Vector2.from_angle(randf() * TAU) * randf_range(0.4, 1.6),
+					"color": [Palette.DRY_GRASS, Palette.MUD_LIGHT, Palette.BARK_LIGHT][index % 3], "stains": false,
+				})
+			continue
+		if event.get("kind", "") == "machine" or event.get("kind", "") == "joint":
+			# Steel throws sparks, not blood; the open joint bleeds dark hydraulic fluid.
+			var fluid: bool = event.kind == "joint"
+			for index in 6 if fluid else 4:
+				_droplets.append({
+					"position": event.position, "height": event.height, "rise": randf_range(0.3, 1.4),
+					"velocity": event.direction * randf_range(-1.2, -0.3) + Vector2(randf_range(-0.8, 0.8), randf_range(-0.8, 0.8)),
+					"color": Palette.BURNT if fluid else (Palette.SPARK if index % 2 else Palette.STEEL_LIGHT), "stains": false,
+				})
+			continue
 		if event.by == "landing":
 			for index in 8:
 				_droplets.append({
@@ -433,6 +608,14 @@ func _bleed(delta: float) -> void:
 	_pending.clear()
 	var flying: Array[Dictionary] = []
 	for droplet in _droplets:
+		if droplet.get("floats", false):
+			# Smoke rises on warm air, drifts, and thins out.
+			droplet.life -= delta
+			droplet.height += droplet.rise * delta
+			droplet.position += droplet.velocity * delta
+			if droplet.life > 0.0:
+				flying.append(droplet)
+			continue
 		droplet.rise -= Body.GRAVITY * delta
 		droplet.height += droplet.rise * delta
 		droplet.position += droplet.velocity * delta

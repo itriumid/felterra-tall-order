@@ -61,8 +61,14 @@ func take_events(events: Array[Dictionary]) -> void:
 			"blast": play_at("blast", event.position, 0.0 if event.get("kind", "") == "mines" else -3.0, 1.0 if event.get("kind", "") == "mines" else 1.3)
 			"crack": play_at("crack", event.position, -4.0)
 			"set_down": play_at("pounce", event.position, -8.0, 0.7)
+			"boom": play_at("hydraulic", event.position, -3.0)
+			"jaws_shut": play_at("jaws", event.position, 0.0)
 			_:
-				if event.get("giant", false):
+				if event.get("kind", "") == "machine":
+					play_at("machine_break" if event.killed else "clang", event.position, 2.0 if event.killed else -8.0)
+				elif event.get("kind", "") == "joint":
+					play_at("machine_break" if event.killed else "hiss", event.position, 2.0 if event.killed else -5.0)
+				elif event.get("giant", false):
 					play_at("hit_big", event.position, -3.0)
 				elif event.get("kind", "rat") == "dog":
 					play_at("hit_dog", event.position, -5.0)
@@ -99,6 +105,11 @@ func _process(_delta: float) -> void:
 			play_at("hurt", cat.body.position, -6.0)
 	if _counted(arena, "level", arena.level) and arena.level > 1:
 		interface("level_up")
+	for machine in arena.machines:
+		# Its tracks clank as they run, link by link.
+		var link := floori(machine.tracks_run / 0.5)
+		if _counted(machine, "links", link) and machine.standing():
+			play_at("track_clank", machine.body.position, -6.0)
 	for giant in arena.giants:
 		if not giant.standing():
 			continue
