@@ -5,17 +5,32 @@ extends SceneTree
 ## timeout 120 godot --headless --path . --script tools/check_menus.gd -- --title
 
 ## Each step: the action to press (or a note to act on), the page it should land on ("" while
-## playing), and, for some, where the reset of all progress should stand after it.
+## playing), and, for some, what else should hold after it: where she is, and where the reset of
+## all progress stands.
 const STEPS := [
-	["menu_choose", ""], ["pick_1", ""],
+	# Play, then the walk into the village: a line hurried along, then the whole scene skipped.
+	["menu_choose", "", {"_place": "arriving"}], ["menu_choose", "", {"_place": "arriving"}],
+	["pause", "", {"_place": "village"}],
+	["pause", "village_pause"], ["menu_choose", "", {"_place": "village"}],
+	# Out along the path to the clearing, and a run.
+	["leave_village", "", {"_place": "run"}], ["pick_1", ""],
 	["pause", "pause"], ["menu_choose", ""],
 	["pause", "pause"], ["move_down", "pause"], ["menu_choose", "settings"], ["move_down", "settings"],
 	["move_right", "settings"], ["pause", "pause"], ["pause", ""],
-	["down", "summary"], ["menu_choose", ""], ["pick_2", ""],
+	# Down, then straight back out.
+	["down", "summary"], ["move_down", "summary"], ["menu_choose", "", {"_place": "run"}], ["pick_2", ""],
+	# Down again, and home to the village; the walk home skipped.
+	["down", "summary"], ["menu_choose", "", {"_place": "arriving"}], ["pause", "", {"_place": "village"}],
+	# Out again, then giving the run up: back to the village from the pause menu.
+	["leave_village", "", {"_place": "run"}], ["pick_1", ""],
 	["pause", "pause"], ["move_down", "pause"], ["move_down", "pause"], ["move_down", "pause"],
-	["menu_choose", "title"], ["move_down", "title"], ["menu_choose", "settings"],
+	["menu_choose", "", {"_place": "arriving"}], ["pause", "", {"_place": "village"}],
+	# From the village's pause menu, back to the title.
+	["pause", "village_pause"], ["move_down", "village_pause"], ["move_down", "village_pause"],
+	["menu_choose", "title", {"_place": "title"}], ["move_down", "title"], ["menu_choose", "settings"],
 	# Up from the top wraps to Back, then up again to Reset all progress: asked, then done.
-	["move_up", "settings"], ["move_up", "settings"], ["menu_choose", "settings", "asking"], ["menu_choose", "settings", "done"],
+	["move_up", "settings"], ["move_up", "settings"], ["menu_choose", "settings", {"_reset_state": "asking"}],
+	["menu_choose", "settings", {"_reset_state": "done"}],
 	["pause", "title"],
 ]
 
@@ -54,16 +69,22 @@ func _process(_delta: float) -> bool:
 	if phase == 0:
 		if action == "down":
 			_main.cat.health = 0.0
+		elif action == "leave_village":
+			# Walked to the end of the path out.
+			_main.village_map.cat.body.position = Vector2(VillageMap.SIZE.x - 0.1, VillageMap.RETURN_SPOT.y)
 		else:
 			Input.action_press(action)
-	elif phase == 1 and action != "down":
+	elif phase == 1 and action != "down" and action != "leave_village":
 		Input.action_release(action)
 	elif phase == 5:
 		var wanted: String = STEPS[_step][1]
 		if _main._page != wanted:
 			_failures.append("step %d (%s): on '%s', wanted '%s'" % [_step + 1, action, _main._page, wanted])
-		if STEPS[_step].size() > 2 and _main._reset_state != STEPS[_step][2]:
-			_failures.append("step %d (%s): the reset is '%s', wanted '%s'" % [_step + 1, action, _main._reset_state, STEPS[_step][2]])
+		if STEPS[_step].size() > 2:
+			var expected: Dictionary = STEPS[_step][2]
+			for property: String in expected:
+				if _main.get(property) != expected[property]:
+					_failures.append("step %d (%s): %s is '%s', wanted '%s'" % [_step + 1, action, property, _main.get(property), expected[property]])
 		_step += 1
 	return false
 

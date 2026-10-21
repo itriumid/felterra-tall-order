@@ -1,6 +1,6 @@
 extends Node
-## The prototype: one cat in a clearing, a horde coming out of the jungle, and the light under
-## the canopy. It tests what's hardest about the game before anything else is built on it.
+## The game: the title over the forest path to the cats' village, the village itself, and the runs
+## out from it into the clearing, where the horde comes out of the jungle under the canopy.
 ##
 ## Development aids: --horde=<count> starts with that many in the clearing; --no-spawn stops more
 ## coming; --at=<x>,<y> starts the cat there, in meters; --gear=<0 to 2> picks the gear; --sturdy keeps the cat alive; --screenshot=<path> saves
@@ -11,8 +11,14 @@ extends Node
 ## her those dodge mutations, a common card of each; --dodge-every=<seconds> dodges on her own;
 ## --offer=<id>,<id>,<id> hands her a card of those choices, common, uncommon and rare;
 ## --support=<id>,<id> puts those on her back; --machine starts with a feller buncher close by;
-## --cage=<count> sets that many cages around her, the first right beside her, the rest far off.
+## --cage=<count> sets that many cages around her, the first right beside her, the rest far off;
+## --village starts in the village instead of a fight; --intro tells the story's opening again;
+## --villagers=<count> puts that many rescued cats in it, for this run only; --restored=<all, or
+## names> shows those buildings brought back from ruin.
 
+## The light under the canopy in the clearing, and at the village, where it's open to the sky.
+const SHADE := Color(0.62, 0.68, 0.62)
+const VILLAGE_SHADE := Color(0.82, 0.86, 0.8)
 ## Sun through the canopy's gaps: where it reaches the ground, in meters.
 const SHAFTS: Array[Vector2] = [
 	Vector2(8.0, 6.0), Vector2(19.0, 10.0), Vector2(30.0, 7.0), Vector2(13.0, 17.0), Vector2(27.0, 18.0),
@@ -28,16 +34,27 @@ const OUTFITS: Array[Dictionary] = [
 ## summary of a run stop it (solo; online, the pause menu opens over a world that keeps running).
 const PAGES := {
 	"title": ["play", "settings", "leave"],
-	"pause": ["carry_on", "settings", "start_again", "title", "leave"],
-	"summary": ["go_again", "title", "leave"],
+	"pause": ["carry_on", "settings", "start_again", "village", "leave"],
+	"village_pause": ["carry_on", "settings", "title", "leave"],
+	"summary": ["home", "go_again", "leave"],
 }
+## The story's opening, told once, as she walks into the village the first time.
+const INTRO: Array[String] = [
+	"This forest has been ours for as long as anyone remembers.",
+	"Then a company bought it, and moved in with its machines.",
+	"To them, we're pests. They set traps for us, like we're rats.",
+	"We can't out-muscle a giant. But we can get underfoot.",
+	"Bring our people home. Take back what they leave behind.",
+	"Make them take us seriously. It's a tall order.",
+]
+
 ## The settings page: each row's section, setting and name, by section.
 const SETTING_ROWS: Array[Array] = [
 	["graphics", "full_screen", "Full screen"], ["graphics", "window_scale", "Window size"],
 	["graphics", "vsync", "Vertical sync"],
 	["audio", "master", "Volume"], ["audio", "music", "Music"], ["audio", "effects", "Effects"],
 	["audio", "interface", "Interface"],
-	["gameplay", "aim", "Aim"], ["gameplay", "blood", "Blood"],
+	["gameplay", "aim", "Aim"], ["gameplay", "blood", "Blood"], ["gameplay", "story_waits", "Story lines"],
 	["progress", "reset", "Reset all progress"],
 	["", "back", "Back"],
 ]
@@ -66,6 +83,19 @@ var records := Records.new()
 ## asked, "asking" once it has been, "done" after.
 var village := Village.new()
 var _reset_state := ""
+## Where she is: on the "title", "arriving" in the village (walking in, a cutscene), in the
+## "village", or on a "run".
+var _place := "run"
+var village_map: VillageMap
+var _village_view: VillageView
+var _arena_layer: Node2D
+var _village_layer: Node2D
+var _shade: CanvasModulate
+## The cutscene playing, if one is: the walk into the village, with or without the opening told
+## over it.
+var _cutscene: Cutscene
+var _open_village_first := false
+var _force_intro := false
 ## Which of the last run's numbers beat the best.
 var _beaten: Array[String] = []
 var settings := Settings.new()
@@ -127,6 +157,16 @@ func _ready() -> void:
 			_chainsaws = argument.trim_prefix("--chainsaw=").to_int()
 		elif argument.begins_with("--cage="):
 			_cages = argument.trim_prefix("--cage=").to_int()
+		elif argument.begins_with("--villagers="):
+			for index in argument.trim_prefix("--villagers=").to_int():
+				village.cats.append({"name": Cage.NAMES[index % Cage.NAMES.size()], "coat": Cage.COATS[index % Cage.COATS.size()]})
+		elif argument.begins_with("--restored="):
+			var names := argument.trim_prefix("--restored=")
+			village.restored.assign(VillageMap.building_names() if names == "all" else Array(names.split(",", false)))
+		elif argument == "--village":
+			_open_village_first = true
+		elif argument == "--intro":
+			_force_intro = true
 		elif argument == "--machine":
 			_machine = true
 		elif argument.begins_with("--support="):
@@ -183,6 +223,12 @@ func _ready() -> void:
 	# A real session opens on the title; a development run goes straight into the fight it set up.
 	if _keeping_settings or _open_title_first:
 		_show_title()
+	elif _open_village_first:
+		_enter_village(VillageMap.HOME_SPOT)
+		_place = "village"
+		if _force_intro:
+			_enter_village(VillageMap.TITLE_SPOT)
+			_arrive(true)
 	else:
 		_begin(horde, spawning)
 		if _open_menu_first or _open_settings_first:
@@ -199,15 +245,23 @@ func _build_scene() -> void:
 	_world.process_mode = Node.PROCESS_MODE_PAUSABLE
 	add_child(_world)
 	# The forest floor under the canopy is dim; the sun only reaches it in shafts.
-	var shade := CanvasModulate.new()
-	shade.color = Color(0.62, 0.68, 0.62)
-	_world.add_child(shade)
+	_shade = CanvasModulate.new()
+	_shade.color = SHADE
+	_world.add_child(_shade)
+	# The clearing's views on one layer, the village's on another: one shows at a time.
+	_arena_layer = Node2D.new()
+	_world.add_child(_arena_layer)
+	_village_layer = Node2D.new()
+	_village_layer.visible = false
+	_world.add_child(_village_layer)
+	_village_view = VillageView.new()
+	_village_layer.add_child(_village_view)
 	_ground = GroundView.new()
-	_world.add_child(_ground)
+	_arena_layer.add_child(_ground)
 	_entities = EntitiesView.new()
-	_world.add_child(_entities)
+	_arena_layer.add_child(_entities)
 	var canopy := CanopyView.new()
-	_world.add_child(canopy)
+	_arena_layer.add_child(canopy)
 	var shaft_texture := _soft_light(Vector2i(220, 120))
 	for spot in SHAFTS:
 		var shaft := PointLight2D.new()
@@ -218,13 +272,13 @@ func _build_scene() -> void:
 		shaft.color = Palette.BRASS_LIGHT
 		shaft.energy = 0.7
 		shaft.height = 60.0
-		_world.add_child(shaft)
+		_arena_layer.add_child(shaft)
 	_muzzle_light = PointLight2D.new()
 	_muzzle_light.texture = _soft_light(Vector2i(96, 96))
 	_muzzle_light.color = Palette.SPARK
 	_muzzle_light.height = 12.0
 	_muzzle_light.energy = 0.0
-	_world.add_child(_muzzle_light)
+	_arena_layer.add_child(_muzzle_light)
 	_camera = Camera2D.new()
 	_world.add_child(_camera)
 	_audio = AudioDirector.new()
@@ -241,6 +295,9 @@ func _build_scene() -> void:
 
 
 func _begin(horde: int, spawning: bool) -> void:
+	_place = "run"
+	_show_layer(false)
+	_music.place = "run"
 	arena = Arena.new()
 	arena.spawning = spawning
 	cat = arena.add_cat(_start)
@@ -296,18 +353,112 @@ func _watch(watched: Arena, watched_cat: Cat) -> void:
 	_overlay.cat = watched_cat
 
 
-## The title, over a clearing where the horde ambles about and now and then a giant walks.
+## The title, over the forest path into the village, with her on it.
 func _show_title() -> void:
+	_enter_village(VillageMap.TITLE_SPOT)
+	village_map.cat.facing = Vector2.RIGHT
+	_place = "title"
+	_music.place = "intro"
+	_open_page("title")
+
+
+## Into the village, with everyone she's brought home in it, and her standing at a spot.
+func _enter_village(spot: Vector2) -> void:
+	village_map = VillageMap.new(village.cats, village.restored)
+	village_map.cat.body.position = spot
+	_village_view.village = village_map
+	_show_layer(true)
+	_music.place = "village"
+	# Nothing to fight here: the clearing's views watch an empty one, out of sight.
 	arena = Arena.new()
 	arena.spawning = false
 	cat = null
-	for index in 30:
-		arena.add_creature(Vector2(arena.random.randf_range(2.0, Arena.SIZE.x - 2.0), arena.random.randf_range(2.0, Arena.SIZE.y - 2.0)))
-	arena.add_giant(Arena.SIZE / 2.0 + Vector2(4.0, 2.0))
 	_watch(arena, null)
+	_overlay.village_map = village_map
 	_start_weapon = ""
 	_outfit = 0
-	_open_page("title")
+	_camera.position = _village_camera()
+
+
+func _show_layer(village_showing: bool) -> void:
+	_village_layer.visible = village_showing
+	_arena_layer.visible = not village_showing
+	_shade.color = VILLAGE_SHADE if village_showing else SHADE
+	_overlay.place = "village" if village_showing else "run"
+	if not village_showing:
+		_overlay.village_map = null
+		_cutscene = null
+		_overlay.intro = ""
+		_overlay.cutscene = false
+
+
+## She walks into the village, a cutscene: from the forest path, the first time with the story's
+## opening told as she goes, or from the path back from the clearing after a run.
+func _arrive(from_the_forest: bool) -> void:
+	_place = "arriving"
+	var telling := from_the_forest and (not village.intro_seen or _force_intro)
+	_cutscene = Cutscene.new(INTRO if telling else ([] as Array[String]), settings.get_value("gameplay", "story_waits"))
+	village_map.walk_to(VillageMap.HOME_SPOT if from_the_forest else VillageMap.RETURN_SPOT)
+	# The opening's own music plays on through its walk; any other walk in has the village's.
+	_music.place = "intro" if telling else "village"
+	if telling:
+		# Slow enough that she reaches the village as the last line ends, if it's left to run.
+		village_map.stroll_speed = VillageMap.HOME_SPOT.distance_to(village_map.cat.body.position) / _cutscene.length()
+	_overlay.cutscene = true
+
+
+## The walk in plays on its own. Enter hurries the opening's lines along; Escape skips the whole
+## scene, and she's simply there. Once the lines are told, the walk finishes at her own pace.
+func _arriving(delta: float) -> void:
+	var skip := Input.is_action_just_pressed("pause")
+	_cutscene.step(delta, Input.is_action_just_pressed("menu_choose"), skip)
+	_overlay.intro = _cutscene.written()
+	if _cutscene.done() and not _cutscene.lines.is_empty() and not village.intro_seen:
+		village.intro_seen = true
+		if _keeping_settings:
+			village.save()
+	if _cutscene.done() or _cutscene.lines.is_empty():
+		village_map.stroll_speed = VillageMap.STROLL_SPEED
+		_music.place = "village"
+	if skip and village_map.walking():
+		village_map.cat.body.position = village_map.walking_to
+		village_map.walking_to = Vector2.INF
+	_step_village(delta)
+	if not village_map.walking() and _cutscene.done() or skip:
+		_place = "village"
+		_cutscene = null
+		_overlay.intro = ""
+		_overlay.cutscene = false
+
+
+## In the village: she walks where she's steered, and walking out on the path to the clearing
+## starts a run.
+func _in_village(delta: float) -> void:
+	if Input.is_action_just_pressed("pause"):
+		_open_page("village_pause")
+		return
+	village_map.cat.steering = Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	if _walk != Vector2.ZERO:
+		village_map.cat.steering = _walk
+	_step_village(delta)
+	if village_map.leaving():
+		_begin(0, true)
+
+
+func _step_village(delta: float) -> void:
+	_behind = minf(_behind + delta, Arena.STEP * 5.0)
+	while _behind >= Arena.STEP:
+		_behind -= Arena.STEP
+		village_map.step(Arena.STEP)
+	_camera.position = _village_camera()
+
+
+## The view follows her along the path, but never past either end; the village is a screen tall.
+func _village_camera() -> Vector2:
+	var screen := get_viewport().get_visible_rect().size
+	var width := VillageMap.SIZE.x * World.PIXELS_PER_METER
+	var x := clampf(World.to_screen(village_map.cat.body.position).x, screen.x / 2.0, width - screen.x / 2.0)
+	return Vector2(x, VillageMap.SIZE.y * World.PIXELS_PER_METER / 2.0)
 
 
 ## Puts the outfit on her, with the weapon she chose to start with unless the outfit names its
@@ -338,8 +489,15 @@ func _process(delta: float) -> void:
 	if not _page.is_empty():
 		_read_page()
 		if _page == "title":
-			_step_world(delta)
-			_camera.position = World.to_screen(Arena.SIZE / 2.0)
+			_step_village(delta)
+		_take_screenshot(delta)
+		return
+	if _place == "arriving":
+		_arriving(delta)
+		_take_screenshot(delta)
+		return
+	if _place == "village":
+		_in_village(delta)
 		_take_screenshot(delta)
 		return
 	_read_controls()
@@ -385,15 +543,27 @@ func _step_world(delta: float) -> void:
 ## She's down: the run's numbers go into the records, and its summary opens.
 func _end_run() -> void:
 	_beaten = records.record(Records.of(arena))
-	village.bring_home(arena)
+	_bring_home()
 	if _keeping_settings:
 		records.save()
-		village.save()
 	_overlay.summary = Records.of(arena)
 	_overlay.summary.rescued = arena.rescued.size()
 	_overlay.summary.salvage = arena.salvage
 	_overlay.beaten = _beaten
 	_open_page("summary")
+
+
+## What she's rescued and picked up goes home to the village, and the village is kept.
+func _bring_home() -> void:
+	village.bring_home(arena)
+	if _keeping_settings:
+		village.save()
+
+
+## Home from a run: she walks back into the village on the path from the clearing.
+func _go_home() -> void:
+	_enter_village(Vector2(VillageMap.SIZE.x - 0.5, VillageMap.RETURN_SPOT.y))
+	_arrive(false)
 
 
 func _take_screenshot(delta: float) -> void:
@@ -418,6 +588,7 @@ func _open_page(page: String) -> void:
 	_menu_choice = 0
 	if not ONLINE or page == "summary":
 		get_tree().paused = page != "title"
+	_overlay.place = "village" if _place != "run" else "run"
 
 
 func _close_page() -> void:
@@ -448,7 +619,7 @@ func _read_page() -> void:
 ## A page of choices: up and down choose, Enter or Space takes it, Escape closes the pause menu.
 func _read_choices() -> void:
 	var choices: Array = PAGES[_page]
-	if Input.is_action_just_pressed("pause") and _page == "pause":
+	if Input.is_action_just_pressed("pause") and _page in ["pause", "village_pause"]:
 		_close_page()
 		return
 	if Input.is_action_just_pressed("move_up"):
@@ -467,11 +638,22 @@ func _read_choices() -> void:
 			_settings_from = _page
 			_page = "settings"
 			_setting_choice = 0
-		"play", "start_again", "go_again":
+		"play":
+			_close_page()
+			_arrive(true)
+		"start_again", "go_again":
 			_close_page()
 			_start_weapon = ""
 			_outfit = 0
 			_begin(0, true)
+		"home":
+			_close_page()
+			_go_home()
+		"village":
+			# Giving up the run: she goes home with what she's carrying.
+			_close_page()
+			_bring_home()
+			_go_home()
 		"title":
 			_close_page()
 			_show_title()
@@ -548,7 +730,8 @@ func _menu_lines() -> Array[String]:
 	for item: String in PAGES[page]:
 		lines.append({
 			"play": "Play", "carry_on": "Carry on", "settings": "Settings", "start_again": "Start again",
-			"go_again": "Go again", "title": "Back to the title", "leave": "Leave the game",
+			"go_again": "Straight back out", "title": "Back to the title", "leave": "Leave the game",
+			"home": "Home to the village", "village": "Back to the village",
 		}[item])
 	return lines
 
@@ -568,6 +751,7 @@ func _setting_lines() -> Array[Dictionary]:
 				"window_scale": line.value = "%d by %d" % [640 * int(value), 360 * int(value)]
 				"aim": line.value = {"nearest": "Nearest", "toughest": "Toughest first", "crowd": "Thickest crowd"}[value]
 				"blood": line.value = "On" if value else "Off: dust and fur instead"
+				"story_waits": line.value = "Wait for Enter" if value else "Move on by themselves"
 				_:
 					if value is bool:
 						line.value = "On" if value else "Off"

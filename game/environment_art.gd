@@ -48,6 +48,46 @@ static func ground(size: Vector2i, seed_value: int) -> Image:
 	return picture
 
 
+## The way into the village: forest floor to the left, deep in leaf litter, the village's
+## trodden earth to the right, and a path of bare earth running through both. Sizes in pixels.
+static func village_ground(size: Vector2i, seed_value: int, village_from: int, path_top: int, path_bottom: int) -> Image:
+	var growth := FastNoiseLite.new()
+	growth.seed = seed_value
+	growth.frequency = 0.01
+	growth.fractal_octaves = 3
+	var wobble := FastNoiseLite.new()
+	wobble.seed = seed_value + 1
+	wobble.frequency = 0.02
+	var random := RandomNumberGenerator.new()
+	random.seed = seed_value
+	var picture := Image.create_empty(size.x, size.y, false, Image.FORMAT_RGBA8)
+	for y in size.y:
+		for x in size.x:
+			var value := growth.get_noise_2d(x, y) * 0.5 + 0.5 + (0.03 if (x + y) % 2 == 0 else -0.03)
+			var edge := wobble.get_noise_1d(x) * 6.0
+			var in_village := x + wobble.get_noise_1d(y) * 14.0 > village_from
+			# Through the village the path is a worn track, narrower than the way through the trees.
+			var narrowing := 18.0 if in_village else 0.0
+			var on_path := y > path_top + narrowing + edge and y < path_bottom - narrowing + edge
+			# Grass keeps to the village's edges, where nobody walks.
+			var from_edge := minf(y, size.y - y) / size.y
+			var color: Color
+			if on_path:
+				color = (Palette.MUD if value > 0.45 else Palette.MUD_DARK) if in_village else (Palette.MUD_LIGHT if value > 0.42 else Palette.MUD)
+			elif in_village:
+				var grassy := value + (0.18 - from_edge) * 1.6
+				color = Palette.MOSS if grassy > 0.62 else (Palette.DRY_GRASS if grassy > 0.5 else Palette.MUD_LIGHT)
+			else:
+				color = Palette.JUNGLE if value > 0.55 else (Palette.JUNGLE_DARK if value > 0.4 else Palette.MOSS)
+			var litter := random.randf()
+			if litter < 0.012:
+				color = Palette.DRY_GRASS
+			elif litter < 0.02 and not on_path:
+				color = Palette.LEAF_LIGHT
+			picture.set_pixel(x, y, color)
+	return picture
+
+
 ## Where the logging machines dragged trunks out: bands of churned mud with tire tracks in them.
 static func _skid_trails(picture: Image, random: RandomNumberGenerator) -> void:
 	var size := picture.get_size()

@@ -13,7 +13,7 @@ const WINDOW_SCALES: Array[int] = [1, 2, 3, 4]
 const DEFAULTS := {
 	"graphics": {"full_screen": false, "window_scale": 2, "vsync": true},
 	"audio": {"master": 8, "music": 7, "effects": 8, "interface": 6},
-	"gameplay": {"aim": "nearest", "blood": true},
+	"gameplay": {"aim": "nearest", "blood": true, "story_waits": false},
 }
 
 var values := {}

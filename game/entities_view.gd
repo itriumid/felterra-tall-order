@@ -241,7 +241,7 @@ func _draw_cat(cat: Cat) -> void:
 		if arm.behind:
 			_draw_arm(arm)
 	_draw_pack(cat, view, flip, top_left + Vector2(Sprites.lean(view, frame), 0), "behind")
-	draw_texture(Sprites.lit(Sprites.cat_body_art(view, frame, cat.gear.get("feet", "") == "boots"), flip), top_left)
+	draw_texture(Sprites.lit(Sprites.coat(Sprites.cat_body_art(view, frame, cat.gear.get("feet", "") == "boots"), cat.coat), flip), top_left)
 	# Everything above the waist leans with the body as she walks.
 	var leaning := top_left + Vector2(Sprites.lean(view, frame), 0)
 	if cat.gear.get("body", "") == "vest":

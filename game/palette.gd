@@ -68,6 +68,8 @@ const BARK_LIGHT := Color8(128, 112, 92)
 
 # The human company's workers: realistic, and easy to pick out of a crowd.
 const HI_VIS := Color8(255, 120, 30)
+## Paint for the village's walls, beside the reds, pinks, yellows and blues already here.
+const PAINT_TEAL := Color8(52, 150, 142)
 const SKIN := Color8(226, 176, 138)
 const SKIN_SHADOW := Color8(184, 132, 100)
 
@@ -93,7 +95,7 @@ const ALL: Array[Color] = [
 	STEEL_DARK, STEEL, STEEL_LIGHT, RAT_SHADOW, RAT, RAT_LIGHT, RAT_TAIL, DOG_SHADOW, DOG, DOG_LIGHT,
 	MUD_DARK, MUD, MUD_LIGHT, BURNT, JUNGLE_DEEP, JUNGLE_DARK, JUNGLE, LEAF, LEAF_LIGHT,
 	MOSS, DRY_GRASS, BARK, BARK_LIGHT,
-	HI_VIS, SKIN, SKIN_SHADOW, BLOOD, BLOOD_DRY, SPARK, SMOKE, GRAPHITE, PANEL_DARK, PANEL_LIGHT,
+	HI_VIS, PAINT_TEAL, SKIN, SKIN_SHADOW, BLOOD, BLOOD_DRY, SPARK, SMOKE, GRAPHITE, PANEL_DARK, PANEL_LIGHT,
 	OFF_WHITE, PINK,
 ]
 
