@@ -49,7 +49,7 @@ func _process(delta: float) -> void:
 			flash[cat] = 1.0
 		_rounds_seen[cat] = fired
 		flash[cat] = maxf(flash.get(cat, 0.0) - delta / FLASH_TIME, 0.0)
-		if cat.dodging_for > 0.0:
+		if cat.dodging_for > 0.0 and not cat.body.airborne():
 			_kick_dust(cat.body)
 	_settle_dust(delta)
 	_bleed(delta)
@@ -290,7 +290,24 @@ func _draw_smear(weapon: Weapon, paw: Vector2) -> void:
 ## dust and fur, which leave nothing.
 func _bleed(delta: float) -> void:
 	for event in _pending:
-		if event.by in ["lunge", "rev", "cut"]:
+		if event.by in ["lunge", "rev", "cut", "leap"]:
+			continue
+		if event.by == "strike_back":
+			# Steel meeting what came for her: sparks all round, nothing that stains.
+			for index in 14:
+				_droplets.append({
+					"position": event.position, "height": event.height, "rise": randf_range(0.2, 1.4),
+					"velocity": Vector2.from_angle(TAU * index / 14.0) * randf_range(1.5, 3.0),
+					"color": Palette.SPARK if index % 2 else Palette.STEEL_LIGHT, "stains": false,
+				})
+			continue
+		if event.by == "landing":
+			for index in 8:
+				_droplets.append({
+					"position": event.position, "height": 0.02, "rise": randf_range(0.4, 1.0),
+					"velocity": Vector2.from_angle(randf() * TAU) * randf_range(0.4, 1.2),
+					"color": Palette.SMOKE, "stains": false,
+				})
 			continue
 		if event.by == "stomp" or event.by == "fall":
 			# The ground thrown up: dust and clods, no blood.

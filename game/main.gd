@@ -7,7 +7,9 @@ extends Node
 ## --dogs=<count> starts with guard dogs close by, --chainsaw=<count> with chainsaw workers; --giant=<count> starts with giants close by, --giant-from=<x>,<y> that far from her; --start=<knife or handgun> skips choosing; --no-blood starts with blood off; --screenshot=<path> saves
 ## a frame after --screenshot-after seconds (default 4) and quits; --frames=<count> saves that
 ## many, a twentieth of a second apart, as <path>_1.png and on; --walk=<x>,<y> steers the cat
-## that way on her own; --fallen=<count> scatters that many bodies.
+## that way on her own; --fallen=<count> scatters that many bodies; --mutations=<id>,<id> gives
+## her those dodge mutations, a common card of each; --dodge-every=<seconds> dodges on her own;
+## --offer=<id>,<id>,<id> hands her a card of those choices, common, uncommon and rare.
 
 ## Sun through the canopy's gaps: where it reaches the ground, in meters.
 const SHAFTS: Array[Vector2] = [
@@ -77,6 +79,10 @@ var _fallen := 0
 var _giants := 0
 var _dogs := 0
 var _chainsaws := 0
+var _mutations: PackedStringArray = []
+var _dodge_every := 0.0
+var _offer: PackedStringArray = []
+var _since_dodge := 0.0
 var _giant_from := Vector2(3.5, -1.0)
 var _walk := Vector2.ZERO
 var _frames := 1
@@ -109,6 +115,12 @@ func _ready() -> void:
 			_giant_from = Vector2(parts[0].to_float(), parts[1].to_float())
 		elif argument.begins_with("--chainsaw="):
 			_chainsaws = argument.trim_prefix("--chainsaw=").to_int()
+		elif argument.begins_with("--offer="):
+			_offer = argument.trim_prefix("--offer=").split(",", false)
+		elif argument.begins_with("--dodge-every="):
+			_dodge_every = argument.trim_prefix("--dodge-every=").to_float()
+		elif argument.begins_with("--mutations="):
+			_mutations = argument.trim_prefix("--mutations=").split(",", false)
 		elif argument.begins_with("--dogs="):
 			_dogs = argument.trim_prefix("--dogs=").to_int()
 		elif argument.begins_with("--giant="):
@@ -217,6 +229,16 @@ func _begin(horde: int, spawning: bool) -> void:
 	cat = arena.add_cat(_start)
 	cat.aim_mode = settings.get_value("gameplay", "aim")
 	_dress()
+	for mutation in _mutations:
+		if Upgrades.MUTATIONS.has(mutation):
+			Upgrades.apply(cat, {"id": "mutation:" + mutation, "rarity": Upgrades.Rarity.COMMON})
+		else:
+			push_warning("There's no dodge mutation called %s." % mutation)
+	if not _offer.is_empty():
+		var choices: Array[Dictionary] = []
+		for index in mini(_offer.size(), Upgrades.CHOICES):
+			choices.append({"id": _offer[index], "rarity": mini(index, Upgrades.Rarity.LEGENDARY)})
+		cat.offers.append(choices)
 	if _sturdy:
 		cat.health = 1.0e9
 	for index in horde:
@@ -513,6 +535,10 @@ func _read_controls() -> void:
 		cat.steering = _walk
 	if Input.is_action_just_pressed("dodge"):
 		cat.dodge()
+	if _dodge_every > 0.0:
+		_since_dodge += get_process_delta_time()
+		if _since_dodge >= _dodge_every and cat.dodge():
+			_since_dodge = 0.0
 	if Input.is_action_just_pressed("change_gear"):
 		_outfit = (_outfit + 1) % OUTFITS.size()
 		_dress()
