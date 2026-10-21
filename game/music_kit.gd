@@ -6,11 +6,20 @@ extends RefCounted
 ## that rings past the end of the loop wraps round to its start, so the loop has no seam.
 ##
 ## It stands in until real music is composed; the layers it makes are the ones real music fills.
+##
+## The village has its own, from the same instruments: slower, no drums, the bronze up front, the
+## lead's melody played half as often and softly, as something remembered.
 
 const RATE := 22050
 const TEMPO := 154.0
 const BARS := 8
 const LAYERS: Array[String] = ["drums", "bass", "chords", "lead", "gamelan", "rock"]
+const VILLAGE_TEMPO := 92.0
+const VILLAGE_LAYERS: Array[String] = ["village_bronze", "village_chords", "village_melody"]
+## I, vi, IV, V: settled, homely.
+const VILLAGE_CHORDS := [["D3", "F#3", "A3"], ["B2", "D3", "F#3"], ["G2", "B2", "D3"], ["A2", "C#3", "E3"]]
+## The bronze's figure through each bar: degrees of pelog, two to a beat.
+const VILLAGE_FIGURE := [0, 2, 4, 2, 3, 2, 0, 1]
 
 ## I, V, vi, IV in D major: bright and heroic.
 const CHORDS := [["D3", "F#3", "A3"], ["A2", "C#3", "E3"], ["B2", "D3", "F#3"], ["G2", "B2", "D3"]]
@@ -25,12 +34,12 @@ const ANSWER := [0, 2, 3, 2, 4, 3, 2, 0]
 static var _random := RandomNumberGenerator.new()
 
 
-static func beat() -> float:
-	return 60.0 / TEMPO
+static func beat(tempo := TEMPO) -> float:
+	return 60.0 / tempo
 
 
-static func loop_samples() -> int:
-	return int(BARS * 4 * beat() * RATE)
+static func loop_samples(tempo := TEMPO) -> int:
+	return int(BARS * 4 * beat(tempo) * RATE)
 
 
 ## Every layer, as a looping stream. Slow enough to make that it belongs on a worker thread.
@@ -39,6 +48,47 @@ static func make_all() -> Dictionary:
 	var layers := {}
 	for layer in LAYERS:
 		layers[layer] = make(layer)
+	return layers
+
+
+## The village's layers, as looping streams, all in step with each other.
+static func make_village() -> Dictionary:
+	_random.seed = 40
+	var layers := {}
+	var b := beat(VILLAGE_TEMPO)
+	for layer in VILLAGE_LAYERS:
+		var mix := PackedFloat32Array()
+		mix.resize(loop_samples(VILLAGE_TEMPO))
+		var notes := {}
+		for bar in BARS:
+			var chord: Array = VILLAGE_CHORDS[bar % 4]
+			match layer:
+				"village_bronze":
+					# The figure on the low bronze, and the gong-like root under every second bar.
+					for step in VILLAGE_FIGURE.size():
+						var degree: int = VILLAGE_FIGURE[(step + bar) % VILLAGE_FIGURE.size()] + 7
+						var pitch := 440.0 * pow(2.0, (PELOG[degree % 7] + 1200 * (degree / 7)) / 1200.0) / 2.0
+						_place(mix, _cached(notes, "bronze%d" % degree, func() -> PackedFloat32Array: return _bronze(pitch)), (bar * 4) * b + step * b / 2.0, 0.22 if step % 2 == 0 else 0.14)
+					if bar % 2 == 0:
+						var root := _pitch(chord[0]) / 2.0
+						_place(mix, _cached(notes, "gong%.1f" % root, func() -> PackedFloat32Array: return _bronze(root)), bar * 4 * b, 0.4)
+				"village_chords":
+					for name: String in chord:
+						var pitch := _pitch(name) * 2.0
+						_place(mix, _cached(notes, "angklung" + name, func() -> PackedFloat32Array: return _angklung(pitch, b * 3.8)), bar * 4 * b, 0.12)
+					var low := _pitch(chord[0]) / 2.0
+					_place(mix, _cached(notes, "low%.1f" % low, func() -> PackedFloat32Array: return _bass(low, b * 1.6)), bar * 4 * b, 0.22)
+					_place(mix, _cached(notes, "low%.1f" % low, func() -> PackedFloat32Array: return _bass(low, b * 1.6)), (bar * 4 + 2) * b, 0.16)
+				"village_melody":
+					# The run's melody, every other note, held long: the same tune, at rest.
+					if bar % 2 == 0:
+						for step in range(0, 16, 2):
+							var name: String = LEAD[(bar / 2 % 2) * 16 + step]
+							if name.is_empty():
+								continue
+							var pitch := _pitch(name)
+							_place(mix, _cached(notes, "soft%s" % name, func() -> PackedFloat32Array: return _chip_lead(pitch, b * 0.9)), (bar * 4) * b + step * b / 2.0, 0.08)
+		layers[layer] = _to_loop(mix)
 	return layers
 
 
