@@ -26,8 +26,14 @@ var tempo := 0.0
 # Ranged: muzzle speed in meters a second, spread either side in radians.
 var muzzle_speed := 100.0
 var spread := deg_to_rad(2.0)
-## Rounds fired, so the view can flash the muzzle and kick the gun back.
+## A lobbed weapon throws its round in an arc that comes down on the target; a blast bursts it
+## there, this wide.
+var lobbed := false
+var blast := 0.0
+## Rounds fired, so the view can flash the muzzle and kick the gun back, and the way the last one
+## went.
 var rounds_fired := 0
+var aim := Vector2.RIGHT
 
 # Melee: the arc the blade sweeps, in radians, and how long a swing takes.
 var arc := deg_to_rad(110.0)
@@ -127,30 +133,43 @@ func reach_for(cat: Cat) -> float:
 	return reach * (1.0 + cat.reach_bonus)
 
 
-func step(delta: float, cat: Cat, arena: Arena) -> void:
+## Fires at what's in reach, from her paw, or from somewhere else that carries it (a drone, a
+## turret): from that body, at that height. Returns whether it fired.
+func step(delta: float, cat: Cat, arena: Arena, from: Body = null, muzzle_height := Cat.GUN_HEIGHT) -> bool:
 	ready_in = maxf(ready_in - delta, 0.0)
 	if kind == Kind.MELEE:
 		_swing(delta, cat, arena)
-		return
-	var target := arena.target_for(cat.body.position, reach_for(cat), cat.aim_mode)
+		return false
+	var origin := cat.body if from == null else from
+	var target := arena.target_for(origin.position, reach_for(cat), cat.aim_mode)
 	if target == null or ready_in > 0.0:
-		return
+		return false
 	ready_in += interval_for(cat)
-	var direction: Vector2 = (target.body.position - cat.body.position).normalized().rotated(arena.random.randf_range(-spread, spread))
-	var distance := cat.body.position.distance_to(target.body.position)
+	var direction: Vector2 = (target.body.position - origin.position).normalized().rotated(arena.random.randf_range(-spread, spread))
+	var distance := origin.position.distance_to(target.body.position)
 	var shot := Shot.new()
-	shot.position = cat.body.position + direction * (Cat.RADIUS + 0.05)
-	shot.height = cat.body.height + Cat.GUN_HEIGHT
+	shot.position = origin.position + direction * (origin.radius + 0.05)
+	shot.height = origin.height + muzzle_height
 	shot.velocity = direction * muzzle_speed
-	# Aimed down at the middle of the target: a round fired level would pass over a rat.
 	var time_to_target := maxf(distance / muzzle_speed, 0.001)
-	shot.vertical_speed = (target.body.height + target.body.tall * 0.5 - shot.height) / time_to_target
-	shot.life = reach_for(cat) * 1.3 / muzzle_speed
+	var aim_height: float = target.body.height + target.body.tall * 0.5
+	if lobbed:
+		# Thrown up enough that gravity brings it down on the target, arriving as it does.
+		shot.vertical_speed = (aim_height - shot.height) / time_to_target + 0.5 * Body.GRAVITY * time_to_target
+		shot.falls = true
+		shot.life = time_to_target * 2.0 + 0.5
+	else:
+		# Aimed down at the middle of the target: a round fired level would pass over a rat.
+		shot.vertical_speed = (aim_height - shot.height) / time_to_target
+		shot.life = reach_for(cat) * 1.3 / muzzle_speed
+	shot.blast = blast
+	aim = direction
 	shot.weapon = self
 	shot.damage = hit_for(cat)
 	shot.shooter = cat
 	arena.shots.append(shot)
 	rounds_fired += 1
+	return true
 
 
 ## A swing starts when something is in reach, centered on it, and sweeps across. Each step, the

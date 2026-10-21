@@ -35,6 +35,8 @@ func _in_the_game() -> Array[String]:
 		names.append(Upgrades.WEAPON_NAMES[weapon])
 	for gear: String in Upgrades.GEAR:
 		names.append(Upgrades.GEAR[gear].name)
+	for support: String in Upgrades.SUPPORT:
+		names.append(Upgrades.SUPPORT[support].name)
 	for mutation: String in Upgrades.MUTATIONS:
 		names.append(Upgrades.MUTATIONS[mutation].name)
 	for stat: String in Upgrades.STATS:

@@ -103,10 +103,10 @@ neither, and each comes with its mount.
 
 | Name | Status | What it does |
 |---|---|---|
-| **Gun drone** | Planned | Drone. Docks in a cradle on top of the pack when there's nothing to shoot |
+| **Gun drone** | Built | Drone. Lifts off her pack when something is in reach, hovers off her shoulder and fires down at it; docks again when it's quiet |
 | **Net drone** | Planned | Drone |
-| **Meriam bambu** | Planned | Set down: the bamboo cannon, as a turret. Strapped across the pack until she sets it down |
-| **Mines** | Planned | Set down. Ride in pouches on the pack's straps |
+| **Meriam bambu** | Built | Set down: the bamboo cannon, as a turret. Strapped across the pack until something is in reach; lobs stones that burst where they land, and after eight shots the tube cracks and she cuts a new one |
+| **Mines** | Built | Set down. Ride in pouches on the pack's straps; she drops one every few seconds while enemies are near, up to four, and a foot sets one off, a giant's boot included |
 | **Layang-layang** | Idea | Drone: a fighting kite whose glass-coated string cuts what it crosses |
 | **Ranjau bambu** | Idea | Set down: a bed of bamboo spikes that the horde runs onto |
 | **Radio** | Idea | Set down: plays loud, and the horde goes to it instead of her |

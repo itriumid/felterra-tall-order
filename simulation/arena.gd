@@ -251,6 +251,34 @@ func saw(giant: Giant, from_angle: float, to_angle: float) -> void:
 				events.append({"position": cat.body.position, "height": 0.2, "direction": offset.normalized(), "killed": false, "by": "saw", "giant": false, "kind": "cat"})
 
 
+## Whether anything is standing on a point: a creature on the ground, or a giant's boot.
+func stepped_on(at: Vector2, reach: float) -> bool:
+	var cell := _cell_of(at)
+	for x in range(cell.x - 2, cell.x + 3):
+		for y in range(cell.y - 2, cell.y + 3):
+			for creature: Creature in _grid.get(Vector2i(x, y), []):
+				if not creature.body.airborne() and creature.body.position.distance_to(at) <= reach + creature.body.radius:
+					return true
+	for giant in giants:
+		if giant.standing() and giant.body.position.distance_to(at) <= reach + giant.body.radius:
+			return true
+	return false
+
+
+## A burst on the ground: everything within its radius is struck and thrown outward, the giants
+## at their feet. What set it off names it, for the view and the sound.
+func blast(at: Vector2, radius: float, damage: float, knock: float, lift: float, by: String, attacker: Cat = null) -> void:
+	events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "blast", "giant": false, "kind": by, "radius": radius})
+	for creature: Creature in creatures.duplicate():
+		var apart := creature.body.position - at
+		if apart.length() <= radius + creature.body.radius and creature.body.height < radius:
+			strike(creature, damage, apart.normalized() if apart.length() > 0.001 else Vector2.RIGHT, knock, lift, by, attacker)
+	for giant in giants:
+		var apart := giant.body.position - at
+		if giant.standing() and apart.length() <= radius + giant.body.radius:
+			strike(giant, damage, apart.normalized() if apart.length() > 0.001 else Vector2.RIGHT, knock, 0.0, by, attacker)
+
+
 ## The creatures a rolling cat is touching, at heights she passes: what a rolling slash cuts.
 func rolled_into(cat: Cat) -> Array[Creature]:
 	var touching: Array[Creature] = []
@@ -414,14 +442,21 @@ func _fly_shots() -> void:
 	for shot in shots:
 		shot.previous = shot.position
 		shot.previous_height = shot.height
+		if shot.falls:
+			shot.vertical_speed -= Body.GRAVITY * STEP
 		shot.position += shot.velocity * STEP
 		shot.height += shot.vertical_speed * STEP
 		shot.life -= STEP
 		var hit := _first_hit(shot)
 		if hit != null:
-			_strike(hit, shot)
+			if shot.blast > 0.0:
+				blast(hit.body.position, shot.blast, shot.damage, shot.weapon.knock, shot.weapon.lift, shot.weapon.name, shot.shooter)
+			else:
+				_strike(hit, shot)
 			shot.spent = true
 		elif shot.height <= 0.0 or shot.life <= 0.0:
+			if shot.blast > 0.0 and shot.height <= 0.0:
+				blast(shot.position, shot.blast, shot.damage, shot.weapon.knock, shot.weapon.lift, shot.weapon.name, shot.shooter)
 			shot.spent = true
 		if not shot.spent:
 			flying.append(shot)

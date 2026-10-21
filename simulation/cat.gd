@@ -69,6 +69,8 @@ var aim := Vector2.RIGHT
 ## knife or a handgun, and nothing else: armor and accessories are upgrades.
 const PAWS := 2
 var weapons: Array[Weapon] = [Weapon.handgun()]
+## What she carries on her back, by slot ("drone", "set_down"): one of each at most.
+var supports := {}
 ## How her weapons pick a target: "nearest", "toughest" (the most health left) or "crowd" (the
 ## thickest cluster).
 var aim_mode := "nearest"
@@ -290,6 +292,8 @@ func step(delta: float, arena: Arena) -> void:
 			facing = aim
 	for weapon in weapons:
 		weapon.step(delta, self, arena)
+	for slot: String in supports:
+		(supports[slot] as Support).step(delta, self, arena)
 
 
 ## What her mutations do this step: cuts and strikes from the roll, the pounce at its end, the
