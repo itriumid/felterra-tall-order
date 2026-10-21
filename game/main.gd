@@ -9,7 +9,8 @@ extends Node
 ## many, a twentieth of a second apart, as <path>_1.png and on; --walk=<x>,<y> steers the cat
 ## that way on her own; --fallen=<count> scatters that many bodies; --mutations=<id>,<id> gives
 ## her those dodge mutations, a common card of each; --dodge-every=<seconds> dodges on her own;
-## --offer=<id>,<id>,<id> hands her a card of those choices, common, uncommon and rare.
+## --offer=<id>,<id>,<id> hands her a card of those choices, common, uncommon and rare;
+## --support=<id>,<id> puts those on her back.
 
 ## Sun through the canopy's gaps: where it reaches the ground, in meters.
 const SHAFTS: Array[Vector2] = [
@@ -82,6 +83,7 @@ var _chainsaws := 0
 var _mutations: PackedStringArray = []
 var _dodge_every := 0.0
 var _offer: PackedStringArray = []
+var _support: PackedStringArray = []
 var _since_dodge := 0.0
 var _giant_from := Vector2(3.5, -1.0)
 var _walk := Vector2.ZERO
@@ -115,6 +117,8 @@ func _ready() -> void:
 			_giant_from = Vector2(parts[0].to_float(), parts[1].to_float())
 		elif argument.begins_with("--chainsaw="):
 			_chainsaws = argument.trim_prefix("--chainsaw=").to_int()
+		elif argument.begins_with("--support="):
+			_support = argument.trim_prefix("--support=").split(",", false)
 		elif argument.begins_with("--offer="):
 			_offer = argument.trim_prefix("--offer=").split(",", false)
 		elif argument.begins_with("--dodge-every="):
@@ -234,6 +238,11 @@ func _begin(horde: int, spawning: bool) -> void:
 			Upgrades.apply(cat, {"id": "mutation:" + mutation, "rarity": Upgrades.Rarity.COMMON})
 		else:
 			push_warning("There's no dodge mutation called %s." % mutation)
+	for support in _support:
+		if Upgrades.SUPPORT.has(support):
+			Upgrades.apply(cat, {"id": "support:" + support, "rarity": Upgrades.Rarity.COMMON})
+		else:
+			push_warning("There's no support called %s." % support)
 	if not _offer.is_empty():
 		var choices: Array[Dictionary] = []
 		for index in mini(_offer.size(), Upgrades.CHOICES):

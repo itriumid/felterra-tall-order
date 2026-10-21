@@ -58,6 +58,9 @@ func take_events(events: Array[Dictionary]) -> void:
 			"leap": play_at("dodge", event.position, -6.0, 0.8)
 			"landing": play_at("pounce", event.position, -4.0)
 			"strike_back": play_at("riposte", event.position, -4.0)
+			"blast": play_at("blast", event.position, 0.0 if event.get("kind", "") == "mines" else -3.0, 1.0 if event.get("kind", "") == "mines" else 1.3)
+			"crack": play_at("crack", event.position, -4.0)
+			"set_down": play_at("pounce", event.position, -8.0, 0.7)
 			_:
 				if event.get("giant", false):
 					play_at("hit_big", event.position, -3.0)
@@ -84,6 +87,12 @@ func _process(_delta: float) -> void:
 				# Deeper for a keris, quicker for a kerambit.
 				var pitch: float = {"keris": 0.85, "kerambit": 1.25}.get(weapon.name, 1.0)
 				play_at("swing", cat.body.position, -10.0, pitch)
+		for slot: String in cat.supports:
+			var support: Support = cat.supports[slot]
+			if support.weapon != null and _counted(support.weapon, "rounds", support.weapon.rounds_fired):
+				play_at("shot_drone" if support.name == "gun_drone" else "meriam", support.body.position, -8.0 if support.name == "gun_drone" else -1.0)
+			if support.name == "mines" and _counted(support, "dropped", support.mines_dropped):
+				play_at("mine_drop", cat.body.position, -10.0)
 		if _counted(cat, "dodges", cat.dodges):
 			play_at("dodge", cat.body.position, -8.0)
 		if _counted(cat, "hurt", cat.hits_taken):

@@ -96,7 +96,7 @@ catalog and the code agree.
   `godot --path . -- --screenshot=<path>.png --screenshot-after=4` (add `--horde=<count>`,
   `--no-spawn`, `--at=<x>,<y>`, `--gear=<0 to 2>`, `--sturdy`, `--fallen=<count>`,
   `--walk=<x>,<y>`, `--dogs=<count>`, `--chainsaw=<count>`, `--mutations=<id>,<id>`, `--dodge-every=<seconds>`,
-  `--offer=<id>,<id>,<id>`, `--giant=<count>`, `--giant-from=<x>,<y>`, `--menu`, `--menu-after=<seconds>`, `--settings`, `--sound`, `--title`, `--down-after=<seconds>`, `--start=<knife or handgun>`, `--no-blood`, or `--frames=<count>` for a
+  `--offer=<id>,<id>,<id>`, `--support=<id>,<id>`, `--giant=<count>`, `--giant-from=<x>,<y>`, `--menu`, `--menu-after=<seconds>`, `--settings`, `--sound`, `--title`, `--down-after=<seconds>`, `--start=<knife or handgun>`, `--no-blood`, or `--frames=<count>` for a
   sequence). It opens a window, saves one
   640 by 360 frame and quits; the window takes keyboard focus, so warn whoever is at the
   machine first. Check its log for `SCRIPT ERROR`, and check the frame itself: a frame that
