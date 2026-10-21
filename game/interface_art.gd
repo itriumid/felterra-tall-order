@@ -11,6 +11,7 @@ const ICONS := {
 	"aim": "...x... .xxxxx. .x.x.x. xxx.xxx .x.x.x. .xxxxx. ...x...",
 	"kills": "x.x.x.. x.x.x.. .xxx... xxxxx.. xxxxx.. .xxx... .......",
 	"time": "..xxx.. .x.x.x. x..x..x x..xx.x x.....x .x...x. ..xxx..",
+	"cage": "xxxxxxx x.x.x.x x.x.x.x x.x.x.x x.x.x.x x.x.x.x xxxxxxx",
 }
 
 

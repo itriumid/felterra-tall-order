@@ -41,6 +41,7 @@ The builds aren't signed by a publisher Windows or macOS knows yet, so each warn
 | Escape | Start | Pause: carry on, settings, start again, back to the title, leave |
 | W and S, then Enter or Space | Stick, then A | Choose in the pause menu |
 | A and D, or the arrows | Stick | Change a setting: graphics, audio volumes, aim and blood. Settings are kept for next time |
+| Enter twice, on Reset all progress | A twice | Start the village and the best run over; the settings stay |
 | F3 | | Frame rate and timings |
 | F11 | | Full screen |
 

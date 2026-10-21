@@ -36,6 +36,28 @@ func test_a_run_counts_the_giants_it_fells() -> void:
 	check(Records.of(arena).giants == 1, "a felled giant wasn't counted")
 
 
+func test_a_run_counts_the_machines_it_breaks() -> void:
+	var arena := Arena.new()
+	arena.spawning = false
+	arena.add_cat(Arena.SIZE / 2.0)
+	var machine := arena.add_machine(Arena.SIZE / 2.0 + Vector2(5.0, 0.0))
+	arena.strike(machine, Machine.HEALTH / Machine.ARMOR_SHARE + 1.0, Vector2.RIGHT, 0.0, 0.0, "round")
+	check(Records.of(arena).machines == 1, "a broken machine wasn't counted")
+
+
+func test_records_from_before_machines_still_load() -> void:
+	var path := "user://test_old_records.cfg"
+	var old := ConfigFile.new()
+	for key in ["time", "level", "kills", "giants"]:
+		old.set_value("best", key, 7 if key != "time" else 70.0)
+	old.save(path)
+	var records := Records.new()
+	records.load_from(path)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	check(records.best.giants == 7 and records.best.machines == 0, "old records came back as %s" % str(records.best))
+	check(records.record({"time": 10.0, "level": 1, "kills": 1, "giants": 0, "machines": 1}) == ["machines"], "a first machine broken wasn't a new best")
+
+
 func test_with_no_cat_the_horde_and_giants_wander() -> void:
 	var arena := Arena.new()
 	arena.spawning = false

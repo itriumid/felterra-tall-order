@@ -4,8 +4,8 @@ extends SceneTree
 ## this chooses from them. Run with:
 ## timeout 120 godot --headless --path . --script tools/check_menus.gd -- --title
 
-## Each step: the action to press (or a note to act on), and the page it should land on ("" while
-## playing).
+## Each step: the action to press (or a note to act on), the page it should land on ("" while
+## playing), and, for some, where the reset of all progress should stand after it.
 const STEPS := [
 	["menu_choose", ""], ["pick_1", ""],
 	["pause", "pause"], ["menu_choose", ""],
@@ -13,7 +13,10 @@ const STEPS := [
 	["move_right", "settings"], ["pause", "pause"], ["pause", ""],
 	["down", "summary"], ["menu_choose", ""], ["pick_2", ""],
 	["pause", "pause"], ["move_down", "pause"], ["move_down", "pause"], ["move_down", "pause"],
-	["menu_choose", "title"], ["move_down", "title"], ["menu_choose", "settings"], ["pause", "title"],
+	["menu_choose", "title"], ["move_down", "title"], ["menu_choose", "settings"],
+	# Up from the top wraps to Back, then up again to Reset all progress: asked, then done.
+	["move_up", "settings"], ["move_up", "settings"], ["menu_choose", "settings", "asking"], ["menu_choose", "settings", "done"],
+	["pause", "title"],
 ]
 
 ## Hears every error the engine reports while the menus are played, script errors among them: an
@@ -59,6 +62,8 @@ func _process(_delta: float) -> bool:
 		var wanted: String = STEPS[_step][1]
 		if _main._page != wanted:
 			_failures.append("step %d (%s): on '%s', wanted '%s'" % [_step + 1, action, _main._page, wanted])
+		if STEPS[_step].size() > 2 and _main._reset_state != STEPS[_step][2]:
+			_failures.append("step %d (%s): the reset is '%s', wanted '%s'" % [_step + 1, action, _main._reset_state, STEPS[_step][2]])
 		_step += 1
 	return false
 

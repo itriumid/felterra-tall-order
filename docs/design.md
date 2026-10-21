@@ -143,6 +143,20 @@ on: fire and oil, or crewmates who can be downed.
 - **The hub is the cats' village** at the forest's edge. It grows between runs: rescued cats
   join, the smith forges better gear. That growth is the progress that carries over, and it's
   the story moving forward.
+  - **A run brings home rescued cats and salvage.** To the company, cats are pests, and its
+    traps turn up in the clearing from 40 seconds in, one every 75 seconds, never close to her.
+    Standing by a cage picks its lock over three seconds; leaving lets the pick slip back. The
+    cat inside, with its own name and coat, runs for the jungle, home. A mark at the screen's edge
+    shows the way to a cage out of sight. What she breaks throws out salvage (a worker 2 pieces,
+    a chainsaw worker 4, a machine 12), which flies, lands and slides, and walking over it takes
+    it. Both are counted on the summary and kept in the village between runs.
+  - **The village is walked**: one screen at the forest's edge, its buildings appearing as cats
+    join, and the smith there to walk up to.
+  - **It gives back unlocks and a starting piece**: the smith forges weapons and gear into the
+    card pool, rescued cats open buildings and starting choices, and a forged piece can be worn
+    from a run's start. Never a stat on its own: stats only come from gear.
+  - **Progress can be reset** from the settings: it asks once more, then the village and the
+    best run go back to nothing, and the settings stay.
 - Maps push deeper into the camp: the clearings, the sawpits, the log slide to the river, the
   company's offices, the airstrip.
 
