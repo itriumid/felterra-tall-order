@@ -53,6 +53,8 @@ func take_events(events: Array[Dictionary]) -> void:
 			"fall": play_at("fall", event.position, 2.0)
 			"bite": play_at("bite", event.position, -6.0 if event.get("kind", "rat") == "rat" else -2.0)
 			"lunge": play_at("bark", event.position, -4.0)
+			"rev": play_at("saw_rev", event.position, -3.0)
+			"cut": play_at("saw_cut", event.position, -2.0)
 			_:
 				if event.get("giant", false):
 					play_at("hit_big", event.position, -3.0)

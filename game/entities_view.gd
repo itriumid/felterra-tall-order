@@ -23,6 +23,8 @@ var _rounds_seen := {}
 var _droplets: Array[Dictionary] = []
 ## Hits handed over since the last frame, to throw blood or dust for.
 var _pending: Array[Dictionary] = []
+## Chainsaw bars running this frame: their teeth are drawn moving along them.
+var _running_chain: Array[Dictionary] = []
 var _stains: Array[Dictionary] = []
 const MOST_STAINS := 900
 const STAIN_DRIES := 15.0
@@ -288,7 +290,7 @@ func _draw_smear(weapon: Weapon, paw: Vector2) -> void:
 ## dust and fur, which leave nothing.
 func _bleed(delta: float) -> void:
 	for event in _pending:
-		if event.by == "lunge":
+		if event.by in ["lunge", "rev", "cut"]:
 			continue
 		if event.by == "stomp" or event.by == "fall":
 			# The ground thrown up: dust and clods, no blood.
@@ -358,6 +360,13 @@ func _draw_giant_shadow(giant: Giant) -> void:
 	var end := World.to_screen(giant.body.position + lean)
 	_thick(feet, end, 8, Palette.GROUND_SHADOW, 0)
 	draw_rect(Rect2(feet + Vector2(-11, -2), Vector2(22, 4)), Palette.GROUND_SHADOW)
+	if giant.state == Giant.State.REVVING:
+		# The saw's arc marked on the ground while he revs: the warning, like the boot's shadow.
+		var angle := giant.sweep_center - Giant.SAW_ARC * 0.5
+		while angle <= giant.sweep_center + Giant.SAW_ARC * 0.5:
+			for reach in [Giant.SAW_REACH, Giant.SAW_REACH * 0.55]:
+				draw_rect(Rect2(World.to_screen(giant.body.position + Vector2.from_angle(angle) * reach), Vector2.ONE), Palette.HI_VIS)
+			angle += 0.07
 	if giant.state == Giant.State.WINDING:
 		var boot := World.to_screen(giant.foot)
 		var size := Vector2(14, 6) * (1.0 - giant.foot_height / Giant.BOOT_HEIGHT * 0.3)
@@ -389,7 +398,14 @@ func _draw_giant(giant: Giant) -> void:
 		parts.append(_part(giant, [leg[0], hip, 0.0], foot, 6, leg[2]))
 		parts.append(_part(giant, foot, [foot[0], foot[1], foot[2] + 0.14], 5, Palette.LEATHER_LIGHT if leg[0] > 0.0 else Palette.LEATHER))
 	for arm: Array in [[0.25, -1.0, Palette.SKIN], [-0.25, 1.0, Palette.SKIN_SHADOW]]:
-		parts.append(_part(giant, [arm[0], shoulder, 0.0], [arm[0] * 1.1, 0.86, stride * 0.6 * arm[1]], 4, arm[2]))
+		# With a chainsaw, both hands are on it, held in front of him.
+		var hand: Array = [arm[0] * 0.35, 0.95, 0.35] if giant.has_chainsaw() and giant.standing() else [arm[0] * 1.1, 0.86, stride * 0.6 * arm[1]]
+		parts.append(_part(giant, [arm[0], shoulder, 0.0], hand, 4, arm[2]))
+	if giant.has_chainsaw():
+		_add_chainsaw(giant, parts)
+		# Ear defenders over the hard hat's straps.
+		for across in [-0.1, 0.1]:
+			parts.append(_part(giant, [across, 1.57, 0.02], [across, 1.57, 0.02], 3, Palette.STEEL_DARK, 0.05, 4))
 	parts.append(_part(giant, [0.0, hip, 0.0], [0.0, shoulder, 0.0], 14, Palette.HI_VIS))
 	# The reflective band across the vest, the head, and the hard hat over it.
 	parts.append(_part(giant, [0.0, 1.15, 0.0], [0.0, 1.15, 0.0], 14, Palette.STEEL_LIGHT, 0.01, 2))
@@ -399,15 +415,55 @@ func _draw_giant(giant: Giant) -> void:
 	parts.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.depth < b.depth)
 	for part in parts:
 		_thick(part.from, part.to, part.width, part.color, dissolve, part.tall)
+	for bar in _running_chain:
+		var points := _limb(bar.from, bar.to)
+		var shift := int(Time.get_ticks_msec() / 30) % 2
+		for index in points.size():
+			if (index + shift) % 2 == 0:
+				draw_rect(Rect2(points[index] - Vector2(0, 2), Vector2.ONE), Palette.STEEL_LIGHT)
+	_running_chain.clear()
 	# Seen from the front, his eyes under the brim.
 	if giant.facing.y > 0.35 and giant.standing():
 		for across in [-0.04, 0.04]:
 			draw_rect(Rect2(_giant_point(giant, across, 1.6, 0.09), Vector2.ONE), Palette.OUTLINE)
-	if giant.standing() and giant.health < Giant.MOST_HEALTH:
+	if giant.standing() and giant.health < giant.most_health:
 		var top := _giant_point(giant, 0.0, 1.88, 0.0)
-		var share := giant.health / Giant.MOST_HEALTH
+		var share := giant.health / giant.most_health
 		draw_rect(Rect2(top + Vector2(-12, 0), Vector2(24, 3)), Palette.GRAPHITE)
 		draw_rect(Rect2(top + Vector2(-11, 1), Vector2(roundf(22 * share), 1)), Palette.HI_VIS)
+
+
+## The chainsaw, from his hands to the tip of its bar: forward and down as he walks, raised as he
+## revs, and low along the ground, following the sweep, as he cuts. The chain's teeth run along
+## the bar while it's going.
+func _add_chainsaw(giant: Giant, parts: Array[Dictionary]) -> void:
+	if not giant.standing():
+		return
+	var handle_ground := _giant_ground(giant, 0.0, 0.95, 0.35)
+	var handle_height := 0.95
+	var tip_ground: Vector2
+	var tip_height: float
+	match giant.state:
+		Giant.State.SWEEPING:
+			var along := Vector2.from_angle(giant.saw_angle)
+			handle_ground = giant.body.position + along * 0.4
+			handle_height = 0.7
+			tip_ground = giant.body.position + along * Giant.SAW_REACH
+			tip_height = 0.2
+		Giant.State.REVVING:
+			tip_ground = _giant_ground(giant, 0.0, 1.25, 0.9)
+			tip_height = 1.25
+		_:
+			tip_ground = _giant_ground(giant, 0.0, 0.7, 1.0)
+			tip_height = 0.7
+	var handle := World.to_screen(handle_ground, handle_height)
+	var tip := World.to_screen(tip_ground, tip_height)
+	var body_end := handle.lerp(tip, 0.25)
+	var depth := (handle_ground.y + tip_ground.y) / 2.0 + 0.06
+	parts.append({"from": handle, "to": body_end, "width": 6, "tall": 6, "color": Palette.HI_VIS, "depth": depth})
+	parts.append({"from": body_end, "to": tip, "width": 3, "tall": 3, "color": Palette.STEEL, "depth": depth + 0.001})
+	if giant.state in [Giant.State.REVVING, Giant.State.SWEEPING]:
+		_running_chain.append({"from": body_end, "to": tip})
 
 
 ## A limb of the rig between two joints, with how near the viewer it is: further down the ground
