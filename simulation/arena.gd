@@ -29,6 +29,14 @@ const CHAINSAW_EVERY := 2
 ## MACHINE_INTERVAL after, one working at a time.
 const MACHINE_FROM := 300.0
 const MACHINE_INTERVAL := 300.0
+## Cages with cats in them turn up from CAGES_FROM seconds in, one every CAGE_INTERVAL, no more
+## than MOST_CAGES waiting at once, never closer than CAGE_DISTANCE to her.
+const CAGES_FROM := 40.0
+const CAGE_INTERVAL := 75.0
+const MOST_CAGES := 2
+const CAGE_DISTANCE := 6.0
+## The salvage what she breaks throws out: a giant, a chainsaw worker, a machine.
+const SALVAGE := {"worker": 2, "chainsaw": 4, "feller_buncher": 12}
 ## The fallen stay where they lie, up to this many. Past that, the oldest crumble away over
 ## FADE_TIME seconds rather than vanishing.
 const MOST_FALLEN := 600
@@ -42,6 +50,12 @@ var creatures: Array[Creature] = []
 var giants: Array[Giant] = []
 ## The machines, the bosses: working, or wrecked where they stopped.
 var machines: Array[Machine] = []
+## Cages with cats in them, waiting or opened; salvage lying about; and what the run has brought
+## home so far: the cats rescued, as {name, coat}, and the salvage picked up.
+var cages: Array[Cage] = []
+var pickups: Array[Pickup] = []
+var rescued: Array[Dictionary] = []
+var salvage := 0
 var shots: Array[Shot] = []
 var fallen: Array[Body] = []
 ## The oldest of the fallen crumbling away, as {body, left}: seconds until it's gone.
@@ -63,6 +77,7 @@ var _since_spawn := 0.0
 var _since_giant := GIANT_INTERVAL - GIANTS_FROM
 var _giants_sent := 0
 var _since_machine := MACHINE_INTERVAL - MACHINE_FROM
+var _since_cage := CAGE_INTERVAL - CAGES_FROM
 var _since_dogs := DOG_INTERVAL - DOGS_FROM
 var _grid := {}
 
@@ -92,6 +107,23 @@ func add_machine(where: Vector2, heading := 0.0) -> Machine:
 	machine.head = machine.point(Machine.REST_FORWARD, Machine.BOOM_ROOT.y)
 	machines.append(machine)
 	return machine
+
+
+func add_cage(where: Vector2) -> Cage:
+	var cage := Cage.new(random)
+	cage.body.position = where
+	cages.append(cage)
+	return cage
+
+
+## Salvage thrown out from a point: each piece flies out and up, and lands where it lands.
+func drop_salvage(at: Vector2, count: int) -> void:
+	for index in count:
+		var piece := Pickup.new()
+		piece.body.position = at
+		piece.body.height = 0.3
+		piece.body.push(Vector2.from_angle(random.randf() * TAU) * random.randf_range(0.8, 2.4), random.randf_range(1.5, 3.0))
+		pickups.append(piece)
 
 
 func add_creature(where: Vector2, kind := "rat") -> Creature:
@@ -130,6 +162,8 @@ func step() -> void:
 		body.step(STEP)
 		_keep_inside(body)
 	_crumble()
+	_pick_locks()
+	_pick_up()
 	_spawn()
 
 
@@ -602,6 +636,7 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 			kills += 1
 			machines_broken += 1
 			_gain_experience(machine.worth)
+			drop_salvage(machine.body.position, SALVAGE.get(machine.kind, 0))
 		return
 	var dealt: float = minf(damage, target.health)
 	if attacker != null:
@@ -616,6 +651,7 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 			kills += 1
 			giants_felled += 1
 			_gain_experience(giant.worth)
+			drop_salvage(giant.body.position, SALVAGE.get(giant.kind, 0))
 		return
 	var creature: Creature = target
 	creature.health -= damage
@@ -650,6 +686,37 @@ func _crumble() -> void:
 		if remains.left > 0.0:
 			lasting.append(remains)
 	fading = lasting
+
+
+## Cats by a cage pick its lock; leave it and the pick slips back. Opened, its cat runs home.
+func _pick_locks() -> void:
+	for cage in cages:
+		var picking := cats.any(func(cat: Cat) -> bool: return cat.alive() and not cat.body.airborne() and cat.body.position.distance_to(cage.body.position) <= Cage.PICK_REACH + cage.body.radius)
+		if cage.pick(STEP, picking):
+			rescued.append(cage.prisoner)
+			events.append({"position": cage.body.position, "height": 0.2, "direction": Vector2.ZERO, "killed": false, "by": "cage_open", "giant": false, "kind": "cage"})
+		cage.run_home(STEP, SIZE)
+	cages = cages.filter(func(cage: Cage) -> bool: return not cage.home)
+
+
+## Salvage on the move flies and slides; a cat walking over a piece takes it.
+func _pick_up() -> void:
+	var lying: Array[Pickup] = []
+	for piece in pickups:
+		if not piece.body.resting():
+			piece.body.slide(STEP)
+			piece.body.step(STEP)
+			_keep_inside(piece.body)
+		var taken := false
+		for cat in cats:
+			if cat.alive() and piece.body.height < 0.3 and cat.body.position.distance_to(piece.body.position) <= Pickup.REACH:
+				salvage += piece.amount
+				taken = true
+				events.append({"position": piece.body.position, "height": 0.1, "direction": Vector2.ZERO, "killed": false, "by": "pickup", "giant": false, "kind": "salvage"})
+				break
+		if not taken:
+			lying.append(piece)
+	pickups = lying
 
 
 ## Experience needed to go from this level to the next.
@@ -707,6 +774,12 @@ func _spawn() -> void:
 		# It drives in out of the jungle, facing the clearing.
 		var gate := edge_point()
 		add_machine(gate.clamp(Vector2.ONE * 1.6, SIZE - Vector2.ONE * 1.6), (SIZE / 2.0 - gate).angle())
+	_since_cage += STEP
+	if _since_cage >= CAGE_INTERVAL and cages.filter(func(cage: Cage) -> bool: return not cage.opened).size() < MOST_CAGES:
+		var spot := _cage_spot()
+		if spot.is_finite():
+			_since_cage = 0.0
+			add_cage(spot)
 	_since_dogs += STEP
 	if _since_dogs >= DOG_INTERVAL:
 		_since_dogs = 0.0
@@ -722,6 +795,16 @@ func _spawn() -> void:
 	while _since_spawn >= interval and creatures.size() < MOST_CREATURES:
 		_since_spawn -= interval
 		add_creature(edge_point())
+
+
+## Somewhere in the clearing for a cage: away from the edge, and far enough from every cat that
+## getting to it is a choice. INF if a few tries find nowhere.
+func _cage_spot() -> Vector2:
+	for attempt in 12:
+		var spot := Vector2(random.randf_range(3.0, SIZE.x - 3.0), random.randf_range(3.0, SIZE.y - 3.0))
+		if cats.all(func(cat: Cat) -> bool: return cat.body.position.distance_to(spot) >= CAGE_DISTANCE):
+			return spot
+	return Vector2.INF
 
 
 ## A random point just inside the jungle's edge.
