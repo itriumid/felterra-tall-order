@@ -31,12 +31,29 @@ func test_the_village_has_its_own_layers_in_step_and_heard() -> void:
 
 
 func test_the_village_plays_its_own_music_and_the_run_its_own() -> void:
-	var home := MusicDirector.targets(40, true, false, true)
+	var home := MusicDirector.targets(40, true, false, "village")
 	var run := MusicDirector.targets(40, true, false)
 	for layer in MusicKit.LAYERS:
 		check(home[layer] == 0.0, "%s played in the village" % layer)
 	for layer in MusicKit.VILLAGE_LAYERS:
 		check(home[layer] == 1.0 and run[layer] == 0.0, "%s didn't keep to the village" % layer)
+
+
+func test_the_opening_has_its_own_mellow_music() -> void:
+	var layers := MusicKit.make_intro()
+	check(layers.size() == MusicKit.INTRO_LAYERS.size(), "%d opening layers made" % layers.size())
+	for layer: String in layers:
+		var wav: AudioStreamWAV = layers[layer]
+		check(wav.data.size() / 2 == MusicKit.loop_samples(MusicKit.INTRO_TEMPO), "%s is out of step with the rest" % layer)
+		var loudest := 0
+		for index in range(0, wav.data.size(), 8):
+			loudest = maxi(loudest, absi(wav.data.decode_s16(index)))
+		check(loudest > 2000 and loudest < 32000, "%s peaks at %d" % [layer, loudest])
+	var opening := MusicDirector.targets(0, false, false, "intro")
+	for layer in MusicKit.VILLAGE_LAYERS + MusicKit.LAYERS:
+		check(opening[layer] == 0.0, "%s played under the opening" % layer)
+	for layer in MusicKit.INTRO_LAYERS:
+		check(opening[layer] == 1.0, "%s didn't play under the opening" % layer)
 
 
 func test_the_rock_layer_comes_in_with_a_giant() -> void:
