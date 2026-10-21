@@ -133,11 +133,25 @@ on: fire and oil, or crewmates who can be downed.
 
 ## Runs
 
-- **The flow:** the title (the clearing, with the horde ambling about and now and then a giant)
-  offers Play, Settings and Leave. Play goes to the choice of knife or handgun, then the run.
-  When she's down, a summary of the run (time survived, level reached, kills, giants felled)
-  marks any new best in words as well as color, and offers Go again, Back to the title, or
-  Leave. The best run is kept beside the settings.
+- **The flow lives in the village.** The title is short, over the forest path to the village:
+  Play, Settings and Leave. Play makes the menu fall away, and she walks into the village, a
+  cutscene; the first time, the story's opening is told over the walk (what happened, what's
+  going on, what needs doing). From the village, walking out along the path to the clearing
+  starts a run, with the choice of knife or handgun. When she's down, a summary of the run (time
+  survived, level reached, kills, giants felled, machines broken, cats rescued, salvage) marks
+  any new best in words as well as color, and offers Home to the village, Straight back out (a
+  new run at once: "one more run" shouldn't mean a walk across the village every time), or
+  Leave. Giving a run up from the pause menu takes her home with what she's carrying. The best
+  run is kept beside the settings.
+- **Cutscenes are always the player's to skip,** to follow WCAG AA: Escape skips the whole scene,
+  Enter hurries a line along, and both keys are shown on screen while one plays. A setting makes
+  story lines wait for Enter instead of moving on by themselves, so nobody reads against a
+  clock. A line can carry a voice recording, held until it's been heard; there are none yet.
+- **The village has its own music**, from the run's instruments at an easy walking pace (92 beats
+  a minute against the run's 154), no drums or rock, the bronze up front, and the run's melody
+  played slow and soft over it. Walking out to a run crossfades from one to the other. The title
+  and the story's opening have their own, mellower still (72 beats a minute): a lone suling, the
+  bamboo flute, over a soft pad and a gong, crossfading into the village's as she arrives.
 - A run lasts **15 to 30 minutes**. Progress carries over between runs.
 - **Endless mode**: the giants never stop coming; factions arrive and start to mix.
 - **The hub is the cats' village** at the forest's edge. It grows between runs: rescued cats
@@ -150,8 +164,15 @@ on: fire and oil, or crewmates who can be downed.
     shows the way to a cage out of sight. What she breaks throws out salvage (a worker 2 pieces,
     a chainsaw worker 4, a machine 12), which flies, lands and slides, and walking over it takes
     it. Both are counted on the summary and kept in the village between runs.
-  - **The village is walked**: one screen at the forest's edge, its buildings appearing as cats
-    join, and the smith there to walk up to.
+  - **The village is walked**: a forest path in, the village itself a screen wide, and the path
+    out to the clearing on its far side. The cats she's rescued live there, each in its own
+    coat, and show their names as she passes.
+  - **It starts in ruins.** The company's machines have already been through: the elder's
+    longhouse, the smithy and six huts all stand wrecked, holed, scorched and half-roofed.
+    Restoring them, one by one, is how the village grows, and each opens what it holds (the
+    smithy, forging). Restored, the village is bright and lived-in: walls painted in reds, teal,
+    yellow and pink, trimmed in cream; bunting under every eave; flowers in the grass; the
+    longhouse's painted band and its umbul-umbul, the tall flags on bamboo poles, at the way in.
   - **It gives back unlocks and a starting piece**: the smith forges weapons and gear into the
     card pool, rescued cats open buildings and starting choices, and a forged piece can be worn
     from a run's start. Never a stat on its own: stats only come from gear.
