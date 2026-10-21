@@ -60,6 +60,17 @@ sweeps it at shin height across the ground in front of him. Whatever is in the a
 his own rats and dogs included, so luring the horde into it is a tactic; a dodge gets her
 through it, a long leap clears it, and behind him is safe.
 
+The **feller buncher** is the first boss, five minutes in, and another every five minutes after,
+one at a time. It's a tracked machine with a long boom, whose head grabs a tree and saws it
+through in one bite. It crawls toward her, turning on the spot before it drives, and whatever is
+under its tracks while they turn is crushed, its own horde included; standing still, its steel
+just doesn't give. Within reach, it swings its boom out over her, the head's shadow growing on
+the ground (the warning), then the head drops and its jaws shut on whatever is there. After a
+bite the head sits on the ground for a moment, its hydraulic joint exposed, and hits there do
+double; anywhere else, the steel shrugs off most of a hit. That's the fight: dodge the bite, then
+punish the joint. Too close for its boom, it backs off. Broken, its engine dies, the boom comes
+down, and it stays where it stopped, a wreck to fight around.
+
 ## The first map
 
 A clearing the company has cut in an Indonesian tropical forest.

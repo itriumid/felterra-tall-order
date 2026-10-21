@@ -12,6 +12,7 @@ const VARIANTS := 3
 const NAMES: Array[String] = [
 	"shot_handgun", "shot_submachine_gun", "swing", "hit_small", "squeak", "hit_big", "bark", "hit_dog", "yelp", "saw_rev", "saw_cut",
 	"pounce", "riposte", "shot_drone", "meriam", "blast", "crack", "mine_drop",
+	"track_clank", "hydraulic", "jaws", "clang", "hiss", "machine_break",
 	"footstep_giant", "stomp", "fall", "dodge", "hurt", "bite",
 	"level_up", "card", "reroll", "banish", "menu_move", "menu_choose", "menu_back",
 ]
@@ -78,6 +79,24 @@ static func _render(sound_name: String, random: RandomNumberGenerator) -> Packed
 			return _mix([_noise(0.22, 0.03, 3600.0, random, 2), _crackle(0.3, random)], [0.8, 0.5])
 		"mine_drop":
 			return _chirp(0.07, [1500.0 * wobble, 1350.0 * wobble], 0.3)
+		"track_clank":
+			# A track link rolling over the sprocket: a dull knock with a rattle.
+			return _mix([_sweep(0.12, 140.0 * wobble, 70.0, 0.04), _noise(0.08, 0.02, 2200.0, random, 3)], [0.7, 0.4])
+		"hydraulic":
+			# The boom swinging out: a hydraulic whine climbing, over the engine laboring.
+			return _mix([_chirp(0.9, [220.0 * wobble, 330.0 * wobble, 360.0 * wobble], 0.5), _noise(0.9, 0.6, 400.0, random, 4)], [0.25, 0.4])
+		"jaws":
+			# The head coming down: a heavy chop, and the saw disc screaming through.
+			return _mix([_sweep(0.5, 90.0 * wobble, 30.0, 0.16), _noise(0.5, 0.2, 700.0, random, 1), _chirp(0.4, [900.0 * wobble, 760.0 * wobble], 0.4)], [1.0, 0.6, 0.25])
+		"clang":
+			# A round off its steel: a short metallic ring.
+			return _mix([_chirp(0.14, [1240.0 * wobble, 1180.0 * wobble], 0.3), _noise(0.04, 0.008, 5000.0, random, 1)], [0.3, 0.5])
+		"hiss":
+			# The open joint hit: hydraulic fluid spraying out.
+			return _mix([_noise(0.35, 0.15, 6000.0, random, 1), _chirp(0.12, [1000.0 * wobble, 950.0 * wobble], 0.3)], [0.5, 0.2])
+		"machine_break":
+			# The engine dying under a crunch of steel.
+			return _mix([_sweep(1.4, 80.0 * wobble, 24.0, 0.5), _noise(1.2, 0.45, 600.0, random, 2), _crackle(1.2, random), _chirp(1.0, [110.0, 70.0, 40.0], 0.5)], [1.0, 0.6, 0.4, 0.3])
 		"pounce":
 			# Paws coming down hard: a soft thump with a scuff of grit.
 			return _mix([_sweep(0.14, 170.0 * wobble, 60.0, 0.05), _noise(0.1, 0.03, 1500.0, random, 2)], [0.9, 0.4])

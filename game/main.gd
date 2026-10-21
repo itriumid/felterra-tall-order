@@ -10,7 +10,7 @@ extends Node
 ## that way on her own; --fallen=<count> scatters that many bodies; --mutations=<id>,<id> gives
 ## her those dodge mutations, a common card of each; --dodge-every=<seconds> dodges on her own;
 ## --offer=<id>,<id>,<id> hands her a card of those choices, common, uncommon and rare;
-## --support=<id>,<id> puts those on her back.
+## --support=<id>,<id> puts those on her back; --machine starts with a feller buncher close by.
 
 ## Sun through the canopy's gaps: where it reaches the ground, in meters.
 const SHAFTS: Array[Vector2] = [
@@ -84,6 +84,7 @@ var _mutations: PackedStringArray = []
 var _dodge_every := 0.0
 var _offer: PackedStringArray = []
 var _support: PackedStringArray = []
+var _machine := false
 var _since_dodge := 0.0
 var _giant_from := Vector2(3.5, -1.0)
 var _walk := Vector2.ZERO
@@ -117,6 +118,8 @@ func _ready() -> void:
 			_giant_from = Vector2(parts[0].to_float(), parts[1].to_float())
 		elif argument.begins_with("--chainsaw="):
 			_chainsaws = argument.trim_prefix("--chainsaw=").to_int()
+		elif argument == "--machine":
+			_machine = true
 		elif argument.begins_with("--support="):
 			_support = argument.trim_prefix("--support=").split(",", false)
 		elif argument.begins_with("--offer="):
@@ -256,6 +259,8 @@ func _begin(horde: int, spawning: bool) -> void:
 		arena.add_giant(_start + _giant_from + Vector2(index, index))
 	for index in _chainsaws:
 		arena.add_giant(_start + _giant_from + Vector2(-index, index), "chainsaw")
+	if _machine:
+		arena.add_machine(_start + Vector2(6.5, 1.5), PI)
 	for index in _dogs:
 		arena.add_creature(_start + Vector2.from_angle(index * 2.1) * 4.0, "dog")
 	for index in _fallen:

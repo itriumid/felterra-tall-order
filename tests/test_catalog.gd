@@ -6,6 +6,7 @@ const CATALOG := "res://docs/catalog.md"
 ## What the catalog calls each kind of enemy in the code.
 const CREATURE_NAMES := {"rat": "Rat", "dog": "Guard dog"}
 const GIANT_NAMES := {"worker": "Worker", "chainsaw": "Chainsaw worker"}
+const MACHINE_NAMES := {"feller_buncher": "Feller buncher"}
 
 
 ## Each row's name, by its status: {"Built": [names], "Planned": [...], ...}.
@@ -31,6 +32,8 @@ func _in_the_game() -> Array[String]:
 		names.append(CREATURE_NAMES.get(kind, "(creature %s)" % kind))
 	for kind: String in Giant.KINDS:
 		names.append(GIANT_NAMES.get(kind, "(giant %s)" % kind))
+	for kind in Machine.KINDS:
+		names.append(MACHINE_NAMES.get(kind, "(machine %s)" % kind))
 	for weapon: String in Upgrades.WEAPON_NAMES:
 		names.append(Upgrades.WEAPON_NAMES[weapon])
 	for gear: String in Upgrades.GEAR:
