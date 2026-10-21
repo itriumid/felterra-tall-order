@@ -100,6 +100,8 @@ var _open_village_first := false
 ## Whether the runs this session go out from the village, so starting again keeps its rules.
 var _ran_from_village := false
 var _at_door := ""
+## Which forged weapon the start choice's third card shows.
+var _start_extra := 0
 var _open_shop_first := false
 ## A line the village says (what was restored, or why not), and for how long more; and the row
 ## chosen in a shop.
@@ -708,6 +710,17 @@ func _end_run() -> void:
 	_open_page("summary")
 
 
+## With the longhouse restored, a run from the village can start with any weapon forged.
+func _forged_weapons() -> Array[String]:
+	var weapons: Array[String] = []
+	if not _ran_from_village or not village.is_restored("longhouse"):
+		return weapons
+	for id in village.forged:
+		if id.begins_with("weapon:"):
+			weapons.append(id.trim_prefix("weapon:"))
+	return weapons
+
+
 ## A run out from the village carries what it gives: only what's been forged can turn up on the
 ## cards, she wears the piece she's chosen to start in, and her own coat.
 func _from_the_village() -> void:
@@ -938,10 +951,21 @@ func _setting_lines() -> Array[Dictionary]:
 
 func _read_controls() -> void:
 	if _start_weapon.is_empty():
+		var forged := _forged_weapons()
+		if not forged.is_empty():
+			if Input.is_action_just_pressed("move_left"):
+				_start_extra = wrapi(_start_extra - 1, 0, forged.size())
+				_audio.interface("menu_move")
+			elif Input.is_action_just_pressed("move_right"):
+				_start_extra = wrapi(_start_extra + 1, 0, forged.size())
+				_audio.interface("menu_move")
+		_overlay.start_extra = forged[_start_extra % forged.size()] if not forged.is_empty() else ""
 		if Input.is_action_just_pressed("pick_1"):
 			_start_weapon = "knife"
 		elif Input.is_action_just_pressed("pick_2"):
 			_start_weapon = "handgun"
+		elif Input.is_action_just_pressed("pick_3") and not forged.is_empty():
+			_start_weapon = forged[_start_extra % forged.size()]
 		if not _start_weapon.is_empty():
 			_dress()
 			_audio.interface("menu_choose")

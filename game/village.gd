@@ -32,10 +32,21 @@ const OPENS := {
 const CATS_PER_HUT := 2
 ## What can be forged, by card id, and its salvage. Anything not here is in the cards from the
 ## start: the knife, the handgun, the caping, the red scarf, the boots, and every dodge mutation.
+## What a family grows into needs no forging: a forged rifle can evolve into a sniper rifle.
 const FORGE := {
 	"gear:vest": 8, "gear:hard_hat": 10, "gear:bell_collar": 6, "gear:goggles": 8,
-	"gear:gloves": 10, "gear:jamu_flask": 12,
-	"support:gun_drone": 20, "support:meriam_bambu": 18, "support:mines": 15,
+	"gear:gloves": 10, "gear:jamu_flask": 12, "gear:peci": 8, "gear:batik_shirt": 10,
+	"gear:raincoat": 10, "gear:headlamp": 9, "gear:sunglasses": 12, "gear:bandana": 8,
+	"gear:wristbands": 10, "gear:rubber_boots": 9, "gear:sandals": 8, "gear:sarong": 10,
+	"gear:tool_belt": 11,
+	"weapon:machete": 10, "weapon:golok": 12, "weapon:badik": 10, "weapon:rencong": 12,
+	"weapon:celurit": 14, "weapon:kujang": 14, "weapon:mandau": 16, "weapon:tombak": 16,
+	"weapon:bambu_runcing": 10, "weapon:rattan_staff": 12,
+	"weapon:ketapel": 10, "weapon:sumpit": 14, "weapon:panah": 16, "weapon:petasan": 14,
+	"weapon:lamp_oil": 15, "weapon:nail_gun": 14, "weapon:flare_gun": 16, "weapon:rifle": 18,
+	"weapon:crossbow": 18, "weapon:shotgun": 20, "weapon:grenade_launcher": 24,
+	"support:gun_drone": 20, "support:net_drone": 18, "support:layang_layang": 16,
+	"support:meriam_bambu": 18, "support:mines": 15, "support:ranjau_bambu": 12, "support:radio": 14,
 }
 ## Looks, by id: what each is and what it costs in cloth. Her coat, and the umbul-umbul's colors.
 const LOOKS := {

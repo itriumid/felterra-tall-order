@@ -74,6 +74,8 @@ var fall_speed := 0.0
 var fall_direction := Vector2.RIGHT
 var fallen_for := 0.0
 var _last_knock := Vector2.RIGHT
+## Poison and fire on him, as {dps, left, by}: he takes them as the horde does.
+var afflictions := {}
 ## Where he walks when there's no cat to go after, or nowhere (INF).
 var wander_to := Vector2.INF
 

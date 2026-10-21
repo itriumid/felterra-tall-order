@@ -55,7 +55,7 @@ func test_walk_frames_differ() -> void:
 
 
 func test_every_gun_has_a_drawing_for_all_eight_directions() -> void:
-	for weapon: String in Sprites.GUNS:
+	for weapon: String in Sprites.held_art():
 		_check_eight_directions(weapon)
 
 
@@ -75,7 +75,7 @@ func _check_eight_directions(weapon: String) -> void:
 
 func test_every_piece_of_gear_can_be_drawn_and_previewed() -> void:
 	for id: String in Upgrades.GEAR:
-		var drawn := id == "vest" or id == "boots" or id == "gloves" or Sprites.WORN.has(id) or Sprites.HATS.has(id)
+		var drawn := Sprites.BODIES.has(id) or Sprites.FEET.has(id) or Sprites.PAWS.has(id) or Sprites.WORN.has(id) or Sprites.HATS.has(id)
 		check(drawn, "%s has no drawing on the cat" % id)
 		check(Sprites.preview(id) != null, "%s has no card picture" % id)
 

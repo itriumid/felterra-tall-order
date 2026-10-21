@@ -33,6 +33,10 @@ var state := State.RUNNING
 ## The time left in a crouch or a recovery, and the way a crouch will lunge.
 var state_for := 0.0
 var lunge_direction := Vector2.RIGHT
+## What's afflicting it: poison and fire, as {dps, left, by}, slowing, as {share, left}; and how
+## long it's down from a trip.
+var afflictions := {}
+var tripped_for := 0.0
 
 
 func _init(creature_kind := "rat") -> void:
@@ -56,9 +60,25 @@ func lunging() -> bool:
 	return state == State.LUNGING
 
 
+func tripped() -> bool:
+	return tripped_for > 0.0
+
+
+## How much of its pace it has, slowed or not.
+func pace() -> float:
+	var slowed: Dictionary = afflictions.get("slow", {})
+	return 1.0 - (slowed.share if slowed.get("left", 0.0) > 0.0 else 0.0)
+
+
 func step(delta: float, prey: Cat, arena: Arena = null) -> void:
 	bite_ready_in = maxf(bite_ready_in - delta, 0.0)
 	state_for = maxf(state_for - delta, 0.0)
+	if tripped_for > 0.0:
+		# Down on its side: it slides to a stop and gets up when it can.
+		tripped_for = maxf(tripped_for - delta, 0.0)
+		body.slide(delta)
+		body.step(delta)
+		return
 	match state:
 		State.CROUCHING:
 			# Bunched, still: the warning a lunge is coming.
@@ -89,7 +109,7 @@ func _run(delta: float, prey: Cat) -> void:
 	var wanted := Vector2.ZERO
 	if prey != null and prey.alive():
 		var toward := prey.body.position - body.position
-		wanted = toward.normalized() * float(stat("speed"))
+		wanted = toward.normalized() * float(stat("speed")) * pace()
 		# A dog close enough crouches to lunge, committing to where she is now.
 		if KINDS[kind].has("lunge_reach") and toward.length() < float(stat("lunge_reach")) and bite_ready_in <= 0.0:
 			state = State.CROUCHING

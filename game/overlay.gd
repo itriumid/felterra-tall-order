@@ -12,8 +12,10 @@ const AIM_NAMES := {"nearest": "Nearest", "toughest": "Toughest", "crowd": "Crow
 var arena: Arena
 var cat: Cat
 var show_numbers := false
-## Waiting for the player to choose a weapon to start with.
+## Waiting for the player to choose a weapon to start with, and the forged weapon offered beside
+## the knife and the handgun once the longhouse is restored ("" if none).
 var choosing := false
+var start_extra := ""
 ## Tab held: the cards' stats are explained. X held: picking banishes.
 var reading := false
 var banishing := false
@@ -363,8 +365,10 @@ func _draw_start() -> void:
 		{"name": "Knife", "item": "knife", "ribbon": "Melee", "lines": ["Close and quick", "Never runs out"], "unfamiliar": false},
 		{"name": "Handgun", "item": "handgun", "ribbon": "Ranged", "lines": ["Slow, but", "it reaches"], "unfamiliar": false},
 	]
+	if not start_extra.is_empty():
+		cards.append({"name": Upgrades.WEAPON_NAMES[start_extra], "item": start_extra, "ribbon": "Forged", "lines": ["From the smithy", "A or D: another"], "unfamiliar": false})
 	var gap := 10.0
-	var total := cards.size() * CARD_SIZE.x + gap
+	var total := cards.size() * CARD_SIZE.x + (cards.size() - 1) * gap
 	var top := floorf(screen.y / 2.0 - CARD_SIZE.y / 2.0)
 	var frame := Rect2(floorf((screen.x - total) / 2.0) - 10, top - 24, total + 20, CARD_SIZE.y + 34)
 	InterfaceArt.panel(self, frame)

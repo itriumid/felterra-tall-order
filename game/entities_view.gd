@@ -120,6 +120,7 @@ func _draw() -> void:
 			for mine in mines.mines:
 				var art := Sprites.MINE if mine.armed_in <= 0.0 else Sprites.MINE_ARMING
 				draw_texture(Sprites.lit(art), World.to_screen(mine.body.position) - Vector2(4, 3))
+	_draw_ground_hazards()
 	for entry in standing:
 		_draw_shadow(entry[1])
 	for entry in standing:
@@ -138,11 +139,18 @@ func _draw() -> void:
 			draw_texture(texture, World.to_screen(thing.body.position, thing.body.height) - Vector2(texture.get_width() / 2, texture.get_height() - 1))
 		elif thing is Giant:
 			_draw_giant(thing)
+			if thing.afflictions.has("burn"):
+				_draw_flames(thing.body.position, 0.4, 6)
 		elif thing is Creature:
+			# Tripped, it's down on its side, drawn as the fallen are until it's up.
 			if thing.kind == "dog":
-				_draw_dog(thing.body, _frame(thing, DOG_STRIDE), false, thing.state == Creature.State.CROUCHING)
+				_draw_dog(thing.body, _frame(thing, DOG_STRIDE), thing.tripped(), thing.state == Creature.State.CROUCHING)
 			else:
-				_draw_rat(thing.body, _frame(thing, RAT_STRIDE), false)
+				_draw_rat(thing.body, _frame(thing, RAT_STRIDE), thing.tripped())
+			if thing.afflictions.has("burn"):
+				_draw_flames(thing.body.position, thing.body.height + thing.body.tall, 3)
+			elif thing.afflictions.has("poison"):
+				draw_rect(Rect2(World.to_screen(thing.body.position, thing.body.tall + 0.12), Vector2(1, 1)), Palette.LEAF_LIGHT)
 		elif thing is Body:
 			if thing.kind == "dog":
 				_draw_dog(thing, 1, true, false)
@@ -155,6 +163,12 @@ func _draw() -> void:
 	for droplet in _droplets:
 		draw_rect(Rect2(World.to_screen(droplet.position, droplet.height), Vector2.ONE), droplet.color)
 	for shot in arena.shots:
+		if shot.weapon != null and shot.weapon.name == "net_drone":
+			# A net in flight, spread like a hand.
+			var center := World.to_screen(shot.position, shot.height)
+			for corner in [Vector2(-2, -2), Vector2(2, -2), Vector2(-2, 2), Vector2(2, 2)]:
+				draw_line(center, center + corner, Palette.DRY_GRASS)
+			continue
 		if shot.falls:
 			# A stone in flight, its shadow on the ground under it.
 			draw_rect(Rect2(World.to_screen(shot.position), Vector2(2, 1)), Palette.GROUND_SHADOW)
@@ -241,11 +255,12 @@ func _draw_cat(cat: Cat) -> void:
 		if arm.behind:
 			_draw_arm(arm)
 	_draw_pack(cat, view, flip, top_left + Vector2(Sprites.lean(view, frame), 0), "behind")
-	draw_texture(Sprites.lit(Sprites.coat(Sprites.cat_body_art(view, frame, cat.gear.get("feet", "") == "boots"), cat.coat), flip), top_left)
+	draw_texture(Sprites.lit(Sprites.coat(Sprites.cat_body_art(view, frame, Sprites.FEET.get(cat.gear.get("feet", ""), "")), cat.coat), flip), top_left)
 	# Everything above the waist leans with the body as she walks.
 	var leaning := top_left + Vector2(Sprites.lean(view, frame), 0)
-	if cat.gear.get("body", "") == "vest":
-		draw_texture(Sprites.lit(Sprites.VESTS[view], flip), leaning)
+	var worn_on_body: String = cat.gear.get("body", "")
+	if Sprites.BODIES.has(worn_on_body):
+		draw_texture(Sprites.lit(Sprites.BODIES[worn_on_body][view], flip), leaning)
 	for slot in ["neck", "waist", "eyes"]:
 		var item: String = cat.gear.get(slot, "")
 		if Sprites.WORN.has(item):
@@ -445,6 +460,8 @@ func _draw_pack(cat: Cat, view: String, flip: bool, at: Vector2, depth: String) 
 	var drone: Support = cat.supports.get("drone")
 	# Docked, the drone sits on top of the pack: behind her head unless she's turned away.
 	var drone_depth := "over" if view == "back" else "behind"
+	if drone != null and drone.name == "layang_layang":
+		drone = null
 	if drone != null and not drone.deployed and depth == drone_depth and depth == "behind":
 		_draw_docked(drone, view, flip, at)
 	if Sprites.PACK[view].has(depth):
@@ -470,14 +487,63 @@ func _draw_docked(drone: Support, view: String, flip: bool, at: Vector2) -> void
 ## A support out on its own: the drone in the air, rotors spinning, or the cannon on its stand
 ## facing what it last fired at.
 func _draw_support(support: Support) -> void:
-	if support.name == "gun_drone":
+	if support.name in ["gun_drone", "net_drone"]:
 		var frame := int(_clock * 30.0) % 2
-		draw_texture(Sprites.lit(Sprites.DRONE_FRAMES[frame]), World.to_screen(support.body.position, support.body.height) - Vector2(5, 5))
+		var art: String = Sprites.DRONE_FRAMES[frame] if support.name == "gun_drone" else Sprites.swapped(Sprites.DRONE_FRAMES[frame], Sprites.NET_DRONE_COLORS)
+		draw_texture(Sprites.lit(art), World.to_screen(support.body.position, support.body.height) - Vector2(5, 5))
+	elif support.name == "layang_layang":
+		# The string from her paw up to the kite, then the kite, tilting as it flies.
+		var holder: Cat = null
+		for cat in arena.cats:
+			if cat.supports.get("drone") == support:
+				holder = cat
+		var kite_at := World.to_screen(support.body.position, support.body.height)
+		if holder != null:
+			# The string sagging from her paw to the kite.
+			var points := PackedVector2Array()
+			for share in range(0, 9):
+				var along := share / 8.0
+				points.append(World.to_screen(holder.body.position.lerp(support.body.position, along), Support.string_height_at(along)))
+			draw_polyline(points, Palette.CREAM)
+		draw_texture(Sprites.lit(Sprites.KITE, int(_clock * 2.0) % 2 == 0), kite_at - Vector2(4, 4))
+	elif support.name == "radio":
+		var at := World.to_screen(support.body.position) - Vector2(4, 8)
+		draw_texture(Sprites.lit(Sprites.RADIO), at)
+		# The sound going out: rings of notes, widening.
+		var ring := fmod(_clock * 2.0, 1.0)
+		for side in [-1, 1]:
+			draw_rect(Rect2(at + Vector2(4 + side * (6 + ring * 8), -2 - ring * 4), Vector2(1, 2)), Palette.PINK)
 	elif support.name == "meriam_bambu":
 		var left := support.weapon.aim.x < 0.0
 		var texture := Sprites.lit(Sprites.MERIAM_BAMBU, left)
 		var feet := Vector2(texture.get_width() - 11, 10) if left else Vector2(10, 10)
 		draw_texture(texture, World.to_screen(support.body.position) - feet)
+
+
+## What lies on the ground: burning oil, nails, and spike beds.
+func _draw_ground_hazards() -> void:
+	for fire in arena.fires:
+		var count := int(fire.radius * 14.0)
+		for index in count:
+			var angle: float = TAU * index / count + fire.position.x
+			var at: Vector2 = fire.position + Vector2.from_angle(angle) * fire.radius * (0.3 + 0.7 * fmod(index * 0.37, 1.0))
+			_draw_flames(at, 0.0, 2)
+	for hazard in arena.hazards:
+		if hazard.kind == "nail":
+			var at := World.to_screen(hazard.position)
+			draw_rect(Rect2(at, Vector2(2, 1)), Palette.STEEL_LIGHT)
+		else:
+			var art := Sprites.lit(Sprites.SPIKES)
+			draw_texture(art, World.to_screen(hazard.position) - Vector2(art.get_width() / 2, art.get_height() - 1))
+
+
+## Flames, flickering: a few palette pixels of fire rising off something burning.
+func _draw_flames(at: Vector2, height: float, size: int) -> void:
+	var base := World.to_screen(at, height)
+	for flame in size:
+		var flicker := (int(_clock * 12.0) + flame * 7 + int(at.x * 10.0)) % 4
+		var x := (flame * 3) % (size * 2 + 1) - size
+		draw_rect(Rect2(base + Vector2(x, -flicker - 1), Vector2(1, flicker + 1)), [Palette.SPARK, Palette.BRASS_LIGHT, Palette.HI_VIS, Palette.SCARF_RED][flicker])
 
 
 ## Smoke out of the cannon's mouth as it fires.
@@ -504,7 +570,7 @@ func _pose_arms(cat: Cat, view: String, flip: bool, frame: int, top_left: Vector
 		var index := 0 if side == leading else 1
 		var shoulder: Vector2 = top_left + Sprites.shoulder(view, flip, side, frame)
 		var arm := {"shoulder": shoulder, "weapon": null, "drawing": {}, "behind": view == "side" and side == "left",
-			"paw": Palette.LEATHER_LIGHT if cat.gear.get("paws", "") == "gloves" else Palette.CREAM}
+			"paw": Sprites.PAWS.get(cat.gear.get("paws", ""), Palette.CREAM)}
 		if index < cat.weapons.size():
 			var weapon: Weapon = cat.weapons[index]
 			var pointing := Vector2.from_angle(weapon.blade_angle) if weapon.swinging() else cat.aim
@@ -576,7 +642,16 @@ func _draw_smear(weapon: Weapon, paw: Vector2) -> void:
 ## dust and fur, which leave nothing.
 func _bleed(delta: float) -> void:
 	for event in _pending:
-		if event.by in ["lunge", "rev", "cut", "leap"]:
+		if event.by in ["lunge", "rev", "cut", "leap", "poison", "fire", "trampled"]:
+			continue
+		if event.by == "snap" or event.by == "ignite":
+			# A bamboo spear splitting, or oil catching: splinters or sparks thrown up.
+			for index in 8:
+				_droplets.append({
+					"position": event.position, "height": 0.2, "rise": randf_range(0.6, 1.8),
+					"velocity": Vector2.from_angle(randf() * TAU) * randf_range(0.3, 1.2),
+					"color": (Palette.DRY_GRASS if index % 2 else Palette.MOSS) if event.by == "snap" else (Palette.SPARK if index % 2 else Palette.HI_VIS), "stains": false,
+				})
 			continue
 		if event.by == "strike_back":
 			# Steel meeting what came for her: sparks all round, nothing that stains.

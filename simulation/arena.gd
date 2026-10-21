@@ -37,6 +37,16 @@ const MOST_CAGES := 2
 const CAGE_DISTANCE := 6.0
 ## The salvage what she breaks throws out: a giant, a chainsaw worker, a machine.
 const SALVAGE := {"worker": 2, "chainsaw": 4, "feller_buncher": 12}
+## Afflictions bite this often; burning oil lasts FIRE_TIME, a nail NAIL_TIME; firecrackers pop
+## this often, this wide; a ricochet looks this far for its next target; and a decoy draws the
+## horde from this far.
+const TICK := 0.5
+const FIRE_TIME := 4.0
+const NAIL_TIME := 8.0
+const POP_INTERVAL := 0.15
+const POP_RADIUS := 0.45
+const RICOCHET_REACH := 3.0
+const DECOY_REACH := 9.0
 ## The fallen stay where they lie, up to this many. Past that, the oldest crumble away over
 ## FADE_TIME seconds rather than vanishing.
 const MOST_FALLEN := 600
@@ -56,6 +66,13 @@ var cages: Array[Cage] = []
 var pickups: Array[Pickup] = []
 var rescued: Array[Dictionary] = []
 var salvage := 0
+## Fire burning on the ground, as {position, radius, left, dps, by}; hazards left lying, nails and
+## spike beds, as {position, radius, damage, left, kind, by, ready}; firecrackers still to pop, as
+## {position, left, count, damage, by}; and decoys the horde goes for instead of her.
+var fires: Array[Dictionary] = []
+var hazards: Array[Dictionary] = []
+var crackers: Array[Dictionary] = []
+var decoys: Array[Cat] = []
 var shots: Array[Shot] = []
 var fallen: Array[Body] = []
 ## The oldest of the fallen crumbling away, as {body, left}: seconds until it's gone.
@@ -141,7 +158,7 @@ func step() -> void:
 		cat.step(STEP, self)
 		_keep_inside(cat.body)
 	for creature in creatures:
-		creature.step(STEP, nearest_cat(creature.body.position), self)
+		creature.step(STEP, _prey_for(creature), self)
 		_keep_inside(creature.body)
 	for giant in giants:
 		giant.step(STEP, self)
@@ -162,6 +179,10 @@ func step() -> void:
 		body.step(STEP)
 		_keep_inside(body)
 	_crumble()
+	_afflict_all()
+	_burn_fires()
+	_spring_hazards()
+	_pop_crackers()
 	_pick_locks()
 	_pick_up()
 	_spawn()
@@ -356,12 +377,14 @@ func stepped_on(at: Vector2, reach: float) -> bool:
 
 ## A burst on the ground: everything within its radius is struck and thrown outward, the giants
 ## at their feet. What set it off names it, for the view and the sound.
-func blast(at: Vector2, radius: float, damage: float, knock: float, lift: float, by: String, attacker: Cat = null) -> void:
+func blast(at: Vector2, radius: float, damage: float, knock: float, lift: float, by: String, attacker: Cat = null, afflicting: Weapon = null) -> void:
 	events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "blast", "giant": false, "kind": by, "radius": radius})
 	for creature: Creature in creatures.duplicate():
 		var apart := creature.body.position - at
 		if apart.length() <= radius + creature.body.radius and creature.body.height < radius:
 			strike(creature, damage, apart.normalized() if apart.length() > 0.001 else Vector2.RIGHT, knock, lift, by, attacker)
+			if afflicting != null:
+				afflict(creature, afflicting, attacker)
 	for giant in giants:
 		var apart := giant.body.position - at
 		if giant.standing() and apart.length() <= radius + giant.body.radius:
@@ -538,6 +561,14 @@ func _bite() -> void:
 						events.append({"position": cat.body.position, "height": 0.15, "direction": apart.normalized(), "killed": false, "by": "bite", "giant": false, "kind": creature.kind})
 
 
+## What a creature runs at: a decoy close enough, or the nearest cat.
+func _prey_for(creature: Creature) -> Cat:
+	for decoy in decoys:
+		if decoy.alive() and decoy.body.position.distance_to(creature.body.position) < DECOY_REACH:
+			return decoy
+	return nearest_cat(creature.body.position)
+
+
 func _fly_shots() -> void:
 	var flying: Array[Shot] = []
 	for shot in shots:
@@ -549,19 +580,172 @@ func _fly_shots() -> void:
 		shot.height += shot.vertical_speed * STEP
 		shot.life -= STEP
 		var hit := _first_hit(shot)
+		# A round that goes through can cross several in one step: each is hit in turn.
+		while hit != null and not shot.spent and shot.pierce_left > 0 and shot.blast <= 0.0:
+			_strike(hit, shot)
+			afflict(hit, shot.weapon, shot.shooter)
+			shot.struck[hit] = true
+			_after_hit(shot, hit)
+			hit = _first_hit(shot)
 		if hit != null:
 			if shot.blast > 0.0:
-				blast(hit.body.position, shot.blast, shot.damage, shot.weapon.knock, shot.weapon.lift, shot.weapon.name, shot.shooter)
+				blast(hit.body.position, shot.blast, shot.damage, shot.weapon.knock, shot.weapon.lift, shot.weapon.name, shot.shooter, shot.weapon)
+				shot.spent = true
 			else:
 				_strike(hit, shot)
-			shot.spent = true
+				afflict(hit, shot.weapon, shot.shooter)
+				shot.struck[hit] = true
+				_after_hit(shot, hit)
+			if shot.spent:
+				_landed(shot, hit.body.position)
 		elif shot.height <= 0.0 or shot.life <= 0.0:
-			if shot.blast > 0.0 and shot.height <= 0.0:
-				blast(shot.position, shot.blast, shot.damage, shot.weapon.knock, shot.weapon.lift, shot.weapon.name, shot.shooter)
+			if shot.height <= 0.0:
+				if shot.blast > 0.0:
+					blast(shot.position, shot.blast, shot.damage, shot.weapon.knock, shot.weapon.lift, shot.weapon.name, shot.shooter, shot.weapon)
+				_landed(shot, shot.position)
 			shot.spent = true
 		if not shot.spent:
 			flying.append(shot)
 	shots = flying
+
+
+## After a round hits: it goes on through if it pierces, glances off to the next target if it
+## ricochets, and otherwise stops.
+func _after_hit(shot: Shot, hit: Object) -> void:
+	if shot.pierce_left > 0:
+		shot.pierce_left -= 1
+		# Through, it carries on level: it was aimed down at the first, not the ground behind it.
+		if not shot.falls:
+			shot.vertical_speed = 0.0
+		return
+	if shot.ricochet_left > 0:
+		shot.ricochet_left -= 1
+		var next: Creature = null
+		for creature in creatures:
+			if creature.alive() and not shot.struck.has(creature) and creature.body.position.distance_to(hit.body.position) < RICOCHET_REACH:
+				if next == null or creature.body.position.distance_to(hit.body.position) < next.body.position.distance_to(hit.body.position):
+					next = creature
+		if next != null:
+			# Off toward the next, a little spent.
+			# From where the stone is now: within a step it's already past what it hit.
+			shot.velocity = (next.body.position - shot.position).normalized() * shot.velocity.length() * 0.8
+			shot.vertical_speed = 0.0
+			shot.falls = false
+			shot.damage *= 0.8
+			shot.life = RICOCHET_REACH / shot.velocity.length() * 1.5
+			return
+	shot.spent = true
+
+
+## Where a round comes to rest, what it carries is left: burning oil, nails, or firecrackers.
+func _landed(shot: Shot, at: Vector2) -> void:
+	var weapon := shot.weapon
+	if weapon.fire_patch > 0.0:
+		fires.append({"position": at, "radius": weapon.fire_patch, "left": FIRE_TIME, "dps": weapon.burn, "by": shot.shooter})
+		events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "ignite", "giant": false, "kind": weapon.name})
+	if weapon.nails:
+		hazards.append({"position": at, "radius": 0.08, "damage": shot.damage, "left": NAIL_TIME, "kind": "nail", "by": shot.shooter, "ready": {}})
+	if weapon.pops > 0:
+		crackers.append({"position": at, "left": 0.0, "count": weapon.pops, "damage": shot.damage, "by": shot.shooter})
+
+
+## A weapon's hit taking hold: poison, slowing and fire, and a trip, on what can take them.
+func afflict(target: Object, weapon: Weapon, attacker: Cat) -> void:
+	if not (target is Creature or target is Giant) or not target.alive():
+		return
+	var share := 1.0 + weapon.power + (attacker.damage_bonus if attacker != null else 0.0)
+	if weapon.poison > 0.0:
+		target.afflictions.poison = {"dps": weapon.poison * share, "left": Weapon.AFFLICTION_TIME, "by": attacker, "tick": 0.0}
+	if weapon.burn > 0.0 and weapon.fire_patch <= 0.0:
+		target.afflictions.burn = {"dps": weapon.burn * share, "left": Weapon.AFFLICTION_TIME, "by": attacker, "tick": 0.0}
+	if weapon.slow > 0.0 and target is Creature:
+		target.afflictions.slow = {"share": weapon.slow, "left": Weapon.AFFLICTION_TIME}
+	if weapon.trips > 0.0 and target is Creature:
+		target.tripped_for = weapon.trips
+		target.body.velocity *= 0.3
+
+
+## Poison and fire bite on a tick, every TICK seconds, and wear off.
+func _afflict_all() -> void:
+	var afflicted: Array = []
+	afflicted.append_array(creatures)
+	for giant in giants:
+		if giant.standing():
+			afflicted.append(giant)
+	for target: Object in afflicted:
+		var afflictions: Dictionary = target.afflictions
+		for kind: String in afflictions.keys():
+			var affliction: Dictionary = afflictions[kind]
+			affliction.left -= STEP
+			if affliction.has("dps"):
+				affliction.tick += STEP
+				if affliction.tick >= TICK:
+					affliction.tick -= TICK
+					strike(target, affliction.dps * TICK, Vector2.ZERO, 0.0, 0.0, "poison" if kind == "poison" else "fire", affliction.by)
+			if affliction.left <= 0.0:
+				afflictions.erase(kind)
+
+
+## Burning oil on the ground sets alight what stands in it, and burns down.
+func _burn_fires() -> void:
+	var burning: Array[Dictionary] = []
+	for fire in fires:
+		fire.left -= STEP
+		var standing_in: Array = []
+		for creature in creatures:
+			if not creature.body.airborne():
+				standing_in.append(creature)
+		for giant in giants:
+			if giant.standing():
+				standing_in.append(giant)
+		for target: Object in standing_in:
+			if target.body.position.distance_to(fire.position) > fire.radius + target.body.radius:
+				continue
+			var burn: Dictionary = target.afflictions.get("burn", {"tick": 0.0, "left": 0.0})
+			target.afflictions.burn = {"dps": fire.dps, "left": maxf(burn.left, 1.0), "by": fire.by, "tick": burn.tick}
+		if fire.left > 0.0:
+			burning.append(fire)
+	fires = burning
+
+
+## Hazards lying on the ground: a nail goes into the first foot on it, and is gone; a spike bed
+## pricks everything on it every TICK, slowing it, until it's trampled flat.
+func _spring_hazards() -> void:
+	var lying: Array[Dictionary] = []
+	for hazard in hazards:
+		hazard.left -= STEP
+		var used := false
+		for creature in creatures.duplicate():
+			if creature.body.airborne() or creature.body.position.distance_to(hazard.position) > hazard.radius + creature.body.radius:
+				continue
+			if hazard.kind == "nail":
+				strike(creature, hazard.damage, Vector2.ZERO, 0.0, 0.0, "nail", hazard.by)
+				used = true
+				break
+			if hazard.ready.get(creature, 0.0) <= time:
+				hazard.ready[creature] = time + TICK
+				creature.afflictions.slow = {"share": 0.5, "left": 0.6}
+				strike(creature, hazard.damage, Vector2.ZERO, 0.0, 0.0, "spikes", hazard.by)
+		if not used and hazard.left > 0.0:
+			lying.append(hazard)
+		elif hazard.kind == "spikes":
+			events.append({"position": hazard.position, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "trampled", "giant": false, "kind": "ranjau_bambu"})
+	hazards = lying
+
+
+## Firecrackers, popping one after another where they landed, each a small blast.
+func _pop_crackers() -> void:
+	var left: Array[Dictionary] = []
+	for cracker in crackers:
+		cracker.left -= STEP
+		if cracker.left <= 0.0:
+			cracker.left = POP_INTERVAL
+			cracker.count -= 1
+			var at: Vector2 = cracker.position + Vector2(random.randf_range(-0.3, 0.3), random.randf_range(-0.3, 0.3))
+			blast(at, POP_RADIUS, cracker.damage, 1.6, 1.4, "petasan", cracker.by)
+		if cracker.count > 0:
+			left.append(cracker)
+	crackers = left
 
 
 ## The first creature along the path a round moved this step, at the height it passed.
@@ -576,7 +760,7 @@ func _first_hit(shot: Shot) -> Object:
 	for x in range(lowest.x, highest.x + 1):
 		for y in range(lowest.y, highest.y + 1):
 			for creature: Creature in _grid.get(Vector2i(x, y), []):
-				if not creature.alive():
+				if not creature.alive() or shot.struck.has(creature):
 					continue
 				var closest := Geometry2D.get_closest_point_to_segment(creature.body.position, from, to)
 				if closest.distance_to(creature.body.position) > creature.body.radius:
@@ -590,7 +774,7 @@ func _first_hit(shot: Shot) -> Object:
 					first_along = along
 					first = creature
 	for giant in giants:
-		if not giant.standing():
+		if not giant.standing() or shot.struck.has(giant):
 			continue
 		var closest := Geometry2D.get_closest_point_to_segment(giant.body.position, from, to)
 		if closest.distance_to(giant.body.position) > giant.body.radius:
@@ -625,6 +809,11 @@ func _strike(creature: Object, shot: Shot) -> void:
 func strike(target: Object, damage: float, direction: Vector2, knock: float, lift: float, by: String, attacker: Cat = null) -> void:
 	if not target.alive():
 		return
+	# Her own hits: some land twice as hard, and her gear can make them shove harder.
+	if attacker != null:
+		if attacker.critical > 0.0 and random.randf() < attacker.critical:
+			damage *= 2.0
+		knock *= 1.0 + attacker.knockback_bonus
 	if target is Machine or target is Machine.Joint:
 		var on_joint: bool = target is Machine.Joint
 		var machine: Machine = target.machine if on_joint else target

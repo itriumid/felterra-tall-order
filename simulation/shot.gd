@@ -16,6 +16,10 @@ var shooter: Cat
 ## striking everything that close instead of only what it hit.
 var falls := false
 var blast := 0.0
+## What it can still go through, and glance off, and what it's hit already (it hits each once).
+var pierce_left := 0
+var ricochet_left := 0
+var struck := {}
 ## Where it was at the start of the last step, for the tracer and the swept hit.
 var previous := Vector2.ZERO
 var previous_height := 0.0

@@ -14,6 +14,8 @@ const NAMES: Array[String] = [
 	"pounce", "riposte", "shot_drone", "meriam", "blast", "crack", "mine_drop",
 	"track_clank", "hydraulic", "jaws", "clang", "hiss", "machine_break",
 	"lock_click", "cage_open", "meow", "pickup",
+	"shot_rifle", "shot_heavy", "shot_twang", "shot_puff", "shot_thunk", "shot_nail", "shot_flare",
+	"pop", "net", "ignite", "radio",
 	"footstep_giant", "stomp", "fall", "dodge", "hurt", "bite",
 	"level_up", "card", "reroll", "banish", "menu_move", "menu_choose", "menu_back",
 ]
@@ -98,6 +100,32 @@ static func _render(sound_name: String, random: RandomNumberGenerator) -> Packed
 		"machine_break":
 			# The engine dying under a crunch of steel.
 			return _mix([_sweep(1.4, 80.0 * wobble, 24.0, 0.5), _noise(1.2, 0.45, 600.0, random, 2), _crackle(1.2, random), _chirp(1.0, [110.0, 70.0, 40.0], 0.5)], [1.0, 0.6, 0.4, 0.3])
+		"shot_rifle":
+			# Longer than the handgun's crack, with a tail.
+			return _mix([_noise(0.24, 0.05, 4200.0 * wobble, random, 2), _sweep(0.2, 150.0 * wobble, 45.0, 0.07)], [0.9, 0.9])
+		"shot_heavy":
+			return _mix([_noise(0.4, 0.1, 2400.0 * wobble, random, 2), _sweep(0.4, 110.0 * wobble, 34.0, 0.14)], [1.0, 1.0])
+		"shot_twang":
+			# A string let go: a plucked tone falling, and a whip of air.
+			return _mix([_chirp(0.16, [420.0 * wobble, 260.0 * wobble], 0.4), _whoosh(0.1, 1200.0, 3000.0, random, 0.3)], [0.4, 0.5])
+		"shot_puff":
+			return _noise(0.08, 0.02, 1800.0 * wobble, random, 1)
+		"shot_thunk":
+			return _mix([_sweep(0.16, 200.0 * wobble, 80.0, 0.05), _noise(0.08, 0.02, 1500.0, random, 2)], [0.8, 0.3])
+		"shot_nail":
+			return _mix([_noise(0.05, 0.01, 5500.0, random, 1), _sweep(0.05, 600.0 * wobble, 300.0, 0.02)], [0.6, 0.4])
+		"shot_flare":
+			return _mix([_whoosh(0.5, 600.0, 2600.0, random, 0.5), _sweep(0.1, 300.0 * wobble, 120.0, 0.04)], [0.6, 0.6])
+		"pop":
+			return _mix([_noise(0.07, 0.015, 4800.0 * wobble, random, 1), _sweep(0.06, 400.0 * wobble, 150.0, 0.02)], [0.8, 0.4])
+		"net":
+			return _mix([_whoosh(0.2, 300.0, 900.0, random, 0.4), _sweep(0.1, 120.0, 60.0, 0.04)], [0.5, 0.5])
+		"ignite":
+			# Oil catching: a soft whoomph that keeps burning.
+			return _mix([_sweep(0.5, 90.0 * wobble, 40.0, 0.2), _noise(0.6, 0.3, 1200.0, random, 1)], [0.6, 0.6])
+		"radio":
+			# A little tune out of a tinny speaker.
+			return _arpeggio(["D5", "F#5", "A5", "F#5", "B5", "A5"], 0.09, 0.2)
 		"lock_click":
 			return _noise(0.03, 0.006, 6500.0, random, 1)
 		"cage_open":
