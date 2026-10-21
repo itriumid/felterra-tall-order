@@ -194,6 +194,13 @@ raising the odds.
   cradle on top of the pack when there's nothing to shoot; the meriam bambu is a bamboo tube
   strapped across it until she sets it down; mines ride in pouches on the straps. Each comes
   with its mount, and the pack shows from every side.
+- **Support works on its own,** as her weapons do, and takes levels the same way. The drone lifts
+  off when something comes in reach, hovers off her shoulder and fires down, and docks when it's
+  quiet. The cannon is set down where she stands when something comes in reach, and stays there:
+  stones lobbed over the horde burst where they land. A bamboo tube cracks after eight shots and
+  she cuts a new one, so there's nothing to go back for. Mines are dropped while enemies are near,
+  four down at most, and the first foot on one sets it off, a giant's boot included; they never
+  hurt the crew.
 
 ### Controls
 
