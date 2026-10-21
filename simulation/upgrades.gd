@@ -131,7 +131,7 @@ static func available(cat: Cat) -> Array[String]:
 		var family_held := cat.weapons.any(func(weapon: Weapon) -> bool: return _family(weapon.name) == _family(weapon_name))
 		if not family_held and paws_used + Weapon.named(weapon_name).hands <= Cat.PAWS:
 			ids.append("weapon:" + weapon_name)
-	return ids.filter(func(id: String) -> bool: return not cat.banished.has(id))
+	return ids.filter(func(id: String) -> bool: return not cat.banished.has(id) and not id in cat.locked)
 
 
 ## The first weapon of a family: a keris is a knife that grew up.

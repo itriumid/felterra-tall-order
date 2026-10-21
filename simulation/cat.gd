@@ -62,6 +62,9 @@ var offers: Array = []
 var rerolls := 2
 ## Choices banished for the rest of the run, by id.
 var banished := {}
+## Cards she can't be offered yet, by id: what the village's smith hasn't forged. Empty, anything
+## can turn up.
+var locked: Array[String] = []
 ## Where the player is steering, as a direction no longer than 1.
 var steering := Vector2.ZERO
 ## The way she faces and the way her gun points, as unit vectors.

@@ -21,6 +21,8 @@ const HOME_SPOT := Vector2(19.0, 5.2)
 ## edge is trees. Coming home from one, she walks back in from there.
 const EXIT_FROM := 29.7
 const RETURN_SPOT := Vector2(26.5, 5.0)
+## How close to a door she has to be to use it, past a share of the building's width.
+const DOOR_REACH := 0.7
 ## How fast she walks in the cutscene, and how fast the villagers amble.
 const STROLL_SPEED := 1.4
 const AMBLE_SPEED := 0.7
@@ -73,6 +75,24 @@ func _init(rescued: Array = [], restored: Array = [], seed_value := 39) -> void:
 		villagers.append(villager)
 		names.append(each.get("name", ""))
 		_amble_to.append(_somewhere_in_the_village())
+
+
+## The building she's at the door of, by name, or "" if she isn't at one: close to the middle of
+## its front, where its door is.
+func at_door() -> String:
+	for building in buildings:
+		var footprint: Rect2 = building.footprint
+		var door := Vector2(footprint.get_center().x, footprint.end.y)
+		if cat.body.position.distance_to(door) <= DOOR_REACH + footprint.size.x * 0.25:
+			return building.name
+	return ""
+
+
+## Marks a building restored, as she sees it: the village keeps the record.
+func show_restored(building_name: String) -> void:
+	for building in buildings:
+		if building.name == building_name:
+			building.restored = true
 
 
 ## Walks her to a spot on her own, for a cutscene.
