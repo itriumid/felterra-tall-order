@@ -399,6 +399,7 @@ func _draw_summary() -> void:
 		["level", "Level reached", str(summary.get("level", 1))],
 		["kills", "Kills", str(summary.get("kills", 0))],
 		["giants", "Giants felled", str(summary.get("giants", 0))],
+		["machines", "Machines broken", str(summary.get("machines", 0))],
 		["rescued", "Cats rescued", str(summary.get("rescued", 0))],
 		["salvage", "Salvage", str(summary.get("salvage", 0))],
 	]
