@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# Exports the game for every platform and packs each into a zip named with the version, plus
-# their checksums: what the release workflow attaches, and what the export check builds on every
-# pull request. Needs Godot's export templates installed for the Godot version below.
+# Exports the game for every platform and packs each into a zip, plus their checksums: what the
+# release workflow attaches, and what the export check builds on every pull request. The names
+# carry no version, so https://github.com/itriumid/felterra-tall-order/releases/latest/download/
+# <name> always means the newest release; the version is in the release itself, in each app's own
+# metadata (the Windows file properties, the macOS bundle, both from config/version), and on the
+# game's title. Needs Godot's export templates installed for the Godot version below.
 #
 #   GODOT=/path/to/godot tools/export.sh [output folder]
 #
@@ -17,7 +20,8 @@ if [ -z "$version" ]; then
   echo "error: project.godot has no config/version" >&2
   exit 1
 fi
-name="FelterraTallOrder_${version}"
+name="FelterraTallOrder"
+echo "Exporting version $version"
 
 cd "$here"
 rm -rf build/windows build/macos build/linux build/linux_arm "$out"
