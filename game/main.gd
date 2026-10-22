@@ -758,6 +758,7 @@ func _step_world(delta: float) -> void:
 
 ## She's down: the run's numbers go into the records, and its summary opens.
 func _end_run() -> void:
+	_note("she's down in %s" % (_run_kind if not _run_kind.is_empty() else "a development run"))
 	# The best run is Endless's: a liberation run is the story, not a score.
 	_beaten.clear()
 	if _run_kind in ["", "endless"]:
@@ -787,6 +788,7 @@ func _forged_weapons() -> Array[String]:
 ## clearing every time; an area is the same place each time, wrecked while the company holds it
 ## and healed once it's free, and the first time she goes in, its story is told first.
 func _start_run(run_kind: String) -> void:
+	_note("run out to %s" % run_kind)
 	_begin(0, true)
 	_from_the_village()
 	_set_up_run(run_kind)
@@ -865,6 +867,7 @@ func _freeing_step(delta: float) -> void:
 ## Free: the village takes the area, and what freeing it brings the first time, and the summary
 ## says so.
 func _end_liberation() -> void:
+	_note("freed %s" % _run_kind)
 	var first := village.liberate(_run_kind)
 	if not ("outro:" + _run_kind) in village.told:
 		village.told.append("outro:" + _run_kind)
@@ -899,6 +902,7 @@ func _bring_home() -> void:
 
 ## Home from a run: she walks back into the village on the path from the clearing.
 func _go_home() -> void:
+	_note("home to the village")
 	_enter_village(Vector2(VillageMap.SIZE.x - 0.5, VillageMap.RETURN_SPOT.y))
 	_arrive(false)
 
@@ -920,7 +924,14 @@ func _take_screenshot(delta: float) -> void:
 			get_tree().quit()
 
 
+## A line in the log for each move the game makes between places and pages, so a report of
+## something going wrong can be traced: what was chosen, and where she went.
+func _note(line: String) -> void:
+	print("[flow] %s" % line)
+
+
 func _open_page(page: String) -> void:
+	_note("page %s, in %s" % [page, _place])
 	_page = page
 	_menu_choice = 0
 	if not ONLINE or page == "summary":
@@ -973,6 +984,7 @@ func _read_choices() -> void:
 	if not Input.is_action_just_pressed("menu_choose"):
 		return
 	_audio.interface("menu_choose")
+	_note("chose %s on %s" % [choices[_menu_choice], _page])
 	match choices[_menu_choice]:
 		"carry_on":
 			_close_page()
