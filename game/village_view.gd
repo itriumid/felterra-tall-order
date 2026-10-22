@@ -21,6 +21,8 @@ const BANNERS := {
 const PAINTS: Array[Color] = [Palette.SCARF_RED, Palette.PAINT_TEAL, Palette.BRASS_LIGHT, Palette.PINK, Palette.CLOTH_LIGHT, Palette.LEAF_LIGHT]
 
 var village: VillageMap
+## What the village keeps, for the board's marks.
+var village_record: Village
 ## The umbul-umbul's colors, as the village wears them, and a building being restored right now,
 ## with how long its dust has left to settle.
 var banners := "festival"
@@ -138,6 +140,7 @@ func _draw_building(building: Dictionary) -> void:
 	var footprint: Rect2 = building.footprint
 	var restored: bool = building.restored
 	match building.kind:
+		"board": _draw_board(footprint)
 		"smithy": _draw_smithy(footprint, restored)
 		"longhouse": _draw_house(footprint, restored, -1)
 		_: _draw_house(footprint, restored, building.paint)
@@ -237,6 +240,23 @@ func _draw_house(footprint: Rect2, restored: bool, paint: int) -> void:
 		var hook := World.to_screen(Vector2(left - overhang + 0.1, front + 0.2), eaves - 0.05)
 		draw_colored_polygon(PackedVector2Array([hook, hook + Vector2(3, 0), hook + Vector2(1, 4)]), Palette.PINK)
 		draw_colored_polygon(PackedVector2Array([hook + Vector2(4, 1), hook + Vector2(7, 1), hook + Vector2(5, 4)]), Palette.BRASS)
+
+
+## The map of the forest, carved on a board on two posts: green where it's free, the company's
+## orange marks where it isn't, and the paths between.
+func _draw_board(footprint: Rect2) -> void:
+	var front := footprint.end.y
+	for post_x in [footprint.position.x + 0.05, footprint.end.x - 0.12]:
+		_quad([Vector2(post_x, front), Vector2(post_x + 0.07, front)], 0.0, 1.0, Palette.BARK)
+	_quad([Vector2(footprint.position.x - 0.1, front + 0.02), Vector2(footprint.end.x + 0.1, front + 0.02)], 0.45, 1.05, Palette.BARK_LIGHT)
+	var top_left := World.to_screen(Vector2(footprint.position.x - 0.05, front + 0.02), 1.0)
+	var freed: Array = village_record.liberated if village_record != null else []
+	var ids := Areas.ids()
+	for index in ids.size():
+		var at := top_left + Vector2(4 + index * 7, 4 + (index % 2) * 6)
+		draw_rect(Rect2(at, Vector2(4, 4)), Palette.LEAF if ids[index] in freed else Palette.HI_VIS)
+		if index > 0:
+			draw_line(at + Vector2(-3, 2 - (index % 2) * 6 + 3), at + Vector2(0, 2), Palette.BARK)
 
 
 ## The smithy: an open shed, its roof on four posts over the forge and the anvil. Restored, the

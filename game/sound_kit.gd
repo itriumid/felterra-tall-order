@@ -16,6 +16,7 @@ const NAMES: Array[String] = [
 	"lock_click", "cage_open", "meow", "pickup",
 	"shot_rifle", "shot_heavy", "shot_twang", "shot_puff", "shot_thunk", "shot_nail", "shot_flare",
 	"pop", "net", "ignite", "radio",
+	"boss_horn", "whistle", "truck_horn", "stall", "throw", "lever", "structure_down", "goal_done", "freed", "rotor",
 	"footstep_giant", "stomp", "fall", "dodge", "hurt", "bite",
 	"level_up", "card", "reroll", "banish", "menu_move", "menu_choose", "menu_back",
 ]
@@ -126,6 +127,30 @@ static func _render(sound_name: String, random: RandomNumberGenerator) -> Packed
 		"radio":
 			# A little tune out of a tinny speaker.
 			return _arpeggio(["D5", "F#5", "A5", "F#5", "B5", "A5"], 0.09, 0.2)
+		"boss_horn":
+			# Something big coming: a low horn, swelling.
+			return _mix([_chirp(1.2, [98.0 * wobble, 110.0 * wobble, 104.0 * wobble], 0.5), _noise(1.2, 0.6, 300.0, random, 4)], [0.5, 0.3])
+		"whistle":
+			return _chirp(0.4, [2400.0 * wobble, 2600.0 * wobble, 2200.0 * wobble], 0.5)
+		"truck_horn":
+			return _mix([_chirp(0.6, [330.0, 330.0], 0.5), _chirp(0.6, [415.0, 415.0], 0.5)], [0.35, 0.35])
+		"stall":
+			# An engine coughing out.
+			return _mix([_noise(0.6, 0.25, 500.0, random, 6), _sweep(0.6, 90.0, 40.0, 0.2)], [0.5, 0.6])
+		"throw":
+			return _whoosh(0.6, 200.0, 900.0, random, 0.6)
+		"lever":
+			# A catch giving, and the stack starting to roll.
+			return _mix([_sweep(0.2, 260.0, 120.0, 0.06), _noise(1.0, 0.5, 400.0, random, 3)], [0.6, 0.6])
+		"structure_down":
+			return _mix([_sweep(0.6, 120.0 * wobble, 40.0, 0.2), _crackle(0.6, random), _noise(0.4, 0.12, 1400.0, random, 2)], [0.8, 0.5, 0.5])
+		"goal_done":
+			return _arpeggio(["A5", "D6", "F#6"], 0.09, 0.4)
+		"freed":
+			# The forest's own again: the bronze rising.
+			return _arpeggio(["D5", "F#5", "A5", "D6", "F#6", "A6"], 0.12, 0.5)
+		"rotor":
+			return _mix([_sweep(0.08, 110.0, 70.0, 0.03), _noise(0.06, 0.02, 900.0, random, 3)], [0.6, 0.4])
 		"lock_click":
 			return _noise(0.03, 0.006, 6500.0, random, 1)
 		"cage_open":

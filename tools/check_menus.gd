@@ -19,8 +19,8 @@ const STEPS := [
 	["to_weaver", ""], ["menu_choose", "", {"village.restored": ["smithy", "hut_0"]}],
 	["menu_choose", "looks"], ["move_down", "looks"], ["menu_choose", "looks", {"village.coat": "gray"}], ["pause", ""],
 	["to_home", ""],
-	# Out along the path to the clearing, and a run.
-	["leave_village", "", {"_place": "run"}], ["pick_1", ""],
+	# Out along the path to the first area: its story told going in, skipped, then a run.
+	["leave_village", "", {"_place": "run", "_briefing": true}], ["pause", "", {"_briefing": false}], ["pick_1", ""],
 	["pause", "pause"], ["menu_choose", ""],
 	["pause", "pause"], ["move_down", "pause"], ["menu_choose", "settings"], ["move_down", "settings"],
 	["move_right", "settings"], ["pause", "pause"], ["pause", ""],
@@ -28,8 +28,16 @@ const STEPS := [
 	["down", "summary"], ["move_down", "summary"], ["menu_choose", "", {"_place": "run"}], ["pick_2", ""],
 	# Down again, and home to the village; the walk home skipped.
 	["down", "summary"], ["menu_choose", "", {"_place": "arriving"}], ["pause", "", {"_place": "village"}],
-	# Out again, then giving the run up: back to the village from the pause menu.
-	["leave_village", "", {"_place": "run"}], ["pick_1", ""],
+	# Out again (the story's told already), and the first area freed: the boss down, the freeing
+	# told and skipped, the area free in the village's record; then home.
+	["leave_village", "", {"_place": "run", "_briefing": false}], ["pick_1", ""],
+	["free_area", "", {"_freeing": true}], ["pause", "summary", {"village.liberated": ["edge"]}],
+	["menu_choose", "", {"_place": "arriving"}], ["pause", "", {"_place": "village"}],
+	# The map board: Endless chosen for the next run.
+	["to_board", ""], ["menu_choose", "board"], ["move_up", "board"], ["menu_choose", "board", {"village.next_run": "endless"}],
+	["pause", ""], ["to_home", ""],
+	# Out to Endless, then giving the run up: back to the village from the pause menu.
+	["leave_village", "", {"_place": "run", "_run_kind": "endless"}], ["pick_1", ""],
 	["pause", "pause"], ["move_down", "pause"], ["move_down", "pause"], ["move_down", "pause"],
 	["menu_choose", "", {"_place": "arriving"}], ["pause", "", {"_place": "village"}],
 	# From the village's pause menu, back to the title.
@@ -84,9 +92,15 @@ func _process(_delta: float) -> bool:
 			_main.village.cloth = 50
 			for index in 6:
 				_main.village.cats.append({"name": Cage.NAMES[index], "coat": "gray"})
-		elif action in ["to_smithy", "to_weaver", "to_home"]:
+		elif action == "free_area":
+			# The area's goal done and its boss down.
+			_main.arena.goal_done = true
+			if _main.arena.boss == null:
+				_main.arena._bring_in_the_boss()
+			_main.arena.strike(_main.arena.boss, 1.0e7, Vector2.ZERO, 0.0, 0.0, "round")
+		elif action in ["to_smithy", "to_weaver", "to_home", "to_board"]:
 			# Walked up to a door, or back into the open.
-			var spots := {"to_smithy": VillageMap.SMITHY, "to_weaver": VillageMap.HUTS[0]}
+			var spots := {"to_smithy": VillageMap.SMITHY, "to_weaver": VillageMap.HUTS[0], "to_board": VillageMap.BOARD}
 			var footprint: Rect2 = spots.get(action, Rect2(VillageMap.HOME_SPOT, Vector2.ZERO))
 			_main.village_map.cat.body.position = Vector2(footprint.get_center().x, footprint.end.y + 0.45) if action != "to_home" else VillageMap.HOME_SPOT
 		else:

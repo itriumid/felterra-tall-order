@@ -610,6 +610,10 @@ static func all_art() -> Dictionary:
 		art["drone_%d" % frame] = DRONE_FRAMES[frame]
 	art["drone_docked"] = DRONE_DOCKED
 	art["kite"] = KITE
+	for frame in RAT_BARON.size():
+		art["rat_baron_%d" % frame] = RAT_BARON[frame]
+	for structure: String in STRUCTURES:
+		art["structure_" + structure] = STRUCTURES[structure]
 	art["radio"] = RADIO
 	art["spikes"] = SPIKES
 	for index in SALVAGE.size():
@@ -1341,6 +1345,80 @@ const MOUNTS := {
 """}},
 }
 const DOCK := {"front": Vector2(8, 9), "back": Vector2(8, 9), "side": Vector2(4, 10)}
+## The Rat Baron: a rat as big as a dog, running, in two frames; a bottle cap for a crown and a
+## scrap of hi-vis for a cape.
+const RAT_BARON: Array[String] = [
+	"""
+.............kkkkk.....
+............khHhHhk....
+............kkkkkkk....
+........kkkkkkkkqRk....
+.....kkkqqqqqqqqRRRkk..
+...kkqqqqqqqqqqRRRRRRk.
+ttkkRRRRRRRRRRRRRRRRRRp
+.ttkRxxxRRRRRRRRRRRRRk.
+...krxxrrrrrrrrrrrrrrk.
+...krrrrrrrrrrrrrrrrk..
+....kk.kk.....kk.kk....
+""",
+	"""
+.............kkkkk.....
+............khHhHhk....
+............kkkkkkk....
+........kkkkkkkkqRk....
+.....kkkqqqqqqqqRRRkk..
+...kkqqqqqqqqqqRRRRRRk.
+ttkkRRRRRRRRRRRRRRRRRRp
+.ttkRxxxRRRRRRRRRRRRRk.
+...krxxrrrrrrrrrrrrrrk.
+...krrrrrrrrrrrrrrrrk..
+......kk.kk.kk.kk......
+""",
+]
+const RAT_BARON_FEET := Vector2(11, 10)
+## What an area's goal asks her to break: a supply crate split open, rats nesting in it; a saw's
+## bench (its blade drawn spinning over it); a generator; a fuel drum.
+const NEST := """
+.kkkkkkkkkkkkkkkk.
+kBBBBBBBBBBBBBBBBk
+kBbbbbbkkbbbbbbbbk
+kBbxxbbkRkbbqbbbbk
+kBbbbbbkkkbbbbbbbk
+kBbbbbbbbkkbbbqbbk
+kbbbbbbbbbbkbbbbbk
+.kkkkkkkkkkkkkkkk.
+"""
+const SAW_BENCH := """
+.kkkkkkkkkkkkkkkkkkkk.
+kBBBBBBBBBBBBBBBBBBBBk
+kbbbbbbbbbbbbbbbbbbbbk
+kkkkkkkkkkkkkkkkkkkkkk
+.kbk..............kbk.
+.kbk..............kbk.
+.kkk..............kkk.
+"""
+const GENERATOR := """
+.kkkkkkkkkkkkkkkkk.
+kxxxxxxxxxxxxxxxxxk
+kxkkkkkxxxxxdddxxxk
+kxkSSSkxxxxxdsdxxxk
+kxkSSSkxxxxxdddxxxk
+kxkkkkkxxxxxxxxxxxk
+kddddddddddddddddkk
+.kk.............kk.
+"""
+const FUEL_DRUM := """
+.kkkkkkkk.
+kcccccccck
+kHHHHHHHHk
+kccxxxxcck
+kcccccccck
+kHHHHHHHHk
+kcccccccck
+.kkkkkkkk.
+"""
+const STRUCTURES := {"nest": NEST, "saw": SAW_BENCH, "generator": GENERATOR, "fuel": FUEL_DRUM}
+
 ## More support: the fighting kite, its cloth in two colors with a tail; the radio, its speaker
 ## and antenna; and the spike bed's bamboo stakes. The net drone is the gun drone painted brass.
 const KITE := """
