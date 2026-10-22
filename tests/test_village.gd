@@ -112,3 +112,39 @@ func test_the_opening_is_remembered_once_told() -> void:
 	check(loaded.intro_seen, "the opening would be told again")
 	loaded.clear()
 	check(not loaded.intro_seen, "a reset didn't bring the opening back")
+
+
+func test_jogiboy_keeps_pace_with_tompel_without_stopping_and_starting() -> void:
+	var map := VillageMap.new()
+	map.cat.body.position = Vector2(14.0, 5.0)
+	map.jogi.body.position = Vector2(13.0, 5.0)
+	var stops := 0
+	var was_moving := false
+	for step in 60 * 5:
+		map.cat.steering = Vector2.RIGHT
+		map.step(Arena.STEP)
+		var moving := map.jogi.body.velocity.length() > 0.1
+		if step > 60 and was_moving and not moving:
+			stops += 1
+		was_moving = moving
+	check(stops == 0, "Jogiboy stopped %d times while Tompel walked" % stops)
+	check(map.cat.body.position.distance_to(map.jogi.body.position) < 1.5, "Jogiboy fell behind")
+	for step in 90:
+		map.cat.steering = Vector2.ZERO
+		map.step(Arena.STEP)
+	check(map.jogi.body.velocity.length() < 0.1, "Jogiboy kept going once Tompel stopped")
+
+
+func test_left_standing_jogiboy_plays_then_comes_back() -> void:
+	var map := VillageMap.new()
+	map.cat.body.position = Vector2(20.0, 5.0)
+	map.jogi.body.position = Vector2(19.2, 5.3)
+	var played: Array[String] = []
+	for step in 60 * 40:
+		map.step(Arena.STEP)
+		if not map.jogi_playing.is_empty() and not map.jogi_playing in played:
+			played.append(map.jogi_playing)
+	check(played.size() >= 2, "in forty seconds standing, Jogiboy only played at %s" % str(played))
+	map.cat.steering = Vector2.RIGHT
+	map.step(Arena.STEP)
+	check(map.jogi_playing.is_empty(), "Jogiboy kept playing when Tompel set off")

@@ -50,6 +50,15 @@ const JOGI_SPEED := 3.0
 ## How far from his spot he lets Tompel get before setting off, and how close he comes to settle.
 const JOGI_SET_OFF := 1.2
 const JOGI_SETTLE := 0.25
+## His play: what he can get up to, how long he stands before he's bored (from, to), how fast he
+## plays, how wide and fast his zoomies go round Tompel, and how long a sniff and a dig take.
+const JOGI_PLAYS: Array[String] = ["zoomies", "chase", "dig"]
+const JOGI_BORED := Vector2(2.5, 6.0)
+const JOGI_PLAY_SPEED := 4.5
+const ZOOMIES_RADIUS := 1.4
+const ZOOMIES_TURN := 3.2
+const JOGI_SNIFF_TIME := 0.9
+const JOGI_DIG_TIME := 1.8
 ## How far outside a wall something pushed out of it ends up, in meters.
 const EDGE_GAP := 0.001
 ## The buildings, by name: his home, the elder's longhouse, the smithy, the huts, and the
@@ -82,6 +91,16 @@ var elder_to := Vector2.INF
 ## here, a dog included. He trots after him, and sits by him when he stops.
 var jogi := Cat.new()
 var _jogi_trotting := false
+## What Jogiboy's playing at ("" for nothing: following Tompel), and whether he's digging now; how
+## long he's stood, and how long before he's bored of it; and where his play has got to.
+var jogi_playing := ""
+var jogi_digging := false
+var _jogi_idle := 0.0
+var _jogi_bored_after := 3.0
+var _jogi_play_for := 0.0
+var _jogi_dug_for := 0.0
+var _jogi_lap := 0.0
+var _jogi_spot := Vector2.ZERO
 ## The cats he's rescued, ambling about: each a Cat in its own coat, with where it's going.
 var villagers: Array[Cat] = []
 var names: Array[String] = []
@@ -292,27 +311,83 @@ func _step_elder(delta: float) -> void:
 	_move(elder, toward.normalized() * (TROT_SPEED if gathering else AMBLE_SPEED * 1.6), delta)
 
 
-## Jogiboy follows Tompel at his heels, a step behind and to the side: he sets off once Tompel has
-## got well ahead, trots until he's close, and sits by him. Not fussing at every step keeps him
-## from twitching back and forth at the edge of where he means to be. Seeing him off, he waits at
-## the gate.
+## Jogiboy follows Tompel at his heels, a step behind and to the side. While Tompel walks, he keeps
+## pace with him, smoothly, catching up a little faster when he's fallen behind; when Tompel stops,
+## he comes up and stands by him, and only sets off again once Tompel has got well ahead. Not
+## fussing at every step keeps him from stopping and starting. Seeing him off, he waits at the gate.
 func _step_jogi(delta: float) -> void:
 	var goal := cat.body.position - cat.facing * JOGI_HEEL + cat.facing.orthogonal() * 0.35
 	if gathering:
 		goal = ELDER_AT_THE_GATE + Vector2(0.8, 0.5)
 	var toward := goal - jogi.body.position
+	var walking := cat.body.velocity.length() > 0.2 and not gathering
+	if walking or gathering:
+		jogi_playing = ""
+		jogi_digging = false
+		_jogi_idle = 0.0
+	if walking:
+		# Keeping pace: going the way Tompel goes, as fast, and closing on his spot a little more
+		# for every step behind, never past a trot.
+		_jogi_trotting = true
+		_move(jogi, (cat.body.velocity + toward * 2.0).limit_length(JOGI_SPEED), delta)
+		return
+	if not jogi_playing.is_empty():
+		_jogi_play(delta)
+		return
 	if _jogi_trotting and toward.length() < JOGI_SETTLE:
 		_jogi_trotting = false
 	elif not _jogi_trotting and toward.length() > JOGI_SET_OFF:
 		_jogi_trotting = true
 	if not _jogi_trotting:
 		_move(jogi, Vector2.ZERO, delta)
-		# Sitting, he turns to Tompel, once he's clearly to one side.
+		# Standing, he turns to Tompel, once he's clearly to one side.
 		var to_him := cat.body.position - jogi.body.position
 		if absf(to_him.x) > 0.4:
 			jogi.facing = Vector2(signf(to_him.x), 0.0)
+		# Left standing a while, he finds something to play at.
+		_jogi_idle += delta
+		if _jogi_idle >= _jogi_bored_after and not gathering:
+			_start_playing()
 		return
-	_move(jogi, toward.normalized() * JOGI_SPEED, delta)
+	# Coming up to him: slowing as he arrives, not stopping dead.
+	_move(jogi, toward.normalized() * minf(JOGI_SPEED, maxf(toward.length() * 3.0, 0.8)), delta)
+
+
+## Bored of standing, Jogiboy plays: zoomies round Tompel, a dash after something only he can see
+## and a sniff at it, or a dig a little way off.
+func _start_playing() -> void:
+	jogi_playing = JOGI_PLAYS[random.randi_range(0, JOGI_PLAYS.size() - 1)]
+	_jogi_idle = 0.0
+	_jogi_bored_after = random.randf_range(JOGI_BORED.x, JOGI_BORED.y)
+	_jogi_play_for = 0.0
+	_jogi_lap = (jogi.body.position - cat.body.position).angle()
+	var away := Vector2.from_angle(random.randf() * TAU) * random.randf_range(1.2, 2.6)
+	_jogi_spot = (cat.body.position + away).clamp(Vector2(VILLAGE_FROM + 0.6, 0.8), SIZE - Vector2(0.8, 0.8))
+
+
+func _jogi_play(delta: float) -> void:
+	_jogi_play_for += delta
+	match jogi_playing:
+		"zoomies":
+			# Round and round him, flat out, twice.
+			_jogi_lap += ZOOMIES_TURN * delta
+			var round_him := cat.body.position + Vector2.from_angle(_jogi_lap) * ZOOMIES_RADIUS
+			_move(jogi, (round_him - jogi.body.position).limit_length(1.0) * JOGI_PLAY_SPEED, delta)
+			if _jogi_play_for >= TAU * 2.0 / ZOOMIES_TURN:
+				jogi_playing = ""
+		"chase", "dig":
+			var toward := _jogi_spot - jogi.body.position
+			if toward.length() > 0.2 and _jogi_play_for < 3.0:
+				_move(jogi, toward.normalized() * JOGI_PLAY_SPEED, delta)
+				_jogi_dug_for = 0.0
+				return
+			# There: a sniff, or a dig, then back to Tompel.
+			_move(jogi, Vector2.ZERO, delta)
+			_jogi_dug_for += delta
+			jogi_digging = jogi_playing == "dig"
+			if _jogi_dug_for >= (JOGI_DIG_TIME if jogi_playing == "dig" else JOGI_SNIFF_TIME):
+				jogi_playing = ""
+				jogi_digging = false
 
 
 ## Moves a cat at a pace, facing the way it goes, kept out of the buildings and on the ground

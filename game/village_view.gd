@@ -17,6 +17,10 @@ const BANNERS := {
 	"rhodonite": [Palette.PINK, Palette.GRAPHITE, Palette.PINK, Palette.CREAM],
 	"lagoon": [Palette.PAINT_TEAL, Palette.CREAM, Palette.CLOTH_LIGHT, Palette.CREAM],
 }
+## Jogiboy's trot: the dogs' frames with all four feet down (reaching, then gathered under him),
+## and how far he goes in one whole stride, in meters.
+const JOGI_TROT: Array[int] = [0, 1, 0, 1]
+const JOGI_STRIDE := 1.0
 ## Paint for restored walls and bunting: each hut its own.
 const PAINTS: Array[Color] = [Palette.SCARF_RED, Palette.PAINT_TEAL, Palette.BRASS_LIGHT, Palette.PINK, Palette.CLOTH_LIGHT, Palette.LEAF_LIGHT]
 
@@ -305,20 +309,28 @@ func _draw_smithy(footprint: Rect2, restored: bool) -> void:
 		_thatch(left - 0.2, right + 0.2, back + 0.2, eaves * 0.6, front + 0.25, 0.0)
 
 
-## Jogi: his own drawing, on the dogs' walk, facing the way he's going (or toward Tompel, sitting).
+## Jogiboy: his own drawing, facing the way he's going (or toward Tompel, standing). He trots,
+## never gallops: legs reaching and gathering in turn, every foot on the ground, the stride long
+## enough that his legs keep up with the ground he covers. Standing, his legs are under him.
 func _draw_jogi(jogi: Cat) -> void:
-	# He faces the way he's going, or where he's turned to sitting: never flipping on a wobble.
 	var moving := jogi.body.velocity.length() > 0.1
 	if moving and absf(jogi.body.velocity.x) > 0.3:
 		jogi.facing = Vector2(signf(jogi.body.velocity.x), 0.0)
 	var facing_left := jogi.facing.x < 0.0
-	var frame := _frame(jogi, DOG_STRIDE)
+	var frame := JOGI_TROT[int(_walked.get(jogi, 0.0) / JOGI_STRIDE * JOGI_TROT.size()) % JOGI_TROT.size()] if moving else 1
+	if village.jogi_digging:
+		# Digging: his paws going, and the dirt flying out behind him.
+		frame = JOGI_TROT[int(_clock * 10.0) % 2]
+		var behind := World.to_screen(jogi.body.position) + Vector2(10 if facing_left else -10, -2)
+		for fleck in 5:
+			var arc := fmod(_clock * 3.0 + fleck * 0.37, 1.0)
+			var out := Vector2((1 if facing_left else -1) * (arc * 9.0 + fleck), -sin(arc * PI) * 7.0)
+			draw_rect(Rect2((behind + out).round(), Vector2.ONE), Palette.MUD_LIGHT if fleck % 2 else Palette.MUD_DARK)
 	var texture := Sprites.lit(Sprites.jogi_art(frame), facing_left)
 	var feet := Sprites.JOGI_FEET
 	if facing_left:
 		feet.x = texture.get_width() - 1 - feet.x
 	var corner := World.to_screen(jogi.body.position) - feet
-	corner.y -= Sprites.DOG_LIFT[frame]
 	# His shadow under him, a dog's length.
 	draw_rect(Rect2(World.to_screen(jogi.body.position) + Vector2(-9, -1), Vector2(18, 3)), Palette.GROUND_SHADOW)
 	draw_texture(texture, corner)
