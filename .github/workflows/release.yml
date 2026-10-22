@@ -139,12 +139,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_ID: ${{ needs.prepare.outputs.release-id }}
-          TAG: ${{ github.ref_name }}
         run: |
-          # Only the files named with this version count: the copies without one, which the next
-          # job adds, would otherwise satisfy these patterns on a re-run.
-          names=$(gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets" --paginate --jq '.[].name' \
-            | grep -F "_${TAG#v}_" || true)
+          # The builds are named without the version, so every file on this release counts.
+          names=$(gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets" --paginate --jq '.[].name')
           echo "$names"
           status=0
           for pattern in '_windows_x86_64\.zip$' '_macos_universal\.zip$' '_linux_x86_64\.zip$' '_linux_arm64\.zip$' '_checksums\.txt$'; do
