@@ -49,7 +49,7 @@ const INTRO: Array = [
 	"Lately, it doesn't feel like ours.",
 	{"by": "elder", "mood": "happy", "text": "There you are. Welcome home, or what's left of it."},
 	{"by": "elder", "mood": "worried", "text": "Rats where there never were any. A smell of oil in the stream."},
-	{"by": "elder", "mood": "sad", "text": "Cats gone out foraging, and not come home."},
+	{"by": "elder", "mood": "sad", "text": "Cats have gone out foraging and never come home."},
 	{"by": "elder", "mood": "worried", "text": "Something is wrong out there. Someone has to go and look."},
 	{"by": "tompel", "mood": "determined", "text": "Then I'll go and look."},
 	{"by": "elder", "mood": "happy", "text": "And that's Jogiboy. He's mine, on paper. He'll follow you around anyway."},
