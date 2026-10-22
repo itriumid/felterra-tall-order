@@ -60,10 +60,10 @@ faction's shape (each enemy, built and planned, is in [`catalog.md`](catalog.md)
 A felled human is a large body that falls and **crushes what's under it**, his own dogs
 included. Tricking a giant into flattening his own horde is a real tactic.
 
-**Guard dogs** are the company's own, in its hi-vis harness: real-sized, taller than an upright
-cat and twice as long, and faster than she is, so a dog can't simply be outrun. They come in
+**Guard dogs** are the company's own, in its hi-vis harness: real-sized, taller than a cat and
+longer, deep-chested on long legs, and faster than he is, so a dog can't simply be outrun. They come in
 packs of three from about a minute in. A dog that gets close crouches (the warning), then
-lunges: a real leap through the air that bites if it reaches her, and that a dodge gets her out
+lunges: a real leap through the air that bites if it reaches him, and that a dodge gets him out
 from under; it lands, and needs a moment before it runs again. A dog is heavier than a rat, so a
 round shoves it less.
 
@@ -71,14 +71,14 @@ The **chainsaw worker** is the first elite: a giant in ear defenders, tougher an
 worker, from two minutes in (every other giant after that). Instead of stomping, he revs the saw
 for a little over half a second, its arc marked on the ground in hi-vis (the warning), then
 sweeps it at shin height across the ground in front of him. Whatever is in the arc is cut,
-his own rats and dogs included, so luring the horde into it is a tactic; a dodge gets her
+his own rats and dogs included, so luring the horde into it is a tactic; a dodge gets him
 through it, a long leap clears it, and behind him is safe.
 
 The **feller buncher** is the first boss, five minutes in, and another every five minutes after,
 one at a time. It's a tracked machine with a long boom, whose head grabs a tree and saws it
-through in one bite. It crawls toward her, turning on the spot before it drives, and whatever is
+through in one bite. It crawls toward him, turning on the spot before it drives, and whatever is
 under its tracks while they turn is crushed, its own horde included; standing still, its steel
-just doesn't give. Within reach, it swings its boom out over her, the head's shadow growing on
+just doesn't give. Within reach, it swings its boom out over him, the head's shadow growing on
 the ground (the warning), then the head drops and its jaws shut on whatever is there. After a
 bite the head sits on the ground for a moment, its hydraulic joint exposed, and hits there do
 double; anywhere else, the steel shrugs off most of a hit. That's the fight: dodge the bite, then
@@ -102,6 +102,11 @@ A clearing the company has cut in an Indonesian tropical forest.
 
 ## The cat
 
+**Tompel** is a white cat with black ears, a black crown and saddle, a black tail, and a black
+mole by his nose. He's a cat, so he walks on four legs: he carries one weapon in his mouth and the
+other in his tail, his tail a limb of its own that curls up behind him, sways as he walks, and
+reaches out to grip what it holds. Every cat in the village walks the same way.
+
 - **Moves freely**, in any direction.
 - **Fires automatically.** You steer, dodge and choose upgrades; your weapons aim and shoot.
 - **Gear shows on the body.** Every piece of armor and every weapon from an upgrade is visible.
@@ -112,7 +117,7 @@ A run starts with a choice of one weapon, and nothing else: armor and accessorie
 The two cards wink at the films: a cat parody each.
 
 - **Nunchaku**, "Go Chuck Purris style", for close work: two sticks on a chain, swung most of the
-  way round her, blunt, and it never runs out.
+  way round him, blunt, and it never runs out.
 - **Handgun**, "Go John Whisker style", for range: slow, but it reaches.
 
 **English by default.** Every name on screen is in English: a slingshot, not a ketapel; a fighting
@@ -146,7 +151,7 @@ their numbers: rounds can come several to a shot (the shotgun's cone), go throug
 (the crossbow, the sniper rifle, the bow), or glance off to the next (the slingshot's stones); they
 can poison and slow (the sumpit), set alight (the flare gun), leave burning oil (lamp oil) or
 nails (the nail gun) where they land, or pop as firecrackers (petasan). Blades can trip (the
-celurit), hook what they catch in toward her (the kujang), thrust in a line instead of swinging
+celurit), hook what they catch in toward him (the kujang), thrust in a line instead of swinging
 (the tombak, the rencong), or break after so many hits and be sharpened again (bambu runcing).
 Families can branch: a rifle grows into the automatic rifle or the sniper rifle, a card for each.
 
@@ -163,30 +168,66 @@ on: fire and oil, or crewmates who can be downed.
 ## Runs
 
 - **The flow lives in the village.** The title is short, over the forest path to the village:
-  Play, Settings and Leave. Play makes the menu fall away, and she walks into the village, a
-  cutscene; the first time, the story's opening is told over the walk (what happened, what's
-  going on, what needs doing). From the village, walking out through the gate is seen off: the
-  villagers come to the gate as she heads for it, and line the path while she walks on into the
-  forest. The first time she leaves for an area, someone has a word for her on the way; any other
-  time she just goes, at her own pace. Then the run starts, with the choice of nunchaku or handgun. When she's down, a summary of the run (time
+  Play, Settings and Leave. Play makes the menu fall away, and he walks into the village, a
+  cutscene; the first time, the elder walks out to meet him where the village starts, and the
+  story's opening is told over the walk, the elder's part in his own words (what's wrong, what
+  needs doing). From the village, walking out through the gate is seen off: the villagers come to
+  the gate as he heads for it, the elder at the front, and line the path while he walks on into
+  the forest. The first time he leaves for an area, someone has a word for him on the way; any
+  other time he just goes, at his own pace. He walks into every run the same way, from the way
+  he came, the world held still until he's in: slowly enough for the area's story to be told
+  on the way the first time, at his own pace after. Then he chooses what he starts with,
+  nunchaku or handgun. Coming home, whatever has happened since is told on the walk in: what an
+  area freed teaches him, from the cat who teaches it, and what the story has brought back. Then
+  a panel sets out what's new, a line each on what it does and where to find it: a building, a
+  dodge mutation now on the cards, an area found on the map. When he's down, a summary of the run (time
   survived, level reached, kills, giants felled, machines broken, cats rescued, salvage) marks
   any new best in words as well as color, and offers Home to the village, Straight back out (a
   new run at once: "one more run" shouldn't mean a walk across the village every time), or
-  Leave. Giving a run up from the pause menu takes her home with what she's carrying. The best
+  Leave. Giving a run up from the pause menu takes him home with what he's carrying. The best
   run is kept beside the settings.
 - **Cutscenes are always the player's to skip,** to follow WCAG AA: Escape skips the whole scene,
   Enter hurries a line along, and both keys are shown on screen while one plays. A setting makes
   story lines wait for Enter instead of moving on by themselves, so nobody reads against a
   clock. A line can carry a voice recording, held until it's been heard; there are none yet.
+- **The cast speak for themselves.** In a cutscene, a line someone says is set along the bottom
+  of the screen beside their portrait: a bigger, more detailed bust, in the mood of the line
+  (neutral, happy, sad, surprised, determined or worried), the same pixels as everything else,
+  only more of them. Each cat is the one bust in their own coat with their own touches: the
+  elder's headcloth and white brows, Nenek Pus's glasses and shawl, Tompel's crown and mole.
+- **The cast**, one freed in each area, each bringing back what their trade needs:
+
+  | Who | Freed in | Brings back | Teaches |
+  |---|---|---|---|
+  | The elder | (always home) | | Rolling slash, land on your feet |
+  | Pak Besi, the smith | The village's edge | The smithy, and he fixes Tompel's roof | |
+  | Nenek Pus, the weaver | The deep forest | The weaver's hut | Pounce, riposte |
+  | Si Belang, the carpenter | The sawpits | The longhouse | Ankle cutter, caltrops |
+  | Jingga, the scout | The logged clearing | The watchtower | Long leap, dust cloud |
+  | Kopi and Susu, the stall keepers | The log slide | The market | More charges, slipstream |
+  | Bu Jamu, the herbalist | The company's offices | The healer's hut | Lick your wounds, scent trail |
+  | Datuk, the ferryman | The airstrip | | Chain roll |
+
+  The huts the rescued cats build themselves, as their number grows.
+- **Jogiboy**, the elder's dog, lives in the village and follows Tompel everywhere, the way a
+  friend once took him out to play: ginger, with a white blaze, white socks, tall ears, sad eyes,
+  and a blue collar with keys on it. He's the village's finder: each time Tompel walks home he has
+  dug up a little salvage for him, and on the map board he sniffs out how many caged cats each
+  area holds. He never comes on a run, and nothing ever hurts him. He's here in memory of a
+  friend's dog.
+- **Who's talking is shown, not said.** Someone without a portrait says a line in a speech bubble
+  over them, their name at its top and its tail pointing down at them; a line of the story itself
+  is written across the top of the screen. In a fight, the same bubbles carry what freed cats say,
+  without holding anything up.
 - **The village has its own music**, from the run's instruments at an easy walking pace (92 beats
   a minute against the run's 154), no drums or rock, the bronze up front, and the run's melody
   played slow and soft over it. Walking out to a run crossfades from one to the other. The title
   and the story's opening have their own, mellower still (72 beats a minute): a lone suling, the
-  bamboo flute, over a soft pad and a gong, crossfading into the village's as she arrives.
+  bamboo flute, over a soft pad and a gong, crossfading into the village's as he arrives.
 - A run lasts **15 to 30 minutes**. Progress carries over between runs.
 - **Two modes.** **Liberation** is the story: the forest freed area by area (below). **Endless**
   is the score chase: a fresh, generated clearing every run, everything coming at once and
-  growing until she's down; the best run is Endless's. Co-op is for Endless only: Liberation
+  growing until he's down; the best run is Endless's. Co-op is for Endless only: Liberation
   moves one village's story, so it's solo, but nothing in it assumes one cat, so a "help a friend"
   co-op Liberation stays possible later.
 - **Liberation** is chosen at the map board by the village's gate, drawn as a map of the forest
@@ -196,19 +237,22 @@ on: fire and oil, or crewmates who can be downed.
   what only that place asks, then its boss comes; beat it and the area is free, and the next one
   opens. Held by the company, an area is wrecked (stumps, felled trunks, ruts, oil, litter,
   smoldering peat, fewer trees standing at its edge); freed, it's healed (grassed over, saplings,
-  flowers, clear water), and stays healed on every run after. The first time she goes into an
+  flowers, clear water), and stays healed on every run after. The first time he goes into an
   area its story is told going in, to the opening's mellow music; the first time it's freed, the
   healed ground spreads out from where its boss fell while the story goes on, to music of its
-  own. Losing still brings home what she carried; the area stays the company's. The first time
+  own. Losing still brings home what he carried; the area stays the company's. But what he did
+  there stays done: a goal finished before its boss beat him is kept, so the next run in starts
+  with it done (a word on the way in says so) and the boss comes after 45 seconds, time for him to
+  grow into the fight from the first level. The first time
   each is freed brings the village salvage, brings a building back, some free cats who come
-  home, and most have a cat who teaches her their dodge mutations.
+  home, and most have a cat who teaches him their dodge mutations.
 
   | Area | Goal | Boss |
   |---|---|---|
   | The village's edge | Break the three rat nests | The Rat Baron, a rat as big as a dog that calls rats in |
   | The deep forest | Free the four caged | The Handler, who keeps his distance and whistles his dogs in |
   | The sawpits | Wreck the three saws | The feller buncher |
-  | The logged clearing | Hold it for three minutes | The log loader, throwing logs where she stands |
+  | The logged clearing | Hold it for three minutes | The log loader, throwing logs where he stands |
   | The log slide | Pull the three levers, and the logs roll down over everything | The logging truck: it charges, stalls with its tank open, and tips over when wrecked |
   | The company's offices | Cut the power: three generators | The bulldozer, whose engine at the back is the only weak point |
   | The airstrip | Cut the three fuel lines | The helicopter, out of reach until it lands to unload |
@@ -217,27 +261,30 @@ on: fire and oil, or crewmates who can be downed.
   join, the smith forges better gear. That growth is the progress that carries over, and it's
   the story moving forward.
   - **A run brings home rescued cats and salvage.** To the company, cats are pests, and its
-    traps turn up in the clearing from 40 seconds in, one every 75 seconds, never close to her.
+    traps turn up in the clearing from 40 seconds in, one every 75 seconds, never close to him.
     Standing by a cage picks its lock over three seconds; leaving lets the pick slip back. The
-    cat inside, with its own name and coat, runs for the jungle, home. A mark at the screen's edge
-    shows the way to a cage out of sight. What she breaks throws out salvage (a worker 2 pieces,
+    cat inside, with its own name and coat, has its say in a bubble, each its own way, then runs
+    for the jungle, home: a grateful one a quick thanks; a chatty one going on until he cuts in
+    and tells it to go; a fighter throwing a firecracker at the horde (a real one, lobbed, that
+    pops like any) on its way out. A mark at the screen's edge
+    shows the way to a cage out of sight. What he breaks throws out salvage (a worker 2 pieces,
     a chainsaw worker 4, a machine 12), which flies, lands and slides, and walking over it takes
     it. Both are counted on the summary and kept in the village between runs.
   - **The village is walked**: a forest path in, the village itself a screen wide, and the path
-    out to the clearing on its far side. The cats she's rescued live there, each in its own
-    coat, and show their names as she passes.
-  - **It starts in ruins.** The company's machines have already been through: her own home, the
+    out to the clearing on its far side. The cats he's rescued live there, each in its own
+    coat, and show their names as he passes.
+  - **It starts in ruins.** The company's machines have already been through: his own home, the
     elder's longhouse, the smithy and five huts all stand wrecked, holed, scorched and
     half-roofed. Restored, the village is bright and lived-in: walls painted in reds, teal,
     yellow and pink, trimmed in cream; bunting under every eave; flowers in the grass; the
     longhouse's painted band and its umbul-umbul, the tall flags on bamboo poles, at the way in.
-  - **The story brings it back, never salvage.** Her home is fixed up by the first cat she
+  - **The story brings it back, never salvage.** His home is fixed up by the first cat he
     rescues, as a thank-you. Freeing the village's edge brings back the smithy (the company's
     crates were full of tools); the deep forest, the weaver's hut (Nenek Pus moves in with her
     loom); the sawpits, the longhouse (after the sawpits, everyone wants to talk at once); and
-    each area after, another hut. What came back is told as she walks home to it. A ruin's door
+    each area after, another hut. What came back is told as he walks home to it. A ruin's door
     says what will bring it back.
-  - **Each building opens what it holds.** Her home is her pack. The smithy forges weapons, gear
+  - **Each building opens what it holds.** His home is his pack. The smithy forges weapons, gear
     and support into the cards (8 to 24 salvage each): salvage is spent there and nowhere else.
     The longhouse's elder lets a run start with any weapon forged, and keeps the book of
     stories, the story so far to read again. Never a stat on its own: stats only come from gear.
@@ -246,10 +293,10 @@ on: fire and oil, or crewmates who can be downed.
     (the conical hat, the red scarf, the boots, the sarong and the gloves). Nothing else turns up
     on the cards until it's forged or taught. Dodge mutations are taught, one or two by a cat
     for each area freed.
-  - **Her pack** holds what she has, and each thing can be packed or left home, so the cards
-    offer only what she wants; a piece of gear can also be worn from a run's start. Leaving
+  - **His pack** holds what he has, and each thing can be packed or left home, so the cards
+    offer only what he wants; a piece of gear can also be worn from a run's start. Leaving
     things home narrows the cards but never past a draw: three of each kind stay packed for every
-    place a run has for one (two paws, so six weapons; seven slots, so twenty-one pieces of gear;
+    place a run has for one (his mouth and his tail, so six weapons; seven slots, so twenty-one pieces of gear;
     a drone and a set-down, so six support; three mutations, so nine).
   - **Everything has its story**, read on a card with Tab and at the smithy and the pack: where
     it came from, as the cats tell it.
@@ -283,18 +330,21 @@ Level-ups arrive as **cards**. A card offers a choice of three; you hold it unti
 
 | Kind | Offers |
 |---|---|
-| **A weapon** | A new one, into a free paw or support slot |
+| **A weapon** | A new one, into his mouth, his tail, or a support slot |
 | **A weapon's level** | Levels 1 to 10 for a weapon held; at 10 it can evolve along its family (knife to kris to karambit, machete to greatsword, handgun to submachine gun, rifle to automatic rifle to assault rifle, or rifle to sniper rifle), keeping everything its levels gave it |
 | **Mastery** | Past the top: a weapon at the last of its family, or gear at level 5, takes mastery levels without limit, each worth half a level. A long run keeps growing, which is what makes a god run possible, and a card is never empty |
 | **Gear** | Armor and accessories, worn and visible |
 | **A dodge mutation** | See the dodge |
 
-**Stats come only from what she wears**, never as cards of their own: every stat she has is
-something you can see on her. Each slot holds one item, and the same item's card again levels
+**Stats come only from what he wears**, never as cards of their own: every stat he has is
+something you can see on him. Each slot holds one item, and the same item's card again levels
 it up, to level 5, then into mastery.
 
-The gear for each slot (head, body, neck, eyes, paws, feet and waist) is in
-[`catalog.md`](catalog.md).
+The gear for each slot is in [`catalog.md`](catalog.md), fitted to a cat on four legs: a hat on
+his head, glasses over his eyes, a collar round his neck, a coat over his back, wraps on his front
+paws, boots on his hind feet, and round his middle a belt, a sash or a saddle cloth (the sarong).
+Toggled with I, a panel sets out what he carries, each piece's level, and every stat as it stands,
+without stopping anything.
 
 The stats, and what each means, are in [`catalog.md`](catalog.md) too. A card shows a stat's
 short form; holding Tab explains each one, and a card with a stat most players won't know is
@@ -313,19 +363,20 @@ raising the odds.
 
 ### What a cat can carry
 
-- **Two paws.** Two one-handed weapons (knife and handgun, kris and golok), or one two-handed
-  weapon (rifle, assault rifle, sniper rifle, greatsword) that hits harder and takes both.
-- **Two support slots** for what isn't held, one of each kind, both on her back: **one drone**
-  and **one thing she sets down** (a turret, or mines). One of each, because two drones or two
-  turrets on one pack would never sit right. **She starts with neither.** The drone docks in a
+- **A mouth and a tail.** Two one-handed weapons, one in his mouth and one in his tail (nunchaku
+  and handgun, kris and golok), or one two-handed weapon (rifle, assault rifle, sniper rifle,
+  greatsword) that hits harder, held in his mouth and braced with his tail.
+- **Two support slots** for what isn't held, one of each kind, both on his back: **one drone**
+  and **one thing he sets down** (a turret, or mines). One of each, because two drones or two
+  turrets on one pack would never sit right. **He starts with neither.** The drone docks in a
   cradle on top of the pack when there's nothing to shoot; the bamboo cannon is a bamboo tube
-  strapped across it until she sets it down; mines ride in pouches on the straps. Each comes
+  strapped across it until he sets it down; mines ride in pouches on the straps. Each comes
   with its mount, and the pack shows from every side.
-- **Support works on its own,** as her weapons do, and takes levels the same way. The drone lifts
-  off when something comes in reach, hovers off her shoulder and fires down, and docks when it's
-  quiet. The cannon is set down where she stands when something comes in reach, and stays there:
+- **Support works on its own,** as his weapons do, and takes levels the same way. The drone lifts
+  off when something comes in reach, hovers off his shoulder and fires down, and docks when it's
+  quiet. The cannon is set down where he stands when something comes in reach, and stays there:
   stones lobbed over the horde burst where they land. A bamboo tube cracks after eight shots and
-  she cuts a new one, so there's nothing to go back for. Mines are dropped while enemies are near,
+  he cuts a new one, so there's nothing to go back for. Mines are dropped while enemies are near,
   four down at most, and the first foot on one sets it off, a giant's boot included; they never
   hurt the crew.
 
@@ -470,7 +521,7 @@ Until it's composed, a **placeholder in the same shape** plays: six layers synth
 all the same eight-bar loop so they stay in step (drums with the kentongan and kendang, the
 octave bass, chords that turn to angklung, the chiptune lead, the gamelan answer, and the rock
 layer). Drums, bass and the gamelan always play; the chords, then the lead, come in as the horde
-thickens around her; the rock layer whenever a giant is on his feet; and everything drops back
+thickens around him; the rock layer whenever a giant is on his feet; and everything drops back
 in the pause menu. Real music replaces the layers one for one.
 
 ## First prototype

@@ -23,8 +23,8 @@ workers are giants.
 | **Rat** | Built | From the supply crates. Small and quick, comes in numbers, bites |
 | **Guard dog** | Built | The company's, in a hi-vis harness. Faster than a cat; crouches, then lunges through the air. In packs of three |
 | **Gull** | Planned | At the camp |
-| **Cockroach** | Idea | From the supply crates too: tiny, in swarms, crunched underfoot by her and the giants alike |
-| **Survey drone** | Idea | The company's: flies over the clearing and marks her for the giants, who come faster while it sees her |
+| **Cockroach** | Idea | From the supply crates too: tiny, in swarms, crunched underfoot by him and the giants alike |
+| **Survey drone** | Idea | The company's: flies over the clearing and marks him for the giants, who come faster while it sees him |
 
 ### Giants
 
@@ -35,7 +35,7 @@ workers are giants.
 | **Lantern worker** | Planned | A dropped lantern is a fire |
 | **Handler** | Built | The deep forest's boss: keeps his distance, and whistles a pack of dogs in every few seconds |
 | **Foreman** | Idea | Stays back with a megaphone; while he shouts, the workers near him hurry |
-| **Fumigator** | Idea | Sprays smoke for the pests: it hides what's in it, and makes her cough |
+| **Fumigator** | Idea | Sprays smoke for the pests: it hides what's in it, and makes him cough |
 | **Tree climber** | Idea | In spikes and a harness, up a trunk: drops what he cuts on whatever is below |
 
 ### Bosses
@@ -45,8 +45,8 @@ Machines.
 | Name | Status | What it does |
 |---|---|---|
 | **Rat Baron** | Built | The village's edge: a rat as big as a dog, a bottle cap for a crown, calling rats in around it |
-| **Log loader** | Built | The logged clearing: lifts a log overhead and throws it where she stands, its shadow the warning; reaching back to its pile, its grapple's joint is open |
-| **Feller buncher** | Built | Grabs and cuts trees in one bite. Crawls on its tracks, crushing the horde while they turn; swings its boom out over her (the head's shadow is the warning), and bites. After a bite the head sits on the ground, its hydraulic joint exposed for double damage; its steel shrugs off most of a hit elsewhere. Five minutes in |
+| **Log loader** | Built | The logged clearing: lifts a log overhead and throws it where he stands, its shadow the warning; reaching back to its pile, its grapple's joint is open |
+| **Feller buncher** | Built | Grabs and cuts trees in one bite. Crawls on its tracks, crushing the horde while they turn; swings its boom out over him (the head's shadow is the warning), and bites. After a bite the head sits on the ground, its hydraulic joint exposed for double damage; its steel shrugs off most of a hit elsewhere. Five minutes in |
 | **Bulldozer** | Built | The company's offices: raises its blade, then rams forward, shoving everything in front of it. Its engine at the back is the weak point: get behind it |
 | **Excavator** | Planned | |
 | **Logging truck** | Built | The log slide: revs, sounds its horn, then charges down a line; stalled, its fuel tank is open. Wrecked, it tips over |
@@ -57,7 +57,7 @@ Machines.
 ## Areas
 
 Liberation, the story: the forest freed area by area, each one run with a goal and a boss.
-Endless is the other mode: a fresh clearing every run, the horde growing until she's down.
+Endless is the other mode: a fresh clearing every run, the horde growing until he's down.
 
 | Name | Status | What it holds |
 |---|---|---|
@@ -73,7 +73,8 @@ Endless is the other mode: a fresh clearing every run, the horde growing until s
 
 ## Weapons
 
-Held in her paws: two one-handed, or one two-handed. Modern weapons anyone could find, plus what
+Held in his mouth and his tail: two one-handed, or one two-handed, in his mouth and braced with
+his tail. Modern weapons anyone could find, plus what
 a country has uniquely, Indonesia first. A run from the village starts with six weapons in the cards
 (the nunchaku, the handgun, the knife, the ketapel, the golok and the rattan staff); every other
 weapon is forged at the smithy first, and what a weapon grows
@@ -84,7 +85,7 @@ into needs no forging. Every weapon, piece of gear, support and mutation has a s
 
 | Name | Status | What it does |
 |---|---|---|
-| **Nunchaku** | Built | A starting choice, "Go Chuck Purris style": two sticks on a chain, swung most of the way round her. Blunt, so it shoves more than it cuts |
+| **Nunchaku** | Built | A starting choice, "Go Chuck Purris style": two sticks on a chain, swung most of the way round him. Blunt, so it shoves more than it cuts |
 | **Handgun** | Built | A starting choice, "Go John Whisker style". Slow, but it reaches. Evolves into the submachine gun |
 | **Knife** | Built | Close and quick, never runs out. In the cards from the start. Evolves into the keris |
 | **Submachine gun** | Built | The handgun grown up: fast and loose |
@@ -109,35 +110,35 @@ into needs no forging. Every weapon, piece of gear, support and mutation has a s
 | **Karambit** | Built | The kerambit, the curved claw blade: very fast, very close |
 | **Golok** | Built | Indonesia's machete: heavier, harder |
 | **Sickle** | Built | The celurit: hooks a leg and trips, leaving what it hits down a moment |
-| **Rattan staff** | Built | Two-handed: a full sweep around her with heavy knockback |
+| **Rattan staff** | Built | Two-handed: a full sweep around him with heavy knockback |
 | **Slingshot** | Built | The ketapel: stones that glance off one into the next, twice. In the cards from the start |
 | **Blowpipe** | Built | The sumpit, the Dayak blowpipe: darts that poison and slow |
 | **Firecrackers** | Built | Petasan, thrown: they land and pop, four times |
 | **Spear** | Built | Two-handed: the tombak, a long thrust in a straight line |
-| **Bamboo spear** | Built | Two-handed: the bambu runcing, the sharpened bamboo spear of the independence fight. It breaks after fourteen hits, and she sharpens a new one |
+| **Bamboo spear** | Built | Two-handed: the bambu runcing, the sharpened bamboo spear of the independence fight. It breaks after fourteen hits, and he sharpens a new one |
 | **Mandau** | Built | The Dayak sword: heavy, wide swings |
 | **Rencong** | Built | The Acehnese dagger: a quick thrust, not a swing |
 | **Badik** | Built | The Bugis and Makassar knife: short, deadly up close |
-| **Kujang** | Built | The Sundanese blade, its hooked edge pulling what it catches in toward her |
+| **Kujang** | Built | The Sundanese blade, its hooked edge pulling what it catches in toward him |
 | **Bow** | Built | The panah: arrows lobbed over the horde, each going through one |
 
 ## Support
 
-Carried on her back, not in her paws: one drone, and one thing she sets down. She starts with
+Carried on his back, not in his mouth or tail: one drone, and one thing he sets down. He starts with
 neither, and each comes with its mount. Each is forged at the smithy before the cards can offer
 it.
 
 | Name | Status | What it does |
 |---|---|---|
-| **Gun drone** | Built | Drone. Lifts off her pack when something is in reach, hovers off her shoulder and fires down at it; docks again when it's quiet |
+| **Gun drone** | Built | Drone. Lifts off his pack when something is in reach, hovers off his shoulder and fires down at it; docks again when it's quiet |
 | **Net drone** | Built | Drone: lobs nets that pin down what they land on |
-| **Bamboo cannon** | Built | Set down: the meriam bambu, as a turret. Strapped across the pack until something is in reach; lobs stones that burst where they land, and after eight shots the tube cracks and she cuts a new one |
-| **Mines** | Built | Set down. Ride in pouches on the pack's straps; she drops one every few seconds while enemies are near, up to four, and a foot sets one off, a giant's boot included |
-| **Fighting kite** | Built | Drone: a layang-layang circling her, whose glass-coated string cuts what it crosses |
+| **Bamboo cannon** | Built | Set down: the meriam bambu, as a turret. Strapped across the pack until something is in reach; lobs stones that burst where they land, and after eight shots the tube cracks and he cuts a new one |
+| **Mines** | Built | Set down. Ride in pouches on the pack's straps; he drops one every few seconds while enemies are near, up to four, and a foot sets one off, a giant's boot included |
+| **Fighting kite** | Built | Drone: a layang-layang circling him, whose glass-coated string cuts what it crosses |
 | **Bamboo spikes** | Built | Set down: the ranjau bambu, a bed of bamboo spikes that pricks and slows the horde on it, until it's trampled flat |
-| **Radio** | Built | Set down when the horde crowds her: it plays loud, and the horde goes for it instead of her until its battery's flat |
-| **Bee swarm** | Built | Drone: a hive on her pack. The bees go out after whatever's nearest, stinging it and slowing it, and come home when it's quiet |
-| **Alarm drum** | Built | Set down when the horde crowds her: the kentongan, beaten six times, each beat throwing what's close back off her, until it splits |
+| **Radio** | Built | Set down when the horde crowds him: it plays loud, and the horde goes for it instead of him until its battery's flat |
+| **Bee swarm** | Built | Drone: a hive on his pack. The bees go out after whatever's nearest, stinging it and slowing it, and come home when it's quiet |
+| **Alarm drum** | Built | Set down when the horde crowds him: the kentongan, beaten six times, each beat throwing what's close back off him, until it splits |
 | **Snare** | Built | Set down: a jerat, a rattan loop that catches the first foot in it. A rat is held down; a giant is held by the boot, and can't walk off |
 
 ## Gear
@@ -153,7 +154,7 @@ level gives. Every piece is forged at the smithy before the cards can offer it.
 | **Bell collar** | Built | Neck | Luck |
 | **Red scarf** | Built | Neck | Speed |
 | **Goggles** | Built | Eyes | Reach |
-| **Gloves** | Built | Paws | Damage, attack speed |
+| **Gloves** | Built | Paws | Damage, attack speed. Wraps on his front paws |
 | **Boots** | Built | Feet | Speed, armor |
 | **Herbal flask** | Built | Waist | Adrenaline. Jamu, the herbal tonic |
 | **Bandana** | Built | Neck | Attack speed |
@@ -181,8 +182,8 @@ level gives. Every piece is forged at the smithy before the cards can offer it.
 
 ## Dodge mutations
 
-Up to three a run, each changing what the dodge does. Another card for one she has strengthens
-it. What the dodge deals grows with damage from her gear, the same as her weapons. None is in the
+Up to three a run, each changing what the dodge does. Another card for one he has strengthens
+it. What the dodge deals grows with damage from his gear, the same as his weapons. None is in the
 cards at first: each is taught by a cat, when an area is freed. The village's edge teaches rolling
 slash and land on your feet (the elder); the deep forest, pounce and riposte (Nenek Pus); the
 sawpits, the ankle cutter and caltrops (Si Belang); the logged clearing, the long leap and the dust
@@ -191,22 +192,22 @@ wounds and the scent trail (Nenek Pus again); and the airstrip, the chain roll (
 
 | Name | Status | Kind | What it does |
 |---|---|---|---|
-| **Rolling slash** | Built | Attack | The roll cuts every creature it touches, once, harder the faster she rolls |
-| **Pounce** | Built | Attack | As the roll ends, she leaps onto the nearest enemy within 3 meters, led to where it will be; landing hits what's under her |
+| **Rolling slash** | Built | Attack | The roll cuts every creature it touches, once, harder the faster he rolls |
+| **Pounce** | Built | Attack | As the roll ends, he leaps onto the nearest enemy within 3 meters, led to where it will be; landing hits what's under him |
 | **Ankle cutter** | Built | Attack | Rolling between a giant's legs cuts 12 percent of his full health, once a roll |
-| **Land on your feet** | Built | Survival | Knocked off her feet, she rolls out of it, for free |
+| **Land on your feet** | Built | Survival | Knocked off his feet, he rolls out of it, for free |
 | **Lick your wounds** | Built | Survival | Each roll heals a little, up to 3 health a minute |
 | **Shake it off** | Planned | Survival | Rolling puts out fire and sheds oil. Waits on fire and oil |
 | **More charges** | Built | Movement | Another charge for each card; a rarer card brings them back faster |
 | **Long leap** | Built | Movement | The roll leaves the ground, high enough to clear a rat and the chainsaw's sweep |
-| **Riposte** | Built | Timing | A hit that lands while she's safe in a roll is answered at once, against everything within 0.9 meters |
+| **Riposte** | Built | Timing | A hit that lands while he's safe in a roll is answered at once, against everything within 0.9 meters |
 | **Powder trail** | Planned | Traps | A trail that the first spark ignites, anyone's spark. Waits on fire |
-| **Caltrops** | Built | Traps | The roll scatters three caltrops behind her; the first foot on each is pricked and lamed |
+| **Caltrops** | Built | Traps | The roll scatters three caltrops behind him; the first foot on each is pricked and lamed |
 | **Oil slick** | Planned | Traps | Waits on oil |
 | **Rescue roll** | Planned | Crew | Rolling through a downed crewmate revives them faster. Waits on downed crewmates |
 | **Slipstream** | Built | Crew | Rolling past a crewmate speeds them up for two seconds |
 | **Dust cloud** | Built | Control | The roll kicks up dust where it starts, and the horde in it stops to cough a moment |
-| **Scent trail** | Built | Control | Where she rolls from, her scent lingers a moment, and the horde goes to it instead of her |
+| **Scent trail** | Built | Control | Where he rolls from, his scent lingers a moment, and the horde goes to it instead of him |
 | **Chain roll** | Built | Movement | A kill during a roll gives back part of a charge, once a roll |
 
 ## Stats
@@ -215,34 +216,34 @@ What gear gives. A card shows the short form; holding Tab explains each one.
 
 | Name | Status | Does |
 |---|---|---|
-| **Health** | Built | How much she can take before she's down |
+| **Health** | Built | How much he can take before he's down |
 | **Armor** | Built | Each hit takes this much less |
 | **Regeneration** | Built | Health that comes back on its own, every second |
-| **Adrenaline** | Built | A share of the damage she deals comes back to her as health. Grounded, not magic: it's what other games call lifesteal, and the game explains it |
-| **Damage** | Built | Every weapon she holds hits harder |
+| **Adrenaline** | Built | A share of the damage he deals comes back to him as health. Grounded, not magic: it's what other games call lifesteal, and the game explains it |
+| **Damage** | Built | Every weapon he holds hits harder |
 | **Attack speed** | Built | Every weapon fires and swings sooner |
 | **Reach** | Built | Guns reach further, blades reach longer |
-| **Speed** | Built | She runs faster |
+| **Speed** | Built | He runs faster |
 | **Luck** | Built | Rarer cards turn up more often |
 | **Critical hits** | Built | A chance for a hit to land twice as hard |
 | **Knockback** | Built | Every hit shoves harder |
 
 ## Buildings
 
-The village's, every one a ruin at the start. The story brings each back, never salvage: her
-home with the first cat she rescues, the rest with an area freed. Each opens what it holds.
+The village's, every one a ruin at the start. The story brings each back, never salvage: his
+home with the first cat he rescues, the rest with an area freed. Each opens what it holds.
 
 | Name | Status | What it opens |
 |---|---|---|
-| **Home** | Built | Hers, the first house in from the forest. Fixed up by the first cat she rescues, as a thank-you. Her pack: what the cards can offer, what's left home, and the piece worn from the start |
-| **Smithy** | Built | Back with the village's edge freed. The smith forges weapons, gear and support into the cards |
-| **Huts** | Built | Five, each home to two rescued cats, who weave cloth while she's away. The first is the weaver's, back with the deep forest freed, who sells looks; the rest come back with the areas after the sawpits |
-| **Longhouse** | Built | Back with the sawpits freed. The elder's: a run can start with any weapon the smith has forged, and the book of stories keeps the story so far |
-| **Map board** | Built | At the gate, never a ruin: the forest carved on a board and drawn as a map, each area wrecked, freed or under mist, where she chooses the next run, or Endless |
+| **Home** | Built | His, the first house in from the forest. Fixed up by the first cat he rescues, as a thank-you. His pack: what the cards can offer, what's left home, and the piece worn from the start |
+| **Smithy** | Built | Pak Besi's, back with the village's edge freed. The smith forges weapons, gear and support into the cards |
+| **Huts** | Built | Five, each home to two rescued cats, who weave cloth while he's away. The first is the weaver's, Nenek Pus's, back with the deep forest freed, who sells looks; the rest the rescued cats build themselves, at 3, 5, 7 and 9 of them |
+| **Longhouse** | Built | Rebuilt by Si Belang, the carpenter, back with the sawpits freed. The elder's: a run can start with any weapon the smith has forged, and the book of stories keeps the story so far |
+| **Map board** | Built | At the gate, never a ruin: the forest carved on a board and drawn as a map, each area wrecked, freed or under mist, where he chooses the next run, or Endless |
 | **Well** | Idea | Water for the village; a place the cats gather and talk |
-| **Watchtower** | Idea | A look over the forest: shows what the next run holds |
-| **Healer's hut** | Idea | Jamu brewed between runs |
-| **Market** | Idea | Trade salvage for cloth, and back |
+| **Watchtower** | Built | Jingga's, by the gate, back with the logged clearing freed: the map board shows each area's boss, and how to beat it |
+| **Healer's hut** | Built | Bu Jamu's, back with the offices freed: a tonic for 6 salvage, and the next run starts with two more rerolls |
+| **Market** | Built | Kopi and Susu's stall, back with the log slide freed: trade salvage for cloth, three for one, or cloth for salvage, one for two |
 
 ## Looks
 
@@ -250,7 +251,8 @@ Bought from the weaver with cloth: looks only, never stats.
 
 | Name | Status | What it is |
 |---|---|---|
-| **Orange coat** | Built | Her own coat, from the start |
+| **Tompel's own coat** | Built | White, with his black ears, crown, saddle and tail, and the mole by his nose. From the start |
+| **Orange coat** | Built | Free, from the start |
 | **Gray coat** | Built | 6 cloth |
 | **Black coat** | Built | 8 cloth |
 | **Cream coat** | Built | 8 cloth |
@@ -259,8 +261,8 @@ Bought from the weaver with cloth: looks only, never stats.
 | **Lagoon banners** | Built | Teal, cream and blue. 10 cloth |
 | **Tabby and spotted coats** | Idea | Patterns over the coats: stripes, spots, a white chest |
 | **Scarf colors** | Idea | The red scarf in other colors |
-| **Weapon wraps** | Idea | Cloth wound round a weapon's grip, in her colors |
-| **House paint** | Idea | Each hut's walls in a color she picks |
+| **Weapon wraps** | Idea | Cloth wound round a weapon's grip, in his colors |
+| **House paint** | Idea | Each hut's walls in a color he picks |
 | **Lanterns** | Idea | Paper lanterns strung over the path at dusk |
 
 ## Ideas
