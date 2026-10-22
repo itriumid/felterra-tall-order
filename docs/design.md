@@ -302,7 +302,7 @@ on: fire and oil, or crewmates who can be downed.
   - **Everything has its story**, read on a card with Tab and at the smithy and the pack: where
     it came from, as the cats tell it.
   - **Housed cats weave cloth**: each restored hut houses two rescued cats, and every run brings
-    in a cloth for each. The first hut is the weaver's, who sells looks for cloth (her coat, the
+    in a cloth for each. The first hut is the weaver's, who sells looks for cloth (his coat, the
     umbul-umbul's colors), its own currency so a look never competes with forging. The full
     list is in the catalog.
   - **Progress can be reset** from the settings: it asks once more, then the village and the
