@@ -11,7 +11,7 @@ const MACHINE_NAMES := {
 	"bulldozer": "Bulldozer", "helicopter": "Helicopter",
 }
 ## The village's buildings by kind, as the catalog names them.
-const BUILDING_NAMES := {"home": "Home", "longhouse": "Longhouse", "smithy": "Smithy", "hut": "Huts", "board": "Map board"}
+const BUILDING_NAMES := {"home": "Home", "longhouse": "Longhouse", "smithy": "Smithy", "hut": "Huts", "board": "Map board", "watchtower": "Watchtower", "market": "Market", "healer": "Healer's hut"}
 
 
 ## Each row's name, by its status: {"Built": [names], "Planned": [...], ...}.

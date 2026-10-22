@@ -156,7 +156,7 @@ func _walk(delta: float, arena: Arena) -> void:
 		return
 	if has_chainsaw():
 		if toward.length() <= SAW_REACH * 0.85 and stomp_ready_in <= 0.0:
-			# He commits to the way she is now; the rev is her warning to be elsewhere.
+			# He commits to the way he is now; the rev is his warning to be elsewhere.
 			state = State.REVVING
 			saw_for = REV_TIME
 			sweep_center = facing.angle()
@@ -169,14 +169,14 @@ func _walk(delta: float, arena: Arena) -> void:
 	if toward.length() <= STOMP_REACH and stomp_ready_in <= 0.0:
 		state = State.WINDING
 		wind_for = WIND_TIME
-		# He stomps where she is now: she has the wind-up to get out from under it.
+		# He stomps where he is now: he has the wind-up to get out from under it.
 		foot = prey.body.position
 		body.velocity = Vector2.ZERO
 		return
 	body.velocity = facing * speed if toward.length() > STOMP_REACH * 0.6 else Vector2.ZERO
 
 
-## The handler keeps off at his distance, backing away if she comes close, and whistles a pack in.
+## The handler keeps off at his distance, backing away if he comes close, and whistles a pack in.
 func _handle(delta: float, toward: Vector2, arena: Arena) -> void:
 	var gap := toward.length() - HANDLER_DISTANCE
 	body.velocity = toward.normalized() * speed * clampf(gap, -1.0, 1.0)

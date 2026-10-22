@@ -1,5 +1,5 @@
 extends TestCase
-## Dodge mutations: each changes what the dodge does. No more than three a run, a card for one she
+## Dodge mutations: each changes what the dodge does. No more than three a run, a card for one he
 ## has strengthens it, and none of them is a stat.
 
 
@@ -9,7 +9,7 @@ func _arena() -> Arena:
 	return arena
 
 
-## A cat with nothing in her paws, so only her dodge does anything, and the mutations named.
+## A cat with nothing in his paws, so only his dodge does anything, and the mutations named.
 func _cat(arena: Arena, mutations: Array[String], rarity := Upgrades.Rarity.COMMON) -> Cat:
 	var cat := arena.add_cat(Arena.SIZE / 2.0)
 	cat.weapons.clear()
@@ -109,7 +109,7 @@ func test_land_on_your_feet_rolls_out_of_a_knock_for_free() -> void:
 	for step in 40:
 		arena.step()
 		rolled = rolled or cat.dodging_for > 0.0
-	check(rolled, "knocked down, she didn't roll")
+	check(rolled, "knocked down, he didn't roll")
 	check(cat.dodge_charges >= 1.0, "the free roll spent a charge")
 	var plain := _arena()
 	var knocked := _cat(plain, [])
@@ -136,7 +136,7 @@ func test_long_leap_goes_further_and_over_the_saw() -> void:
 	check(highest > Giant.SAW_HEIGHT, "the leap peaked at %.2f m, under the saw" % highest)
 	var start := Arena.SIZE.x / 2.0
 	check(leaper.body.position.x - start > (roller.body.position.x - start) * 1.4, "the leap went no further than a roll")
-	# In the air above the saw's height, it passes under her.
+	# In the air above the saw's height, it passes under him.
 	var arena := _arena()
 	var cat := _cat(arena, ["long_leap"])
 	var giant := arena.add_giant(cat.body.position + Vector2(-1.0, 0.0), "chainsaw")
@@ -147,7 +147,7 @@ func test_long_leap_goes_further_and_over_the_saw() -> void:
 	cat.safe_for = 0.0
 	var toward := (cat.body.position - giant.body.position).angle()
 	arena.saw(giant, toward - 0.3, toward + 0.3)
-	check(cat.health == Cat.MOST_HEALTH, "the saw cut her in the air at %.2f m" % cat.body.height)
+	check(cat.health == Cat.MOST_HEALTH, "the saw cut him in the air at %.2f m" % cat.body.height)
 
 
 func test_riposte_strikes_back_when_a_dodged_hit_lands() -> void:
@@ -158,12 +158,12 @@ func test_riposte_strikes_back_when_a_dodged_hit_lands() -> void:
 	cat.dodge()
 	check(not cat.hurt(1.0, Vector2.ZERO), "the hit landed mid-roll")
 	arena.step()
-	check(arena.kills == 4, "the riposte felled %d of the 4 around her" % arena.kills)
+	check(arena.kills == 4, "the riposte felled %d of the 4 around him" % arena.kills)
 	# Once a roll: a second hit dodged in the same roll doesn't strike back again.
 	arena.add_creature(cat.body.position + Vector2(0.3, 0.0))
 	cat.hurt(1.0, Vector2.ZERO)
 	arena.step()
-	check(arena.kills == 4, "she struck back twice in one roll")
+	check(arena.kills == 4, "he struck back twice in one roll")
 
 
 func test_lick_your_wounds_heals_each_roll_up_to_a_limit() -> void:
@@ -171,9 +171,9 @@ func test_lick_your_wounds_heals_each_roll_up_to_a_limit() -> void:
 	var cat := _cat(arena, ["lick_your_wounds"])
 	cat.health = 2.0
 	cat.steering = Vector2.RIGHT
-	check(cat.dodge(), "she couldn't roll")
+	check(cat.dodge(), "he couldn't roll")
 	arena.step()
-	check(is_equal_approx(cat.health, 2.0 + Cat.LICK_HEAL), "a roll healed her to %.2f" % cat.health)
+	check(is_equal_approx(cat.health, 2.0 + Cat.LICK_HEAL), "a roll healed him to %.2f" % cat.health)
 	for roll in 20:
 		cat.dodge_charges = 1.0
 		cat.dodge()
@@ -216,9 +216,9 @@ func test_a_scent_trail_draws_the_horde_then_fades() -> void:
 	arena.step()
 	check(arena.decoys.size() == 1, "%d scents left" % arena.decoys.size())
 	var rat := arena.add_creature(cat.body.position + Vector2(0.0, 3.0))
-	check(arena._prey_for(rat) == arena.decoys[0], "the horde didn't go for her scent")
+	check(arena._prey_for(rat) == arena.decoys[0], "the horde didn't go for his scent")
 	_roll_out(arena, cat, int(Cat.SCENT_TIME / Arena.STEP) + 5)
-	check(arena.decoys.is_empty(), "her scent never faded")
+	check(arena.decoys.is_empty(), "his scent never faded")
 
 
 func test_slipstream_speeds_up_a_crewmate_she_rolls_past() -> void:
@@ -231,8 +231,8 @@ func test_slipstream_speeds_up_a_crewmate_she_rolls_past() -> void:
 	cat.steering = Vector2.RIGHT
 	cat.dodge()
 	_roll_out(arena, cat, 10)
-	check(crewmate.hasted(), "the crewmate she rolled past wasn't sped up")
-	check(not stranger.hasted() and not cat.hasted(), "a cat she never passed was sped up")
+	check(crewmate.hasted(), "the crewmate he rolled past wasn't sped up")
+	check(not stranger.hasted() and not cat.hasted(), "a cat he never passed was sped up")
 
 
 func test_chain_roll_gives_a_charge_back_for_a_kill_once_a_roll() -> void:

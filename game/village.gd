@@ -5,38 +5,57 @@ extends RefCounted
 ## what the smith has forged; and the looks bought. Kept in the player's data folder beside the
 ## settings and the best run.
 ##
-## The village comes back as the story goes: nothing is restored with salvage. Her own home is a
-## ruin like the rest until the first cat she rescues fixes it up, as a thank-you; every other
-## building comes back with an area freed. Each opens what it holds: her home is where she packs,
-## the smithy forges, the longhouse's elder lets a run start with anything forged and keeps the
-## book of stories, and every hut houses two cats, who weave cloth while she's away. The first hut
+## The village comes back as the story goes: nothing is restored with salvage. His own home is a
+## ruin like the rest until the first cat he rescues fixes it up, as a thank-you; every other
+## building comes back with an area freed. Each opens what it holds: his home is where he packs,
+## the smithy forges, the Elder at the longhouse lets a run start with anything forged and keeps the
+## book of stories, and every hut houses two cats, who weave cloth while he's away. The first hut
 ## is the weaver's, and sells looks for cloth.
 ##
 ## A run starts with what any village has lying about: six weapons and five pieces of gear are all
 ## the cards can offer at first. Forging puts more weapons, gear and support into them, and freeing
-## an area teaches her its dodge mutations. Anything had can be packed or left home, so the cards offer
-## only what she wants; a forged piece of gear can be worn from a run's start. Unlocks, never stats
+## an area teaches him its dodge mutations. Anything had can be packed or left home, so the cards offer
+## only what he wants; a forged piece of gear can be worn from a run's start. Unlocks, never stats
 ## on their own: runs grow wider, not easier.
 
 const PATH := "user://village.cfg"
 
-## What brings each building back from ruin: "rescue" for the first cat rescued, or the area whose
-## freeing does.
+## What brings each building back from ruin: "rescue" for the first cat rescued, the area whose
+## freeing brings home the cat whose trade it is, or for a hut, so many cats rescued, who build it
+## themselves.
 const RESTORED_BY := {
 	"home": "rescue", "smithy": "edge", "hut_0": "deep", "longhouse": "sawpits",
-	"hut_1": "clearing", "hut_2": "slide", "hut_3": "offices", "hut_4": "airstrip",
+	"watchtower": "clearing", "market": "slide", "healer": "offices",
+	"hut_1": 3, "hut_2": 5, "hut_3": 7, "hut_4": 9,
 }
-## What's told as she walks home to a building just restored, by name; "%s" in her home's line is
+## What's told as he walks home to a building just restored, by name; "%s" in his home's line is
 ## the cat who fixed it.
 const RESTORED_LINES := {
-	"home": ["Your roof doesn't leak anymore. %s fixed it while you were out.", "A thank-you, they say, for getting them out."],
-	"smithy": ["The crates from the edge were full of the company's tools.", "The old smithy has its fire back."],
+	"home": ["Your roof doesn't leak anymore. %s fixed it while you were out.", "A thank-you, for getting them out."],
+	"smithy": ["Pak Besi has his hammer back, and the company's tools from the edge.", "The old smithy has its fire again."],
 	"hut_0": ["Nenek Pus has moved into the hut by the path, and set up her loom."],
-	"longhouse": ["After the sawpits, everyone wants to talk at once.", "So the longhouse is rebuilt, big enough to hold them all."],
-	"hut_1": ["Another hut stands again, with room for two."],
-	"hut_2": ["Another hut stands again. Kopi and Susu argue over who gets the window."],
+	"longhouse": ["Si Belang was a carpenter before the sawpits. He starts on the longhouse the day he's home.", "It's big enough to hold everyone. After the sawpits, everyone wants to talk at once."],
+	"watchtower": ["Jingga has built herself a tower by the gate, the way she likes it: tall, and a bit wobbly."],
+	"market": ["Kopi and Susu have their stall back. They're already arguing over the prices."],
+	"healer": ["Bu Jamu has her pots out, and the whole village smells of turmeric."],
+	"hut_1": ["The cats you've rescued have built themselves a hut."],
+	"hut_2": ["Another hut stands again, with room for two more."],
 	"hut_3": ["Another hut stands again, built from the company's own planks."],
 	"hut_4": ["The last hut stands again. The village is whole."],
+}
+## What each building does, in full, for what's new as he walks home to it.
+const EXPLAINS := {
+	"home": "Your pack: choose what your cards can offer, and a piece of gear to wear from the start.",
+	"smithy": "Forge weapons, gear and support with salvage. Once forged, they turn up on your cards.",
+	"hut_0": "The weaver sells new looks for cloth. Cats housed in huts weave cloth while you're away.",
+	"longhouse": "Start a run with any weapon you've forged, and read the story so far in the book.",
+	"watchtower": "Jingga watches the forest: on the map board, each area found shows its boss, and how to beat it.",
+	"market": "Trade salvage for cloth, or cloth for salvage, at Kopi and Susu's prices.",
+	"healer": "Bu Jamu brews a tonic for salvage: the next run starts with two more rerolls.",
+	"hut_1": "Room for two more cats, weaving cloth while you're away.",
+	"hut_2": "Room for two more cats, weaving cloth while you're away.",
+	"hut_3": "Room for two more cats, weaving cloth while you're away.",
+	"hut_4": "Room for two more cats, weaving cloth while you're away.",
 }
 ## What each building opens, in a line, for its prompt.
 const OPENS := {
@@ -44,7 +63,25 @@ const OPENS := {
 	"smithy": "the smith forges",
 	"longhouse": "start a run with anything forged, and read the story so far",
 	"hut_0": "the weaver sells looks for cloth",
+	"watchtower": "the map shows each boss, and how to beat it",
+	"market": "trade salvage and cloth",
+	"healer": "a tonic for the next run",
 }
+## The market's prices, as {give, get}: salvage for cloth, and cloth for salvage. And the healer's
+## tonic: what it costs, and the rerolls it starts the next run with.
+const TRADES := {"cloth": {"salvage": 3, "cloth": 1}, "salvage": {"cloth": 1, "salvage": 2}}
+const TONIC_COST := 6
+## What Jogiboy has dug up for Tompel each time he walks home: he's the village's finder.
+const JOGIBOY_FINDS := 2
+const TONIC_REROLLS := 2
+## How many caged cats Jogiboy can smell out in an area: its cages to free, and as many more as
+## the company keeps there at once.
+static func caged_in(area_id: String) -> int:
+	var area := Areas.named(area_id)
+	var count: int = (area.goal.at as Array).size() if area.goal.kind == "cages" else 0
+	return count + int(area.plan.get("cages", {}).get("most", 0))
+
+
 ## Cats a restored hut houses, each weaving a cloth a run.
 const CATS_PER_HUT := 2
 ## What's in the cards from the start, things any village has lying about: as many weapons as must
@@ -79,8 +116,9 @@ const FORGE := {
 	"support:meriam_bambu": 18, "support:mines": 15, "support:ranjau_bambu": 12, "support:radio": 14,
 	"support:bee_swarm": 17, "support:alarm_drum": 15, "support:snare": 13,
 }
-## Looks, by id: what each is and what it costs in cloth. Her coat, and the umbul-umbul's colors.
+## Looks, by id: what each is and what it costs in cloth. His coat, and the umbul-umbul's colors.
 const LOOKS := {
+	"coat:tompel": {"name": "Tompel's own coat", "cloth": 0},
 	"coat:orange": {"name": "Orange coat", "cloth": 0},
 	"coat:gray": {"name": "Gray coat", "cloth": 6},
 	"coat:black": {"name": "Black coat", "cloth": 8},
@@ -100,20 +138,25 @@ var restored: Array[String] = []
 ## What the smith has forged, by card id, and the piece of gear worn from a run's start ("" none).
 var forged: Array[String] = []
 var starting_piece := ""
-## The looks bought, by id, and the ones worn: her coat, and the banners' colors.
-var looks: Array[String] = ["coat:orange", "banners:festival"]
-var coat := "orange"
+## The looks bought, by id, and the ones worn: his coat, and the banners' colors.
+var looks: Array[String] = ["coat:tompel", "coat:orange", "banners:festival"]
+var coat := "tompel"
 var banners := "festival"
 ## The forest's areas freed, the cutscenes already told (as "intro:<area>" or "outro:<area>"),
 ## and where the next run goes: an area's id, or "endless".
 var liberated: Array[String] = []
 var told: Array[String] = []
 var next_run := "edge"
-## What she has but leaves home, by card id: the cards never offer it.
+## What he has but leaves home, by card id: the cards never offer it.
 var left_home: Array[String] = []
+## The areas whose goal he's done, though their boss still stands: done stays done, and the next
+## run there is for the boss.
+var goals_done: Array[String] = []
+## A tonic from the healer's hut, brewed and waiting for the next run.
+var tonic_ready := false
 
 
-## Every card id for a thing she could have, in the order the smithy shows them: weapons, gear,
+## Every card id for a thing he could have, in the order the smithy shows them: weapons, gear,
 ## support, then dodge mutations.
 static func everything() -> Array[String]:
 	var ids: Array[String] = []
@@ -128,7 +171,7 @@ static func everything() -> Array[String]:
 	return ids
 
 
-## The dodge mutations she's been taught, by card id: what the areas freed so far teach.
+## The dodge mutations he's been taught, by card id: what the areas freed so far teach.
 func learned() -> Array[String]:
 	var ids: Array[String] = []
 	for area_id in liberated:
@@ -137,17 +180,17 @@ func learned() -> Array[String]:
 	return ids
 
 
-## Whether she has a thing at all: it starts with her, it's forged, or it's been taught.
+## Whether he has a thing at all: it starts with him, it's forged, or it's been taught.
 func has(id: String) -> bool:
 	return id in STARTING or id in forged or id in learned()
 
 
-## Whether a run's cards can offer it: she has it, and hasn't left it home.
+## Whether a run's cards can offer it: he has it, and hasn't left it home.
 func packed(id: String) -> bool:
 	return has(id) and not id in left_home
 
 
-## Packs a thing she has, or leaves it home; the nunchaku and the handgun are always packed. A piece of
+## Packs a thing he has, or leaves it home; the nunchaku and the handgun are always packed. A piece of
 ## gear goes round three ways: packed, then worn from the start, then left home. Nothing is left
 ## home that would leave fewer of its kind packed than keep_packed() (gear worn from the start goes
 ## back to the pack instead). Returns false if it can't change.
@@ -180,16 +223,16 @@ func cant_leave_home(id: String) -> String:
 	return ""
 
 
-## How many of a kind must stay packed: three for every place a run has for one, its two paws for
+## How many of a kind must stay packed: three for every place a run has for one, his mouth and tail for
 ## weapons, its seven slots for gear, one drone and one thing set down, and three mutations.
 static func keep_packed(kind: String) -> int:
 	return places(kind) * KEEP_PACKED_PER_PLACE
 
 
-## How many of a kind a run can have on her at once.
+## How many of a kind a run can have on him at once.
 static func places(kind: String) -> int:
 	match kind:
-		"weapon": return Cat.PAWS
+		"weapon": return Cat.HOLDS
 		"gear": return Upgrades.SLOTS.size()
 		"support":
 			var slots: Array = []
@@ -200,7 +243,7 @@ static func places(kind: String) -> int:
 	return Cat.MOST_MUTATIONS
 
 
-## Every card id a run's cards must never offer: what she doesn't have, and what she's left home.
+## Every card id a run's cards must never offer: what he doesn't have, and what he's left home.
 func locked_for_run() -> Array[String]:
 	var ids: Array[String] = []
 	for id in everything():
@@ -229,6 +272,7 @@ func liberate(area_id: String) -> bool:
 	if area_id in liberated:
 		return false
 	liberated.append(area_id)
+	goals_done.erase(area_id)
 	var area := Areas.named(area_id)
 	salvage += area.bonus
 	for freed: Dictionary in area.frees:
@@ -239,7 +283,7 @@ func liberate(area_id: String) -> bool:
 
 
 ## What a run brought home: its rescued cats join, its salvage goes on the pile, and the cats
-## housed in the village weave while she's away.
+## housed in the village weave while he's away.
 func bring_home(arena: Arena) -> void:
 	cats.append_array(arena.rescued)
 	salvage += arena.salvage
@@ -258,7 +302,9 @@ func is_restored(building: String) -> bool:
 
 ## What brings a building back, in words, for a ruin's prompt.
 static func restored_when(building: String) -> String:
-	var by: String = RESTORED_BY[building]
+	var by: Variant = RESTORED_BY[building]
+	if by is int:
+		return "%d cats rescued will build it" % by
 	if by == "rescue":
 		return "the first cat you rescue will fix it up"
 	return "freeing %s brings it back" % (Areas.named(by).name as String).to_lower()
@@ -271,14 +317,14 @@ func catch_up() -> Array[String]:
 	for building in VillageMap.building_names():
 		if is_restored(building):
 			continue
-		var by: String = RESTORED_BY[building]
-		if (by == "rescue" and not cats.is_empty()) or by in liberated:
+		var by: Variant = RESTORED_BY[building]
+		if (by is int and cats.size() >= by) or (by is String and ((by == "rescue" and not cats.is_empty()) or by in liberated)):
 			restored.append(building)
 			fresh.append(building)
 	return fresh
 
 
-## What's told as she walks home to buildings just restored.
+## What's told as he walks home to buildings just restored.
 func restored_lines(buildings: Array[String]) -> Array[String]:
 	var lines: Array[String] = []
 	for building in buildings:
@@ -305,6 +351,29 @@ func pool() -> Array[String]:
 	return ids
 
 
+## A trade at the market, for cloth or for salvage, at its price. Returns false if the market isn't
+## back yet, or there isn't enough to give.
+func trade(for_what: String) -> bool:
+	if not is_restored("market") or not TRADES.has(for_what):
+		return false
+	var price: Dictionary = TRADES[for_what]
+	var give := "salvage" if for_what == "cloth" else "cloth"
+	if get(give) < price[give]:
+		return false
+	set(give, get(give) - price[give])
+	set(for_what, get(for_what) + price[for_what])
+	return true
+
+
+## A tonic brewed at the healer's hut, for the next run. One at a time.
+func brew_tonic() -> bool:
+	if not is_restored("healer") or tonic_ready or salvage < TONIC_COST:
+		return false
+	salvage -= TONIC_COST
+	tonic_ready = true
+	return true
+
+
 ## Wears a forged piece of gear from a run's start, or none (""): packed, if it was left home.
 func wear_from_start(id: String) -> bool:
 	if not id.is_empty() and (not id.begins_with("gear:") or not id in forged):
@@ -325,7 +394,7 @@ func buy_look(id: String) -> bool:
 	return true
 
 
-## Wears a look she owns: a coat, or the banners' colors.
+## Wears a look he owns: a coat, or the banners' colors.
 func wear_look(id: String) -> bool:
 	if not id in looks:
 		return false
@@ -345,13 +414,15 @@ func clear() -> void:
 	restored.clear()
 	forged.clear()
 	starting_piece = ""
-	looks.assign(["coat:orange", "banners:festival"])
-	coat = "orange"
+	looks.assign(["coat:tompel", "coat:orange", "banners:festival"])
+	coat = "tompel"
 	banners = "festival"
 	liberated.clear()
 	told.clear()
 	next_run = "edge"
 	left_home.clear()
+	goals_done.clear()
+	tonic_ready = false
 
 
 func save(path := PATH) -> bool:
@@ -370,6 +441,8 @@ func save(path := PATH) -> bool:
 	file.set_value("village", "told", told)
 	file.set_value("village", "next_run", next_run)
 	file.set_value("village", "left_home", left_home)
+	file.set_value("village", "goals_done", goals_done)
+	file.set_value("village", "tonic_ready", tonic_ready)
 	return file.save(path) == OK
 
 
@@ -389,22 +462,31 @@ func load_from(path := PATH) -> void:
 	_names(file, "restored", restored, VillageMap.building_names())
 	_names(file, "forged", forged, FORGE.keys())
 	_names(file, "looks", looks, LOOKS.keys())
-	for kept: String in ["coat:orange", "banners:festival"]:
+	# A village kept before Tompel had his own coat wore orange because it had nothing else.
+	var had_his_coat := "coat:tompel" in looks
+	for kept: String in ["coat:tompel", "coat:orange", "banners:festival"]:
 		if not kept in looks:
 			looks.append(kept)
 	var piece: Variant = file.get_value("village", "starting_piece", "")
 	starting_piece = piece if piece is String and piece in forged else ""
-	var saved_coat: Variant = file.get_value("village", "coat", "orange")
-	coat = saved_coat if saved_coat is String and "coat:" + saved_coat in looks else "orange"
+	var saved_coat: Variant = file.get_value("village", "coat", "tompel")
+	coat = saved_coat if saved_coat is String and "coat:" + saved_coat in looks else "tompel"
+	if coat == "orange" and not had_his_coat:
+		coat = "tompel"
 	_names(file, "liberated", liberated, Areas.ids())
 	var known_scenes: Array = []
 	for id in Areas.ids():
 		known_scenes.append("intro:" + id)
 		known_scenes.append("outro:" + id)
 		known_scenes.append("send_off:" + id)
+		known_scenes.append("teach:" + id)
 	_names(file, "told", told, known_scenes)
 	var saved_next: Variant = file.get_value("village", "next_run", "edge")
 	next_run = saved_next if saved_next is String and (saved_next == "endless" or saved_next in Areas.ids()) else next_area()
+	tonic_ready = file.get_value("village", "tonic_ready", false) == true
+	_names(file, "goals_done", goals_done, Areas.ids())
+	for id in liberated:
+		goals_done.erase(id)
 	_names(file, "left_home", left_home, everything())
 	left_home.erase(starting_piece)
 	for always: String in ALWAYS_PACKED:

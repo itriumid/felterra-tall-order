@@ -10,7 +10,7 @@ extends RefCounted
 ##
 ## It crawls on its tracks toward the nearest cat, turning on the spot as tracked machines do,
 ## and whatever is under its tracks while they turn is crushed. Within reach, it swings its boom
-## out over her: the head's shadow on the ground is the warning. Then the head drops and its jaws
+## out over him: the head's shadow on the ground is the warning. Then the head drops and its jaws
 ## shut, cutting whatever is between them. After a bite the head sits on the ground a moment,
 ## its hydraulic joint exposed; hits there do double. Anywhere else, the steel shrugs off most of
 ## a hit. Broken, the engine dies and the boom comes down, and it stays where it stopped: a wreck.
@@ -26,7 +26,7 @@ const WIDTH := 2.0
 const TALL := 2.0
 const HEALTH := 300.0
 const WORTH := 200
-## Its tracks: how fast it drives, and turns on the spot, and how far off its heading she has to be
+## Its tracks: how fast it drives, and turns on the spot, and how far off its heading he has to be
 ## before it stops to turn rather than drive on.
 const SPEED := 0.8
 const TURN_RATE := 0.6
@@ -43,7 +43,7 @@ const BOOM_CLOSEST := 1.4
 const REST_FORWARD := 2.0
 const REST_HEIGHT := 1.0
 const SWING_HEIGHT := 1.4
-## The bite: the swing out over her (the warning), the drop, the time the head sits on the ground
+## The bite: the swing out over him (the warning), the drop, the time the head sits on the ground
 ## afterward, the lift back, and the rest before the next.
 const AIM_TIME := 0.9
 const BITE_TIME := 0.18
@@ -125,7 +125,7 @@ func arrived(_arena: Arena) -> void:
 	pass
 
 
-## The nearest cat, and the way to her.
+## The nearest cat, and the way to him.
 func _prey(arena: Arena) -> Cat:
 	return arena.nearest_cat(body.position)
 
@@ -254,8 +254,8 @@ func _work(delta: float, arena: Arena) -> void:
 	joint.body.height = head_height
 
 
-## On its tracks toward the nearest cat: it turns on the spot until it faces her, then drives.
-## Close enough, it swings the boom out over her.
+## On its tracks toward the nearest cat: it turns on the spot until it faces him, then drives.
+## Close enough, it swings the boom out over him.
 func _drive(delta: float, arena: Arena) -> void:
 	_tuck(delta)
 	var prey := arena.nearest_cat(body.position)
@@ -269,7 +269,7 @@ func _drive(delta: float, arena: Arena) -> void:
 	heading += turning * delta
 	var distance := prey.body.position.distance_to(root())
 	if distance <= reach and distance >= closest * 0.8 and bite_ready_in <= 0.0:
-		# It commits to where she is now; the head's shadow is her warning to be elsewhere.
+		# It commits to where he is now; the head's shadow is his warning to be elsewhere.
 		state = State.AIMING
 		state_for = aim_time
 		bite_at = prey.body.position
@@ -278,7 +278,7 @@ func _drive(delta: float, arena: Arena) -> void:
 		turning = 0.0
 		arena.events.append({"position": root(), "height": ROOT_HEIGHT, "direction": facing(), "killed": false, "by": "boom", "giant": true, "kind": kind})
 		return
-	# Too far, it drives in; too close for the boom, it backs off to bring her into reach.
+	# Too far, it drives in; too close for the boom, it backs off to bring him into reach.
 	if absf(off) >= DRIVE_WITHIN:
 		body.velocity = Vector2.ZERO
 	elif distance > reach * 0.7:
@@ -295,7 +295,7 @@ func _tuck(delta: float) -> void:
 	head_height = move_toward(head_height, REST_HEIGHT, 1.5 * delta)
 
 
-## The swing out: the head travels over her, raised, as its shadow closes in on where it'll bite.
+## The swing out: the head travels over him, raised, as its shadow closes in on where it'll bite.
 func _aim(_delta: float) -> void:
 	var done := 1.0 - state_for / aim_time
 	var eased := done * done * (3.0 - 2.0 * done)

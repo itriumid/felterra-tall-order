@@ -16,17 +16,17 @@ const CHOICES := 3
 const WEAPON_TOP := 10
 const GEAR_TOP := 5
 
-## Stats come from what she wears, never on their own: each piece of gear gives some, and more
+## Stats come from what he wears, never on their own: each piece of gear gives some, and more
 ## with each level. What each stat is called and what it does, in one line.
 const STATS := {
-	"health": {"name": "Health", "explain": "How much she can take before she's down", "format": "+%d health"},
+	"health": {"name": "Health", "explain": "How much he can take before he's down", "format": "+%d health"},
 	"armor": {"name": "Armor", "explain": "Each hit takes this much less", "format": "+%.1f armor"},
 	"regeneration": {"name": "Regeneration", "explain": "Health that comes back on its own, every second", "format": "+%.2f regeneration"},
-	"adrenaline": {"name": "Adrenaline", "explain": "A share of the damage she deals comes back to her as health", "format": "+%d%% adrenaline"},
-	"damage": {"name": "Damage", "explain": "Every weapon she holds hits harder", "format": "+%d%% damage"},
+	"adrenaline": {"name": "Adrenaline", "explain": "A share of the damage he deals comes back to him as health", "format": "+%d%% adrenaline"},
+	"damage": {"name": "Damage", "explain": "Every weapon he holds hits harder", "format": "+%d%% damage"},
 	"attack_speed": {"name": "Attack speed", "explain": "Every weapon fires and swings sooner", "format": "+%d%% attack speed"},
 	"reach": {"name": "Reach", "explain": "Guns reach further, blades reach longer", "format": "+%d%% reach"},
-	"speed": {"name": "Speed", "explain": "She runs faster", "format": "+%d%% speed"},
+	"speed": {"name": "Speed", "explain": "He runs faster", "format": "+%d%% speed"},
 	"luck": {"name": "Luck", "explain": "Rarer cards turn up more often", "format": "+%.1f luck"},
 	"critical": {"name": "Critical hits", "explain": "A chance for a hit to land twice as hard", "format": "+%d%% critical"},
 	"knockback": {"name": "Knockback", "explain": "Every hit shoves harder", "format": "+%d%% knockback"},
@@ -68,7 +68,7 @@ const GEAR := {
 	"fighting_sash": {"name": "Fighting sash", "slot": "waist", "stats": {"damage": 0.06, "critical": 0.02}},
 }
 const SLOTS: Array[String] = ["head", "body", "neck", "eyes", "paws", "feet", "waist"]
-## Weapons a card can hand her, if she has paws free for them.
+## Weapons a card can hand him, if he has his mouth or his tail free for them.
 ## A weapon a family grows into isn't offered on its own: it's reached by evolving.
 const WEAPONS: Array[String] = [
 	"nunchaku", "knife", "handgun", "machete", "rifle", "shotgun", "grenade_launcher", "nail_gun", "flare_gun",
@@ -86,16 +86,50 @@ const WEAPON_NAMES := {
 	"tombak": "Spear", "bambu_runcing": "Bamboo spear", "mandau": "Mandau", "rencong": "Rencong",
 	"badik": "Badik", "kujang": "Kujang", "panah": "Bow",
 }
-## Support, by id: what she carries on her back, and the slot it takes there.
+## What each weapon does, in a line, for a card read in full and for the smithy.
+const WEAPON_DOES := {
+	"nunchaku": "Two sticks on a chain, swung most of the way round him; blunt, it shoves more than it cuts",
+	"knife": "Close and quick, and it never runs out",
+	"keris": "The knife grown up: a longer, harder wavy blade",
+	"kerambit": "A curved claw blade: very fast, very close",
+	"handgun": "Slow, but it reaches",
+	"submachine_gun": "Fast and loose: many light rounds",
+	"machete": "A broad blade, quick and wide",
+	"greatsword": "Two-handed: slow, very wide, very hard, and it throws what it hits",
+	"rifle": "Long, hard-hitting rounds",
+	"automatic_rifle": "The rifle firing fast and loose",
+	"assault_rifle": "Two-handed: faster still, and further",
+	"sniper_rifle": "Two-handed: slow and very long; a round goes through four in a line",
+	"shotgun": "Two-handed: seven pellets in a cone, close",
+	"grenade_launcher": "Two-handed: lobs a grenade that bursts a meter wide",
+	"nail_gun": "Fast and short; nails that miss stay where they land, in the next foot on them",
+	"flare_gun": "One bright, slow shot that sets what it hits alight",
+	"crossbow": "Two-handed: slow, and a bolt goes through one and into the next",
+	"lamp_oil": "Thrown: the oil burns where it lands, setting alight what stands in it",
+	"golok": "A heavy chopping blade: slower, harder",
+	"celurit": "A sickle: hooks a leg and trips what it hits",
+	"rattan_staff": "Two-handed: a full sweep around him, with heavy knockback",
+	"ketapel": "Stones that glance off one into the next, twice",
+	"sumpit": "Darts that poison and slow",
+	"petasan": "Thrown: they land and pop, four times",
+	"tombak": "Two-handed: a long thrust in a straight line",
+	"bambu_runcing": "Two-handed: a long thrust; it breaks after fourteen hits, and he sharpens another",
+	"mandau": "Heavy, wide swings",
+	"rencong": "A quick thrust, not a swing",
+	"badik": "Short, and deadly up close",
+	"kujang": "Its hooked edge pulls what it catches in toward him",
+	"panah": "Arrows lobbed over the horde, each going through one",
+}
+## Support, by id: what he carries on his back, and the slot it takes there.
 const SUPPORT := {
-	"gun_drone": {"name": "Gun drone", "lines": ["A drone on her pack", "Flies out and fires"]},
+	"gun_drone": {"name": "Gun drone", "lines": ["A drone on his pack", "Flies out and fires"]},
 	"meriam_bambu": {"name": "Bamboo cannon", "lines": ["A bamboo cannon", "Set down, it lobs stones"]},
 	"mines": {"name": "Mines", "lines": ["Pouches of mines", "Dropped as they close"]},
 	"net_drone": {"name": "Net drone", "lines": ["A drone with nets", "Holds them down"]},
 	"layang_layang": {"name": "Fighting kite", "lines": ["A fighting kite", "Its string cuts"]},
 	"ranjau_bambu": {"name": "Bamboo spikes", "lines": ["A bed of bamboo spikes", "Set down as they close"]},
 	"radio": {"name": "Radio", "lines": ["A loud radio", "The horde goes to it"]},
-	"bee_swarm": {"name": "Bee swarm", "lines": ["A hive on her pack", "Its bees sting and slow"]},
+	"bee_swarm": {"name": "Bee swarm", "lines": ["A hive on his pack", "Its bees sting and slow"]},
 	"alarm_drum": {"name": "Alarm drum", "lines": ["A bamboo drum", "Each beat throws them"]},
 	"snare": {"name": "Snare", "lines": ["A rattan snare", "Holds the first foot"]},
 }
@@ -108,20 +142,20 @@ const EVOLVES := {
 	"machete": ["greatsword"], "rifle": ["automatic_rifle", "sniper_rifle"], "automatic_rifle": ["assault_rifle"],
 }
 ## Dodge mutations: each changes what the dodge does. A cat takes up to Cat.MOST_MUTATIONS a run,
-## and a card for one she has strengthens it. What each is called, and what it does in one line.
+## and a card for one he has strengthens it. What each is called, and what it does in one line.
 const MUTATIONS := {
-	"rolling_slash": {"name": "Rolling slash", "explain": "The roll cuts what it passes through, harder the faster she rolls"},
-	"pounce": {"name": "Pounce", "explain": "As the roll ends, she leaps onto the nearest enemy, over the horde"},
+	"rolling_slash": {"name": "Rolling slash", "explain": "The roll cuts what it passes through, harder the faster he rolls"},
+	"pounce": {"name": "Pounce", "explain": "As the roll ends, he leaps onto the nearest enemy, over the horde"},
 	"ankle_cutter": {"name": "Ankle cutter", "explain": "Rolling between a giant's legs cuts a share of his health"},
-	"land_on_feet": {"name": "Land on your feet", "explain": "Knocked off her feet, she rolls out of it, for free"},
-	"more_charges": {"name": "More charges", "explain": "Dodges she can hold; a rarer card brings them back faster"},
+	"land_on_feet": {"name": "Land on your feet", "explain": "Knocked off his feet, he rolls out of it, for free"},
+	"more_charges": {"name": "More charges", "explain": "Dodges he can hold; a rarer card brings them back faster"},
 	"long_leap": {"name": "Long leap", "explain": "The roll leaves the ground: over rats, and over a chainsaw's sweep"},
-	"riposte": {"name": "Riposte", "explain": "A hit dodged just as it lands, she answers at once"},
+	"riposte": {"name": "Riposte", "explain": "A hit dodged just as it lands, he answers at once"},
 	"lick_your_wounds": {"name": "Lick your wounds", "explain": "Each roll heals a little, up to so much a minute"},
-	"caltrops": {"name": "Caltrops", "explain": "The roll scatters caltrops behind her that lame the feet on them"},
+	"caltrops": {"name": "Caltrops", "explain": "The roll scatters caltrops behind him that lame the feet on them"},
 	"slipstream": {"name": "Slipstream", "explain": "Rolling past a crewmate speeds them up a while"},
 	"dust_cloud": {"name": "Dust cloud", "explain": "The roll kicks up dust, and the horde in it stops to cough"},
-	"scent_trail": {"name": "Scent trail", "explain": "Where she rolls from, her scent lingers, and the horde goes to it"},
+	"scent_trail": {"name": "Scent trail", "explain": "Where he rolls from, his scent lingers, and the horde goes to it"},
 	"chain_roll": {"name": "Chain roll", "explain": "A kill during a roll gives back part of a charge, once a roll"},
 }
 ## Past the top level, mastery: unlimited levels, each worth this share of an ordinary one. It's
@@ -149,7 +183,7 @@ static func roll_rarity(random: RandomNumberGenerator, luck: float) -> int:
 
 
 ## Everything that could be offered to a cat right now, by id: gear for a free slot, a level for
-## gear or a weapon she has, or a weapon for a free paw.
+## gear or a weapon he has, or a weapon for his mouth or his tail, whichever's free.
 static func available(cat: Cat) -> Array[String]:
 	var ids: Array[String] = []
 	for id: String in GEAR:
@@ -158,9 +192,9 @@ static func available(cat: Cat) -> Array[String]:
 			ids.append(("gear_level:" if cat.gear_levels.get(id, 1) < GEAR_TOP else "gear_mastery:") + id)
 		elif cat.gear.get(slot, "") == "":
 			ids.append("gear:" + id)
-	var paws_used := 0
+	var holds_used := 0
 	for weapon in cat.weapons:
-		paws_used += weapon.hands
+		holds_used += weapon.hands
 		if weapon.level < WEAPON_TOP:
 			ids.append("level:" + weapon.name)
 		elif EVOLVES.has(weapon.name):
@@ -183,7 +217,7 @@ static func available(cat: Cat) -> Array[String]:
 			ids.append("mutation:" + mutation)
 	for weapon_name in WEAPONS:
 		var family_held := cat.weapons.any(func(weapon: Weapon) -> bool: return _family(weapon.name) == _family(weapon_name))
-		if not family_held and paws_used + Weapon.named(weapon_name).hands <= Cat.PAWS:
+		if not family_held and holds_used + Weapon.named(weapon_name).hands <= Cat.HOLDS:
 			ids.append("weapon:" + weapon_name)
 	return ids.filter(func(id: String) -> bool: return not cat.banished.has(id) and not id in cat.locked)
 
@@ -289,7 +323,23 @@ static func apply(cat: Cat, choice: Dictionary) -> void:
 static func describe(choice: Dictionary) -> Dictionary:
 	var card := _describe(choice)
 	card.story = Lore.of(card.kind, card.item)
+	card.does = _does(card)
 	return card
+
+
+## What a thing does, in a line, wherever it's shown off the cards: a weapon's way of fighting, a
+## piece of gear's stats, a support's job, a mutation's change to the dodge.
+static func _does(card: Dictionary) -> String:
+	match card.kind:
+		"weapon": return WEAPON_DOES.get(card.item, "")
+		"gear":
+			var gives: Array[String] = []
+			for stat: String in GEAR[card.item].stats:
+				gives.append(_amount_text(STATS[stat].format, GEAR[card.item].stats[stat]))
+			return "Worn on his %s: %s" % [GEAR[card.item].slot, ", ".join(gives)]
+		"support": return "%s, %s" % [SUPPORT[card.item].lines[0], (SUPPORT[card.item].lines[1] as String).to_lower()]
+		"mutation": return MUTATIONS[card.item].explain
+	return ""
 
 
 static func _describe(choice: Dictionary) -> Dictionary:
@@ -315,7 +365,7 @@ static func _describe(choice: Dictionary) -> Dictionary:
 		card.kind = "weapon"
 		card.name = WEAPON_NAMES[card.item]
 		card.lines = ["The %s evolves" % WEAPON_NAMES[from].to_lower(), "Keeps all its levels"]
-		card.explain = ["Evolving: at level %d a weapon can grow into the next of its family" % WEAPON_TOP]
+		card.explain = ["%s: %s" % [card.name, WEAPON_DOES[card.item]], "Evolving: at level %d a weapon can grow into the next of its family" % WEAPON_TOP]
 	elif id.begins_with("level:") or id.begins_with("mastery:"):
 		var mastery := id.begins_with("mastery:")
 		var share := MASTERY if mastery else 1.0
@@ -335,7 +385,7 @@ static func _describe(choice: Dictionary) -> Dictionary:
 		if id.begins_with("support:"):
 			card.name = SUPPORT[support_name].name
 			card.lines = (SUPPORT[support_name].lines as Array).duplicate()
-			card.explain = ["Support: on her back, one drone and one thing set down; this is her %s" % slot_name]
+			card.explain = ["Support: on his back, one drone and one thing set down; this is his %s" % slot_name]
 		else:
 			var mastery := id.begins_with("support_mastery:")
 			var share := MASTERY if mastery else 1.0
@@ -358,12 +408,12 @@ static func _describe(choice: Dictionary) -> Dictionary:
 		card.kind = "weapon"
 		card.name = WEAPON_NAMES[card.item]
 		card.lines = ["A new weapon", "Level %d" % (1 + choice.rarity)]
-		card.explain = ["Paws: a weapon takes a free one, and she has two"]
+		card.explain = ["%s: %s" % [card.name, WEAPON_DOES[card.item]], "Mouth and tail: a weapon takes one; a two-handed one takes both"]
 	return card
 
 
 ## What a card for a mutation gives, at its rarity's amount, in two short lines: what it does, for
-## a new one, or what it adds, for one she has.
+## a new one, or what it adds, for one he has.
 static func _mutation_lines(mutation: String, amount: float, fresh: bool) -> Array:
 	var leap_time := 2.0 * Cat.LEAP_LIFT / Body.GRAVITY
 	match mutation:
@@ -375,7 +425,7 @@ static func _mutation_lines(mutation: String, amount: float, fresh: bool) -> Arr
 			return ["Roll through his legs" if fresh else "Deeper", "%s%d%% of his health" % ["" if fresh else "+", roundi(Cat.ANKLE_SHARE * amount * 100.0)]]
 		"land_on_feet":
 			if fresh:
-				return ["Knocked, she rolls", "Safe for %.2f seconds" % (Cat.RECOVER_SAFE_TIME + Cat.RECOVER_SAFE_GROWTH * amount)]
+				return ["Knocked, he rolls", "Safe for %.2f seconds" % (Cat.RECOVER_SAFE_TIME + Cat.RECOVER_SAFE_GROWTH * amount)]
 			return ["Safer", "+%.2f seconds safe" % (Cat.RECOVER_SAFE_GROWTH * amount)]
 		"more_charges":
 			if amount > 1.0:
@@ -390,13 +440,13 @@ static func _mutation_lines(mutation: String, amount: float, fresh: bool) -> Arr
 		"lick_your_wounds":
 			return ["Rolling heals" if fresh else "Heals more", "%s%.1f health a roll" % ["" if fresh else "+", Cat.LICK_HEAL * amount]]
 		"caltrops":
-			return ["Caltrops behind her" if fresh else "Sharper", "%s%.1f damage each" % ["" if fresh else "+", Cat.CALTROP_DAMAGE * amount]]
+			return ["Caltrops behind him" if fresh else "Sharper", "%s%.1f damage each" % ["" if fresh else "+", Cat.CALTROP_DAMAGE * amount]]
 		"slipstream":
-			return ["Speeds up her crew" if fresh else "Faster", "%s%d%% speed" % ["" if fresh else "+", roundi(Cat.SLIPSTREAM_SPEED * amount * 100.0)]]
+			return ["Speeds up his crew" if fresh else "Faster", "%s%d%% speed" % ["" if fresh else "+", roundi(Cat.SLIPSTREAM_SPEED * amount * 100.0)]]
 		"dust_cloud":
 			return ["The roll raises dust" if fresh else "Thicker", "%s%.1f seconds coughing" % ["" if fresh else "+", Cat.DUST_TIME * amount]]
 		"scent_trail":
-			return ["Leaves her scent" if fresh else "Stronger", "%s%.1f seconds" % ["" if fresh else "+", Cat.SCENT_TIME * amount]]
+			return ["Leaves his scent" if fresh else "Stronger", "%s%.1f seconds" % ["" if fresh else "+", Cat.SCENT_TIME * amount]]
 		"chain_roll":
 			return ["A kill, a charge back" if fresh else "More back", "%s%d%% of a charge" % ["" if fresh else "+", roundi(minf(Cat.CHAIN_SHARE * amount, 1.0) * 100.0)]]
 	return []

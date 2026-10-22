@@ -1,6 +1,6 @@
 class_name Bulldozer
 extends Machine
-## The bulldozer: tracks, a cab, and a blade as wide as it is. It crawls toward her, raises its
+## The bulldozer: tracks, a cab, and a blade as wide as it is. It crawls toward him, raises its
 ## blade (the warning, the ground it'll take marked out in front), then rams forward, shoving
 ## whatever is in front of the blade along with it, and crushing what's caught under. Its engine
 ## sits at the back, behind the cab, and that's its weak point: open to hits all the time, but only
@@ -26,7 +26,7 @@ func _init() -> void:
 	_fit("bulldozer", Vector2(3.4, 2.4), 2.0, 380.0, 260)
 
 
-## Its engine is always there to hit, if she can get round behind it.
+## Its engine is always there to hit, if he can get round behind it.
 func exposed() -> bool:
 	return standing()
 

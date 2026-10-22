@@ -283,28 +283,26 @@ func _draw_cat(cat: Cat) -> void:
 	var view: String = facing[0]
 	var flip: bool = facing[1]
 	var frame := _frame(cat, CAT_STRIDE)
-	var arms := _pose_arms(cat, view, flip, frame, top_left)
-	for arm in arms:
-		if arm.behind:
-			_draw_arm(arm)
-	_draw_pack(cat, view, flip, top_left + Vector2(Sprites.lean(view, frame), 0), "behind")
-	draw_texture(Sprites.lit(Sprites.coat(Sprites.cat_body_art(view, frame, Sprites.FEET.get(cat.gear.get("feet", ""), "")), cat.coat), flip), top_left)
-	# Everything above the waist leans with the body as she walks.
-	var leaning := top_left + Vector2(Sprites.lean(view, frame), 0)
+	var holds := _pose_holds(cat, view, flip, frame, top_left)
+	for hold in holds:
+		if hold.behind:
+			_draw_hold(hold)
+	_draw_pack(cat, view, flip, top_left, "behind")
+	draw_texture(Sprites.lit(Sprites.coat(Sprites.cat_body_art(view, frame, Sprites.FEET.get(cat.gear.get("feet", ""), ""), Sprites.PAWS.get(cat.gear.get("paws", ""), "")), cat.coat, view), flip), top_left)
 	var worn_on_body: String = cat.gear.get("body", "")
 	if Sprites.BODIES.has(worn_on_body):
-		draw_texture(Sprites.lit(Sprites.BODIES[worn_on_body][view], flip), leaning)
+		draw_texture(Sprites.lit(Sprites.BODIES[worn_on_body][view], flip), top_left)
 	for slot in ["neck", "waist", "eyes"]:
 		var item: String = cat.gear.get(slot, "")
 		if Sprites.WORN.has(item):
-			draw_texture(Sprites.lit(Sprites.WORN[item][view], flip), leaning)
-	_draw_pack(cat, view, flip, leaning, "over")
+			draw_texture(Sprites.lit(Sprites.WORN[item][view], flip), top_left)
+	_draw_pack(cat, view, flip, top_left, "over")
 	var hat: String = cat.gear.get("head", "")
 	if Sprites.HATS.has(hat):
-		draw_texture(Sprites.lit(Sprites.HATS[hat]), leaning + Sprites.cat_anchor(view, flip, "head"))
-	for arm in arms:
-		if not arm.behind:
-			_draw_arm(arm)
+		draw_texture(Sprites.lit(Sprites.HATS[hat]), top_left + Sprites.cat_anchor(view, flip, "head"))
+	for hold in holds:
+		if not hold.behind:
+			_draw_hold(hold)
 
 
 ## The machine's shadow, its footprint on the ground; and while the boom swings out to bite, the
@@ -336,7 +334,7 @@ func _draw_machine_shadow(machine: Machine) -> void:
 		return
 	if machine.state in [Machine.State.AIMING, Machine.State.BITING]:
 		var share := 1.0 - (machine.state_for / Machine.AIM_TIME if machine.state == Machine.State.AIMING else 0.0)
-		# The shadow grows as the head closes in over her; its rim is dotted, like the saw's arc.
+		# The shadow grows as the head closes in over him; its rim is dotted, like the saw's arc.
 		var center := World.to_screen(machine.bite_at)
 		var across := Machine.JAW_RADIUS * World.PIXELS_PER_METER * lerpf(0.6, 1.0, share)
 		var down := across * 0.5
@@ -707,7 +705,7 @@ func _draw_structure(structure: Structure) -> void:
 		draw_rect(Rect2(top + Vector2(1, 1), Vector2(roundf(18 * structure.health / structure.most_health), 1)), Palette.LEAF_LIGHT)
 
 
-## A lever at the top of the slide, its stack of logs behind it: thrown as she pulls it.
+## A lever at the top of the slide, its stack of logs behind it: thrown as he pulls it.
 func _draw_lever(lever: Dictionary) -> void:
 	var base := World.to_screen(lever.position)
 	for index in 3:
@@ -732,13 +730,13 @@ func _draw_rolling(rolling: Dictionary) -> void:
 		draw_rect(Rect2(to - Vector2(2, 2), Vector2(4, 4)), Palette.DRY_GRASS)
 
 
-## Her pack and what's on it, at one depth: behind her or over her. The cannon's tube shows only
-## while it's on her back, and the drone only while it's docked on top.
+## His pack and what's on it, at one depth: behind him or over him. The cannon's tube shows only
+## while it's on his back, and the drone only while it's docked on top.
 func _draw_pack(cat: Cat, view: String, flip: bool, at: Vector2, depth: String) -> void:
 	if cat.supports.is_empty():
 		return
 	var drone: Support = cat.supports.get("drone")
-	# Docked, the drone sits on top of the pack: behind her head unless she's turned away.
+	# Docked, the drone sits on top of the pack: behind his head unless he's turned away.
 	var drone_depth := "over" if view == "back" else "behind"
 	if drone != null and drone.name == "layang_layang":
 		drone = null
@@ -774,14 +772,14 @@ func _draw_support(support: Support) -> void:
 		var art: String = Sprites.DRONE_FRAMES[frame] if support.name == "gun_drone" else Sprites.swapped(Sprites.DRONE_FRAMES[frame], Sprites.NET_DRONE_COLORS)
 		draw_texture(Sprites.lit(art), World.to_screen(support.body.position, support.body.height) - Vector2(5, 5))
 	elif support.name == "layang_layang":
-		# The string from her paw up to the kite, then the kite, tilting as it flies.
+		# The string from his paw up to the kite, then the kite, tilting as it flies.
 		var holder: Cat = null
 		for cat in arena.cats:
 			if cat.supports.get("drone") == support:
 				holder = cat
 		var kite_at := World.to_screen(support.body.position, support.body.height)
 		if holder != null:
-			# The string sagging from her paw to the kite.
+			# The string sagging from his paw to the kite.
 			var points := PackedVector2Array()
 			for share in range(0, 9):
 				var along := share / 8.0
@@ -860,57 +858,60 @@ func _puff(cannon: Support) -> void:
 		})
 
 
-## Where each arm reaches, and what it holds. A paw with a gun reaches toward what she's aiming at
+## Where each arm reaches, and what it holds. A paw with a gun reaches toward what he's aiming at
 ## and jolts back as it fires; one with a blade follows the blade round its swing; an empty one
 ## swings against the stride.
-func _pose_arms(cat: Cat, view: String, flip: bool, frame: int, top_left: Vector2) -> Array[Dictionary]:
-	var leading := "left" if cat.aim.x < 0.0 else "right"
-	if view == "side":
-		leading = "right"
-	var trailing := "left" if leading == "right" else "right"
-	var arms: Array[Dictionary] = []
-	for side in [leading, trailing]:
-		var index := 0 if side == leading else 1
-		var shoulder: Vector2 = top_left + Sprites.shoulder(view, flip, side, frame)
-		var arm := {"shoulder": shoulder, "weapon": null, "drawing": {}, "behind": view == "side" and side == "left",
-			"paw": Sprites.PAWS.get(cat.gear.get("paws", ""), Palette.CREAM)}
-		if index < cat.weapons.size():
-			var weapon: Weapon = cat.weapons[index]
-			var pointing := Vector2.from_angle(weapon.blade_angle) if weapon.swinging() else cat.aim
-			var reach := Sprites.ARM_REACH
-			if weapon.kind == Weapon.Kind.RANGED and flash.get(cat, 0.0) > 0.5:
-				reach -= 2.0
-			elif weapon.kind == Weapon.Kind.MELEE and not weapon.swinging():
-				reach = 3.0
-			arm.at = (shoulder + pointing * reach).round()
-			arm.weapon = weapon
-			arm.drawing = Sprites.gun_toward(weapon.name, pointing)
-			# Reaching up and away, the arm and what it holds are behind her.
-			arm.behind = arm.behind or pointing.y < -0.35
-		else:
-			var swing: int = [0, 1, 0, -1][frame] * (1 if side == "left" else -1)
-			arm.at = shoulder + Vector2(swing, 4)
-		arms.append(arm)
-	return arms
+## What he's holding and how. His first weapon is in his mouth, pointing where he aims (or where
+## its blade is swinging). His tail curls up from its base and reaches out to hold the second; with
+## nothing to hold, or bracing a two-handed weapon, it sways with his walk. Each is drawn behind him
+## or over him, as the view puts it.
+func _pose_holds(cat: Cat, view: String, flip: bool, frame: int, top_left: Vector2) -> Array[Dictionary]:
+	var holds: Array[Dictionary] = []
+	var mouth := top_left + Sprites.hold(view, flip, "mouth")
+	var held: Weapon = cat.weapons[0] if not cat.weapons.is_empty() else null
+	if held != null:
+		var pointing := Vector2.from_angle(held.blade_angle) if held.swinging() else cat.aim
+		holds.append({"at": (mouth + pointing * (2.0 if held.swinging() else 0.0)).round(), "weapon": held,
+			"drawing": Sprites.gun_toward(held.name, pointing), "behind": view == "back" or pointing.y < -0.5, "tail": []})
+	# The tail: up and back from its base, then out to what it holds, or swaying.
+	var base := top_left + Sprites.hold(view, flip, "tail")
+	var back := -1.0 if (view == "side" and not flip) else (1.0 if view == "side" else 0.0)
+	var curl := base + Vector2(back * 2.0, -4.0)
+	var gripped: Weapon = cat.weapons[1] if cat.weapons.size() > 1 else null
+	var tip: Vector2
+	if gripped != null:
+		var aimed := Vector2.from_angle(gripped.blade_angle) if gripped.swinging() else cat.aim
+		tip = (curl + aimed * (Sprites.TAIL_REACH - (2.0 if gripped.kind == Weapon.Kind.RANGED and flash.get(cat, 0.0) > 0.5 else 0.0))).round()
+	else:
+		var sway: float = [0.0, 1.0, 0.0, -1.0][frame] + sin(_clock * 2.0)
+		tip = (curl + Vector2(back * 2.0 + sway, -3.0)).round()
+	var tail := {"at": tip, "weapon": gripped, "drawing": Sprites.gun_toward(gripped.name, cat.aim) if gripped != null else {},
+		"behind": view != "back", "tail": _limb(base, curl) + _limb(curl, tip), "fur": _tail_fur(cat)}
+	holds.append(tail)
+	return holds
 
 
-func _draw_arm(arm: Dictionary) -> void:
-	var points := _limb(arm.shoulder, arm.at)
-	for point in points:
+## His tail's fur: his coat's, and black for Tompel, whose tail is.
+func _tail_fur(cat: Cat) -> Color:
+	if cat.coat == "tompel":
+		return Palette.BLACK_FUR
+	return Sprites.LEGEND[(Sprites.COATS.get(cat.coat, Sprites.COATS.orange) as String)[1]]
+
+
+func _draw_hold(hold: Dictionary) -> void:
+	var points: Array = hold.tail
+	for point: Vector2 in points:
 		draw_rect(Rect2(point - Vector2.ONE, Vector2(3, 3)), Palette.OUTLINE)
-	for point in points:
-		draw_rect(Rect2(point, Vector2.ONE), Palette.FUR)
-	draw_rect(Rect2(arm.at, Vector2.ONE), arm.paw)
-	var weapon: Weapon = arm.weapon
+	for point: Vector2 in points:
+		draw_rect(Rect2(point, Vector2.ONE), hold.fur)
+	var weapon: Weapon = hold.weapon
 	if weapon == null:
 		return
-	var drawing: Dictionary = arm.drawing
-	var at: Vector2 = arm.at - drawing.grip
+	var drawing: Dictionary = hold.drawing
+	var at: Vector2 = hold.at - drawing.grip
 	draw_texture(drawing.texture, at)
-	# The paw closes over the grip.
-	draw_rect(Rect2(arm.at, Vector2.ONE), arm.paw)
 	if weapon.swinging():
-		_draw_smear(weapon, arm.at)
+		_draw_smear(weapon, hold.at)
 	elif weapon.kind == Weapon.Kind.RANGED and flash.get(arena.cats[0], 0.0) > 0.0:
 		draw_rect(Rect2(at + drawing.muzzle - Vector2.ONE, Vector2(3, 3)), Palette.SPARK)
 
@@ -957,7 +958,7 @@ func _bleed(delta: float) -> void:
 				})
 			continue
 		if event.by == "dust":
-			# The dust she kicks up: a low cloud of it, as wide as it reaches, slow to settle.
+			# The dust he kicks up: a low cloud of it, as wide as it reaches, slow to settle.
 			var radius: float = event.get("radius", 1.0)
 			for index in int(26 * radius):
 				_droplets.append({
@@ -985,7 +986,7 @@ func _bleed(delta: float) -> void:
 				})
 			continue
 		if event.by == "slipstream":
-			# A crewmate caught in her wake: a streak of air pulled along behind them.
+			# A crewmate caught in his wake: a streak of air pulled along behind them.
 			for index in 5:
 				_droplets.append({
 					"position": event.position - event.direction * (0.1 + index * 0.08), "height": 0.15 + (index % 2) * 0.1,
@@ -993,7 +994,7 @@ func _bleed(delta: float) -> void:
 				})
 			continue
 		if event.by == "strike_back":
-			# Steel meeting what came for her: sparks all round, nothing that stains.
+			# Steel meeting what came for him: sparks all round, nothing that stains.
 			for index in 14:
 				_droplets.append({
 					"position": event.position, "height": event.height, "rise": randf_range(0.2, 1.4),

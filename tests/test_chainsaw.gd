@@ -1,6 +1,6 @@
 extends TestCase
 ## The chainsaw worker: he revs (the warning) before he sweeps, the sweep cuts what's in its arc
-## at a cat's height and not behind him, a dodge gets her through, and it cuts his own horde too.
+## at a cat's height and not behind him, a dodge gets him through, and it cuts his own horde too.
 
 
 func _arena() -> Arena:
@@ -42,7 +42,7 @@ func test_the_sweep_cuts_a_cat_in_its_arc() -> void:
 	giant.stomp_ready_in = 0.0
 	for step in 120:
 		arena.step()
-	check(cat.health <= 100.0 - Giant.SAW_DAMAGE + 0.01, "standing in front of the saw, she took %.1f" % (100.0 - cat.health))
+	check(cat.health <= 100.0 - Giant.SAW_DAMAGE + 0.01, "standing in front of the saw, he took %.1f" % (100.0 - cat.health))
 
 
 func test_the_sweep_doesnt_reach_behind_him() -> void:
@@ -52,12 +52,12 @@ func test_the_sweep_doesnt_reach_behind_him() -> void:
 	var giant := arena.add_giant(cat.body.position + Vector2(1.0, 0.0), "chainsaw")
 	giant.state = Giant.State.SWEEPING
 	giant.saw_for = Giant.SWEEP_TIME
-	# Facing away from her, the arc is all on his far side.
+	# Facing away from him, the arc is all on his far side.
 	giant.sweep_center = 0.0
 	giant.saw_angle = -Giant.SAW_ARC * 0.5
 	for step in ceili(Giant.SWEEP_TIME / Arena.STEP) + 1:
 		arena.step()
-	check(cat.health == Cat.MOST_HEALTH, "the saw cut her behind him")
+	check(cat.health == Cat.MOST_HEALTH, "the saw cut him behind him")
 
 
 func test_a_dodge_gets_her_through_the_sweep() -> void:
@@ -73,7 +73,7 @@ func test_a_dodge_gets_her_through_the_sweep() -> void:
 	cat.dodge()
 	while giant.state == Giant.State.SWEEPING:
 		arena.step()
-	check(cat.health == Cat.MOST_HEALTH, "she rolled through the sweep and was still cut")
+	check(cat.health == Cat.MOST_HEALTH, "he rolled through the sweep and was still cut")
 
 
 func test_the_saw_cuts_his_own_rats() -> void:

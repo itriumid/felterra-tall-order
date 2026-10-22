@@ -1,6 +1,6 @@
 extends TestCase
 ## Level-up cards: kills fill the crew's experience, each level hands every cat an offer of three,
-## rarity changes only how much a choice gives, and what's offered fits what she carries.
+## rarity changes only how much a choice gives, and what's offered fits what he carries.
 
 
 func _quiet() -> Arena:
@@ -89,8 +89,8 @@ func test_weapons_are_only_offered_if_the_paws_are_free() -> void:
 	check(not offered.any(func(id: String) -> bool: return id.begins_with("weapon:")), "a third weapon was offered for two full paws")
 	var one := Cat.new()
 	one.wear({"weapons": ["knife"]})
-	check("weapon:handgun" in Upgrades.available(one), "a free paw wasn't offered a handgun")
-	check(not "weapon:knife" in Upgrades.available(one), "she was offered the knife she holds")
+	check("weapon:handgun" in Upgrades.available(one), "a free tail wasn't offered a handgun")
+	check(not "weapon:knife" in Upgrades.available(one), "he was offered the knife he holds")
 
 
 func test_gear_is_worn_when_chosen_and_not_offered_again() -> void:
@@ -177,7 +177,7 @@ func test_power_keeps_growing_past_every_top_level() -> void:
 	var damage_at_80 := cat.weapons.map(func(weapon: Weapon) -> float: return weapon.hit_for(cat))
 	_play_levels(cat, random, 80)
 	var damage_at_160 := cat.weapons.map(func(weapon: Weapon) -> float: return weapon.hit_for(cat))
-	check(damage_at_160.reduce(func(a: float, b: float) -> float: return a + b) > damage_at_80.reduce(func(a: float, b: float) -> float: return a + b), "eighty more levels made her no stronger")
+	check(damage_at_160.reduce(func(a: float, b: float) -> float: return a + b) > damage_at_80.reduce(func(a: float, b: float) -> float: return a + b), "eighty more levels made him no stronger")
 
 
 func test_a_knife_evolves_only_at_the_top_level_and_keeps_its_levels() -> void:
@@ -195,7 +195,7 @@ func test_a_knife_evolves_only_at_the_top_level_and_keeps_its_levels() -> void:
 	Upgrades.apply(cat, {"id": "evolve:knife", "rarity": Upgrades.Rarity.COMMON})
 	check(cat.weapons[0].name == "keris", "the knife became %s" % cat.weapons[0].name)
 	check(cat.weapons[0].power >= power, "evolving lost the knife's levels")
-	check(not "weapon:knife" in Upgrades.available(cat), "a knife was offered beside her keris")
+	check(not "weapon:knife" in Upgrades.available(cat), "a knife was offered beside his keris")
 
 
 func test_the_last_of_a_family_takes_mastery_without_limit() -> void:
@@ -206,3 +206,19 @@ func test_the_last_of_a_family_takes_mastery_without_limit() -> void:
 		check(id in Upgrades.available(cat), "%s wasn't offered at level %d" % [id, cat.weapons[0].level])
 		Upgrades.apply(cat, {"id": id, "rarity": Upgrades.Rarity.COMMON})
 	check(cat.weapons[0].level == Upgrades.WEAPON_TOP + 11, "the kerambit stopped at level %d" % cat.weapons[0].level)
+
+
+func test_full_health_never_reads_as_more_than_the_most() -> void:
+	var cat := Cat.new()
+	# Gear gives fractions of a point of health: an uncommon vest, a rare batik shirt.
+	Upgrades.apply(cat, {"id": "gear:vest", "rarity": Upgrades.Rarity.UNCOMMON})
+	Upgrades.apply(cat, {"id": "gear:batik_shirt", "rarity": Upgrades.Rarity.RARE})
+	check(not is_equal_approx(cat.max_health, roundf(cat.max_health)), "the most health came out whole, %.2f, so this checks nothing" % cat.max_health)
+	check(is_equal_approx(cat.health, cat.max_health), "he wasn't at full health")
+	var shown := Overlay.health_text(cat.health, cat.max_health, "/").split("/")
+	check(shown[0] == shown[1], "full health reads as %s" % "/".join(shown))
+	check(Overlay.health_text(0.3, cat.max_health, "/").begins_with("1/"), "a sliver of health didn't read as one")
+	# And healing never goes past the most: adrenaline and regeneration heal the same way.
+	cat.adrenaline = 1.0
+	cat.heal(1000.0)
+	check(cat.health <= cat.max_health, "healing went past the most, to %.2f of %.2f" % [cat.health, cat.max_health])

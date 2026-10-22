@@ -56,7 +56,7 @@ func test_a_dodge_gets_her_out_from_under_a_lunge() -> void:
 	var cat := arena.add_cat(Arena.SIZE / 2.0)
 	cat.weapons.clear()
 	var dog := arena.add_creature(cat.body.position + Vector2(1.2, 0.0), "dog")
-	# She waits for the crouch, then rolls out sideways.
+	# He waits for the crouch, then rolls out sideways.
 	for step in 60:
 		arena.step()
 		if dog.state == Creature.State.CROUCHING:
@@ -66,7 +66,7 @@ func test_a_dodge_gets_her_out_from_under_a_lunge() -> void:
 	for step in 30:
 		cat.steering = Vector2.DOWN
 		arena.step()
-	check(cat.health == Cat.MOST_HEALTH, "she rolled clear of the lunge and was still bitten")
+	check(cat.health == Cat.MOST_HEALTH, "he rolled clear of the lunge and was still bitten")
 
 
 func test_a_round_shoves_a_dog_less_than_a_rat() -> void:

@@ -9,8 +9,9 @@ area by area from the company clearing it; and **Endless**, a fresh clearing eve
 cooperative play for one to four lives.
 
 It's at the very beginning: the design is in [`docs/design.md`](docs/design.md), and what runs
-so far is a prototype, from the title to the end of a run: one cat with a nunchaku or a handgun,
-level-up cards, gear, evolving weapons, dodge mutations taught by the cats she frees, and support
+so far is a prototype, from the title to the end of a run: Tompel, a cat on four legs with a nunchaku
+or a handgun in his mouth (and later a second weapon in his tail),
+level-up cards, gear, evolving weapons, dodge mutations taught by the cats he frees, and support
 (drones, a bamboo cannon, mines, a bee swarm and more), a village the story brings back from ruin, synthesized sound and adaptive music, a logged clearing, a horde of rats, packs of guard dogs, chainsaw workers and the first boss, a feller buncher,
 coming out of the jungle, the light under the canopy, and gear you can try on.
 
@@ -41,11 +42,13 @@ The builds aren't signed by a publisher Windows or macOS knows yet, so each warn
 | R | Down | Reroll the card |
 | X with 1, 2 or 3 | B | Banish that choice for the rest of the run |
 | Tab (hold) | Back | Read the cards in full |
+| I | Left stick press | Gear and stats: what he carries, and every stat as it stands |
 | Escape | Start | Pause: carry on, settings, start again, back to the village, leave |
 | W A S D or the arrow keys | Left stick | In the village: walk about. The gate on its far side leads to a run |
-| Enter | A | In the village, at a door: use what it holds (her pack, the smith's forge, the elder's book, the weaver's looks, the map) |
-| A and D, W and S | Stick | At the smithy and in her pack: change tab, and choose |
+| Enter | A | In the village, at a door: use what it holds (his pack, the smith's forge, the Elder's book, the weaver's looks, the map) |
+| A and D, W and S | Stick | At the smithy and in his pack: change tab, and choose |
 | Enter | A | In a cutscene: finish the line, or move on to the next |
+| Enter | A | Home from a run: put away what's new |
 | Escape | Start | In a cutscene: skip it |
 | W and S, then Enter or Space | Stick, then A | Choose in the pause menu |
 | A and D, or the arrows | Stick | Change a setting: graphics, audio volumes, aim and blood. Settings are kept for next time |

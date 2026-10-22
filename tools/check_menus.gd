@@ -5,58 +5,68 @@ extends SceneTree
 ## timeout 120 godot --headless --path . --script tools/check_menus.gd -- --title
 
 ## Each step: the action to press (or a note to act on), the page it should land on ("" while
-## playing), and, for some, what else should hold after it: where she is, and where the reset of
+## playing), and, for some, what else should hold after it: where he is, and where the reset of
 ## all progress stands.
 const STEPS := [
 	# Play, then the walk into the village: a line hurried along, then the whole scene skipped.
 	["menu_choose", "", {"_place": "arriving"}], ["menu_choose", "", {"_place": "arriving"}],
-	["pause", "", {"_place": "village"}],
+	["pause", "news", {"_place": "village"}], ["menu_choose", ""],
 	["pause", "village_pause"], ["menu_choose", "", {"_place": "village"}],
 	# A ruin's door does nothing yet: only the story brings it back, never salvage.
 	["grant_salvage", ""], ["to_smithy", ""], ["menu_choose", "", {"village.restored": []}],
 	# Out through the gate to the first area: seen off with a word, hurried and skipped; its story
-	# told going in, skipped; then a run.
+	# told as he walks in, skipped, and he's there; then a run.
 	["leave_village", "", {"_place": "leaving"}], ["menu_choose", "", {"_place": "leaving"}],
 	["pause", "", {"_place": "run", "_briefing": true}], ["pause", "", {"_briefing": false}], ["pick_1", ""],
-	# Salvage thrown out around her, drawn as it flies and lands.
+	# Salvage thrown out around him, drawn as it flies and lands.
 	["drop_salvage", ""],
 	["pause", "pause"], ["menu_choose", ""],
 	["pause", "pause"], ["move_down", "pause"], ["menu_choose", "settings"], ["move_down", "settings"],
 	["move_right", "settings"], ["pause", "pause"], ["pause", ""],
-	# Down, then straight back out.
-	["down", "summary"], ["move_down", "summary"], ["menu_choose", "", {"_place": "run"}], ["pick_2", ""],
+	# Down, then straight back out: walking in again, skipped.
+	["down", "summary"], ["move_down", "summary"], ["menu_choose", "", {"_place": "run", "_entering": true}],
+	["pause", "", {"_entering": false}], ["pick_2", ""],
 	# Down again, and home to the village; the walk home skipped.
 	["down", "summary"], ["menu_choose", "", {"_place": "arriving"}], ["pause", "", {"_place": "village"}],
 	# Out again, seen off without a word this time (skipped all the same), and the first area
 	# freed: the boss down, the freeing told and skipped, the area free in the village's record.
 	# Home, the smithy stands again.
-	["leave_village", "", {"_place": "leaving"}], ["pause", "", {"_place": "run", "_briefing": false}], ["pick_1", ""],
+	["leave_village", "", {"_place": "leaving"}], ["pause", "", {"_place": "run", "_briefing": false, "_entering": true}],
+	["pause", "", {"_entering": false}], ["pick_1", ""],
 	["free_area", "", {"_freeing": true}], ["pause", "summary", {"village.liberated": ["edge"]}],
-	["menu_choose", "", {"_place": "arriving"}], ["pause", "", {"_place": "village", "village.restored": ["smithy"]}],
-	# Cats rescued, and the next two areas freed, as the story would: her home, the weaver's hut
-	# and the longhouse come back.
-	["catch_up", "", {"village.restored": ["smithy", "home", "longhouse", "hut_0"]}],
+	# Home: the Elder's lesson and the smithy told on the way in, skipped; then what's new.
+	["menu_choose", "", {"_place": "arriving"}], ["pause", "news", {"_place": "village", "village.restored": ["home", "smithy"]}],
+	["menu_choose", "", {"village.told": ["send_off:edge", "intro:edge", "outro:edge", "teach:edge"]}],
+	# Cats rescued, and the next areas freed, as the story would: the weaver's hut, the longhouse,
+	# the watchtower, the market and the healer's hut come back, and the rescued build their huts.
+	["catch_up", "", {"village.restored": ["home", "smithy", "longhouse", "hut_0", "hut_1", "hut_2", "hut_3", "hut_4", "watchtower", "market", "healer"]}],
 	# The smithy: forge the first piece of gear, the vest.
 	["to_smithy", ""], ["menu_choose", "forge"], ["move_right", "forge"],
 	["menu_choose", "forge", {"village.forged": ["gear:vest"]}], ["pause", ""],
-	# Her pack at home: the vest worn from the start, then not left home but back in the pack, with
+	# His pack at home: the vest worn from the start, then not left home but back in the pack, with
 	# too little gear packed to leave any home; a weapon not left home either.
 	["to_house", ""], ["menu_choose", "pack"], ["move_right", "pack"],
 	["menu_choose", "pack", {"village.starting_piece": "gear:vest"}],
 	["menu_choose", "pack", {"village.left_home": [], "village.starting_piece": ""}],
 	["move_left", "pack"], ["move_down", "pack"], ["move_down", "pack"], ["menu_choose", "pack", {"village.left_home": []}], ["pause", ""],
 	# The weaver's hut: buy a gray coat, and wear it.
-	["to_weaver", ""], ["menu_choose", "looks"], ["move_down", "looks"], ["menu_choose", "looks", {"village.coat": "gray"}], ["pause", ""],
+	["to_weaver", ""], ["menu_choose", "looks"], ["move_down", "looks"], ["move_down", "looks"], ["menu_choose", "looks", {"village.coat": "gray"}], ["pause", ""],
+	# The market: salvage traded for cloth. The healer's hut: a tonic brewed for the next run.
+	["to_market", ""], ["menu_choose", "market"], ["menu_choose", "market", {"village.cloth": 45}], ["pause", ""],
+	["to_healer", ""], ["menu_choose", "healer"], ["menu_choose", "healer", {"village.tonic_ready": true}], ["pause", ""],
 	# The book of stories at the longhouse.
 	["to_longhouse", ""], ["menu_choose", "book"], ["move_down", "book"], ["pause", ""],
-	# The map board: it opens on the next area, the clearing; up four, round to Endless.
-	["to_board", ""], ["menu_choose", "board"], ["move_up", "board"], ["move_left", "board"], ["move_up", "board"],
-	["move_up", "board"], ["menu_choose", "board", {"village.next_run": "endless"}],
+	# The map board: it opens on the next area, the airstrip; up and back down to it, then on to
+	# Endless.
+	["to_board", ""], ["menu_choose", "board", {"village.next_run": "airstrip"}], ["move_up", "board"], ["move_right", "board"],
+	["move_down", "board"], ["menu_choose", "board", {"village.next_run": "endless"}],
 	["pause", ""], ["to_home", ""],
 	# Out to Endless, then giving the run up: back to the village from the pause menu.
-	["leave_village", "", {"_place": "leaving"}], ["pause", "", {"_place": "run", "_run_kind": "endless"}], ["pick_1", ""],
+	["leave_village", "", {"_place": "leaving"}], ["pause", "", {"_place": "run", "_run_kind": "endless"}],
+	["pause", "", {"_entering": false}], ["pick_1", ""],
 	["pause", "pause"], ["move_down", "pause"], ["move_down", "pause"], ["move_down", "pause"],
-	["menu_choose", "", {"_place": "arriving"}], ["pause", "", {"_place": "village"}],
+	# Home, with the lessons of the two areas freed meanwhile told on the way in; then what's new.
+	["menu_choose", "", {"_place": "arriving"}], ["pause", "news", {"_place": "village"}], ["menu_choose", ""],
 	# From the village's pause menu, back to the title.
 	["pause", "village_pause"], ["move_down", "village_pause"], ["move_down", "village_pause"],
 	["menu_choose", "title", {"_place": "title"}], ["move_down", "title"], ["menu_choose", "settings"],
@@ -110,8 +120,8 @@ func _process(_delta: float) -> bool:
 		elif action == "catch_up":
 			for index in 6:
 				_main.village.cats.append({"name": Cage.NAMES[index], "coat": "gray"})
-			_main.village.liberate("deep")
-			_main.village.liberate("sawpits")
+			for area_id in ["deep", "sawpits", "clearing", "slide", "offices"]:
+				_main.village.liberate(area_id)
 			for building in _main.village.catch_up():
 				_main.village_map.show_restored(building)
 		elif action == "drop_salvage":
@@ -122,9 +132,9 @@ func _process(_delta: float) -> bool:
 			if _main.arena.boss == null:
 				_main.arena._bring_in_the_boss()
 			_main.arena.strike(_main.arena.boss, 1.0e7, Vector2.ZERO, 0.0, 0.0, "round")
-		elif action in ["to_smithy", "to_weaver", "to_home", "to_board", "to_house", "to_longhouse"]:
+		elif action in ["to_smithy", "to_weaver", "to_home", "to_board", "to_house", "to_longhouse", "to_market", "to_healer"]:
 			# Walked up to a door, or back into the open.
-			var spots := {"to_smithy": VillageMap.SMITHY, "to_weaver": VillageMap.HUTS[0], "to_board": VillageMap.BOARD, "to_house": VillageMap.HOME, "to_longhouse": VillageMap.LONGHOUSE}
+			var spots := {"to_smithy": VillageMap.SMITHY, "to_weaver": VillageMap.HUTS[0], "to_board": VillageMap.BOARD, "to_house": VillageMap.HOME, "to_longhouse": VillageMap.LONGHOUSE, "to_market": VillageMap.MARKET, "to_healer": VillageMap.HEALER}
 			var footprint: Rect2 = spots.get(action, Rect2(VillageMap.HOME_SPOT, Vector2.ZERO))
 			_main.village_map.cat.body.position = Vector2(footprint.get_center().x, footprint.end.y + 0.45) if action != "to_home" else VillageMap.HOME_SPOT
 		else:

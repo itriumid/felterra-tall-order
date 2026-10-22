@@ -1,26 +1,26 @@
 class_name Support
 extends RefCounted
-## What she carries on her back, beside what's in her paws: one drone and one thing she sets
-## down. She starts with neither; each comes with its mount on her pack, and works on its own.
+## What he carries on his back, beside what's in his paws: one drone and one thing he sets
+## down. He starts with neither; each comes with its mount on his pack, and works on its own.
 ##
-## The gun drone docks on her pack. When something comes in reach it lifts off, hovers off her
+## The gun drone docks on his pack. When something comes in reach it lifts off, hovers off his
 ## shoulder and fires down at it, and when it's quiet it settles back. The meriam bambu, the
-## bamboo cannon, rides strapped across the pack until something comes in reach; she sets it down
-## where she stands and it lobs heavy stones that burst where they land. A bamboo tube only takes
-## so many shots before it cracks, so when it does, she cuts a new one. Mines ride in pouches on
-## the straps: while enemies are near, she drops one every few seconds, and the first foot on one
+## bamboo cannon, rides strapped across the pack until something comes in reach; he sets it down
+## where he stands and it lobs heavy stones that burst where they land. A bamboo tube only takes
+## so many shots before it cracks, so when it does, he cuts a new one. Mines ride in pouches on
+## the straps: while enemies are near, he drops one every few seconds, and the first foot on one
 ## sets it off, a giant's boot included.
 
 ## The net drone fires nets that pin down what they land on. The layang-layang, a fighting kite,
-## circles her on its string, and the glass-coated string cuts what it crosses. The ranjau bambu
-## is a bed of bamboo spikes she sets down that pricks and slows the horde on it, until it's
-## trampled flat. The radio, set down and turned up loud, draws the horde to it instead of her
+## circles him on its string, and the glass-coated string cuts what it crosses. The ranjau bambu
+## is a bed of bamboo spikes he sets down that pricks and slows the horde on it, until it's
+## trampled flat. The radio, set down and turned up loud, draws the horde to it instead of him
 ## until its battery's flat.
 
-## The alarm drum, the kentongan, is set down when the horde crowds her and beaten: each beat a
-## shove that throws the horde back off her, until the drum splits. The bee swarm lives in a hive on
-## her pack and goes out to sting whatever's nearest, slowing it, and comes home when it's quiet.
-## The snare, a jerat of rattan, is set down where she stands, and catches the first foot in it:
+## The alarm drum, the kentongan, is set down when the horde crowds him and beaten: each beat a
+## shove that throws the horde back off him, until the drum splits. The bee swarm lives in a hive on
+## his pack and goes out to sting whatever's nearest, slowing it, and comes home when it's quiet.
+## The snare, a jerat of rattan, is set down where he stands, and catches the first foot in it:
 ## a rat held down, a giant held by the boot, unable to walk off.
 
 ## Which slot each takes: a drone, or something set down. One of each.
@@ -29,7 +29,7 @@ const SLOTS := {
 	"meriam_bambu": "set_down", "mines": "set_down", "ranjau_bambu": "set_down", "radio": "set_down",
 	"bee_swarm": "drone", "alarm_drum": "set_down", "snare": "set_down",
 }
-## The alarm drum: how many of the horde close by before she sets it down, how wide a beat throws
+## The alarm drum: how many of the horde close by before he sets it down, how wide a beat throws
 ## them, what a beat does, how often it's beaten, how many beats before it splits, and how long a
 ## new one takes.
 const DRUM_CROWD := 5
@@ -46,7 +46,7 @@ const SWARM_SPEED := 4.0
 const STING_INTERVAL := 0.3
 const STING_DAMAGE := 0.5
 const STING_SLOW := 0.3
-## The snare: how far she watches before setting it down, how wide its loop, what catching does,
+## The snare: how far he watches before setting it down, how wide its loop, what catching does,
 ## how long it holds a rat or a giant, and how long a new one takes to tie.
 const SNARE_RADIUS := 0.25
 const SNARE_DAMAGE := 2.0
@@ -66,23 +66,23 @@ const SPIKES_RADIUS := 0.8
 const SPIKES_DAMAGE := 1.0
 const SPIKES_LAST := 12.0
 const SPIKES_REBUILD := 6.0
-## The radio: how many of the horde close by before she sets it down, how long its battery lasts,
+## The radio: how many of the horde close by before he sets it down, how long its battery lasts,
 ## and how long a fresh one takes.
 const RADIO_CROWD := 6
 const BATTERY := 7.0
 const BATTERY_REBUILD := 10.0
 
-## The drone: where it hovers, off her shoulder and up; how fast it flies and turns; and how long
+## The drone: where it hovers, off his shoulder and up; how fast it flies and turns; and how long
 ## it waits with nothing in reach before it docks.
 const DRONE_HEIGHT := 1.1
 const DRONE_OFFSET := Vector2(-0.45, -0.35)
 const DRONE_SPEED := 6.0
 const DRONE_GRIP := 14.0
 const DRONE_LINGER := 1.5
-## Docked, it sits on top of her pack.
+## Docked, it sits on top of his pack.
 const DOCKED_HEIGHT := 0.42
 
-## The meriam bambu: the shots a tube takes before it cracks, and how long a new one takes her.
+## The meriam bambu: the shots a tube takes before it cracks, and how long a new one takes him.
 const TUBE_SHOTS := 8
 const REBUILD_TIME := 6.0
 ## Where the stone leaves the tube, above the ground.
@@ -110,7 +110,7 @@ var tempo := 0.0
 var weapon: Weapon
 ## Where it is: the drone in the air, the cannon on the ground. Mines are each their own.
 var body := Body.new()
-## The drone off her pack, or the cannon set down.
+## The drone off his pack, or the cannon set down.
 var deployed := false
 var _idle_for := 0.0
 ## The cannon: shots left in this tube, and the time until a cracked one is replaced.
@@ -118,12 +118,12 @@ var shots_left := TUBE_SHOTS
 var rebuilt_in := 0.0
 ## Tubes that have cracked, counted, so the view and the sound know when one does.
 var cracks := 0
-## Mines on the ground, as {body, armed_in}, and the time until she can drop the next.
+## Mines on the ground, as {body, armed_in}, and the time until he can drop the next.
 var mines: Array[Dictionary] = []
 var _next_mine_in := 0.0
 ## Mines that have gone off, and been dropped, counted.
 var mines_dropped := 0
-## The kite's way round her, and when its string can next cut each creature; the spike bed lying
+## The kite's way round him, and when its string can next cut each creature; the spike bed lying
 ## down; and the radio's battery and the decoy it puts out.
 var _turned := 0.0
 var _cut_ready := {}
@@ -153,7 +153,7 @@ static func named(support_name: String) -> Support:
 			gun.interval = 0.55
 			gun.damage = 1.2
 			gun.muzzle_speed = 90.0
-			# Steadier than a paw: it hovers still to fire.
+			# Steadier than a mouth: it hovers still to fire.
 			gun.spread = deg_to_rad(1.5)
 			gun.knock = 1.0
 			gun.lift = 0.6
@@ -196,7 +196,7 @@ static func named(support_name: String) -> Support:
 	return support
 
 
-## What a hit from it does, with her stats and its own levels: the same rule as a weapon's.
+## What a hit from it does, with his stats and its own levels: the same rule as a weapon's.
 func hit_for(cat: Cat) -> float:
 	return _base_damage() * (1.0 + power + cat.damage_bonus)
 
@@ -215,7 +215,7 @@ func _base_damage() -> float:
 
 func step(delta: float, cat: Cat, arena: Arena) -> void:
 	if weapon != null:
-		# Its levels and her gear count, as for anything she fights with.
+		# Its levels and his gear count, as for anything he fights with.
 		weapon.power = power
 		weapon.tempo = tempo
 	match name:
@@ -244,7 +244,7 @@ func _fly(delta: float, cat: Cat, arena: Arena) -> void:
 	var docking := _idle_for >= DRONE_LINGER or not cat.alive()
 	var goal := cat.body.position if docking else cat.body.position + DRONE_OFFSET
 	var goal_height := cat.body.height + (DOCKED_HEIGHT if docking else DRONE_HEIGHT)
-	# Thrust toward where it wants to be, capped: it trails her a little, the way a drone does.
+	# Thrust toward where it wants to be, capped: it trails him a little, the way a drone does.
 	var wanted := (goal - body.position) * 4.0
 	body.velocity = body.velocity.move_toward(wanted.limit_length(DRONE_SPEED), DRONE_GRIP * delta)
 	body.position += body.velocity * delta
@@ -284,8 +284,8 @@ func _cannon(delta: float, cat: Cat, arena: Arena) -> void:
 			arena.events.append({"position": body.position, "height": 0.1, "direction": Vector2.ZERO, "killed": false, "by": "crack", "giant": false, "kind": name})
 
 
-## The kite: up and circling her while anything's near, its string cutting what it crosses; down
-## and folded in her pack when it's quiet.
+## The kite: up and circling him while anything's near, its string cutting what it crosses; down
+## and folded in his pack when it's quiet.
 func _kite(delta: float, cat: Cat, arena: Arena) -> void:
 	deployed = cat.alive() and arena.target_for(cat.body.position, KITE_REACH + 2.0, "nearest") != null
 	if not deployed:
@@ -300,7 +300,7 @@ func _kite(delta: float, cat: Cat, arena: Arena) -> void:
 		if _cut_ready.get(creature, 0.0) > arena.time:
 			continue
 		var closest := Geometry2D.get_closest_point_to_segment(creature.body.position, holder, body.position)
-		# The string runs from her paw up to the kite, sagging in the middle: it cuts what reaches
+		# The string runs from his paw up to the kite, sagging in the middle: it cuts what reaches
 		# up to it where it passes.
 		var along := holder.distance_to(closest) / KITE_REACH
 		var string_height := string_height_at(along)
@@ -309,12 +309,12 @@ func _kite(delta: float, cat: Cat, arena: Arena) -> void:
 			arena.strike(creature, hit_for(cat), (creature.body.position - holder).normalized().orthogonal(), 1.0, 0.4, "string", cat)
 
 
-## How high the kite's string is, a share of the way from her paw to the kite.
+## How high the kite's string is, a share of the way from his paw to the kite.
 static func string_height_at(along: float) -> float:
 	return maxf(lerpf(0.3, KITE_HEIGHT, along) - STRING_SAG * sin(PI * along), 0.02)
 
 
-## The spike bed: set down where she stands when the horde closes, pricking what's on it until it's
+## The spike bed: set down where he stands when the horde closes, pricking what's on it until it's
 ## trampled flat; then a new one's cut.
 func _spikes(delta: float, cat: Cat, arena: Arena) -> void:
 	if _bed != null and not _bed in arena.hazards:
@@ -335,7 +335,7 @@ func _spikes(delta: float, cat: Cat, arena: Arena) -> void:
 	arena.events.append({"position": body.position, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "set_down", "giant": false, "kind": name})
 
 
-## The radio: set down when the horde crowds her, playing loud enough that it goes for the radio
+## The radio: set down when the horde crowds him, playing loud enough that it goes for the radio
 ## instead, until the battery's flat; then a fresh one takes a while.
 func _radio(delta: float, cat: Cat, arena: Arena) -> void:
 	if deployed:
@@ -365,7 +365,7 @@ func _radio(delta: float, cat: Cat, arena: Arena) -> void:
 	arena.events.append({"position": body.position, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "set_down", "giant": false, "kind": name})
 
 
-## Mines: dropped where she stands while enemies are near, armed a moment later, and set off by
+## Mines: dropped where he stands while enemies are near, armed a moment later, and set off by
 ## the first foot close enough.
 func _mines(delta: float, cat: Cat, arena: Arena) -> void:
 	_next_mine_in = maxf(_next_mine_in - delta, 0.0)
@@ -390,8 +390,8 @@ func _mines(delta: float, cat: Cat, arena: Arena) -> void:
 	mines = left
 
 
-## The alarm drum: set down when the horde crowds her, and beaten, each beat throwing what's close
-## back off her, until it splits; then a new one takes a while.
+## The alarm drum: set down when the horde crowds him, and beaten, each beat throwing what's close
+## back off him, until it splits; then a new one takes a while.
 func _drum(delta: float, cat: Cat, arena: Arena) -> void:
 	if deployed:
 		_next_beat_in -= delta
@@ -427,7 +427,7 @@ func _drum(delta: float, cat: Cat, arena: Arena) -> void:
 	arena.events.append({"position": body.position, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "set_down", "giant": false, "kind": name})
 
 
-## The bee swarm: out of its hive on her pack after whatever's nearest, stinging it and slowing it,
+## The bee swarm: out of its hive on his pack after whatever's nearest, stinging it and slowing it,
 ## on to the next when it's down, and home when there's nothing left in reach.
 func _swarm(delta: float, cat: Cat, arena: Arena) -> void:
 	_sting_in = maxf(_sting_in - delta, 0.0)
@@ -436,7 +436,7 @@ func _swarm(delta: float, cat: Cat, arena: Arena) -> void:
 		_stinging = arena.target_for(cat.body.position, SWARM_REACH, "nearest") if cat.alive() else null
 	var home := cat.body.position
 	if not deployed:
-		# Out of the hive on her pack: that's where it sets off from.
+		# Out of the hive on his pack: that's where it sets off from.
 		body.position = home
 		body.height = cat.body.height + DOCKED_HEIGHT
 	var goal := home if _stinging == null else (_stinging.body.position as Vector2)
@@ -455,8 +455,8 @@ func _swarm(delta: float, cat: Cat, arena: Arena) -> void:
 		arena.strike(_stinging, hit_for(cat), Vector2.ZERO, 0.0, 0.0, "sting", cat)
 
 
-## The snare: set down where she stands while something's near, it catches the first foot in its
-## loop, a rat's or a giant's, and holds it; then she ties another.
+## The snare: set down where he stands while something's near, it catches the first foot in its
+## loop, a rat's or a giant's, and holds it; then he ties another.
 func _snare(delta: float, cat: Cat, arena: Arena) -> void:
 	if deployed:
 		var caught: Object = null

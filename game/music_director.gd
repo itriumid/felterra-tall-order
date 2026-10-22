@@ -1,21 +1,21 @@
 class_name MusicDirector
 extends Node
 ## Plays the soundtrack's layers together, in step, and fades each to what the run calls for:
-## drums and bass always; chords, then the lead, as the horde thickens around her; the gamelan
+## drums and bass always; chords, then the lead, as the horde thickens around him; the gamelan
 ## answering throughout; the rock layer whenever a giant is on his feet. In the pause menu it all
 ## drops back. In the village the village's own layers play instead, and walking out to a run
 ## crossfades from one to the other. On the title and through the story's opening, the opening's
-## own music plays, mellow, until she reaches the village. Real music
+## own music plays, mellow, until he reaches the village. Real music
 ## replaces the layers one for one; this stays.
 
-## How far around her the horde counts toward the music, in meters, and how fast layers fade.
+## How far around him the horde counts toward the music, in meters, and how fast layers fade.
 const NEAR := 6.0
 const FADE := 1.5
 const PAUSED_SHARE := 0.35
 
 var arena: Arena
 var cat: Cat
-## Where she is: "run" in the clearing, "village" in the village, "intro" on the title and
+## Where he is: "run" in the clearing, "village" in the village, "intro" on the title and
 ## through any story told going in, "freed" as an area is freed.
 var place := "run"
 var _players := {}
@@ -41,7 +41,7 @@ func setup() -> void:
 		_players[layer].play()
 
 
-## How loud each layer should be, 0 to 1, from how thick the horde is around her, whether a giant
+## How loud each layer should be, 0 to 1, from how thick the horde is around him, whether a giant
 ## is standing, and whether the game is paused.
 static func targets(horde_near: int, giant_standing: bool, paused: bool, where := "run") -> Dictionary:
 	if where != "run":
@@ -75,7 +75,7 @@ func _process(delta: float) -> void:
 		return
 	if arena == null:
 		return
-	# Behind the title there's no cat: the horde around her counts as none.
+	# Behind the title there's no cat: the horde around him counts as none.
 	var near := 0
 	if cat != null:
 		for creature in arena.creatures:

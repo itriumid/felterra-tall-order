@@ -1,6 +1,6 @@
 extends TestCase
 ## Weapons: a blade cuts what it sweeps through, paws limit what a cat can hold, and aim modes
-## choose what she goes for.
+## choose what he goes for.
 
 
 func _arena_with(weapon_names: Array) -> Array:
@@ -52,19 +52,19 @@ func test_a_swing_cuts_everything_in_its_arc_once() -> void:
 		arena.step()
 	for rat in rats:
 		check(is_equal_approx(rat.health, 100.0 - knife.damage), "a rat in the arc took %.0f, not one cut" % (100.0 - rat.health))
-	check(behind.health == 100.0, "the swing cut a rat behind her")
+	check(behind.health == 100.0, "the swing cut a rat behind him")
 
 
 func test_two_paws_hold_two_one_handed_weapons_or_one_two_handed() -> void:
 	var cat := Cat.new()
 	cat.wear({"weapons": ["knife", "handgun", "submachine_gun"]})
-	check(cat.weapons.size() == 2, "she holds %d weapons in two paws" % cat.weapons.size())
+	check(cat.weapons.size() == 2, "he holds %d weapons in his mouth and tail" % cat.weapons.size())
 	var two_handed := Weapon.handgun()
 	two_handed.hands = 2
 	var paws := 0
 	for weapon in cat.weapons:
 		paws += weapon.hands
-	check(paws <= Cat.PAWS, "her weapons take %d paws" % paws)
+	check(paws <= Cat.HOLDS, "his weapons take %d holds" % paws)
 
 
 func test_aim_modes_choose_their_targets() -> void:

@@ -34,6 +34,27 @@ static func stream(sound_name: String, variant: int) -> AudioStreamWAV:
 	return _cache[key]
 
 
+## Every variant of every sound, made at once and kept nowhere: the director makes them on a worker
+## thread as the game starts, then keeps them with take(), so no sound is made in the middle of a
+## fight. Each comes out as it would have on its first play: its noise is seeded from its name.
+static func make_all() -> Dictionary:
+	var made := {}
+	for sound_name in NAMES:
+		for variant in VARIANTS:
+			var key := "%s|%d" % [sound_name, variant]
+			var random := RandomNumberGenerator.new()
+			random.seed = hash(key)
+			made[key] = _to_stream(_render(sound_name, random))
+	return made
+
+
+## Keeps sounds made elsewhere, unless one was made meanwhile, on its first play.
+static func take(made: Dictionary) -> void:
+	for key: String in made:
+		if not _cache.has(key):
+			_cache[key] = made[key]
+
+
 static func _render(sound_name: String, random: RandomNumberGenerator) -> PackedFloat32Array:
 	var wobble := random.randf_range(0.94, 1.06)
 	match sound_name:

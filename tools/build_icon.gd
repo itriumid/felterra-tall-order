@@ -1,5 +1,5 @@
 extends SceneTree
-## Draws the game's icon from the cat herself: her face, from the front view's sprite, enlarged by
+## Draws the game's icon from Tompel himself: his face, from the front view's sprite, enlarged by
 ## whole pixels onto a jungle-green tile, so the icon is the same pixel art as the game. Run with:
 ## godot --headless --path . --script tools/build_icon.gd
 ## and commit icon.png; the exports use it.
@@ -9,7 +9,7 @@ const SCALE := 13
 
 
 func _init() -> void:
-	var face := Sprites.image(Sprites.cat_body_art("front", 0, false, true)).get_region(Rect2i(3, 0, 16, 13))
+	var face := Sprites.image(Sprites.coat(Sprites.cat_body_art("front", 0), "tompel", "front")).get_region(Rect2i(4, 2, 16, 13))
 	var icon := Image.create_empty(SIZE, SIZE, false, Image.FORMAT_RGBA8)
 	# A rounded tile: clear at the corners, as icons are shaped.
 	var corner := 40.0

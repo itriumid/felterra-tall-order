@@ -41,9 +41,10 @@ stability.
    ```
 
 3. The **Release** workflow exports every platform with `tools/export.sh`, attaches the builds
-   and their checksums to a **draft** release, checks every build is there, and adds copies
-   without the version in their names, for links that always mean the latest:
+   and their checksums to a **draft** release, and checks every build is there. The builds are
+   named without the version, so a link always means the latest:
    `https://github.com/itriumid/felterra-tall-order/releases/latest/download/FelterraTallOrder_macos_universal.zip`.
+   The version is in the release, in each app's own metadata, and on the game's title screen.
 4. Read the draft. Trim the generated notes to what players would notice (drop changes only to
    Continuous Integration or tooling, and the contributor lists), then **publish it by hand**.
 

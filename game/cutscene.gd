@@ -1,7 +1,8 @@
 class_name Cutscene
 extends RefCounted
 ## A scripted scene: lines written out one after another, each held a moment, while something
-## plays under them (she walks into the village, say). Whoever is watching is always in charge of
+## plays under them (he walks into the village, say). A line is told over the scene, or said by a
+## cat in it, in a bubble over them. Whoever is watching is always in charge of
 ## it: Enter finishes the line being written, or moves on to the next; Escape skips the whole
 ## scene. Lines can move on by themselves, or wait for Enter, as the settings say, so nobody has to
 ## read against a clock.
@@ -13,7 +14,8 @@ extends RefCounted
 const LETTERS := 30.0
 const HOLD := 2.4
 
-## The lines, as {text, voice}: voice is a recording's path, or "".
+## The lines, as {text, voice, by, mood}: voice is a recording's path, or ""; by is who says it, a
+## cat in the scene, or "" for the story told over it; mood is how they say it, for their portrait.
 var lines: Array[Dictionary] = []
 ## Whether lines wait for Enter instead of moving on by themselves.
 var waits := false
@@ -25,10 +27,24 @@ var skipped := false
 var voice_lasts := 0.0
 
 
-func _init(texts: Array[String] = [], lines_wait := false) -> void:
-	for text in texts:
-		lines.append({"text": text, "voice": ""})
+## Lines are text, told over the scene, or {text, by, mood} for a line a cat says.
+func _init(texts: Array = [], lines_wait := false) -> void:
+	for each: Variant in texts:
+		if each is Dictionary:
+			lines.append({"text": each.text, "voice": each.get("voice", ""), "by": each.get("by", ""), "mood": each.get("mood", "neutral")})
+		else:
+			lines.append({"text": str(each), "voice": "", "by": "", "mood": "neutral"})
 	waits = lines_wait
+
+
+## How the line on now is said, for the speaker's portrait: "neutral", "happy", and so on.
+func mood() -> String:
+	return "neutral" if done() else lines[line].mood
+
+
+## Who says the line on now, or "" if it's told over the scene, or nothing's on.
+func speaker() -> String:
+	return "" if done() else lines[line].by
 
 
 ## Done: every line told, or the whole scene skipped.

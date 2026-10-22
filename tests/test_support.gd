@@ -1,5 +1,5 @@
 extends TestCase
-## Support: one drone and one thing she sets down, each on her back until it's needed, each
+## Support: one drone and one thing he sets down, each on his back until it's needed, each
 ## working on its own.
 
 
@@ -9,7 +9,7 @@ func _arena() -> Arena:
 	return arena
 
 
-## A cat carrying one support and nothing in her paws, so only it does anything.
+## A cat carrying one support and nothing in his paws, so only it does anything.
 func _cat(arena: Arena, support_name: String) -> Cat:
 	var cat := arena.add_cat(Arena.SIZE / 2.0)
 	cat.weapons.clear()
@@ -39,7 +39,7 @@ func test_the_drone_stays_docked_with_nothing_to_shoot() -> void:
 	var drone: Support = cat.supports.drone
 	for step in 60:
 		arena.step()
-	check(not drone.deployed and drone.body.position.distance_to(cat.body.position) < 0.01, "the drone left her pack with nothing to shoot")
+	check(not drone.deployed and drone.body.position.distance_to(cat.body.position) < 0.01, "the drone left his pack with nothing to shoot")
 
 
 func test_the_drone_lifts_off_and_fires_down() -> void:
@@ -67,7 +67,7 @@ func test_the_drone_docks_once_its_quiet() -> void:
 	arena.creatures.clear()
 	for step in 60 * 4:
 		arena.step()
-	check(not drone.deployed, "the drone never came back to her pack")
+	check(not drone.deployed, "the drone never came back to his pack")
 
 
 func test_the_cannon_is_set_down_and_stays_put() -> void:
@@ -77,13 +77,13 @@ func test_the_cannon_is_set_down_and_stays_put() -> void:
 	var rat := arena.add_creature(cat.body.position + Vector2(5.0, 0.0))
 	rat.health = 1000.0
 	arena.step()
-	check(cannon.deployed, "something in reach, and the cannon stayed on her back")
+	check(cannon.deployed, "something in reach, and the cannon stayed on his back")
 	var set_at := cannon.body.position
 	cat.steering = Vector2.UP
 	for step in 60:
 		_hold(rat, set_at + Vector2(5.0, 0.0))
 		arena.step()
-	check(cannon.body.position == set_at, "the cannon moved with her")
+	check(cannon.body.position == set_at, "the cannon moved with him")
 	check(arena.shots.any(func(shot: Shot) -> bool: return shot.falls) or rat.health < 1000.0, "the cannon never lobbed a stone")
 
 
@@ -165,13 +165,13 @@ func test_a_giants_boot_sets_a_mine_off() -> void:
 	giant.stomp_ready_in = 100.0
 	arena.step()
 	check(mines.mines.size() == 1, "a giant close, and no mine dropped")
-	# She walks off, and he follows her over where it lies.
+	# He walks off, and he follows him over where it lies.
 	cat.steering = Vector2.LEFT
 	for step in 60 * 6:
 		arena.step()
 		if giant.health < giant.most_health:
 			break
-	check(giant.health < giant.most_health, "he walked over her mines and none went off")
+	check(giant.health < giant.most_health, "he walked over his mines and none went off")
 
 
 func test_levels_make_support_hit_harder() -> void:
@@ -195,7 +195,7 @@ func test_the_alarm_drum_is_beaten_when_the_horde_crowds_her_and_throws_it_back(
 			_hold(rats[index], cat.body.position + Vector2.from_angle(index * TAU / Support.DRUM_CROWD) * 1.0)
 		arena.step()
 		steps += 1
-	check(drum.deployed and drum.beats > 0, "the drum was never beaten with the horde round her")
+	check(drum.deployed and drum.beats > 0, "the drum was never beaten with the horde round him")
 	arena.step()
 	check(rats.all(func(rat: Creature) -> bool: return rat.body.velocity.dot(rat.body.position - drum.body.position) > 0.0 or not rat.alive()), "a beat didn't throw the horde back")
 	for step in 60 * 6:
