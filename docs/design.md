@@ -14,8 +14,22 @@ their forest and moved in with its machines, and doesn't see cats as people at a
 games, but this story stands on its own: nothing here depends on another game's events.
 
 The present day. Cats are a modern people, with their own technology at cat scale. Humans exist
-too, and to humans, cats are animals: pests, if anything. A human company buys the forest a
-community of cats lives in, and moves in to clear it.
+too, and to humans, cats are animals: pests, if anything. A human company has moved into the
+forest a community of cats lives in, and is clearing it.
+
+**The cats don't know that at first.** Finding out is the story, told area by area in
+Liberation: rats where there never were any and a smell of oil in the stream; deeper in, stumps,
+ruts and cages, and a giant with a whistle; then the sawpits, and the sign over the gate. It was
+always humans.
+
+**The company** is **PT Makmur Bakti Gemilang**, which the cats call **Makmur Bakar**:
+MBG. It clears the forest as the "official partner" of the **Food Land Acceleration Agency**,
+which has stamped the cats' forest on its maps as *lahan tidur*, idle land, to be cleared for the
+nation's food. Its site boards say *Lahan Tidur Jadi Makmur* beside *Building a Greener
+Tomorrow!*, and the finale is an official flying in to cut a ribbon on what's left. It's satire of
+deforestation, the peat fires and the way land gets cleared there, and every name in it is made
+up: no real ministry, agency or person is named, the system is the joke rather than anyone in
+it, and the meal program's purpose (feeding children) is never mocked.
 
 The cats can't out-muscle a giant. What they can do is be **underfoot**: in the way, beneath
 notice, at ankle height where a giant can't easily reach. The fight is to make the giants take
@@ -160,6 +174,31 @@ on: fire and oil, or crewmates who can be downed.
   and the story's opening have their own, mellower still (72 beats a minute): a lone suling, the
   bamboo flute, over a soft pad and a gong, crossfading into the village's as she arrives.
 - A run lasts **15 to 30 minutes**. Progress carries over between runs.
+- **Two modes.** **Liberation** is the story: the forest freed area by area (below). **Endless**
+  is the score chase: a fresh, generated clearing every run, everything coming at once and
+  growing until she's down; the best run is Endless's. Co-op is for Endless only: Liberation
+  moves one village's story, so it's solo, but nothing in it assumes one cat, so a "help a friend"
+  co-op Liberation stays possible later.
+- **Liberation** is chosen at the map board by the village's gate: an area found so far, or
+  Endless. Each area is a fixed, hand-made place and one run: push in through what holds it, do
+  what only that place asks, then its boss comes; beat it and the area is free, and the next one
+  opens. Held by the company, an area is wrecked (stumps, felled trunks, ruts, oil, litter,
+  smoldering peat, fewer trees standing at its edge); freed, it's healed (grassed over, saplings,
+  flowers, clear water), and stays healed on every run after. The first time she goes into an
+  area its story is told going in, to the opening's mellow music; the first time it's freed, the
+  healed ground spreads out from where its boss fell while the story goes on, to music of its
+  own. Losing still brings home what she carried; the area stays the company's. The first time
+  each is freed brings the village salvage, and some areas free cats who come home.
+
+  | Area | Goal | Boss |
+  |---|---|---|
+  | The village's edge | Break the three rat nests | The Rat Baron, a rat as big as a dog that calls rats in |
+  | The deep forest | Free the four caged | The Handler, who keeps his distance and whistles his dogs in |
+  | The sawpits | Wreck the three saws | The feller buncher |
+  | The logged clearing | Hold it for three minutes | The log loader, throwing logs where she stands |
+  | The log slide | Pull the three levers, and the logs roll down over everything | The logging truck: it charges, stalls with its tank open, and tips over when wrecked |
+  | The company's offices | Cut the power: three generators | The bulldozer, whose engine at the back is the only weak point |
+  | The airstrip | Cut the three fuel lines | The helicopter, out of reach until it lands to unload |
 - **Endless mode**: the giants never stop coming; factions arrive and start to mix.
 - **The hub is the cats' village** at the forest's edge. It grows between runs: rescued cats
   join, the smith forges better gear. That growth is the progress that carries over, and it's

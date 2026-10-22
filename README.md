@@ -4,7 +4,9 @@ A crew of cats against giants. A human company has bought the forest they live i
 with its machines, and to the humans, cats are pests. We're making them take cats seriously.
 
 An auto-shooter roguelike set in the Nusantara seas of Felterra, a world of cats. Hand-drawn
-pixel art, honest physics, and cooperative play for one to four, online or on one screen.
+pixel art, honest physics, and two ways to play: **Liberation**, the story, freeing the forest
+area by area from the company clearing it; and **Endless**, a fresh clearing every run, where
+cooperative play for one to four lives.
 
 It's at the very beginning: the design is in [`docs/design.md`](docs/design.md), and what runs
 so far is a prototype, from the title to the end of a run: one cat with a knife or a handgun,
