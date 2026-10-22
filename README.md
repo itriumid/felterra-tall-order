@@ -3,17 +3,18 @@
 A crew of cats against giants. A human company has bought the forest they live in and moved in
 with its machines, and to the humans, cats are pests. We're making them take cats seriously.
 
-An auto-shooter roguelike set in the Nusantara seas of Felterra, a world of cats. Hand-drawn
-pixel art, honest physics, and two ways to play: **Liberation**, the story, freeing the forest
-area by area from the company clearing it; and **Endless**, a fresh clearing every run, where
-cooperative play for one to four lives.
+An auto-shooter roguelike set in the Nusantara seas of Felterra, a world of cats. Pixel art,
+honest physics, and two ways to play: **Liberation**, the story, freeing the forest area by area
+from the company clearing it; and **Endless**, a fresh clearing every run, where cooperative play
+for one to four lives. More about it, and the downloads, on
+[itrium.id/tall-order](https://itrium.id/tall-order).
 
-It's at the very beginning: the design is in [`docs/design.md`](docs/design.md), and what runs
-so far is a prototype, from the title to the end of a run: Tompel, a cat on four legs with a nunchaku
-or a handgun in his mouth (and later a second weapon in his tail),
-level-up cards, gear, evolving weapons, dodge mutations taught by the cats he frees, and support
-(drones, a bamboo cannon, mines, a bee swarm and more), a village the story brings back from ruin, synthesized sound and adaptive music, a logged clearing, a horde of rats, packs of guard dogs, chainsaw workers and the first boss, a feller buncher,
-coming out of the jungle, the light under the canopy, and gear you can try on.
+It's a work in progress, built in the open: the design is in [`docs/design.md`](docs/design.md),
+and everything in the game, built or planned, is in [`docs/catalog.md`](docs/catalog.md). What
+runs so far: Tompel, a cat on four legs with a weapon in his mouth and another in his tail; seven
+areas to free, each with its own goal and boss; a village the story brings back from ruin, and
+the cast who live there, with portraits; level-up cards, gear, evolving weapons, dodge mutations
+and support; Endless; and synthesized sound and music.
 
 ## Download
 
@@ -27,6 +28,25 @@ The builds aren't signed by a publisher Windows or macOS knows yet, so each warn
 - **macOS:** it says the app can't be checked for malicious software. Open **System Settings →
   Privacy & Security**, find Felterra Tall Order near the bottom, and choose **Open Anyway**.
 - **Linux:** if it won't start, make it executable: `chmod +x felterra_tall_order.x86_64`.
+
+## Free, and how it will pay for itself
+
+Tall Order is free to download and play, with no advertisements and nothing that tracks you. We
+haven't worked out yet how it can pay its own way. Whatever we choose, we'll say so plainly
+before it happens, and the game you can download stays free.
+
+## How the art is made, for now
+
+For now, the game's pixel art, sounds and music are made with AI tools. They're placeholders: a
+way to build and test a whole game before there's money to pay anyone for it. Once Tall Order
+earns enough, we want real artists and musicians to replace them, piece by piece, and to credit
+them by name.
+
+## Make it with us
+
+If you draw pixel art, make sound or music, or build games, and Tall Order is something you'd
+like to work on, write to us at [hello@itrium.id](mailto:hello@itrium.id). We'd love to hear from
+you.
 
 ## Controls
 
