@@ -224,7 +224,8 @@ func _draw_shadow(thing: Variant) -> void:
 		if not cage.opened:
 			draw_rect(Rect2(World.to_screen(cage.body.position) + Vector2(-12, -1), Vector2(24, 3)), Palette.GROUND_SHADOW)
 		return
-	var body: Body = thing.body if thing is Cat or thing is Creature or thing is Support or thing is Structure else thing
+	# Anything with a body casts a shadow from it: a cat, a creature, salvage, a structure.
+	var body: Body = thing if thing is Body else thing.body
 	# A pixel ellipse on the ground, narrower the higher the body is.
 	var width := roundi(body.radius * 2.0 * World.PIXELS_PER_METER * clampf(1.0 - body.height, 0.5, 1.0))
 	var center := World.to_screen(body.position)

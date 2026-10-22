@@ -21,6 +21,8 @@ const STEPS := [
 	["to_home", ""],
 	# Out along the path to the first area: its story told going in, skipped, then a run.
 	["leave_village", "", {"_place": "run", "_briefing": true}], ["pause", "", {"_briefing": false}], ["pick_1", ""],
+	# Salvage thrown out around her, drawn as it flies and lands.
+	["drop_salvage", ""],
 	["pause", "pause"], ["menu_choose", ""],
 	["pause", "pause"], ["move_down", "pause"], ["menu_choose", "settings"], ["move_down", "settings"],
 	["move_right", "settings"], ["pause", "pause"], ["pause", ""],
@@ -92,6 +94,8 @@ func _process(_delta: float) -> bool:
 			_main.village.cloth = 50
 			for index in 6:
 				_main.village.cats.append({"name": Cage.NAMES[index], "coat": "gray"})
+		elif action == "drop_salvage":
+			_main.arena.drop_salvage(_main.cat.body.position + Vector2(1.5, 0.0), 6)
 		elif action == "free_area":
 			# The area's goal done and its boss down.
 			_main.arena.goal_done = true
