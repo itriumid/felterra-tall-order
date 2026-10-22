@@ -926,10 +926,10 @@ const DOG_FEET := Vector2(12, 19)
 const DOG_LIFT: Array[int] = [0, 0, 2, 0]
 
 
-## Jogi, the village's dog: ginger, short-coated, with the white blaze down his face and chest,
-## white socks, ears that stand up tall, and the dark, sad eyes everyone remembers. His blue collar
-## has keys on it, and his flank shows the shaved marks his owner cut into his fur. He walks on the
-## guard dogs' legs, in his own colors.
+## Jogiboy: ginger, short-coated, with the white blaze down his face and chest, white socks, ears
+## that stand up tall, and the dark, sad eyes everyone remembers. His blue collar has keys on it,
+## and his flank shows the marks shaved into his fur, worn like a tattoo. He walks on the guard
+## dogs' legs, in his own colors.
 const JOGI_UPPER := """
 ...................k...k....
 ..................kyk.kyk...
@@ -949,7 +949,7 @@ kk..kyyyyyyyyyyyyVVVOWWWk...
 const JOGI_FEET := Vector2(12, 19)
 
 
-## A frame of Jogi's walk: his own upper body, on the dogs' legs, ginger above and white below.
+## A frame of Jogiboy's walk: his own upper body, on the dogs' legs, ginger above and white below.
 static func jogi_art(frame: int) -> String:
 	var legs := (DOG_LEGS[frame % 4] as String).strip_edges().split("\n")
 	for y in legs.size():

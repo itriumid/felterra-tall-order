@@ -17,7 +17,7 @@ const PATH_BOTTOM := 6.4
 ## Where he stands on the title, on the forest path, and where he walks in to, in the village.
 const TITLE_SPOT := Vector2(5.0, 5.0)
 const HOME_SPOT := Vector2(19.0, 5.2)
-## Where the elder meets him, the first time he walks in: just inside the village.
+## Where the Elder meets him, the first time he walks in: just inside the village.
 const MEETING_SPOT := Vector2(14.6, 5.0)
 ## The exit: walking out through the gate, on the path, starts a run: he's seen off, and walks on
 ## off the village's right edge, into the forest. Off the path, the edge is trees. Coming home
@@ -39,12 +39,12 @@ const DOOR_REACH := 0.7
 const STROLL_SPEED := 1.4
 const WALK_IN_SPEED := Cat.SPEED
 const AMBLE_SPEED := 0.7
-## Where the elder keeps, before the longhouse; where he stands to see him off, at the gate; and
+## Where the Elder keeps, before the longhouse; where he stands to see him off, at the gate; and
 ## how far from him he stops when he walks out to meet him.
 const ELDER_SPOT := Vector2(18.0, 3.3)
 const ELDER_AT_THE_GATE := Vector2(34.6, 3.3)
 const ELDER_MEETS := 1.0
-## How far behind Tompel Jogi keeps, and how fast he trots to catch up.
+## How far behind Tompel Jogiboy keeps, and how fast he trots to catch up.
 const JOGI_HEEL := 0.9
 const JOGI_SPEED := 3.0
 ## How far from his spot he lets Tompel get before setting off, and how close he comes to settle.
@@ -61,7 +61,7 @@ const JOGI_SNIFF_TIME := 0.9
 const JOGI_DIG_TIME := 1.8
 ## How far outside a wall something pushed out of it ends up, in meters.
 const EDGE_GAP := 0.001
-## The buildings, by name: his home, the elder's longhouse, the smithy, the huts, and the
+## The buildings, by name: his home, the Elder's longhouse, the smithy, the huts, and the
 ## watchtower, the market and the healer's hut. Each is a ruin until
 ## it's restored, and stays solid either way: a ruin is still in the way.
 const LONGHOUSE := Rect2(15.5, 1.3, 5.0, 1.6)
@@ -82,13 +82,14 @@ const HUTS: Array[Rect2] = [
 ]
 
 var cat := Cat.new()
-## The elder, who has always been here, ruin or no ruin: gray, in his batik headcloth. He keeps by
+## The Elder, who has always been here, ruin or no ruin: gray, in his batik headcloth. He keeps by
 ## the longhouse, walks out to meet him when there's something to say, and comes to the gate to see
 ## him off. Where he's walking to, or nowhere (INF).
 var elder := Cat.new()
 var elder_to := Vector2.INF
-## Jogi, the elder's dog, who follows Tompel everywhere he goes in the village: everyone's welcome
-## here, a dog included. He trots after him, and sits by him when he stops.
+## Jogiboy, who lives next door to the Elder and has decided Tompel is his friend: in Felterra
+## everyone is equal, a dog as much as anyone. He goes everywhere Tompel goes in the village,
+## trotting after him, and stands by him when he stops.
 var jogi := Cat.new()
 var _jogi_trotting := false
 ## What Jogiboy's playing at ("" for nothing: following Tompel), and whether he's digging now; how
@@ -196,7 +197,7 @@ func see_off() -> void:
 	walk_to(OFF_INTO_THE_FOREST)
 
 
-## The elder walks out to meet him where he's going, stopping a step short of it and facing him.
+## The Elder walks out to meet him where he's going, stopping a step short of it and facing him.
 func elder_meets(spot: Vector2) -> void:
 	elder_to = spot + (ELDER_SPOT - spot).normalized() * ELDER_MEETS
 
@@ -217,7 +218,7 @@ func let_go() -> void:
 	_staying.clear()
 
 
-## The elder goes back to his place by the longhouse.
+## The Elder goes back to his place by the longhouse.
 func elder_home() -> void:
 	elder_to = ELDER_SPOT
 
@@ -239,7 +240,7 @@ func heading_out() -> bool:
 	return at.x >= EXIT_FROM - GATHER_FROM and at.y > PATH_TOP - 1.0 and at.y < PATH_BOTTOM + 1.0
 
 
-## The villagers make for the gate, a place each along the path, and the elder to the front.
+## The villagers make for the gate, a place each along the path, and the Elder to the front.
 func _gather() -> void:
 	gathering = true
 	elder_to = ELDER_AT_THE_GATE
@@ -298,7 +299,7 @@ func step(delta: float) -> void:
 			_move(villager, toward.normalized() * (TROT_SPEED if gathering else AMBLE_SPEED), delta)
 
 
-## The elder walks where he's going, at a trot to the gate and an old cat's pace otherwise; there,
+## The Elder walks where he's going, at a trot to the gate and an old cat's pace otherwise; there,
 ## he turns to him.
 func _step_elder(delta: float) -> void:
 	var toward := (elder_to - elder.body.position) if elder_to.is_finite() else Vector2.ZERO

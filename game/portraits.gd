@@ -5,7 +5,7 @@ extends RefCounted
 ## never scaled, in the same pixels as everything else.
 ##
 ## Every cat is the one bust, drawn once for each mood (its eyes, brows and mouth), in their own
-## coat, with their own touches laid over it: the elder's headcloth and white brows, Nenek Pus's
+## coat, with their own touches laid over it: the Elder's headcloth and white brows, Nenek Pus's
 ## glasses and shawl, Tompel's black crown and the mole by his nose. Jogiboy has a bust of his own.
 
 ## The moods a line can be said in.
@@ -701,7 +701,7 @@ const TOUCHES := {
 ........................................
 """,
 }
-## Jogiboy, the elder's dog: his own bust, with his tongue out when he's happy.
+## Jogiboy: his own bust, with his tongue out when he's happy.
 const JOGIBOY := {
 	"neutral": """
 ........k......................k........

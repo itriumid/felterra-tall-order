@@ -185,7 +185,7 @@ level gives. Every piece is forged at the smithy before the cards can offer it.
 Up to three a run, each changing what the dodge does. Another card for one he has strengthens
 it. What the dodge deals grows with damage from his gear, the same as his weapons. None is in the
 cards at first: each is taught by a cat, when an area is freed. The village's edge teaches rolling
-slash and land on your feet (the elder); the deep forest, pounce and riposte (Nenek Pus); the
+slash and land on your feet (the Elder); the deep forest, pounce and riposte (Nenek Pus); the
 sawpits, the ankle cutter and caltrops (Si Belang); the logged clearing, the long leap and the dust
 cloud (Jingga); the log slide, more charges and slipstream (Kopi and Susu); the offices, lick your
 wounds and the scent trail (Nenek Pus again); and the airstrip, the chain roll (Datuk).
@@ -238,7 +238,7 @@ home with the first cat he rescues, the rest with an area freed. Each opens what
 | **Home** | Built | His, the first house in from the forest. Fixed up by the first cat he rescues, as a thank-you. His pack: what the cards can offer, what's left home, and the piece worn from the start |
 | **Smithy** | Built | Pak Besi's, back with the village's edge freed. The smith forges weapons, gear and support into the cards |
 | **Huts** | Built | Five, each home to two rescued cats, who weave cloth while he's away. The first is the weaver's, Nenek Pus's, back with the deep forest freed, who sells looks; the rest the rescued cats build themselves, at 3, 5, 7 and 9 of them |
-| **Longhouse** | Built | Rebuilt by Si Belang, the carpenter, back with the sawpits freed. The elder's: a run can start with any weapon the smith has forged, and the book of stories keeps the story so far |
+| **Longhouse** | Built | Rebuilt by Si Belang, the carpenter, back with the sawpits freed. The Elder's: a run can start with any weapon the smith has forged, and the book of stories keeps the story so far |
 | **Map board** | Built | At the gate, never a ruin: the forest carved on a board and drawn as a map, each area wrecked, freed or under mist, where he chooses the next run, or Endless |
 | **Well** | Idea | Water for the village; a place the cats gather and talk |
 | **Watchtower** | Built | Jingga's, by the gate, back with the logged clearing freed: the map board shows each area's boss, and how to beat it |

@@ -48,7 +48,7 @@ const LIST: Array[Dictionary] = [
 			"And under the Rat Baron's nest, a cage: Pak Besi, the smith, his hammer taken.",
 		],
 		"send_off": [
-			"The elder walks you to the gate.",
+			"The Elder walks you to the gate.",
 			{"by": "elder", "text": "Just past the last huts. Look, and come home."},
 		],
 		"again": ["The nests are still broken. Only the Rat Baron is left."],

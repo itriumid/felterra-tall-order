@@ -16,8 +16,8 @@ const STORY_LINES := 5
 const BOOK_LINES := 8
 ## How wide a speech bubble's lines run, and what each speaker is called over their words.
 const BUBBLE_WIDTH := 170.0
-const SPEAKER_NAMES := {"elder": "The elder", "jogiboy": "Jogiboy", "tompel": "Tompel"}
-## The elder's dog, as everyone called him.
+const SPEAKER_NAMES := {"elder": "The Elder", "jogiboy": "Jogiboy", "tompel": "Tompel"}
+## Jogiboy, as everyone called him.
 const JOGI := "Jogiboy"
 const AIM_NAMES := {"nearest": "Nearest", "toughest": "Toughest", "crowd": "Crowd"}
 
@@ -213,7 +213,10 @@ func _draw_village() -> void:
 		var width := InterfaceArt.key_line_width(keys)
 		InterfaceArt.key_line(self, Vector2(floorf((screen.x - width) / 2.0), screen.y - 24), keys)
 	var tompel := village_map.cat.body.position
-	if village_map.jogi.body.position.distance_to(tompel) <= 1.6 and not cutscene:
+	# Jogiboy is always by Tompel, so his name shows only when Tompel turns to him or walks up to
+	# him: when he's in front of him, not trotting along behind.
+	var to_jogiboy := village_map.jogi.body.position - tompel
+	if to_jogiboy.length() <= 1.6 and to_jogiboy.normalized().dot(village_map.cat.facing) > 0.3 and not cutscene:
 		_name_over(village_map.jogi.body.position, Sprites.JOGI_FEET.y, JOGI)
 	if village_map.elder.body.position.distance_to(tompel) <= 1.6:
 		_name_over(village_map.elder.body.position, Sprites.CAT_FEET.y - 3, SPEAKER_NAMES.elder)

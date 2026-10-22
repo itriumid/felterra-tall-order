@@ -8,7 +8,7 @@ extends RefCounted
 ## The village comes back as the story goes: nothing is restored with salvage. His own home is a
 ## ruin like the rest until the first cat he rescues fixes it up, as a thank-you; every other
 ## building comes back with an area freed. Each opens what it holds: his home is where he packs,
-## the smithy forges, the longhouse's elder lets a run start with anything forged and keeps the
+## the smithy forges, the Elder at the longhouse lets a run start with anything forged and keeps the
 ## book of stories, and every hut houses two cats, who weave cloth while he's away. The first hut
 ## is the weaver's, and sells looks for cloth.
 ##

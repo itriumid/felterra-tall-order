@@ -42,7 +42,7 @@ const PAGES := {
 	"village_pause": ["carry_on", "settings", "title", "leave"],
 	"summary": ["home", "go_again", "leave"],
 }
-## The story's opening, told once, as he walks into the village the first time, and the elder
+## The story's opening, told once, as he walks into the village the first time, and the Elder
 ## walks out to meet him. Nobody knows yet what's wrong; finding out is the story.
 const INTRO: Array = [
 	"This forest has been ours for as long as anyone remembers.",
@@ -52,7 +52,8 @@ const INTRO: Array = [
 	{"by": "elder", "mood": "sad", "text": "Cats have gone out foraging and never come home."},
 	{"by": "elder", "mood": "worried", "text": "Something is wrong out there. Someone has to go and look."},
 	{"by": "tompel", "mood": "determined", "text": "Then I'll go and look."},
-	{"by": "elder", "mood": "happy", "text": "And that's Jogiboy. He's mine, on paper. He'll follow you around anyway."},
+	{"by": "elder", "mood": "happy", "text": "And this is Jogiboy. He lives next door to me, and he's decided you're his friend."},
+	{"by": "jogiboy", "mood": "happy", "text": "I'll look after the village while you're out. I'm good at finding things."},
 	{"by": "elder", "text": "The gate's that way, past the board. Start at the edge, past the last huts."},
 ]
 ## How far he walks into a run before it starts, in meters.
@@ -477,7 +478,7 @@ func _show_layer(village_showing: bool) -> void:
 		_overlay.cutscene = false
 
 
-## He walks into the village, a cutscene: from the forest path, the first time with the elder
+## He walks into the village, a cutscene: from the forest path, the first time with the Elder
 ## out to meet him and the story's opening told as he goes; or home from a run, with whatever
 ## has happened since told on the way in: what an area freed teaches him, from the cat who
 ## teaches it, and what's been restored. Whoever has something to say comes over to say it. Then
@@ -487,7 +488,7 @@ func _arrive(from_the_forest: bool) -> void:
 	var telling := from_the_forest and (not village.intro_seen or _force_intro)
 	var spot := VillageMap.HOME_SPOT if from_the_forest else VillageMap.RETURN_SPOT
 	if telling:
-		# The elder comes out to meet him where he walks into the village.
+		# The Elder comes out to meet him where he walks into the village.
 		spot = VillageMap.MEETING_SPOT
 	var lines: Array = []
 	_news.clear()
@@ -653,7 +654,7 @@ func _door_prompt(building: String) -> String:
 		"home": return "Your home: pack what you take"
 		"smithy": return "The smithy: forge"
 		"hut_0": return "The weaver's hut: looks"
-		"longhouse": return "The elder's longhouse: the book of stories"
+		"longhouse": return "The Elder's longhouse: the book of stories"
 		"watchtower": return "Jingga's watchtower: she tells you what's out there, on the board"
 		"market": return "Kopi and Susu's market: trade"
 		"healer": return "Bu Jamu's hut: a tonic for the next run"
@@ -672,7 +673,7 @@ func _building_name(building: String) -> String:
 	return "a hut"
 
 
-## Enter at a door: a restored building is used (his pack, the smith's forge, the elder's book,
+## Enter at a door: a restored building is used (his pack, the smith's forge, the Elder's book,
 ## the weaver's looks); a ruin waits for the story to bring it back.
 func _use(building: String) -> void:
 	if building != "board" and not village.is_restored(building):
@@ -809,9 +810,9 @@ static func _sentence(text: String) -> String:
 	return text.left(1).to_upper() + text.substr(1)
 
 
-## Who said something, as the story writes them: the elder, or a villager by name.
+## Who said something, as the story writes them: the Elder, or a villager by name.
 func _speaker_name(who: String) -> String:
-	return "the elder" if who == "elder" else who
+	return "the Elder" if who == "elder" else who
 
 
 ## The story so far, as the book at the longhouse keeps it: the opening, then each area's going in

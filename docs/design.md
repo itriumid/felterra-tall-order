@@ -169,10 +169,10 @@ on: fire and oil, or crewmates who can be downed.
 
 - **The flow lives in the village.** The title is short, over the forest path to the village:
   Play, Settings and Leave. Play makes the menu fall away, and he walks into the village, a
-  cutscene; the first time, the elder walks out to meet him where the village starts, and the
-  story's opening is told over the walk, the elder's part in his own words (what's wrong, what
+  cutscene; the first time, the Elder walks out to meet him where the village starts, and the
+  story's opening is told over the walk, the Elder's part in his own words (what's wrong, what
   needs doing). From the village, walking out through the gate is seen off: the villagers come to
-  the gate as he heads for it, the elder at the front, and line the path while he walks on into
+  the gate as he heads for it, the Elder at the front, and line the path while he walks on into
   the forest. The first time he leaves for an area, someone has a word for him on the way; any
   other time he just goes, at his own pace. He walks into every run the same way, from the way
   he came, the world held still until he's in: slowly enough for the area's story to be told
@@ -194,12 +194,12 @@ on: fire and oil, or crewmates who can be downed.
   of the screen beside their portrait: a bigger, more detailed bust, in the mood of the line
   (neutral, happy, sad, surprised, determined or worried), the same pixels as everything else,
   only more of them. Each cat is the one bust in their own coat with their own touches: the
-  elder's headcloth and white brows, Nenek Pus's glasses and shawl, Tompel's crown and mole.
+  Elder's headcloth and white brows, Nenek Pus's glasses and shawl, Tompel's crown and mole.
 - **The cast**, one freed in each area, each bringing back what their trade needs:
 
   | Who | Freed in | Brings back | Teaches |
   |---|---|---|---|
-  | The elder | (always home) | | Rolling slash, land on your feet |
+  | The Elder | (always home) | | Rolling slash, land on your feet |
   | Pak Besi, the smith | The village's edge | The smithy, and he fixes Tompel's roof | |
   | Nenek Pus, the weaver | The deep forest | The weaver's hut | Pounce, riposte |
   | Si Belang, the carpenter | The sawpits | The longhouse | Ankle cutter, caltrops |
@@ -209,12 +209,13 @@ on: fire and oil, or crewmates who can be downed.
   | Datuk, the ferryman | The airstrip | | Chain roll |
 
   The huts the rescued cats build themselves, as their number grows.
-- **Jogiboy**, the elder's dog, lives in the village and follows Tompel everywhere, the way a
-  friend once took him out to play: ginger, with a white blaze, white socks, tall ears, sad eyes,
-  and a blue collar with keys on it. He's the village's finder: each time Tompel walks home he has
-  dug up a little salvage for him, and on the map board he sniffs out how many caged cats each
-  area holds. He never comes on a run, and nothing ever hurts him. He's here in memory of a
-  friend's dog.
+- **Jogiboy** is a villager in his own right: in Felterra everyone is equal, and he's nobody's
+  pet. He lives next door to the Elder, has decided Tompel is his friend, and goes everywhere he
+  goes, the way a friend once took him out to play: ginger, with a white blaze, white socks, tall
+  ears, sad eyes, and a blue collar with keys on it. He speaks for himself, with his own portrait.
+  Finding things is his trade: each time Tompel walks home he has dug up a little salvage for him,
+  and on the map board he sniffs out how many caged cats each area holds. He never comes on a run,
+  and nothing ever hurts him. He's here in memory of a dog a friend loved.
 - **Who's talking is shown, not said.** Someone without a portrait says a line in a speech bubble
   over them, their name at its top and its tail pointing down at them; a line of the story itself
   is written across the top of the screen. In a fight, the same bubbles carry what freed cats say,
@@ -274,7 +275,7 @@ on: fire and oil, or crewmates who can be downed.
     out to the clearing on its far side. The cats he's rescued live there, each in its own
     coat, and show their names as he passes.
   - **It starts in ruins.** The company's machines have already been through: his own home, the
-    elder's longhouse, the smithy and five huts all stand wrecked, holed, scorched and
+    Elder's longhouse, the smithy and five huts all stand wrecked, holed, scorched and
     half-roofed. Restored, the village is bright and lived-in: walls painted in reds, teal,
     yellow and pink, trimmed in cream; bunting under every eave; flowers in the grass; the
     longhouse's painted band and its umbul-umbul, the tall flags on bamboo poles, at the way in.
