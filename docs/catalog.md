@@ -33,6 +33,7 @@ workers are giants.
 | **Worker** | Built | A mini-boss: slow, heavy, stomps (the boot's shadow is the warning). Felled, he topples and crushes what he lands on |
 | **Chainsaw worker** | Built | The first elite: revs (the arc on the ground is the warning), then sweeps the saw at shin height, cutting his own horde too |
 | **Lantern worker** | Planned | A dropped lantern is a fire |
+| **Handler** | Built | The deep forest's boss: keeps his distance, and whistles a pack of dogs in every few seconds |
 | **Foreman** | Idea | Stays back with a megaphone; while he shouts, the workers near him hurry |
 | **Fumigator** | Idea | Sprays smoke for the pests: it hides what's in it, and makes her cough |
 | **Tree climber** | Idea | In spikes and a harness, up a trunk: drops what he cuts on whatever is below |
@@ -43,13 +44,32 @@ Machines.
 
 | Name | Status | What it does |
 |---|---|---|
+| **Rat Baron** | Built | The village's edge: a rat as big as a dog, a bottle cap for a crown, calling rats in around it |
+| **Log loader** | Built | The logged clearing: lifts a log overhead and throws it where she stands, its shadow the warning; reaching back to its pile, its grapple's joint is open |
 | **Feller buncher** | Built | Grabs and cuts trees in one bite. Crawls on its tracks, crushing the horde while they turn; swings its boom out over her (the head's shadow is the warning), and bites. After a bite the head sits on the ground, its hydraulic joint exposed for double damage; its steel shrugs off most of a hit elsewhere. Five minutes in |
-| **Bulldozer** | Planned | |
+| **Bulldozer** | Built | The company's offices: raises its blade, then rams forward, shoving everything in front of it. Its engine at the back is the weak point: get behind it |
 | **Excavator** | Planned | |
-| **Logging truck** | Planned | One you can tip over |
-| **Helicopter** | Planned | At the end: something giant a cat can't even reach |
+| **Logging truck** | Built | The log slide: revs, sounds its horn, then charges down a line; stalled, its fuel tank is open. Wrecked, it tips over |
+| **Helicopter** | Built | The airstrip: out of reach in the air, strafing lines marked on the ground; it lands to unload workers, and only then can blades reach it, its tail rotor open |
 | **Wood chipper** | Idea | Pulls in what's near its chute, his own horde too; feeding it a giant's lost boot jams it |
 | **Skidder** | Idea | Drags logs across the clearing on a chain: a sweeping wall to get out of the way of |
+
+## Areas
+
+Liberation, the story: the forest freed area by area, each one run with a goal and a boss.
+Endless is the other mode: a fresh clearing every run, the horde growing until she's down.
+
+| Name | Status | What it holds |
+|---|---|---|
+| **The village's edge** | Built | Break the nests; the Rat Baron |
+| **The deep forest** | Built | Free the caged; the Handler |
+| **The sawpits** | Built | Wreck the saws; the feller buncher. The company's sign over the gate |
+| **The logged clearing** | Built | Hold the clearing for three minutes; the log loader |
+| **The log slide** | Built | Pull the levers and let the logs roll; the logging truck |
+| **The company's offices** | Built | Cut the power; the bulldozer |
+| **The airstrip** | Built | Cut the fuel lines; the helicopter |
+| **Endless** | Built | A fresh clearing every run; co-op lives here |
+| **The river** | Idea | Beyond the log slide: the barges that take the wood away |
 
 ## Weapons
 
@@ -192,6 +212,7 @@ help, and opens what it holds.
 | **Smithy** | Built | The smith forges gear and support into the cards, and a forged piece to wear from the start |
 | **Huts** | Built | Six, each home to two rescued cats, who weave cloth while she's away. The first is the weaver's, who sells looks |
 | **Longhouse** | Built | The elder's: a run can start with any weapon the smith has forged |
+| **Map board** | Built | At the gate, never a ruin: the forest carved on a board, where she chooses the next run, an area found so far or Endless |
 | **Well** | Idea | Water for the village; a place the cats gather and talk |
 | **Watchtower** | Idea | A look over the forest: shows what the next run holds |
 | **Healer's hut** | Idea | Jamu brewed between runs |

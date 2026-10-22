@@ -14,7 +14,13 @@ enum State { WALKING, WINDING, FALLING, FALLEN, REVVING, SWEEPING }
 const KINDS := {
 	"worker": {"health": 60.0, "speed": 1.1, "worth": 15},
 	"chainsaw": {"health": 90.0, "speed": 0.9, "worth": 30},
+	# The handler: the deep forest's boss. He keeps his distance and whistles his dogs in.
+	"handler": {"health": 150.0, "speed": 1.0, "worth": 40},
 }
+## The handler: how far off he keeps, how often he whistles, and how many dogs come to it.
+const HANDLER_DISTANCE := 5.0
+const WHISTLE_INTERVAL := 9.0
+const WHISTLE_PACK := 3
 ## The chainsaw's sweep: how far it reaches, how high off the ground it cuts (his shins: a cat
 ## leaping clears it), the arc it cuts, the rev before it (the warning), how long the cut takes,
 ## how often he can, and what it does to a cat.
@@ -76,6 +82,7 @@ var fallen_for := 0.0
 var _last_knock := Vector2.RIGHT
 ## Poison and fire on him, as {dps, left, by}: he takes them as the horde does.
 var afflictions := {}
+var whistle_in := 3.0
 ## Where he walks when there's no cat to go after, or nowhere (INF).
 var wander_to := Vector2.INF
 
@@ -139,6 +146,9 @@ func _walk(delta: float, arena: Arena) -> void:
 		return
 	var toward := prey.body.position - body.position
 	facing = toward.normalized()
+	if kind == "handler":
+		_handle(delta, toward, arena)
+		return
 	if has_chainsaw():
 		if toward.length() <= SAW_REACH * 0.85 and stomp_ready_in <= 0.0:
 			# He commits to the way she is now; the rev is her warning to be elsewhere.
@@ -159,6 +169,18 @@ func _walk(delta: float, arena: Arena) -> void:
 		body.velocity = Vector2.ZERO
 		return
 	body.velocity = facing * speed if toward.length() > STOMP_REACH * 0.6 else Vector2.ZERO
+
+
+## The handler keeps off at his distance, backing away if she comes close, and whistles a pack in.
+func _handle(delta: float, toward: Vector2, arena: Arena) -> void:
+	var gap := toward.length() - HANDLER_DISTANCE
+	body.velocity = toward.normalized() * speed * clampf(gap, -1.0, 1.0)
+	whistle_in -= delta
+	if whistle_in <= 0.0:
+		whistle_in = WHISTLE_INTERVAL
+		arena.events.append({"position": body.position, "height": 1.5, "direction": facing, "killed": false, "by": "whistle", "giant": true, "kind": kind})
+		for index in WHISTLE_PACK:
+			arena.add_creature(body.position + facing.rotated((index - 1) * 0.8) * 0.8, "dog")
 
 
 func _rev(delta: float, arena: Arena) -> void:

@@ -4,11 +4,14 @@ extends TestCase
 
 const CATALOG := "res://docs/catalog.md"
 ## What the catalog calls each kind of enemy in the code.
-const CREATURE_NAMES := {"rat": "Rat", "dog": "Guard dog"}
-const GIANT_NAMES := {"worker": "Worker", "chainsaw": "Chainsaw worker"}
-const MACHINE_NAMES := {"feller_buncher": "Feller buncher"}
+const CREATURE_NAMES := {"rat": "Rat", "dog": "Guard dog", "rat_baron": "Rat Baron"}
+const GIANT_NAMES := {"worker": "Worker", "chainsaw": "Chainsaw worker", "handler": "Handler"}
+const MACHINE_NAMES := {
+	"feller_buncher": "Feller buncher", "log_loader": "Log loader", "logging_truck": "Logging truck",
+	"bulldozer": "Bulldozer", "helicopter": "Helicopter",
+}
 ## The village's buildings by kind, as the catalog names them.
-const BUILDING_NAMES := {"longhouse": "Longhouse", "smithy": "Smithy", "hut": "Huts"}
+const BUILDING_NAMES := {"longhouse": "Longhouse", "smithy": "Smithy", "hut": "Huts", "board": "Map board"}
 
 
 ## Each row's name, by its status: {"Built": [names], "Planned": [...], ...}.
@@ -49,6 +52,9 @@ func _in_the_game() -> Array[String]:
 		kinds[building.kind] = true
 	for kind: String in kinds:
 		names.append(BUILDING_NAMES.get(kind, "(building %s)" % kind))
+	for area in Areas.LIST:
+		names.append(area.name)
+	names.append("Endless")
 	for look: String in Village.LOOKS:
 		names.append(Village.LOOKS[look].name)
 	for stat: String in Upgrades.STATS:

@@ -19,6 +19,12 @@ const KINDS := {
 		"radius": 0.22, "tall": 0.5, "heft": 4.0, "worth": 4,
 		"lunge_reach": 1.6, "crouch_time": 0.35, "lunge_speed": 6.0, "lunge_lift": 2.2, "recover_time": 0.9,
 	},
+	# The Rat Baron: the first area's boss, as big as a dog, a bottle cap for a crown. It calls
+	# rats in around it as it comes.
+	"rat_baron": {
+		"speed": 1.5, "grip": 8.0, "bite": 3.0, "bite_interval": 1.0, "health": 160.0,
+		"radius": 0.3, "tall": 0.34, "heft": 12.0, "worth": 40, "calls": 4, "call_interval": 5.0,
+	},
 }
 
 var kind := "rat"
@@ -37,6 +43,8 @@ var lunge_direction := Vector2.RIGHT
 ## long it's down from a trip.
 var afflictions := {}
 var tripped_for := 0.0
+## How long until it calls the horde in again, if it's one that calls.
+var call_in := 2.0
 
 
 func _init(creature_kind := "rat") -> void:
@@ -73,6 +81,13 @@ func pace() -> float:
 func step(delta: float, prey: Cat, arena: Arena = null) -> void:
 	bite_ready_in = maxf(bite_ready_in - delta, 0.0)
 	state_for = maxf(state_for - delta, 0.0)
+	if KINDS[kind].has("calls") and arena != null:
+		call_in -= delta
+		if call_in <= 0.0:
+			call_in = stat("call_interval")
+			for index in int(stat("calls")):
+				arena.add_creature(body.position + Vector2.from_angle(TAU * index / stat("calls")) * (body.radius + 0.3))
+			arena.events.append({"position": body.position, "height": 0.3, "direction": Vector2.ZERO, "killed": false, "by": "call", "giant": false, "kind": kind})
 	if tripped_for > 0.0:
 		# Down on its side: it slides to a stop and gets up when it can.
 		tripped_for = maxf(tripped_for - delta, 0.0)
