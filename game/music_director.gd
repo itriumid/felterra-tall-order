@@ -16,7 +16,7 @@ const PAUSED_SHARE := 0.35
 var arena: Arena
 var cat: Cat
 ## Where she is: "run" in the clearing, "village" in the village, "intro" on the title and
-## through the story's opening.
+## through any story told going in, "freed" as an area is freed.
 var place := "run"
 var _players := {}
 var _levels := {}
@@ -27,6 +27,7 @@ func setup() -> void:
 	var layers := MusicKit.make_all()
 	layers.merge(MusicKit.make_village())
 	layers.merge(MusicKit.make_intro())
+	layers.merge(MusicKit.make_freed())
 	for layer: String in layers:
 		var player := AudioStreamPlayer.new()
 		player.stream = layers[layer]
@@ -45,9 +46,10 @@ func setup() -> void:
 static func targets(horde_near: int, giant_standing: bool, paused: bool, where := "run") -> Dictionary:
 	if where != "run":
 		var calm := {}
-		for layer in MusicKit.LAYERS + MusicKit.VILLAGE_LAYERS + MusicKit.INTRO_LAYERS:
+		for layer in MusicKit.LAYERS + MusicKit.VILLAGE_LAYERS + MusicKit.INTRO_LAYERS + MusicKit.FREED_LAYERS:
 			calm[layer] = 0.0
-		for layer in (MusicKit.VILLAGE_LAYERS if where == "village" else MusicKit.INTRO_LAYERS):
+		var playing: Array[String] = {"village": MusicKit.VILLAGE_LAYERS, "freed": MusicKit.FREED_LAYERS}.get(where, MusicKit.INTRO_LAYERS)
+		for layer in playing:
 			calm[layer] = PAUSED_SHARE if paused else 1.0
 		return calm
 	var levels := {
@@ -57,7 +59,7 @@ static func targets(horde_near: int, giant_standing: bool, paused: bool, where :
 		"gamelan": 0.75,
 		"rock": 1.0 if giant_standing else 0.0,
 	}
-	for layer in MusicKit.VILLAGE_LAYERS + MusicKit.INTRO_LAYERS:
+	for layer in MusicKit.VILLAGE_LAYERS + MusicKit.INTRO_LAYERS + MusicKit.FREED_LAYERS:
 		levels[layer] = 0.0
 	if paused:
 		for layer: String in levels:

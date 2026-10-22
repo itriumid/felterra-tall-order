@@ -56,6 +56,18 @@ func test_the_opening_has_its_own_mellow_music() -> void:
 		check(opening[layer] == 1.0, "%s didn't play under the opening" % layer)
 
 
+func test_freeing_an_area_has_its_own_music() -> void:
+	var layers := MusicKit.make_freed()
+	for layer: String in layers:
+		var wav: AudioStreamWAV = layers[layer]
+		check(wav.data.size() / 2 == MusicKit.loop_samples(MusicKit.FREED_TEMPO), "%s is out of step" % layer)
+	var freed := MusicDirector.targets(0, false, false, "freed")
+	for layer in MusicKit.FREED_LAYERS:
+		check(freed[layer] == 1.0, "%s didn't play as the area was freed" % layer)
+	for layer in MusicKit.LAYERS + MusicKit.VILLAGE_LAYERS + MusicKit.INTRO_LAYERS:
+		check(freed[layer] == 0.0, "%s played as the area was freed" % layer)
+
+
 func test_the_rock_layer_comes_in_with_a_giant() -> void:
 	check(MusicDirector.targets(0, true, false).rock == 1.0, "a giant brought no rock")
 	check(MusicDirector.targets(0, false, false).rock == 0.0, "rock played with no giant")

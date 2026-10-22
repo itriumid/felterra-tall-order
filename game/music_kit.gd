@@ -21,6 +21,9 @@ const VILLAGE_LAYERS: Array[String] = ["village_bronze", "village_chords", "vill
 const VILLAGE_CHORDS := [["D3", "F#3", "A3"], ["B2", "D3", "F#3"], ["G2", "B2", "D3"], ["A2", "C#3", "E3"]]
 ## The bronze's figure through each bar: degrees of pelog, two to a beat.
 const VILLAGE_FIGURE := [0, 2, 4, 2, 3, 2, 0, 1]
+## An area freed: warm, the run's melody whole, unhurried, on the suling, over angklung and bronze.
+const FREED_TEMPO := 96.0
+const FREED_LAYERS: Array[String] = ["freed_chords", "freed_melody"]
 const INTRO_TEMPO := 72.0
 const INTRO_LAYERS: Array[String] = ["intro_pad", "intro_suling"]
 ## The suling's tune, a note to a beat ("" rests), over D, then B minor, G, and A.
@@ -131,6 +134,38 @@ static func make_intro() -> Dictionary:
 								length += 1
 							var pitch := _pitch(name)
 							_place(mix, _cached(notes, "suling%s%d" % [name, length], func() -> PackedFloat32Array: return _suling(pitch, b * length * 0.95)), (bar * 4 + step) * b, 0.16)
+		layers[layer] = _to_loop(mix)
+	return layers
+
+
+## The freeing's layers: angklung chords with the bronze answering, and the melody on the suling.
+static func make_freed() -> Dictionary:
+	_random.seed = 42
+	var layers := {}
+	var b := beat(FREED_TEMPO)
+	for layer in FREED_LAYERS:
+		var mix := PackedFloat32Array()
+		mix.resize(loop_samples(FREED_TEMPO))
+		var notes := {}
+		for bar in BARS:
+			var chord: Array = CHORDS[bar % 4]
+			match layer:
+				"freed_chords":
+					for name: String in chord:
+						var pitch := _pitch(name) * 2.0
+						_place(mix, _cached(notes, "angklung" + name, func() -> PackedFloat32Array: return _angklung(pitch, b * 3.8)), bar * 4 * b, 0.13)
+					if bar % 2 == 1:
+						for step in ANSWER.size():
+							var degree: int = ANSWER[step] + 7
+							var pitch := 440.0 * pow(2.0, (PELOG[degree % 7] + 1200 * (degree / 7)) / 1200.0)
+							_place(mix, _cached(notes, "bronze%d" % degree, func() -> PackedFloat32Array: return _bronze(pitch)), (bar * 4) * b + step * b / 2.0, 0.18)
+				"freed_melody":
+					for step in 16:
+						var name: String = LEAD[(bar % 2) * 16 + step]
+						if name.is_empty() or step % 2 == 1:
+							continue
+						var pitch := _pitch(name)
+						_place(mix, _cached(notes, "suling%s" % name, func() -> PackedFloat32Array: return _suling(pitch, b * 0.9)), (bar * 4) * b + step * b / 4.0 * 2.0, 0.14)
 		layers[layer] = _to_loop(mix)
 	return layers
 
