@@ -312,7 +312,7 @@ func _draw_flag(foot: Vector2, restored: bool) -> void:
 	# The tip bows over, and the banner hangs from it.
 	var tip := top + Vector2(6, 3)
 	draw_line(top, tip, Palette.DRY_GRASS)
-	var colors: Array[Color] = BANNERS.get(banners, BANNERS.festival)
+	var colors: Array = BANNERS.get(banners, BANNERS.festival)
 	for band in 14:
 		var sway := roundf(sin(_clock * 2.0 + band * 0.4 + foot.x) * minf(band * 0.4, 3.0))
 		draw_rect(Rect2(tip + Vector2(-2 + sway, 1 + band * 4), Vector2(4, 4)), colors[band / 3 % colors.size()])
