@@ -93,7 +93,7 @@ func test_a_nest_breeds_and_a_saw_cuts() -> void:
 	cat.body.position = saw.body.position + Vector2(saw.body.radius + 0.2, 0.0)
 	var health := cat.health
 	_steps(sawpits, 60)
-	check(cat.health < health, "she stood at the saw and it didn't cut her")
+	check(cat.health < health, "he stood at the saw and it didn't cut him")
 
 
 func test_a_broken_fuel_drum_burns() -> void:
@@ -129,7 +129,7 @@ func test_the_log_loader_throws_where_she_was() -> void:
 	var cat: Cat = arena.cats[0]
 	var health := cat.health
 	_steps(arena, 60 * 4)
-	check(loader.bites >= 1 and cat.health < health, "the loader never landed a log on her")
+	check(loader.bites >= 1 and cat.health < health, "the loader never landed a log on him")
 
 
 func test_the_logging_truck_charges_then_stalls_with_its_tank_open() -> void:
@@ -170,3 +170,30 @@ func test_the_helicopter_is_out_of_reach_until_it_lands() -> void:
 		arena.step()
 		landed = landed or (heli.landed and heli.exposed())
 	check(landed, "it never set down with its tail rotor open")
+
+
+func test_a_goal_done_before_stays_done_and_the_boss_comes_after_a_while() -> void:
+	var arena := Arena.new()
+	arena.spawning = false
+	arena.add_cat(Arena.SIZE / 2.0)
+	arena.begin_area("deep", true)
+	check(arena.goal_done and arena.goal_cages.is_empty(), "the cages were set again, with their goal done before")
+	for step in int((Arena.BOSS_BUILD_UP - 1.0) / Arena.STEP):
+		arena.step()
+	check(arena.boss == null, "the boss came before he'd had time to grow")
+	for step in int(2.0 / Arena.STEP):
+		arena.step()
+	check(arena.boss != null, "the boss never came")
+
+
+func test_the_village_keeps_a_goal_done_until_the_area_is_free() -> void:
+	var village := Village.new()
+	village.goals_done.append("deep")
+	var path := "user://test_goals_done.cfg"
+	village.save(path)
+	var loaded := Village.new()
+	loaded.load_from(path)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	check(loaded.goals_done == ["deep"], "the goal done came back as %s" % str(loaded.goals_done))
+	loaded.liberate("deep")
+	check(loaded.goals_done.is_empty(), "a freed area still counted its goal as done")

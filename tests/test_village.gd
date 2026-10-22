@@ -1,6 +1,6 @@
 extends TestCase
-## The village as a place: the cats she's rescued live in it, huts go up as more join, the houses
-## are solid, a cutscene can walk her to a spot, and walking out on the path to the clearing is the
+## The village as a place: the cats he's rescued live in it, huts go up as more join, the houses
+## are solid, a cutscene can walk him to a spot, and walking out on the path to the clearing is the
 ## way into a run.
 
 
@@ -49,7 +49,7 @@ func test_the_houses_are_solid() -> void:
 	map.cat.steering = Vector2.UP
 	for step in 120:
 		map.step(Arena.STEP)
-	check(not VillageMap.LONGHOUSE.has_point(map.cat.body.position), "she walked into the longhouse")
+	check(not VillageMap.LONGHOUSE.has_point(map.cat.body.position), "he walked into the longhouse")
 
 
 func test_in_the_forest_she_keeps_to_the_path() -> void:
@@ -58,7 +58,7 @@ func test_in_the_forest_she_keeps_to_the_path() -> void:
 	for step in 120:
 		map.step(Arena.STEP)
 	# Stopped right at the path's edge: meters on the map are only as exact as a float.
-	check(map.cat.body.position.y >= VillageMap.PATH_TOP - 0.001, "she wandered off the path into the trees")
+	check(map.cat.body.position.y >= VillageMap.PATH_TOP - 0.001, "he wandered off the path into the trees")
 
 
 func test_a_cutscene_walks_her_there() -> void:
@@ -66,7 +66,7 @@ func test_a_cutscene_walks_her_there() -> void:
 	map.walk_to(VillageMap.HOME_SPOT)
 	for step in 60 * 20:
 		map.step(Arena.STEP)
-	check(not map.walking() and map.cat.body.position.distance_to(VillageMap.HOME_SPOT) < 0.1, "she stopped at %s" % map.cat.body.position)
+	check(not map.walking() and map.cat.body.position.distance_to(VillageMap.HOME_SPOT) < 0.1, "he stopped at %s" % map.cat.body.position)
 
 
 func test_with_nothing_to_tell_she_walks_in_at_her_full_pace() -> void:
@@ -85,11 +85,11 @@ func test_with_nothing_to_tell_she_walks_in_at_her_full_pace() -> void:
 func test_the_path_out_starts_a_run() -> void:
 	var map := VillageMap.new()
 	map.cat.body.position = VillageMap.RETURN_SPOT
-	check(not map.leaving(), "she was leaving from the middle of the village")
+	check(not map.leaving(), "he was leaving from the middle of the village")
 	map.cat.steering = Vector2.RIGHT
 	for step in 120:
 		map.step(Arena.STEP)
-	check(map.leaving(), "she walked out along the path and never left")
+	check(map.leaving(), "he walked out along the path and never left")
 
 
 func test_off_the_path_the_village_edge_is_a_wall() -> void:
@@ -98,7 +98,7 @@ func test_off_the_path_the_village_edge_is_a_wall() -> void:
 	map.cat.steering = Vector2.RIGHT
 	for step in 120:
 		map.step(Arena.STEP)
-	check(not map.leaving(), "she left the village through the trees")
+	check(not map.leaving(), "he left the village through the trees")
 
 
 func test_the_opening_is_remembered_once_told() -> void:

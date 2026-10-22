@@ -30,10 +30,10 @@ func test_a_stomp_hurts_the_cat_under_it_and_crushes_rats() -> void:
 	var rat := arena.add_creature(cat.body.position + Vector2(0.05, 0.1))
 	rat.body.velocity = Vector2.ZERO
 	for step in ceili(Giant.WIND_TIME * 60.0) + 2:
-		# Hold her still under the boot.
+		# Hold him still under the boot.
 		cat.steering = Vector2.ZERO
 		arena.step()
-	check(cat.health < 100.0, "the boot came down on her and she took nothing")
+	check(cat.health < 100.0, "the boot came down on him and he took nothing")
 	check(not rat in arena.creatures, "a rat under the boot lived")
 
 
@@ -45,12 +45,12 @@ func test_a_dodge_gets_her_out_from_under_the_boot() -> void:
 	giant.stomp_ready_in = 0.0
 	arena.step()
 	check(giant.state == Giant.State.WINDING, "the giant didn't wind up")
-	# She sees the shadow and rolls away from it.
+	# He sees the shadow and rolls away from it.
 	cat.steering = Vector2.LEFT
 	cat.dodge()
 	for step in ceili(Giant.WIND_TIME * 60.0) + 2:
 		arena.step()
-	check(cat.health == Cat.MOST_HEALTH, "she rolled clear and still took %.1f" % (Cat.MOST_HEALTH - cat.health))
+	check(cat.health == Cat.MOST_HEALTH, "he rolled clear and still took %.1f" % (Cat.MOST_HEALTH - cat.health))
 
 
 func test_a_round_barely_moves_a_giant() -> void:
@@ -113,4 +113,4 @@ func test_a_knife_reaches_a_giant_at_his_shins() -> void:
 	giant.stomp_ready_in = 100.0
 	for step in 40:
 		arena.step()
-	check(giant.health < Giant.MOST_HEALTH, "the knife never cut the giant beside her")
+	check(giant.health < Giant.MOST_HEALTH, "the knife never cut the giant beside him")

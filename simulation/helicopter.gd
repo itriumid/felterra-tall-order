@@ -1,8 +1,8 @@
 class_name Helicopter
 extends Machine
-## The helicopter: the company's, out of every cat's reach in the air. It hovers off from her and
+## The helicopter: the company's, out of every cat's reach in the air. It hovers off from him and
 ## strafes: its run marked on the ground in a dotted line (the warning), then rounds stitched along
-## that line, through her if she's still on it and through the horde either way. After a couple of
+## that line, through him if he's still on it and through the horde either way. After a couple of
 ## runs it sets down to unload workers, and while it's on the ground its tail rotor is open to hits,
 ## and blades can reach it at all. Then it lifts off again. Shot down, it drops out of the sky.
 
@@ -55,7 +55,7 @@ func _work(delta: float, arena: Arena) -> void:
 			if prey == null:
 				body.velocity = Vector2.ZERO
 				return
-			# Off to one side of her, nose toward her.
+			# Off to one side of him, nose toward him.
 			var spot := prey.body.position + (body.position - prey.body.position).normalized() * STAND_OFF
 			body.velocity = (spot - body.position).limit_length(FLY_SPEED)
 			_turn_toward((prey.body.position - body.position).angle(), 1.2, delta)
@@ -66,7 +66,7 @@ func _work(delta: float, arena: Arena) -> void:
 					runs = 0
 					_unloaded = false
 				else:
-					# The run goes straight through where she is now.
+					# The run goes straight through where he is now.
 					var across := (prey.body.position - body.position).normalized()
 					strafe_from = prey.body.position - across * STRAFE_LENGTH * 0.5
 					strafe_to = prey.body.position + across * STRAFE_LENGTH * 0.5

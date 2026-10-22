@@ -97,7 +97,7 @@ const ARSENAL := {
 	"flare_gun": {"reach": 7.0, "interval": 1.3, "damage": 2.0, "muzzle_speed": 30.0, "spread": 1.0, "burn": 2.0, "knock": 1.0},
 	"crossbow": {"hands": 2, "reach": 9.0, "interval": 1.0, "damage": 5.0, "muzzle_speed": 90.0, "spread": 0.8, "pierce": 2, "knock": 2.2},
 	"lamp_oil": {"reach": 6.0, "interval": 2.0, "damage": 1.0, "muzzle_speed": 8.0, "lobbed": true, "fire_patch": 0.9, "burn": 2.5, "knock": 0.5},
-	# Two sticks on a chain, one in her paw: the swing goes most of the way round her, and it's blunt,
+	# Two sticks on a chain, one in his paw: the swing goes most of the way round him, and it's blunt,
 	# so it shoves harder than it cuts.
 	"nunchaku": {"melee": true, "reach": 0.55, "interval": 0.34, "damage": 1.9, "arc": 220.0, "swing_time": 0.16, "knock": 2.8, "lift": 1.0},
 	# Indonesian blades and staffs.
@@ -206,7 +206,7 @@ func swinging() -> bool:
 	return swinging_for > 0.0
 
 
-## What it does in this cat's paw, with her stats and its own levels.
+## What it does in this cat's paw, with his stats and its own levels.
 func hit_for(cat: Cat) -> float:
 	return damage * (1.0 + power + cat.damage_bonus)
 
@@ -219,13 +219,13 @@ func reach_for(cat: Cat) -> float:
 	return reach * (1.0 + cat.reach_bonus)
 
 
-## Fires at what's in reach, from her paw, or from somewhere else that carries it (a drone, a
+## Fires at what's in reach, from his paw, or from somewhere else that carries it (a drone, a
 ## turret): from that body, at that height. Returns whether it fired.
 func step(delta: float, cat: Cat, arena: Arena, from: Body = null, muzzle_height := Cat.GUN_HEIGHT) -> bool:
 	ready_in = maxf(ready_in - delta, 0.0)
 	if kind == Kind.MELEE:
 		if broken_for > 0.0:
-			# Broken: she's sharpening a new one.
+			# Broken: he's sharpening a new one.
 			broken_for = maxf(broken_for - delta, 0.0)
 			if broken_for <= 0.0:
 				hits_left = breaks
@@ -296,7 +296,7 @@ func _swing(delta: float, cat: Cat, arena: Arena) -> void:
 		_struck[creature] = true
 		var outward: Vector2 = (creature.body.position - cat.body.position).normalized()
 		var along_blade := outward.orthogonal() * swing_direction
-		# A hooked blade pulls what it catches in, toward her.
+		# A hooked blade pulls what it catches in, toward him.
 		var pushed := -outward if hooks else (outward + along_blade * 0.6).normalized()
 		arena.strike(creature, hit_for(cat), pushed, knock, lift, "blade", cat)
 		arena.afflict(creature, self, cat)

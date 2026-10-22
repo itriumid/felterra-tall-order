@@ -1,6 +1,6 @@
 class_name ArsenalArt
 extends RefCounted
-## The arsenal's weapons as she holds them, each at three drawn angles with where it's gripped
+## The arsenal's weapons as he holds them, each at three drawn angles with where it's gripped
 ## and where it fires or points. Each was described once, facing east, and drawn turned at the
 ## others, its lines redrawn at every angle rather than its pixels rotated.
 

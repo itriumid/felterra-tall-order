@@ -2,7 +2,7 @@ extends TestCase
 ## Progression from the village: a run starts with weapons and nothing else, the smith forges more,
 ## freeing an area teaches its dodge mutations, and anything had can be packed or left home. Every
 ## thing has its story, and every story and scene line fits where it's shown. Leaving the village,
-## she's seen off.
+## he's seen off.
 
 ## How wide a cutscene's line can be, in pixels: the screen, less a margin either side.
 const LINE_WIDTH := 640 - 16
@@ -22,7 +22,7 @@ func test_a_new_village_sends_her_out_with_six_weapons_and_five_pieces_of_gear()
 	for id in Village.STARTING:
 		kinds[id.get_slice(":", 0)] += 1
 	check(kinds.weapon == Village.keep_packed("weapon") and kinds.gear >= 5, "a new village starts with %s" % str(kinds))
-	check("weapon:golok" in offered and "gear:caping" in offered, "what she starts with wasn't offered")
+	check("weapon:golok" in offered and "gear:caping" in offered, "what he starts with wasn't offered")
 
 
 func test_she_can_level_up_all_run_with_what_she_starts_with() -> void:
@@ -43,7 +43,7 @@ func test_she_can_level_up_all_run_with_what_she_starts_with() -> void:
 func test_too_few_packed_and_nothing_more_is_left_home() -> void:
 	var village := Village.new()
 	check(not village.repack("weapon:golok") and village.packed("weapon:golok"), "the golok was left home with only six weapons packed")
-	check(not village.repack("weapon:nunchaku"), "the nunchaku she starts with was left home")
+	check(not village.repack("weapon:nunchaku"), "the nunchaku he starts with was left home")
 	village.forged.append("weapon:machete")
 	check(village.repack("weapon:golok") and not village.packed("weapon:golok"), "with seven weapons, the golok couldn't be left home")
 	check(not village.repack("weapon:machete"), "a weapon was left home, leaving five")
@@ -54,7 +54,7 @@ func test_too_few_packed_and_nothing_more_is_left_home() -> void:
 
 func test_freeing_an_area_teaches_its_mutations() -> void:
 	var village := Village.new()
-	check(village.learned().is_empty(), "she knew mutations before anyone taught her")
+	check(village.learned().is_empty(), "he knew mutations before anyone taught him")
 	check(not village.packed("mutation:rolling_slash"), "rolling slash was packed before it was taught")
 	village.liberate("edge")
 	check("mutation:rolling_slash" in village.learned() and "mutation:land_on_feet" in village.learned(), "freeing the edge taught %s" % str(village.learned()))
@@ -138,7 +138,9 @@ func test_everything_has_its_story() -> void:
 	for id in cards:
 		var story := Lore.of(id.get_slice(":", 0), id.get_slice(":", 1))
 		check(not story.is_empty(), "%s has no story" % id)
-		check(Overlay.wrapped(story, 320 - 24).size() <= Overlay.STORY_LINES, "%s's story is too long for the smithy" % id)
+		var does: String = Upgrades.describe({"id": id, "rarity": 0}).does
+		check(not does.is_empty(), "%s doesn't say what it does" % id)
+		check(Overlay.wrapped(does, 320 - 24).size() + Overlay.wrapped(story, 320 - 24).size() <= Overlay.STORY_LINES, "%s's story and what it does are too long for the smithy" % id)
 	for id: String in Lore.STORIES:
 		check(id in cards, "a story for %s, which isn't anything" % id)
 
@@ -154,14 +156,41 @@ func test_every_line_of_the_story_fits_the_screen() -> void:
 		lines.append_array(area.before)
 		lines.append_array(area.after)
 		lines.append_array(area.send_off)
+		lines.append_array(area.get("again", []))
 		lines.append_array(area.get("teaches", {}).get("lines", []))
-	for line: String in lines:
-		check(PixelFont.width(line) <= LINE_WIDTH, "too wide for the screen: %s" % line)
+	lines.append_array(load("res://game/main.gd").INTRO)
+	for line: Variant in lines:
+		if line is Dictionary:
+			check(Overlay.wrapped(line.text, Overlay.BUBBLE_WIDTH).size() <= 3, "too long for a bubble: %s" % line.text)
+		else:
+			check(PixelFont.width(line) <= LINE_WIDTH, "too wide for the screen: %s" % line)
+	for pool: String in Cage.SAYS:
+		for line: String in Cage.SAYS[pool]:
+			check(Overlay.wrapped(line, Overlay.BUBBLE_WIDTH).size() <= 3, "too long for a bubble: %s" % line)
+
+
+func test_whoever_speaks_is_in_the_village_by_then() -> void:
+	var village := Village.new()
+	for area in Areas.LIST:
+		# Who's home before he leaves for it, and before he's taught what freeing it teaches.
+		var home := ["elder"]
+		for cat: Dictionary in village.cats:
+			home.append(cat.name)
+		for line: Variant in area.send_off:
+			if line is Dictionary:
+				check(line.by in home, "%s sees him off to %s before coming home" % [line.by, area.name])
+		village.liberate(area.id)
+		home = ["elder"]
+		for cat: Dictionary in village.cats:
+			home.append(cat.name)
+		for line: Variant in area.teaches.get("lines", []):
+			if line is Dictionary:
+				check(line.by in home, "%s teaches after %s, but isn't home" % [line.by, area.name])
 
 
 func test_every_area_has_a_send_off() -> void:
 	for area in Areas.LIST:
-		check(not (area.send_off as Array).is_empty(), "nobody sees her off to %s" % area.name)
+		check(not (area.send_off as Array).is_empty(), "nobody sees him off to %s" % area.name)
 
 
 func test_she_is_seen_off_out_of_sight() -> void:
@@ -170,11 +199,30 @@ func test_she_is_seen_off_out_of_sight() -> void:
 		cats.append({"name": Cage.NAMES[index], "coat": "gray"})
 	var map := VillageMap.new(cats)
 	map.cat.body.position = Vector2(VillageMap.EXIT_FROM + 0.1, 5.0)
-	check(map.leaving(), "she wasn't leaving through the gate")
+	check(map.leaving(), "he wasn't leaving through the gate")
 	map.see_off()
 	for step in 60 * 20:
 		map.step(Arena.STEP)
-	check(map.gone(), "she was seen off and never left, stopping at %s" % map.cat.body.position)
+	check(map.gone(), "he was seen off and never left, stopping at %s" % map.cat.body.position)
 	for villager in map.villagers:
-		check(villager.body.position.x > VillageMap.SEE_OFF_FROM - 1.0, "a villager didn't come to see her off, stopping at %s" % villager.body.position)
-		check(villager.facing.x > 0.0, "a villager at the gate looked away as she left")
+		check(villager.body.position.x > VillageMap.SEE_OFF_FROM - 1.0, "a villager didn't come to see him off, stopping at %s" % villager.body.position)
+		check(villager.facing.x > 0.0, "a villager at the gate looked away as he left")
+
+
+func test_everyone_who_speaks_in_a_cutscene_has_a_portrait() -> void:
+	var lines: Array = []
+	for area in Areas.LIST:
+		lines.append_array(area.send_off)
+		lines.append_array(area.get("teaches", {}).get("lines", []))
+	lines.append_array(load("res://game/main.gd").INTRO)
+	for line: Variant in lines:
+		if line is Dictionary:
+			check(Portraits.has(line.by), "%s speaks, but has no portrait" % line.by)
+			check(line.get("mood", "neutral") in Portraits.MOODS, "%s says a line in a mood there isn't: %s" % [line.by, line.get("mood")])
+
+
+func test_every_portrait_is_the_same_size_in_every_mood() -> void:
+	for who: String in Portraits.CAST.keys() + ["jogiboy"]:
+		for mood in Portraits.MOODS:
+			check(Sprites.image(Portraits.art(who, mood)).get_size() == Vector2i(40, 40), "%s's %s portrait isn't 40 by 40" % [who, mood])
+

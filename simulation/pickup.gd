@@ -1,7 +1,7 @@
 class_name Pickup
 extends RefCounted
-## Something to pick up: salvage from what she breaks, bolts and steel and tools, thrown out where
-## it broke. It flies, lands, bounces and slides like anything else, and she takes it by walking
+## Something to pick up: salvage from what he breaks, bolts and steel and tools, thrown out where
+## it broke. It flies, lands, bounces and slides like anything else, and he takes it by walking
 ## over it.
 
 const REACH := 0.4

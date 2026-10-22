@@ -125,7 +125,7 @@ func _run(delta: float, prey: Cat) -> void:
 	if prey != null and prey.alive():
 		var toward := prey.body.position - body.position
 		wanted = toward.normalized() * float(stat("speed")) * pace()
-		# A dog close enough crouches to lunge, committing to where she is now.
+		# A dog close enough crouches to lunge, committing to where he is now.
 		if KINDS[kind].has("lunge_reach") and toward.length() < float(stat("lunge_reach")) and bite_ready_in <= 0.0:
 			state = State.CROUCHING
 			state_for = stat("crouch_time")

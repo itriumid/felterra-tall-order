@@ -30,12 +30,12 @@ const CHAINSAW_EVERY := 2
 const MACHINE_FROM := 300.0
 const MACHINE_INTERVAL := 300.0
 ## Cages with cats in them turn up from CAGES_FROM seconds in, one every CAGE_INTERVAL, no more
-## than MOST_CAGES waiting at once, never closer than CAGE_DISTANCE to her.
+## than MOST_CAGES waiting at once, never closer than CAGE_DISTANCE to him.
 const CAGES_FROM := 40.0
 const CAGE_INTERVAL := 75.0
 const MOST_CAGES := 2
 const CAGE_DISTANCE := 6.0
-## The salvage what she breaks throws out: a giant, a chainsaw worker, a machine.
+## The salvage what he breaks throws out: a giant, a chainsaw worker, a machine.
 const SALVAGE := {
 	"worker": 2, "chainsaw": 4, "handler": 8, "feller_buncher": 12, "log_loader": 14, "logging_truck": 16,
 	"bulldozer": 18, "helicopter": 24,
@@ -69,6 +69,8 @@ const POP_INTERVAL := 0.15
 const POP_RADIUS := 0.45
 const RICOCHET_REACH := 3.0
 const DECOY_REACH := 9.0
+## With an area's goal done on an earlier run, how long before its boss comes.
+const BOSS_BUILD_UP := 45.0
 ## The fallen stay where they lie, up to this many. Past that, the oldest crumble away over
 ## FADE_TIME seconds rather than vanishing.
 const MOST_FALLEN := 600
@@ -90,7 +92,7 @@ var rescued: Array[Dictionary] = []
 var salvage := 0
 ## Fire burning on the ground, as {position, radius, left, dps, by}; hazards left lying, nails,
 ## caltrops and spike beds, as {position, radius, damage, left, kind, by, ready}; firecrackers still to pop, as
-## {position, left, count, damage, by}; and decoys the horde goes for instead of her.
+## {position, left, count, damage, by}; and decoys the horde goes for instead of him.
 var fires: Array[Dictionary] = []
 var hazards: Array[Dictionary] = []
 var crackers: Array[Dictionary] = []
@@ -105,6 +107,9 @@ var goal_cages: Array[Cage] = []
 var levers: Array[Dictionary] = []
 var logs: Array[Dictionary] = []
 var goal_done := false
+## With the goal done on an earlier run, the time until the boss comes: long enough for him to grow
+## into a fight with it, since every run starts him at the first level.
+var boss_in := 0.0
 var held_for := 0.0
 var boss: Object = null
 var liberated := false
@@ -432,7 +437,7 @@ func stepped_on(at: Vector2, reach: float) -> bool:
 
 ## A burst on the ground: everything within its radius is struck and thrown outward, the giants
 ## at their feet. What set it off names it, for the view and the sound.
-## Dust kicked up: the horde in it stops to cough a while, down in the dust, and loses her.
+## Dust kicked up: the horde in it stops to cough a while, down in the dust, and loses him.
 func dust(at: Vector2, radius: float, time: float) -> void:
 	events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "dust", "giant": false, "kind": "cat", "radius": radius})
 	for creature in _near(at, radius + 0.3):
@@ -468,7 +473,7 @@ func _strike_machines(at: Vector2, reach: float, damage: float, by: String, atta
 			strike(machine, damage, Vector2.ZERO, 0.0, 0.0, by, attacker)
 
 
-## The creatures a rolling cat is touching, at heights she passes: what a rolling slash cuts.
+## The creatures a rolling cat is touching, at heights he passes: what a rolling slash cuts.
 func rolled_into(cat: Cat) -> Array[Creature]:
 	var touching: Array[Creature] = []
 	var cell := _cell_of(cat.body.position)
@@ -480,7 +485,7 @@ func rolled_into(cat: Cat) -> Array[Creature]:
 	return touching
 
 
-## The giants standing over a rolling cat: she's between his legs.
+## The giants standing over a rolling cat: he's between his legs.
 func legs_rolled_between(cat: Cat) -> Array[Giant]:
 	var over: Array[Giant] = []
 	for giant in giants:
@@ -490,7 +495,7 @@ func legs_rolled_between(cat: Cat) -> Array[Giant]:
 	return over
 
 
-## A riposte: a hit dodged as it landed, answered at once against everything around her.
+## A riposte: a hit dodged as it landed, answered at once against everything around him.
 func riposte(cat: Cat, damage: float) -> void:
 	events.append({"position": cat.body.position, "height": 0.2, "direction": cat.facing, "killed": false, "by": "strike_back", "giant": false, "kind": "cat"})
 	for creature: Creature in creatures.duplicate():
@@ -504,7 +509,7 @@ func riposte(cat: Cat, damage: float) -> void:
 	_strike_machines(cat.body.position, Cat.RIPOSTE_REACH, damage, "riposte", cat)
 
 
-## A pounce comes down: what's under her takes it, and what's around is thrown.
+## A pounce comes down: what's under him takes it, and what's around is thrown.
 func land_pounce(cat: Cat, damage: float) -> void:
 	events.append({"position": cat.body.position, "height": 0.0, "direction": cat.facing, "killed": false, "by": "landing", "giant": false, "kind": "cat"})
 	for creature: Creature in creatures.duplicate():
@@ -907,7 +912,7 @@ func _strike(creature: Object, shot: Shot) -> void:
 func strike(target: Object, damage: float, direction: Vector2, knock: float, lift: float, by: String, attacker: Cat = null) -> void:
 	if not target.alive():
 		return
-	# Her own hits: some land twice as hard, and her gear can make them shove harder.
+	# His own hits: some land twice as hard, and his gear can make them shove harder.
 	if attacker != null:
 		if attacker.critical > 0.0 and random.randf() < attacker.critical:
 			damage *= 2.0
@@ -997,6 +1002,7 @@ func _pick_locks() -> void:
 		if cage.pick(STEP, picking):
 			rescued.append(cage.prisoner)
 			events.append({"position": cage.body.position, "height": 0.2, "direction": Vector2.ZERO, "killed": false, "by": "cage_open", "giant": false, "kind": "cage"})
+		cage.throw_at(self)
 		cage.run_home(STEP, SIZE)
 	cages = cages.filter(func(cage: Cage) -> bool: return not cage.home)
 
@@ -1121,10 +1127,16 @@ func _spawn() -> void:
 
 
 ## Into an area of the forest: its plan for what spawns, and its goal's things where it puts them.
-func begin_area(area_id: String) -> void:
+func begin_area(area_id: String, goal_kept := false) -> void:
 	area = Areas.named(area_id)
 	plan = area.plan
 	_reset_spawning()
+	if goal_kept:
+		# Done on an earlier run, and it stays done: what was broken stays broken, the caged stay
+		# free. Only the boss is left, once he's had time to grow.
+		goal_done = true
+		boss_in = BOSS_BUILD_UP
+		return
 	var goal: Dictionary = area.goal
 	match goal.kind:
 		"structures":
@@ -1182,6 +1194,11 @@ func _pursue_goal() -> void:
 		if progress.y > 0.0 and progress.x >= progress.y:
 			goal_done = true
 			events.append({"position": SIZE / 2.0, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "goal_done", "giant": false, "kind": area.id})
+			_bring_in_the_boss()
+		return
+	if boss == null and boss_in > 0.0:
+		boss_in -= STEP
+		if boss_in <= 0.0:
 			_bring_in_the_boss()
 		return
 	if boss != null and not (boss.standing() if boss is Machine or boss is Giant else boss.alive()):

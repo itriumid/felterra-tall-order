@@ -10,8 +10,8 @@ func _quiet_arena() -> Arena:
 
 func test_a_cat_starts_with_one_weapon_and_nothing_else() -> void:
 	var cat := Cat.new()
-	check(cat.weapons.size() == 1 and cat.weapons[0].name == "handgun", "she starts with %s" % cat.weapons.map(func(w: Weapon) -> String: return w.name))
-	check(cat.gear.values().all(func(item: String) -> bool: return item == ""), "she starts wearing %s" % cat.gear)
+	check(cat.weapons.size() == 1 and cat.weapons[0].name == "handgun", "he starts with %s" % cat.weapons.map(func(w: Weapon) -> String: return w.name))
+	check(cat.gear.values().all(func(item: String) -> bool: return item == ""), "he starts wearing %s" % cat.gear)
 
 
 func test_rats_run_at_the_cat() -> void:

@@ -1,7 +1,7 @@
 class_name LoggingTruck
 extends Machine
 ## The logging truck: a cab and a trailer stacked with trunks, on wheels, so it can't turn on the
-## spot; it turns as it drives. When it has her in line, it revs and sounds its horn (the warning,
+## spot; it turns as it drives. When it has him in line, it revs and sounds its horn (the warning,
 ## its path marked on the ground), then charges straight down that line, running over whatever's
 ## in it. A charge ends where it ends, and the truck stalls there a moment, its fuel tank open to
 ## hits; then it backs up and comes round again. Wrecked, it tips over on its side.

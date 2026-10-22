@@ -25,11 +25,11 @@ func test_it_turns_on_the_spot_before_it_drives() -> void:
 	var start := machine.body.position
 	for step in 20:
 		arena.step()
-	check(machine.body.position.distance_to(start) < 0.05, "it drove off before it had turned to face her")
+	check(machine.body.position.distance_to(start) < 0.05, "it drove off before it had turned to face him")
 	for step in 60 * 8:
 		arena.step()
-	check(absf(angle_difference(machine.heading, PI)) < Machine.DRIVE_WITHIN, "it never turned to face her")
-	check(machine.body.position.x < start.x - 1.0, "facing her, it never drove toward her")
+	check(absf(angle_difference(machine.heading, PI)) < Machine.DRIVE_WITHIN, "it never turned to face him")
+	check(machine.body.position.x < start.x - 1.0, "facing him, it never drove toward him")
 
 
 func test_its_tracks_crush_the_horde_while_they_turn() -> void:
@@ -49,8 +49,8 @@ func test_standing_still_its_steel_just_doesnt_give() -> void:
 	machine.state = Machine.State.STUCK
 	machine.state_for = 10.0
 	arena.step()
-	check(not machine.covers(cat.body.position), "she stood inside its steel")
-	check(cat.health == 1000.0, "standing still, its tracks hurt her")
+	check(not machine.covers(cat.body.position), "he stood inside its steel")
+	check(cat.health == 1000.0, "standing still, its tracks hurt him")
 
 
 func test_the_bite_is_warned_and_lands_where_she_was() -> void:
@@ -60,7 +60,7 @@ func test_the_bite_is_warned_and_lands_where_she_was() -> void:
 	var cat := _cat(arena, machine.root() + Vector2(3.0, 0.0))
 	arena.step()
 	check(machine.state == Machine.State.AIMING, "in reach, it didn't swing its boom out")
-	check(machine.bite_at.distance_to(cat.body.position) < 0.1, "the bite isn't aimed where she is")
+	check(machine.bite_at.distance_to(cat.body.position) < 0.1, "the bite isn't aimed where he is")
 	var warned := 0
 	while machine.state == Machine.State.AIMING:
 		arena.step()
@@ -68,7 +68,7 @@ func test_the_bite_is_warned_and_lands_where_she_was() -> void:
 	check(warned * Arena.STEP >= Machine.AIM_TIME - 0.02, "the warning lasted only %.2f seconds" % (warned * Arena.STEP))
 	while machine.state == Machine.State.BITING:
 		arena.step()
-	check(cat.health <= 1000.0 - Machine.BITE_DAMAGE + 0.01, "she stood in the shadow and the jaws missed her")
+	check(cat.health <= 1000.0 - Machine.BITE_DAMAGE + 0.01, "he stood in the shadow and the jaws missed him")
 
 
 func test_leaving_the_shadow_gets_her_clear() -> void:
@@ -80,7 +80,7 @@ func test_leaving_the_shadow_gets_her_clear() -> void:
 	cat.steering = Vector2.DOWN
 	while machine.state in [Machine.State.AIMING, Machine.State.BITING]:
 		arena.step()
-	check(cat.health == 1000.0, "she walked out of the shadow and was still bitten")
+	check(cat.health == 1000.0, "he walked out of the shadow and was still bitten")
 
 
 func test_its_jaws_cut_its_own_horde() -> void:
@@ -112,7 +112,7 @@ func test_too_close_for_the_boom_it_backs_off() -> void:
 	var start := machine.body.position
 	for step in 30:
 		arena.step()
-	check(machine.body.position.x < start.x - 0.1, "she stood under its boom and it didn't back off")
+	check(machine.body.position.x < start.x - 0.1, "he stood under its boom and it didn't back off")
 
 
 func test_broken_it_stays_as_a_wreck() -> void:
@@ -129,7 +129,7 @@ func test_broken_it_stays_as_a_wreck() -> void:
 	check(machine.body.position == at and machine.head_height == 0.0, "the wreck moved, or its boom stayed up")
 	cat.body.position = machine.body.position
 	arena.step()
-	check(not machine.covers(cat.body.position), "she walked through the wreck")
+	check(not machine.covers(cat.body.position), "he walked through the wreck")
 
 
 func test_one_comes_once_a_run_is_long_on() -> void:

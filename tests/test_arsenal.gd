@@ -53,7 +53,7 @@ func test_every_weapon_is_built_drawn_named_and_forged() -> void:
 func test_two_handed_weapons_take_both_paws() -> void:
 	var cat := Cat.new()
 	cat.wear({"weapons": ["greatsword", "knife"]})
-	check(cat.weapons.size() == 1 and cat.weapons[0].name == "greatsword", "a greatsword left a paw free")
+	check(cat.weapons.size() == 1 and cat.weapons[0].name == "greatsword", "a greatsword left his tail free")
 
 
 func test_a_shotgun_fires_a_cone_of_pellets() -> void:
@@ -261,4 +261,4 @@ func test_the_radio_draws_the_horde() -> void:
 	var rat := arena.creatures[0]
 	for step in 60:
 		arena.step()
-	check(rat.body.position.distance_to(radio_at) < rat.body.position.distance_to(cat.body.position), "the horde went for her, not the radio")
+	check(rat.body.position.distance_to(radio_at) < rat.body.position.distance_to(cat.body.position), "the horde went for him, not the radio")

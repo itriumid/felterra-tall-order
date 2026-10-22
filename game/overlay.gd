@@ -1,6 +1,6 @@
 class_name Overlay
 extends Node2D
-## The interface over the world: her health, level, dodge and aim at a glance; the cards she's
+## The interface over the world: his health, level, dodge and aim at a glance; the cards he's
 ## holding; the choice a run starts with; the pause menu; and with F3, what the machine is doing.
 
 const CARD_FRAMES: Array[Color] = [Palette.OFF_WHITE, Palette.LEAF_LIGHT, Palette.CLOTH_LIGHT, Palette.BRASS_LIGHT]
@@ -12,13 +12,20 @@ const BOSS_NAMES := {
 }
 ## How many of a shop's rows show at once, and how many lines its chosen thing's story gets.
 const SHOP_ROWS_SHOWN := 13
-const STORY_LINES := 3
+const STORY_LINES := 5
 const BOOK_LINES := 8
+## How wide a speech bubble's lines run, and what each speaker is called over their words.
+const BUBBLE_WIDTH := 170.0
+const SPEAKER_NAMES := {"elder": "The elder", "jogiboy": "Jogiboy", "tompel": "Tompel"}
+## The elder's dog, as everyone called him.
+const JOGI := "Jogiboy"
 const AIM_NAMES := {"nearest": "Nearest", "toughest": "Toughest", "crowd": "Crowd"}
 
 var arena: Arena
 var cat: Cat
 var show_numbers := false
+## Toggled with I: what he's carrying and his stats, set out until it's toggled away.
+var show_kit := false
 ## Waiting for the player to choose a weapon to start with, and the forged weapon offered beside
 ## the nunchaku and the handgun once the longhouse is restored ("" if none).
 var choosing := false
@@ -38,14 +45,19 @@ var page := ""
 var summary := {}
 var beaten: Array[String] = []
 var step_milliseconds := 0.0
-## Where she is ("run", or "village" for the village and the walk into it), the village when
-## she's there, and the line of the story's opening being written out, if one is.
+## Where he is ("run", or "village" for the village and the walk into it), the village when
+## he's there, and the line of the story's opening being written out, if one is.
 var place := "run"
 var village_map: VillageMap
 var intro := ""
-## A cutscene playing: its keys show along the bottom, so skipping it is never a secret.
+## A cutscene playing: its keys show along the bottom, so skipping it is never a secret. And who's
+## saying the line on now ("" for the story told over it): their words go in a bubble over them.
 var cutscene := false
-## In the village: what's kept there (for its counts), what Enter does at the door she's at, a
+var speaker := ""
+var mood := "neutral"
+## What's new since he last walked in, as {title, text}, while it's set out.
+var news: Array[Dictionary] = []
+## In the village: what's kept there (for its counts), what Enter does at the door he's at, a
 ## line the village has just said, and a shop's page while one is open.
 var village_record: Village
 var door := ""
@@ -80,6 +92,10 @@ func _draw() -> void:
 		return
 	if place == "village":
 		_draw_village()
+		if page == "news" and not news.is_empty():
+			_dither()
+			_draw_news()
+			return
 		if not shop_rows.is_empty():
 			_dither()
 			if shop_page == "board":
@@ -106,8 +122,11 @@ func _draw() -> void:
 	_draw_score()
 	_draw_boss()
 	_draw_cage_markers()
+	_draw_rescue_talk()
 	if show_numbers:
 		_draw_numbers()
+	if show_kit:
+		_draw_kit()
 	if not setting_rows.is_empty():
 		_draw_settings()
 	elif page == "summary":
@@ -120,9 +139,9 @@ func _draw() -> void:
 		_draw_cards()
 
 
-## Health, level and dodge as bars with their icons, and how her weapons choose.
+## Health, level and dodge as bars with their icons, and how his weapons choose.
 func _draw_status() -> void:
-	var box := Rect2(4, 4, 150, 44)
+	var box := Rect2(4, 4, 150, 57)
 	InterfaceArt.panel(self, box)
 	var x := box.position.x + 5
 	var y := box.position.y + 5
@@ -145,6 +164,10 @@ func _draw_status() -> void:
 	InterfaceArt.icon(self, Vector2(x + 58, y), "aim", Palette.OFF_WHITE)
 	PixelFont.draw(self, Vector2(x + 68, y - 1), AIM_NAMES[cat.aim_mode], Palette.OFF_WHITE)
 	InterfaceArt.key_cap(self, Vector2(box.end.x - 14, y - 2), "T")
+	# What he carries, a key away.
+	y += 11
+	InterfaceArt.key_cap(self, Vector2(x, y - 2), "I")
+	PixelFont.draw(self, Vector2(x + 12, y - 1), "gear and stats", Palette.SMOKE)
 
 
 ## A story's line as it's written out, and the keys to hurry it or skip it.
@@ -159,14 +182,19 @@ func _draw_cutscene() -> void:
 	InterfaceArt.key_line(self, Vector2(screen.x - width - 8, screen.y - 16), keys)
 
 
-## In the village: the story's opening as it's told, the names of the cats near her, and once
-## she's near the path out, where it goes.
+## In the village: the story's opening as it's told, the names of the cats near him, and once
+## he's near the path out, where it goes.
 func _draw_village() -> void:
 	if village_map == null:
 		return
 	var screen := get_viewport_rect().size
 	if cutscene:
-		if not intro.is_empty():
+		var talking := village_map.speaker_named(speaker) if not speaker.is_empty() else null
+		if not intro.is_empty() and not speaker.is_empty() and Portraits.has(speaker):
+			_dialog(speaker, mood, intro)
+		elif not intro.is_empty() and talking != null:
+			_bubble(talking.body.position, SPEAKER_NAMES.get(speaker, speaker), intro)
+		elif not intro.is_empty():
 			# Written over the scene, a shadow under each letter so it reads on leaves or earth.
 			var at := Vector2(floorf((screen.x - PixelFont.width(intro)) / 2.0), 46)
 			PixelFont.draw(self, at + Vector2(1, 1), intro, Palette.GRAPHITE)
@@ -185,21 +213,116 @@ func _draw_village() -> void:
 		var width := InterfaceArt.key_line_width(keys)
 		InterfaceArt.key_line(self, Vector2(floorf((screen.x - width) / 2.0), screen.y - 24), keys)
 	var to_screen := get_viewport().get_canvas_transform()
-	var her := village_map.cat.body.position
+	var tompel := village_map.cat.body.position
+	if village_map.jogi.body.position.distance_to(tompel) <= 1.6 and not cutscene:
+		var over: Vector2 = to_screen * World.to_screen(village_map.jogi.body.position, 0.45)
+		var spot := Vector2(floorf(over.x - PixelFont.width(Overlay.JOGI) / 2.0), floorf(over.y))
+		PixelFont.draw(self, spot + Vector2(1, 1), JOGI, Palette.GRAPHITE)
+		PixelFont.draw(self, spot, JOGI, Palette.PINK)
+	if village_map.elder.body.position.distance_to(tompel) <= 1.6:
+		var above: Vector2 = to_screen * World.to_screen(village_map.elder.body.position, 0.6)
+		var label: String = SPEAKER_NAMES.elder
+		var spot := Vector2(floorf(above.x - PixelFont.width(label) / 2.0), floorf(above.y))
+		PixelFont.draw(self, spot + Vector2(1, 1), label, Palette.GRAPHITE)
+		PixelFont.draw(self, spot, label, Palette.PINK)
 	for index in village_map.villagers.size():
 		var villager := village_map.villagers[index]
-		if villager.body.position.distance_to(her) > 1.6:
+		if villager.body.position.distance_to(tompel) > 1.6:
 			continue
 		var name: String = village_map.names[index]
 		var above: Vector2 = to_screen * World.to_screen(villager.body.position, 0.6)
 		var at := Vector2(floorf(above.x - PixelFont.width(name) / 2.0), floorf(above.y))
 		PixelFont.draw(self, at + Vector2(1, 1), name, Palette.GRAPHITE)
 		PixelFont.draw(self, at, name, Palette.PINK)
-	if door.is_empty() and her.x > VillageMap.EXIT_FROM - 3.5 and her.y > VillageMap.PATH_TOP - 1.0 and her.y < VillageMap.PATH_BOTTOM + 1.0:
+	if door.is_empty() and tompel.x > VillageMap.EXIT_FROM - 3.5 and tompel.y > VillageMap.PATH_TOP - 1.0 and tompel.y < VillageMap.PATH_BOTTOM + 1.0:
 		var hint := "On along the path: to " + leads_to
 		var at := Vector2(floorf((screen.x - PixelFont.width(hint)) / 2.0), screen.y - 24)
 		PixelFont.draw(self, at + Vector2(1, 1), hint, Palette.GRAPHITE)
 		PixelFont.draw(self, at, hint, Palette.OFF_WHITE)
+
+
+## A line said by someone in the scene, in a speech bubble over their head: who's speaking, and what
+## they say, wrapped; its tail points down at them. It's kept on screen, whoever's near the edge.
+func _bubble(over: Vector2, who: String, text: String) -> void:
+	var screen := get_viewport_rect().size
+	var head: Vector2 = get_viewport().get_canvas_transform() * World.to_screen(over, 0.62)
+	var lines := wrapped(text, BUBBLE_WIDTH)
+	var width := 0
+	for line in lines:
+		width = maxi(width, PixelFont.width(line))
+	width = maxi(width, InterfaceArt.bold_width(who))
+	var size := Vector2(width + 10, (lines.size() + (1 if not who.is_empty() else 0)) * PixelFont.LINE_HEIGHT + 7)
+	var box := Rect2(Vector2(floorf(head.x - size.x / 2.0), floorf(head.y - size.y - 5)), size)
+	box.position.x = clampf(box.position.x, 4, screen.x - size.x - 4)
+	box.position.y = maxf(box.position.y, 4)
+	draw_rect(box.grow(1), Palette.OUTLINE)
+	draw_rect(box, Palette.OFF_WHITE)
+	# The tail, down to the speaker, in steps.
+	var tail_x := clampf(floorf(head.x), box.position.x + 4, box.end.x - 5)
+	for step in 4:
+		draw_rect(Rect2(Vector2(tail_x - (3 - step), box.end.y + step), Vector2((3 - step) * 2 + 1, 1)), Palette.OUTLINE if step == 3 else Palette.OFF_WHITE)
+		draw_rect(Rect2(Vector2(tail_x - (3 - step) - 1, box.end.y + step), Vector2(1, 1)), Palette.OUTLINE)
+		draw_rect(Rect2(Vector2(tail_x + (3 - step) + 1, box.end.y + step), Vector2(1, 1)), Palette.OUTLINE)
+	var y := box.position.y + 4
+	if not who.is_empty():
+		InterfaceArt.bold(self, Vector2(box.position.x + 5, y), who, Palette.FUR_SHADOW)
+		y += PixelFont.LINE_HEIGHT
+	for line in lines:
+		PixelFont.draw(self, Vector2(box.position.x + 5, y), line, Palette.GRAPHITE)
+		y += PixelFont.LINE_HEIGHT
+
+
+## A line in a cutscene, said by someone with a portrait: their bust framed on the left, in the
+## mood of the line, their name over their words beside it, along the bottom of the screen.
+func _dialog(who: String, line_mood: String, text: String) -> void:
+	var screen := get_viewport_rect().size
+	var box := Rect2(8, screen.y - 84, screen.x - 16, 58)
+	InterfaceArt.panel(self, box)
+	var frame := Rect2(box.position + Vector2(5, 5), Vector2(48, 48))
+	InterfaceArt.well(self, frame)
+	var portrait := Portraits.texture(who, line_mood)
+	draw_texture(portrait, (frame.position + (frame.size - portrait.get_size()) / 2.0).floor())
+	var x := frame.end.x + 10
+	InterfaceArt.bold(self, Vector2(x, box.position.y + 7), SPEAKER_NAMES.get(Portraits.key(who), who), Palette.PINK)
+	var lines := wrapped(text, box.end.x - x - 10)
+	for index in mini(lines.size(), 3):
+		PixelFont.draw(self, Vector2(x, box.position.y + 21 + index * PixelFont.LINE_HEIGHT), lines[index], Palette.OFF_WHITE)
+
+
+## What's new, set out once he's walked in: a title and a line for each, and the key to go on.
+func _draw_news() -> void:
+	var screen := get_viewport_rect().size
+	var width := 380.0
+	var rows: Array = []
+	for item in news:
+		rows.append([item.title, wrapped(item.text, width - 24)])
+	var height := 30.0
+	for row: Array in rows:
+		height += PixelFont.LINE_HEIGHT * (1 + (row[1] as Array).size()) + 6
+	var box := Rect2(floorf((screen.x - width) / 2.0), floorf((screen.y - height) / 2.0) - 6, width, height)
+	InterfaceArt.panel(self, box)
+	InterfaceArt.bold(self, box.position + Vector2(10, 7), "New", Palette.PINK)
+	var y := box.position.y + 26
+	for row: Array in rows:
+		InterfaceArt.bold(self, Vector2(box.position.x + 12, y), row[0], Palette.LEAF_LIGHT)
+		y += PixelFont.LINE_HEIGHT
+		for line: String in row[1]:
+			PixelFont.draw(self, Vector2(box.position.x + 12, y), line, Palette.OFF_WHITE)
+			y += PixelFont.LINE_HEIGHT
+		y += 6
+	var keys: Array[String] = ["Enter", "got it"]
+	var keys_width := InterfaceArt.key_line_width(keys)
+	InterfaceArt.key_line(self, Vector2(floorf((screen.x - keys_width) / 2.0), box.end.y + 6), keys)
+
+
+## Freed cats having their say, and him answering, in bubbles over them, while the fight goes on.
+func _draw_rescue_talk() -> void:
+	for cage in arena.cages:
+		var line := cage.saying()
+		if line.is_empty():
+			continue
+		var over: Vector2 = cage.runner.position if line.by == "freed" else cat.body.position
+		_bubble(over, cage.prisoner.name if line.by == "freed" else "", line.text)
 
 
 ## Text over the scene, centered, with a shadow under it so it reads on leaves or earth.
@@ -242,7 +365,7 @@ func _draw_shop() -> void:
 	var box := Rect2(floorf((screen.x - width) / 2.0), floorf((screen.y - height) / 2.0) - 6, width, height)
 	InterfaceArt.panel(self, box)
 	InterfaceArt.bold(self, box.position + Vector2(10, 7), shop_title, Palette.PINK)
-	if village_record != null and shop_page in ["forge", "looks"]:
+	if village_record != null and shop_page in ["forge", "looks", "market", "healer"]:
 		var have := "%d salvage, %d cloth" % [village_record.salvage, village_record.cloth]
 		PixelFont.draw(self, Vector2(box.end.x - 10 - PixelFont.width(have), box.position.y + 7), have, Palette.SMOKE)
 	var y := box.position.y + 24
@@ -276,9 +399,12 @@ func _draw_shop() -> void:
 	if has_stories:
 		var story_top := y + window * row + 6
 		draw_rect(Rect2(box.position.x + 6, story_top - 3, box.size.x - 12, 1), Palette.PANEL_LIGHT)
+		# What it does, then where it came from.
+		var does := wrapped(shop_rows[shop_choice].get("does", ""), box.size.x - 24)
 		var lines := wrapped(shop_rows[shop_choice].get("story", ""), box.size.x - 24)
-		for index in mini(lines.size(), story_lines):
-			PixelFont.draw(self, Vector2(box.position.x + 12, story_top + 2 + index * PixelFont.LINE_HEIGHT), lines[index], Palette.CREAM)
+		for index in mini(does.size() + lines.size(), story_lines):
+			var line: String = does[index] if index < does.size() else lines[index - does.size()]
+			PixelFont.draw(self, Vector2(box.position.x + 12, story_top + 2 + index * PixelFont.LINE_HEIGHT), line, Palette.LEAF_LIGHT if index < does.size() else Palette.CREAM)
 	if not shop_note.is_empty():
 		InterfaceArt.bold(self, Vector2(box.end.x - 10 - InterfaceArt.bold_width(shop_note), box.position.y + 7), shop_note, Palette.PINK)
 	var keys: Array[String] = ["W S", "choose", "Enter", "take", "Esc", "back"]
@@ -299,7 +425,7 @@ func _arrow(point: Vector2, way: int) -> void:
 ## The board's map of the forest, and below it, where the chosen place is and how it stands.
 func _draw_map() -> void:
 	var screen := get_viewport_rect().size
-	var box := Rect2(floorf((screen.x - 460) / 2.0), 24, 460, 300)
+	var box := Rect2(floorf((screen.x - 460) / 2.0), 16, 460, 312)
 	InterfaceArt.panel(self, box)
 	InterfaceArt.bold(self, box.position + Vector2(10, 7), shop_title, Palette.PINK)
 	var map := Rect2(box.position + Vector2(8, 22), Vector2(box.size.x - 16, 230))
@@ -310,6 +436,11 @@ func _draw_map() -> void:
 	var going := "the next run goes here" if chosen.id == next_run else ""
 	PixelFont.draw(self, Vector2(box.end.x - 12 - PixelFont.width(going), y), going, Palette.BRASS_LIGHT)
 	PixelFont.draw(self, Vector2(box.position.x + 12, y + PixelFont.LINE_HEIGHT + 2), _sentence(chosen.state), Palette.LEAF_LIGHT if chosen.free else Palette.SMOKE)
+	var more := 2
+	for line: String in [chosen.get("boss", ""), chosen.get("smelled", "")]:
+		if not line.is_empty():
+			PixelFont.draw(self, Vector2(box.position.x + 12, y + more * (PixelFont.LINE_HEIGHT + 2)), line, Palette.BRASS_LIGHT if more == 2 and not (chosen.get("boss", "") as String).is_empty() else Palette.CREAM)
+			more += 1
 	var keys: Array[String] = ["W A S D", "choose", "Enter", "go there", "Esc", "back"]
 	var keys_width := InterfaceArt.key_line_width(keys)
 	InterfaceArt.key_line(self, Vector2(floorf((screen.x - keys_width) / 2.0), box.end.y + 6), keys)
@@ -379,6 +510,53 @@ func _draw_boss() -> void:
 	PixelFont.draw(self, Vector2(floorf(screen.x / 2.0 - PixelFont.width(area_name) / 2.0), box.end.y + 2), area_name, Palette.SMOKE)
 
 
+## What he carries and what it makes him, in two columns under the score: his weapons, gear,
+## support and dodge mutations, each with its level; and every stat, as it stands now.
+func _draw_kit() -> void:
+	var screen := get_viewport_rect().size
+	var kit: Array[Array] = [["Weapons", ""]]
+	for weapon in cat.weapons:
+		kit.append([Upgrades.WEAPON_NAMES.get(weapon.name, weapon.name), "Level %d" % weapon.level])
+	kit.append(["Gear", ""])
+	for slot: String in Upgrades.SLOTS:
+		var piece: String = cat.gear.get(slot, "")
+		kit.append([Upgrades.GEAR[piece].name if not piece.is_empty() else "(%s)" % slot, "Level %d" % cat.gear_levels.get(piece, 1) if not piece.is_empty() else ""])
+	kit.append(["Support", ""])
+	for slot: String in Upgrades.SUPPORT_SLOT_NAMES:
+		var support: Support = cat.supports.get(slot)
+		kit.append([Upgrades.SUPPORT[support.name].name if support != null else "(%s)" % Upgrades.SUPPORT_SLOT_NAMES[slot], "Level %d" % support.level if support != null else ""])
+	kit.append(["Dodge mutations", ""])
+	for mutation: String in cat.mutations:
+		var cards: int = cat.mutation_cards.get(mutation, 1)
+		kit.append([Upgrades.MUTATIONS[mutation].name, "%d %s" % [cards, "card" if cards == 1 else "cards"]])
+	if cat.mutations.is_empty():
+		kit.append(["(none yet)", ""])
+	var stats: Array[Array] = [["Stats", ""],
+		["Health", "%d of %d" % [ceili(cat.health), roundi(cat.max_health)] if cat.health < 1000.0 else "Sturdy"],
+		["Armor", "%.1f" % cat.armor], ["Regeneration", "%.2f a second" % cat.regeneration],
+		["Adrenaline", "%d%%" % roundi(cat.adrenaline * 100.0)], ["Damage", "+%d%%" % roundi(cat.damage_bonus * 100.0)],
+		["Attack speed", "+%d%%" % roundi(cat.attack_speed_bonus * 100.0)], ["Reach", "+%d%%" % roundi(cat.reach_bonus * 100.0)],
+		["Speed", "+%d%%" % roundi(cat.speed_bonus * 100.0)], ["Luck", "%.1f" % cat.luck],
+		["Critical hits", "%d%%" % roundi(cat.critical * 100.0)], ["Knockback", "+%d%%" % roundi(cat.knockback_bonus * 100.0)],
+		["Dodge charges", "%d" % cat.most_charges()],
+	]
+	var column := 150.0
+	var rows := maxi(kit.size(), stats.size())
+	var box := Rect2(screen.x - column * 2 - 18, 26, column * 2 + 14, rows * PixelFont.LINE_HEIGHT + 10)
+	InterfaceArt.panel(self, box)
+	for side in 2:
+		var lines: Array[Array] = kit if side == 0 else stats
+		var x := box.position.x + 6 + side * (column + 2)
+		for index in lines.size():
+			var y := box.position.y + 5 + index * PixelFont.LINE_HEIGHT
+			var line: Array = lines[index]
+			if (line[1] as String).is_empty() and not (line[0] as String).begins_with("("):
+				InterfaceArt.bold(self, Vector2(x, y), line[0], Palette.PINK)
+				continue
+			PixelFont.draw(self, Vector2(x + 4, y), line[0], Palette.SMOKE if (line[0] as String).begins_with("(") else Palette.OFF_WHITE)
+			PixelFont.draw(self, Vector2(x + column - 6 - PixelFont.width(line[1]), y), line[1], Palette.LEAF_LIGHT)
+
+
 func _draw_score() -> void:
 	var screen := get_viewport_rect().size
 	var kills := "%d" % arena.kills
@@ -402,7 +580,7 @@ func _draw_numbers() -> void:
 	var width := 0
 	for line in lines:
 		width = maxi(width, PixelFont.width(line))
-	var box := Rect2(4, 52, width + 10, lines.size() * PixelFont.LINE_HEIGHT + 8)
+	var box := Rect2(4, 65, width + 10, lines.size() * PixelFont.LINE_HEIGHT + 8)
 	InterfaceArt.panel(self, box)
 	for index in lines.size():
 		PixelFont.draw(self, box.position + Vector2(5, 4 + index * PixelFont.LINE_HEIGHT), lines[index], Palette.OFF_WHITE)
@@ -526,7 +704,7 @@ func _dither() -> void:
 			draw_rect(Rect2(x, y, 1, 1), Palette.GRAPHITE)
 
 
-## The pause menu, and beside it the cards she's holding, to read but not to play. In the
+## The pause menu, and beside it the cards he's holding, to read but not to play. In the
 ## village there's no run, so no cards: the menu sits in the middle on its own.
 func _draw_menu() -> void:
 	var screen := get_viewport_rect().size
@@ -669,7 +847,7 @@ func _draw_summary() -> void:
 		["rescued", "Cats rescued", str(summary.get("rescued", 0))],
 		["salvage", "Salvage", str(summary.get("salvage", 0))],
 	]
-	# What freeing the area taught her, the first time.
+	# What freeing the area taught him, the first time.
 	var learned: Array = summary.get("learned", [])
 	if not learned.is_empty():
 		rows.append(["learned", "Learned", ", ".join(learned)])
@@ -680,7 +858,7 @@ func _draw_summary() -> void:
 	var box := Rect2(floorf((screen.x - width) / 2.0), floorf((screen.y - height) / 2.0), width, height)
 	InterfaceArt.panel(self, box)
 	var freed: String = summary.get("freed", "")
-	InterfaceArt.bold(self, box.position + Vector2(10, 7), ("Freed: " + freed) if not freed.is_empty() else "She's down", Palette.LEAF_LIGHT if not freed.is_empty() else Palette.PINK)
+	InterfaceArt.bold(self, box.position + Vector2(10, 7), ("Freed: " + freed) if not freed.is_empty() else "He's down", Palette.LEAF_LIGHT if not freed.is_empty() else Palette.PINK)
 	var y := box.position.y + 26
 	for row: Array in rows:
 		PixelFont.draw(self, Vector2(box.position.x + 14, y), row[1], Palette.OFF_WHITE)

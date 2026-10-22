@@ -21,6 +21,7 @@ const BINDINGS := {
 	"reroll": [KEY_R],
 	"banish": [KEY_X],
 	"read_cards": [KEY_TAB],
+	"show_kit": [KEY_I],
 	"toggle_overlay": [KEY_F3],
 	"toggle_fullscreen": [KEY_F11],
 }
@@ -37,6 +38,7 @@ const GAMEPAD_BUTTONS := {
 	"reroll": JOY_BUTTON_DPAD_DOWN,
 	"banish": JOY_BUTTON_B,
 	"read_cards": JOY_BUTTON_BACK,
+	"show_kit": JOY_BUTTON_LEFT_STICK,
 }
 
 

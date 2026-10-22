@@ -4,7 +4,7 @@ extends SceneTree
 ## horde gathering, a crush, a giant walking in, and the giant felled. Run with:
 ## godot --headless --path . --script tools/music_demo.gd -- <output>.wav
 
-## Each part of the fight: its length in loops, how many are around her, whether a giant stands.
+## Each part of the fight: its length in loops, how many are around him, whether a giant stands.
 const SCRIPT := [[1, 0, false], [1, 12, false], [1, 35, false], [1, 35, true], [1, 20, false]]
 
 

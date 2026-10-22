@@ -1,6 +1,6 @@
 class_name Structure
 extends RefCounted
-## Something an area's goal asks her to break: a rat nest in a split supply crate, a saw on its
+## Something an area's goal asks him to break: a rat nest in a split supply crate, a saw on its
 ## bench, a generator, a drum of fuel. Each stands where the area puts it, is solid, can be struck
 ## by anything that reaches it, and does what it does while it stands: a nest breeds rats, a saw
 ## cuts what comes too close, a fuel drum, broken, goes up in flames.
