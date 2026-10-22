@@ -9,8 +9,9 @@ area by area from the company clearing it; and **Endless**, a fresh clearing eve
 cooperative play for one to four lives.
 
 It's at the very beginning: the design is in [`docs/design.md`](docs/design.md), and what runs
-so far is a prototype, from the title to the end of a run: one cat with a knife or a handgun,
-level-up cards, gear, evolving weapons, dodge mutations and support (a gun drone, a bamboo cannon and mines), synthesized sound and adaptive music, a logged clearing, a horde of rats, packs of guard dogs, chainsaw workers and the first boss, a feller buncher,
+so far is a prototype, from the title to the end of a run: one cat with a nunchaku or a handgun,
+level-up cards, gear, evolving weapons, dodge mutations taught by the cats she frees, and support
+(drones, a bamboo cannon, mines, a bee swarm and more), a village the story brings back from ruin, synthesized sound and adaptive music, a logged clearing, a horde of rats, packs of guard dogs, chainsaw workers and the first boss, a feller buncher,
 coming out of the jungle, the light under the canopy, and gear you can try on.
 
 ## Download
@@ -32,7 +33,7 @@ The builds aren't signed by a publisher Windows or macOS knows yet, so each warn
 |---|---|---|
 | W A S D or the arrow keys | Left stick | Move |
 | Space | A | Dodge (a charge each; mutations from the cards change what it does) |
-| 1 or 2 | Left bumper or up | Choose what you start with: knife or handgun |
+| 1 or 2 | Left bumper or up | Choose what you start with: nunchaku or handgun |
 | T | X | Change how weapons choose a target (also in the settings) |
 | B | | Blood on or off (also in the settings) |
 | G | Y | Try on gear (until upgrades hand it out) |
@@ -41,8 +42,9 @@ The builds aren't signed by a publisher Windows or macOS knows yet, so each warn
 | X with 1, 2 or 3 | B | Banish that choice for the rest of the run |
 | Tab (hold) | Back | Read the cards in full |
 | Escape | Start | Pause: carry on, settings, start again, back to the village, leave |
-| W A S D or the arrow keys | Left stick | In the village: walk about. The path out on its far side leads to a run |
-| Enter | A | In the village, at a door: restore a ruin, or use what it holds (the smith's forge, the weaver's looks) |
+| W A S D or the arrow keys | Left stick | In the village: walk about. The gate on its far side leads to a run |
+| Enter | A | In the village, at a door: use what it holds (her pack, the smith's forge, the elder's book, the weaver's looks, the map) |
+| A and D, W and S | Stick | At the smithy and in her pack: change tab, and choose |
 | Enter | A | In a cutscene: finish the line, or move on to the next |
 | Escape | Start | In a cutscene: skip it |
 | W and S, then Enter or Space | Stick, then A | Choose in the pause menu |
