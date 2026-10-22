@@ -25,7 +25,7 @@ always humans.
 **The company** is **PT Makmur Bakti Gemilang**, which the cats call **Makmur Bakar**:
 MBG. It clears the forest as the "official partner" of the **Food Land Acceleration Agency**,
 which has stamped the cats' forest on its maps as *lahan tidur*, idle land, to be cleared for the
-nation's food. Its site boards say *Lahan Tidur Jadi Makmur* beside *Building a Greener
+nation's food. Its site boards say *From Idle Land to Plenty* beside *Building a Greener
 Tomorrow!*, and the finale is an official flying in to cut a ribbon on what's left. It's satire of
 deforestation, the peat fires and the way land gets cleared there, and every name in it is made
 up: no real ministry, agency or person is named, the system is the joke rather than anyone in
@@ -109,9 +109,17 @@ A clearing the company has cut in an Indonesian tropical forest.
 ### Starting out
 
 A run starts with a choice of one weapon, and nothing else: armor and accessories are upgrades.
+The two cards wink at the films: a cat parody each.
 
-- **Knife**, for close work: quick, and it never runs out.
-- **Handgun**, for range: slow, but it reaches.
+- **Nunchaku**, "Go Chuck Purris style", for close work: two sticks on a chain, swung most of the
+  way round her, blunt, and it never runs out.
+- **Handgun**, "Go John Whisker style", for range: slow, but it reaches.
+
+**English by default.** Every name on screen is in English: a slingshot, not a ketapel; a fighting
+kite, not a layang-layang. Where English has no word of its own (golok, mandau, rencong, badik,
+kujang, as a katana is a katana), the name stays, and every thing's story tells its Indonesian name
+and where it's from. The ids underneath stay as they were, so a translation is a language
+setting later, not a rename.
 
 ### Aim
 
@@ -135,7 +143,7 @@ that could be built.
 
 Every weapon, built and planned, is in [`catalog.md`](catalog.md). Weapons differ by more than
 their numbers: rounds can come several to a shot (the shotgun's cone), go through what they hit
-(the crossbow, the sniper rifle, the bow), or glance off to the next (the ketapel's stones); they
+(the crossbow, the sniper rifle, the bow), or glance off to the next (the slingshot's stones); they
 can poison and slow (the sumpit), set alight (the flare gun), leave burning oil (lamp oil) or
 nails (the nail gun) where they land, or pop as firecrackers (petasan). Blades can trip (the
 celurit), hook what they catch in toward her (the kujang), thrust in a line instead of swinging
@@ -157,8 +165,10 @@ on: fire and oil, or crewmates who can be downed.
 - **The flow lives in the village.** The title is short, over the forest path to the village:
   Play, Settings and Leave. Play makes the menu fall away, and she walks into the village, a
   cutscene; the first time, the story's opening is told over the walk (what happened, what's
-  going on, what needs doing). From the village, walking out along the path to the clearing
-  starts a run, with the choice of knife or handgun. When she's down, a summary of the run (time
+  going on, what needs doing). From the village, walking out through the gate is seen off: the
+  villagers come to the gate as she heads for it, and line the path while she walks on into the
+  forest. The first time she leaves for an area, someone has a word for her on the way; any other
+  time she just goes, at her own pace. Then the run starts, with the choice of nunchaku or handgun. When she's down, a summary of the run (time
   survived, level reached, kills, giants felled, machines broken, cats rescued, salvage) marks
   any new best in words as well as color, and offers Home to the village, Straight back out (a
   new run at once: "one more run" shouldn't mean a walk across the village every time), or
@@ -179,8 +189,10 @@ on: fire and oil, or crewmates who can be downed.
   growing until she's down; the best run is Endless's. Co-op is for Endless only: Liberation
   moves one village's story, so it's solo, but nothing in it assumes one cat, so a "help a friend"
   co-op Liberation stays possible later.
-- **Liberation** is chosen at the map board by the village's gate: an area found so far, or
-  Endless. Each area is a fixed, hand-made place and one run: push in through what holds it, do
+- **Liberation** is chosen at the map board by the village's gate, drawn as a map of the forest
+  from above: the river, the village, and the path through every area in the order it's found,
+  each wrecked while it's held, green again once it's free, and under mist until it's found.
+  Endless lies off the map's corner. Each area is a fixed, hand-made place and one run: push in through what holds it, do
   what only that place asks, then its boss comes; beat it and the area is free, and the next one
   opens. Held by the company, an area is wrecked (stumps, felled trunks, ruts, oil, litter,
   smoldering peat, fewer trees standing at its edge); freed, it's healed (grassed over, saplings,
@@ -188,7 +200,8 @@ on: fire and oil, or crewmates who can be downed.
   area its story is told going in, to the opening's mellow music; the first time it's freed, the
   healed ground spreads out from where its boss fell while the story goes on, to music of its
   own. Losing still brings home what she carried; the area stays the company's. The first time
-  each is freed brings the village salvage, and some areas free cats who come home.
+  each is freed brings the village salvage, brings a building back, some free cats who come
+  home, and most have a cat who teaches her their dodge mutations.
 
   | Area | Goal | Boss |
   |---|---|---|
@@ -213,20 +226,33 @@ on: fire and oil, or crewmates who can be downed.
   - **The village is walked**: a forest path in, the village itself a screen wide, and the path
     out to the clearing on its far side. The cats she's rescued live there, each in its own
     coat, and show their names as she passes.
-  - **It starts in ruins.** The company's machines have already been through: the elder's
-    longhouse, the smithy and six huts all stand wrecked, holed, scorched and half-roofed.
-    Restoring them, one by one, is how the village grows, and each opens what it holds (the
-    smithy, forging). Restored, the village is bright and lived-in: walls painted in reds, teal,
+  - **It starts in ruins.** The company's machines have already been through: her own home, the
+    elder's longhouse, the smithy and five huts all stand wrecked, holed, scorched and
+    half-roofed. Restored, the village is bright and lived-in: walls painted in reds, teal,
     yellow and pink, trimmed in cream; bunting under every eave; flowers in the grass; the
     longhouse's painted band and its umbul-umbul, the tall flags on bamboo poles, at the way in.
-  - **Restoring takes salvage and cats to help**: walk up to a ruin's door and press Enter. The
-    smithy is cheapest (15 salvage, a cat), the huts climb from 10 salvage and a cat to 26 and
-    six, and the longhouse is last (40 and six). The cats who help stay rescued.
-  - **It gives back unlocks and a starting piece**: once restored, the smith forges gear and
-    support into the cards a run can offer (6 to 20 salvage each); until then a run can offer
-    the knife, the handgun, the caping, the red scarf, the boots and every dodge mutation. A
-    forged piece of gear can be worn from a run's start. The longhouse's elder lets a run start
-    with any weapon forged. Never a stat on its own: stats only come from gear.
+  - **The story brings it back, never salvage.** Her home is fixed up by the first cat she
+    rescues, as a thank-you. Freeing the village's edge brings back the smithy (the company's
+    crates were full of tools); the deep forest, the weaver's hut (Nenek Pus moves in with her
+    loom); the sawpits, the longhouse (after the sawpits, everyone wants to talk at once); and
+    each area after, another hut. What came back is told as she walks home to it. A ruin's door
+    says what will bring it back.
+  - **Each building opens what it holds.** Her home is her pack. The smithy forges weapons, gear
+    and support into the cards (8 to 24 salvage each): salvage is spent there and nowhere else.
+    The longhouse's elder lets a run start with any weapon forged, and keeps the book of
+    stories, the story so far to read again. Never a stat on its own: stats only come from gear.
+  - **A run starts with what any village has lying about**: six weapons (the nunchaku, the
+    handgun, the knife, the slingshot, the golok and the rattan staff) and five pieces of gear
+    (the conical hat, the red scarf, the boots, the sarong and the gloves). Nothing else turns up
+    on the cards until it's forged or taught. Dodge mutations are taught, one or two by a cat
+    for each area freed.
+  - **Her pack** holds what she has, and each thing can be packed or left home, so the cards
+    offer only what she wants; a piece of gear can also be worn from a run's start. Leaving
+    things home narrows the cards but never past a draw: three of each kind stay packed for every
+    place a run has for one (two paws, so six weapons; seven slots, so twenty-one pieces of gear;
+    a drone and a set-down, so six support; three mutations, so nine).
+  - **Everything has its story**, read on a card with Tab and at the smithy and the pack: where
+    it came from, as the cats tell it.
   - **Housed cats weave cloth**: each restored hut houses two rescued cats, and every run brings
     in a cloth for each. The first hut is the weaver's, who sells looks for cloth (her coat, the
     umbul-umbul's colors), its own currency so a look never competes with forging. The full
@@ -258,7 +284,7 @@ Level-ups arrive as **cards**. A card offers a choice of three; you hold it unti
 | Kind | Offers |
 |---|---|
 | **A weapon** | A new one, into a free paw or support slot |
-| **A weapon's level** | Levels 1 to 10 for a weapon held; at 10 it can evolve along its family (knife to keris to kerambit, machete to greatsword, handgun to submachine gun, rifle to automatic rifle to assault rifle, or rifle to sniper rifle), keeping everything its levels gave it |
+| **A weapon's level** | Levels 1 to 10 for a weapon held; at 10 it can evolve along its family (knife to kris to karambit, machete to greatsword, handgun to submachine gun, rifle to automatic rifle to assault rifle, or rifle to sniper rifle), keeping everything its levels gave it |
 | **Mastery** | Past the top: a weapon at the last of its family, or gear at level 5, takes mastery levels without limit, each worth half a level. A long run keeps growing, which is what makes a god run possible, and a card is never empty |
 | **Gear** | Armor and accessories, worn and visible |
 | **A dodge mutation** | See the dodge |
@@ -287,12 +313,12 @@ raising the odds.
 
 ### What a cat can carry
 
-- **Two paws.** Two one-handed weapons (knife and handgun, keris and golok), or one two-handed
+- **Two paws.** Two one-handed weapons (knife and handgun, kris and golok), or one two-handed
   weapon (rifle, assault rifle, sniper rifle, greatsword) that hits harder and takes both.
 - **Two support slots** for what isn't held, one of each kind, both on her back: **one drone**
   and **one thing she sets down** (a turret, or mines). One of each, because two drones or two
   turrets on one pack would never sit right. **She starts with neither.** The drone docks in a
-  cradle on top of the pack when there's nothing to shoot; the meriam bambu is a bamboo tube
+  cradle on top of the pack when there's nothing to shoot; the bamboo cannon is a bamboo tube
   strapped across it until she sets it down; mines ride in pouches on the straps. Each comes
   with its mount, and the pack shows from every side.
 - **Support works on its own,** as her weapons do, and takes levels the same way. The drone lifts
@@ -425,7 +451,7 @@ blocks (a tone that sweeps, filtered noise, a pulse wave, the stepped noise of o
 so every sound belongs to the same game, and there's nothing to license.
 
 - **The simulation drives it.** A shot plays for each round fired; a blade whooshes with each
-  swing, deeper for a keris, quicker for a kerambit; a rat's hit is a small high thud and its fall
+  swing, deeper for a kris, quicker for a karambit; a rat's hit is a small high thud and its fall
   a squeak, a giant's hit is deep; a giant's footfalls land with his stride, his stomp booms and
   his fall thunders.
 - **Sounds sit where they happen** and fade with distance from the view; the interface's play

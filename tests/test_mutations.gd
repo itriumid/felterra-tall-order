@@ -164,3 +164,87 @@ func test_riposte_strikes_back_when_a_dodged_hit_lands() -> void:
 	cat.hurt(1.0, Vector2.ZERO)
 	arena.step()
 	check(arena.kills == 4, "she struck back twice in one roll")
+
+
+func test_lick_your_wounds_heals_each_roll_up_to_a_limit() -> void:
+	var arena := _arena()
+	var cat := _cat(arena, ["lick_your_wounds"])
+	cat.health = 2.0
+	cat.steering = Vector2.RIGHT
+	check(cat.dodge(), "she couldn't roll")
+	arena.step()
+	check(is_equal_approx(cat.health, 2.0 + Cat.LICK_HEAL), "a roll healed her to %.2f" % cat.health)
+	for roll in 20:
+		cat.dodge_charges = 1.0
+		cat.dodge()
+		_roll_out(arena, cat, 20)
+	check(cat.health <= 2.0 + Cat.LICK_MOST + 0.001, "licking healed past its limit, to %.2f" % cat.health)
+
+
+func test_caltrops_lame_the_first_foot_on_them() -> void:
+	var arena := _arena()
+	var cat := _cat(arena, ["caltrops"])
+	cat.steering = Vector2.RIGHT
+	cat.dodge()
+	arena.step()
+	var caltrops := arena.hazards.filter(func(hazard: Dictionary) -> bool: return hazard.kind == "caltrop")
+	check(caltrops.size() == Cat.CALTROPS, "%d caltrops scattered" % caltrops.size())
+	var rat := arena.add_creature(caltrops[0].position)
+	var health := rat.health
+	arena.step()
+	check(rat.health < health and rat.afflictions.has("slow"), "a rat on a caltrop wasn't pricked and lamed")
+	check(arena.hazards.size() == Cat.CALTROPS - 1, "the caltrop wasn't used up")
+
+
+func test_a_dust_cloud_stops_the_horde_in_it() -> void:
+	var arena := _arena()
+	var cat := _cat(arena, ["dust_cloud"])
+	var near := arena.add_creature(cat.body.position + Vector2(0.5, 0.0))
+	var far := arena.add_creature(cat.body.position + Vector2(4.0, 0.0))
+	cat.steering = Vector2.LEFT
+	cat.dodge()
+	arena.step()
+	check(near.tripped_for > 0.0, "a rat in the dust didn't stop to cough")
+	check(far.tripped_for <= 0.0, "a rat far off coughed in dust it wasn't in")
+
+
+func test_a_scent_trail_draws_the_horde_then_fades() -> void:
+	var arena := _arena()
+	var cat := _cat(arena, ["scent_trail"])
+	cat.steering = Vector2.RIGHT
+	cat.dodge()
+	arena.step()
+	check(arena.decoys.size() == 1, "%d scents left" % arena.decoys.size())
+	var rat := arena.add_creature(cat.body.position + Vector2(0.0, 3.0))
+	check(arena._prey_for(rat) == arena.decoys[0], "the horde didn't go for her scent")
+	_roll_out(arena, cat, int(Cat.SCENT_TIME / Arena.STEP) + 5)
+	check(arena.decoys.is_empty(), "her scent never faded")
+
+
+func test_slipstream_speeds_up_a_crewmate_she_rolls_past() -> void:
+	var arena := _arena()
+	var cat := _cat(arena, ["slipstream"])
+	var crewmate := arena.add_cat(cat.body.position + Vector2(0.5, 0.0))
+	crewmate.weapons.clear()
+	var stranger := arena.add_cat(cat.body.position + Vector2(0.0, 4.0))
+	stranger.weapons.clear()
+	cat.steering = Vector2.RIGHT
+	cat.dodge()
+	_roll_out(arena, cat, 10)
+	check(crewmate.hasted(), "the crewmate she rolled past wasn't sped up")
+	check(not stranger.hasted() and not cat.hasted(), "a cat she never passed was sped up")
+
+
+func test_chain_roll_gives_a_charge_back_for_a_kill_once_a_roll() -> void:
+	var arena := _arena()
+	var cat := _cat(arena, ["chain_roll", "rolling_slash"])
+	for index in 3:
+		var rat := arena.add_creature(cat.body.position + Vector2(0.3 + index * 0.15, 0.0))
+		rat.health = 0.1
+	cat.steering = Vector2.RIGHT
+	cat.dodge()
+	var after_dodge := cat.dodge_charges
+	_roll_out(arena, cat, 3)
+	var gained := cat.dodge_charges - after_dodge
+	var refill := 3.0 * Arena.STEP / cat.recharge_time()
+	check(gained >= Cat.CHAIN_SHARE - 0.01 and gained <= Cat.CHAIN_SHARE + refill + 0.01, "the kills gave back %.2f of a charge" % gained)

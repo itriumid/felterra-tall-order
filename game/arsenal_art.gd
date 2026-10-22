@@ -5,6 +5,43 @@ extends RefCounted
 ## others, its lines redrawn at every angle rather than its pixels rotated.
 
 const WEAPONS := {
+	"nunchaku": {
+		"east": {"art": """
+.kkkkk.....kkkkk.
+kbbBBbkhhhkbBBbbk
+.kkkkk.....kkkkk.
+""", "grip": Vector2(2, 1), "muzzle": Vector2(15, 1)},
+		"northeast": {"art": """
+.........kk.
+........kBbk
+.......kBbk.
+......kbbk..
+.....kh.....
+....h.......
+...h........
+..kk........
+.kBbk.......
+kBbk........
+kbk.........
+.k..........
+""", "grip": Vector2(1, 9), "muzzle": Vector2(10, 1)},
+		"north": {"art": """
+.k.
+kBk
+kBk
+kbk
+kbk
+.h.
+.h.
+.h.
+.k.
+kBk
+kBk
+kbk
+kbk
+.k.
+""", "grip": Vector2(1, 11), "muzzle": Vector2(1, 1)},
+	},
 	"machete": {
 		"east": {"art": """
 ....kkkkkkkk..

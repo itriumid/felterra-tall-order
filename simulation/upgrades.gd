@@ -37,14 +37,14 @@ const UNFAMILIAR: Array[String] = ["adrenaline", "regeneration", "luck", "critic
 const GEAR := {
 	"vest": {"name": "Vest", "slot": "body", "stats": {"armor": 0.4, "health": 2.0}},
 	"hard_hat": {"name": "Hard hat", "slot": "head", "stats": {"armor": 0.3, "health": 2.0}},
-	"caping": {"name": "Caping", "slot": "head", "stats": {"regeneration": 0.05, "luck": 0.3}},
+	"caping": {"name": "Conical hat", "slot": "head", "stats": {"regeneration": 0.05, "luck": 0.3}},
 	"bell_collar": {"name": "Bell collar", "slot": "neck", "stats": {"luck": 0.6}},
 	"scarf": {"name": "Red scarf", "slot": "neck", "stats": {"speed": 0.06}},
 	"goggles": {"name": "Goggles", "slot": "eyes", "stats": {"reach": 0.08}},
 	"gloves": {"name": "Gloves", "slot": "paws", "stats": {"damage": 0.1, "attack_speed": 0.05}},
 	"boots": {"name": "Boots", "slot": "feet", "stats": {"speed": 0.05, "armor": 0.1}},
-	"jamu_flask": {"name": "Jamu flask", "slot": "waist", "stats": {"adrenaline": 0.03}},
-	"peci": {"name": "Peci", "slot": "head", "stats": {"luck": 0.4, "health": 1.0}},
+	"jamu_flask": {"name": "Herbal flask", "slot": "waist", "stats": {"adrenaline": 0.03}},
+	"peci": {"name": "Velvet cap", "slot": "head", "stats": {"luck": 0.4, "health": 1.0}},
 	"batik_shirt": {"name": "Batik shirt", "slot": "body", "stats": {"health": 3.0, "luck": 0.2}},
 	"raincoat": {"name": "Raincoat", "slot": "body", "stats": {"armor": 0.6}},
 	"headlamp": {"name": "Headlamp", "slot": "eyes", "stats": {"reach": 0.1}},
@@ -55,35 +55,49 @@ const GEAR := {
 	"sandals": {"name": "Sandals", "slot": "feet", "stats": {"speed": 0.07}},
 	"sarong": {"name": "Sarong", "slot": "waist", "stats": {"speed": 0.03, "armor": 0.2}},
 	"tool_belt": {"name": "Tool belt", "slot": "waist", "stats": {"attack_speed": 0.06}},
+	"batik_headcloth": {"name": "Batik headcloth", "slot": "head", "stats": {"luck": 0.3, "attack_speed": 0.03}},
+	"ear_defenders": {"name": "Ear defenders", "slot": "head", "stats": {"armor": 0.35}},
+	"life_jacket": {"name": "Life jacket", "slot": "body", "stats": {"health": 4.0}},
+	"kebaya": {"name": "Lace blouse", "slot": "body", "stats": {"regeneration": 0.06, "luck": 0.2}},
+	"lanyard": {"name": "Company lanyard", "slot": "neck", "stats": {"critical": 0.03, "luck": 0.2}},
+	"prayer_beads": {"name": "Prayer beads", "slot": "neck", "stats": {"regeneration": 0.05, "adrenaline": 0.01}},
+	"safety_glasses": {"name": "Safety glasses", "slot": "eyes", "stats": {"armor": 0.15, "reach": 0.05}},
+	"gem_rings": {"name": "Gem rings", "slot": "paws", "stats": {"luck": 0.5, "critical": 0.02}},
+	"rattan_bracers": {"name": "Rattan bracers", "slot": "paws", "stats": {"armor": 0.2, "knockback": 0.12}},
+	"wooden_clogs": {"name": "Wooden clogs", "slot": "feet", "stats": {"knockback": 0.15, "damage": 0.04}},
+	"fighting_sash": {"name": "Fighting sash", "slot": "waist", "stats": {"damage": 0.06, "critical": 0.02}},
 }
 const SLOTS: Array[String] = ["head", "body", "neck", "eyes", "paws", "feet", "waist"]
 ## Weapons a card can hand her, if she has paws free for them.
 ## A weapon a family grows into isn't offered on its own: it's reached by evolving.
 const WEAPONS: Array[String] = [
-	"knife", "handgun", "machete", "rifle", "shotgun", "grenade_launcher", "nail_gun", "flare_gun",
+	"nunchaku", "knife", "handgun", "machete", "rifle", "shotgun", "grenade_launcher", "nail_gun", "flare_gun",
 	"crossbow", "lamp_oil", "golok", "celurit", "rattan_staff", "ketapel", "sumpit", "petasan",
 	"tombak", "bambu_runcing", "mandau", "rencong", "badik", "kujang", "panah",
 ]
 const WEAPON_NAMES := {
-	"knife": "Knife", "keris": "Keris", "kerambit": "Kerambit",
+	"nunchaku": "Nunchaku", "knife": "Knife", "keris": "Kris", "kerambit": "Karambit",
 	"handgun": "Handgun", "submachine_gun": "Submachine gun",
 	"machete": "Machete", "greatsword": "Greatsword", "rifle": "Rifle", "automatic_rifle": "Automatic rifle",
 	"assault_rifle": "Assault rifle", "sniper_rifle": "Sniper rifle", "shotgun": "Shotgun",
 	"grenade_launcher": "Grenade launcher", "nail_gun": "Nail gun", "flare_gun": "Flare gun",
-	"crossbow": "Crossbow", "lamp_oil": "Lamp oil", "golok": "Golok", "celurit": "Celurit",
-	"rattan_staff": "Rattan staff", "ketapel": "Ketapel", "sumpit": "Sumpit", "petasan": "Petasan",
-	"tombak": "Tombak", "bambu_runcing": "Bambu runcing", "mandau": "Mandau", "rencong": "Rencong",
-	"badik": "Badik", "kujang": "Kujang", "panah": "Panah",
+	"crossbow": "Crossbow", "lamp_oil": "Lamp oil", "golok": "Golok", "celurit": "Sickle",
+	"rattan_staff": "Rattan staff", "ketapel": "Slingshot", "sumpit": "Blowpipe", "petasan": "Firecrackers",
+	"tombak": "Spear", "bambu_runcing": "Bamboo spear", "mandau": "Mandau", "rencong": "Rencong",
+	"badik": "Badik", "kujang": "Kujang", "panah": "Bow",
 }
 ## Support, by id: what she carries on her back, and the slot it takes there.
 const SUPPORT := {
 	"gun_drone": {"name": "Gun drone", "lines": ["A drone on her pack", "Flies out and fires"]},
-	"meriam_bambu": {"name": "Meriam bambu", "lines": ["A bamboo cannon", "Set down, it lobs stones"]},
+	"meriam_bambu": {"name": "Bamboo cannon", "lines": ["A bamboo cannon", "Set down, it lobs stones"]},
 	"mines": {"name": "Mines", "lines": ["Pouches of mines", "Dropped as they close"]},
 	"net_drone": {"name": "Net drone", "lines": ["A drone with nets", "Holds them down"]},
-	"layang_layang": {"name": "Layang-layang", "lines": ["A fighting kite", "Its string cuts"]},
-	"ranjau_bambu": {"name": "Ranjau bambu", "lines": ["A bed of bamboo spikes", "Set down as they close"]},
+	"layang_layang": {"name": "Fighting kite", "lines": ["A fighting kite", "Its string cuts"]},
+	"ranjau_bambu": {"name": "Bamboo spikes", "lines": ["A bed of bamboo spikes", "Set down as they close"]},
 	"radio": {"name": "Radio", "lines": ["A loud radio", "The horde goes to it"]},
+	"bee_swarm": {"name": "Bee swarm", "lines": ["A hive on her pack", "Its bees sting and slow"]},
+	"alarm_drum": {"name": "Alarm drum", "lines": ["A bamboo drum", "Each beat throws them"]},
+	"snare": {"name": "Snare", "lines": ["A rattan snare", "Holds the first foot"]},
 }
 ## What each support slot is called on a card.
 const SUPPORT_SLOT_NAMES := {"drone": "drone", "set_down": "set-down"}
@@ -103,6 +117,12 @@ const MUTATIONS := {
 	"more_charges": {"name": "More charges", "explain": "Dodges she can hold; a rarer card brings them back faster"},
 	"long_leap": {"name": "Long leap", "explain": "The roll leaves the ground: over rats, and over a chainsaw's sweep"},
 	"riposte": {"name": "Riposte", "explain": "A hit dodged just as it lands, she answers at once"},
+	"lick_your_wounds": {"name": "Lick your wounds", "explain": "Each roll heals a little, up to so much a minute"},
+	"caltrops": {"name": "Caltrops", "explain": "The roll scatters caltrops behind her that lame the feet on them"},
+	"slipstream": {"name": "Slipstream", "explain": "Rolling past a crewmate speeds them up a while"},
+	"dust_cloud": {"name": "Dust cloud", "explain": "The roll kicks up dust, and the horde in it stops to cough"},
+	"scent_trail": {"name": "Scent trail", "explain": "Where she rolls from, her scent lingers, and the horde goes to it"},
+	"chain_roll": {"name": "Chain roll", "explain": "A kill during a roll gives back part of a charge, once a roll"},
 }
 ## Past the top level, mastery: unlimited levels, each worth this share of an ordinary one. It's
 ## what lets a long run keep growing.
@@ -264,7 +284,15 @@ static func apply(cat: Cat, choice: Dictionary) -> void:
 
 ## A choice as a card shows it: {name, kind, lines (what it gives), explain (what those mean),
 ## unfamiliar (whether any of it is worth reading in full), item (the gear or weapon it is)}.
+## A card, as it's shown: its name, what it gives in a line or two, what that means (read with Tab),
+## and where the thing came from, its story.
 static func describe(choice: Dictionary) -> Dictionary:
+	var card := _describe(choice)
+	card.story = Lore.of(card.kind, card.item)
+	return card
+
+
+static func _describe(choice: Dictionary) -> Dictionary:
 	var id: String = choice.id
 	var amount: float = AMOUNTS[choice.rarity]
 	var card := {"lines": [], "explain": [], "unfamiliar": false, "item": "", "kind": ""}
@@ -359,6 +387,18 @@ static func _mutation_lines(mutation: String, amount: float, fresh: bool) -> Arr
 			return ["Further", "+%.1f meters" % (Cat.DODGE_SPEED * Cat.LEAP_GROWTH * amount * leap_time)]
 		"riposte":
 			return ["Dodge as a hit lands" if fresh else "Sharper", "%s%.1f damage back" % ["" if fresh else "+", Cat.RIPOSTE_DAMAGE * amount]]
+		"lick_your_wounds":
+			return ["Rolling heals" if fresh else "Heals more", "%s%.1f health a roll" % ["" if fresh else "+", Cat.LICK_HEAL * amount]]
+		"caltrops":
+			return ["Caltrops behind her" if fresh else "Sharper", "%s%.1f damage each" % ["" if fresh else "+", Cat.CALTROP_DAMAGE * amount]]
+		"slipstream":
+			return ["Speeds up her crew" if fresh else "Faster", "%s%d%% speed" % ["" if fresh else "+", roundi(Cat.SLIPSTREAM_SPEED * amount * 100.0)]]
+		"dust_cloud":
+			return ["The roll raises dust" if fresh else "Thicker", "%s%.1f seconds coughing" % ["" if fresh else "+", Cat.DUST_TIME * amount]]
+		"scent_trail":
+			return ["Leaves her scent" if fresh else "Stronger", "%s%.1f seconds" % ["" if fresh else "+", Cat.SCENT_TIME * amount]]
+		"chain_roll":
+			return ["A kill, a charge back" if fresh else "More back", "%s%d%% of a charge" % ["" if fresh else "+", roundi(minf(Cat.CHAIN_SHARE * amount, 1.0) * 100.0)]]
 	return []
 
 

@@ -12,15 +12,14 @@ const STEPS := [
 	["menu_choose", "", {"_place": "arriving"}], ["menu_choose", "", {"_place": "arriving"}],
 	["pause", "", {"_place": "village"}],
 	["pause", "village_pause"], ["menu_choose", "", {"_place": "village"}],
-	# With salvage, cloth and cats to spare: restore the smithy and forge a vest; restore the
-	# weaver's hut and buy a gray coat, and wear it.
-	["grant", ""], ["to_smithy", ""], ["menu_choose", "", {"village.restored": ["smithy"]}],
-	["menu_choose", "forge"], ["menu_choose", "forge", {"village.forged": ["gear:vest"]}], ["pause", ""],
-	["to_weaver", ""], ["menu_choose", "", {"village.restored": ["smithy", "hut_0"]}],
-	["menu_choose", "looks"], ["move_down", "looks"], ["menu_choose", "looks", {"village.coat": "gray"}], ["pause", ""],
-	["to_home", ""],
-	# Out along the path to the first area: its story told going in, skipped, then a run.
-	["leave_village", "", {"_place": "run", "_briefing": true}], ["pause", "", {"_briefing": false}], ["pick_1", ""],
+	# A ruin's door does nothing yet: only the story brings it back, never salvage.
+	["grant_salvage", ""], ["to_smithy", ""], ["menu_choose", "", {"village.restored": []}],
+	# Out through the gate to the first area: seen off with a word, hurried and skipped; its story
+	# told going in, skipped; then a run.
+	["leave_village", "", {"_place": "leaving"}], ["menu_choose", "", {"_place": "leaving"}],
+	["pause", "", {"_place": "run", "_briefing": true}], ["pause", "", {"_briefing": false}], ["pick_1", ""],
+	# Salvage thrown out around her, drawn as it flies and lands.
+	["drop_salvage", ""],
 	["pause", "pause"], ["menu_choose", ""],
 	["pause", "pause"], ["move_down", "pause"], ["menu_choose", "settings"], ["move_down", "settings"],
 	["move_right", "settings"], ["pause", "pause"], ["pause", ""],
@@ -28,16 +27,34 @@ const STEPS := [
 	["down", "summary"], ["move_down", "summary"], ["menu_choose", "", {"_place": "run"}], ["pick_2", ""],
 	# Down again, and home to the village; the walk home skipped.
 	["down", "summary"], ["menu_choose", "", {"_place": "arriving"}], ["pause", "", {"_place": "village"}],
-	# Out again (the story's told already), and the first area freed: the boss down, the freeing
-	# told and skipped, the area free in the village's record; then home.
-	["leave_village", "", {"_place": "run", "_briefing": false}], ["pick_1", ""],
+	# Out again, seen off without a word this time (skipped all the same), and the first area
+	# freed: the boss down, the freeing told and skipped, the area free in the village's record.
+	# Home, the smithy stands again.
+	["leave_village", "", {"_place": "leaving"}], ["pause", "", {"_place": "run", "_briefing": false}], ["pick_1", ""],
 	["free_area", "", {"_freeing": true}], ["pause", "summary", {"village.liberated": ["edge"]}],
-	["menu_choose", "", {"_place": "arriving"}], ["pause", "", {"_place": "village"}],
-	# The map board: Endless chosen for the next run.
-	["to_board", ""], ["menu_choose", "board"], ["move_up", "board"], ["menu_choose", "board", {"village.next_run": "endless"}],
+	["menu_choose", "", {"_place": "arriving"}], ["pause", "", {"_place": "village", "village.restored": ["smithy"]}],
+	# Cats rescued, and the next two areas freed, as the story would: her home, the weaver's hut
+	# and the longhouse come back.
+	["catch_up", "", {"village.restored": ["smithy", "home", "longhouse", "hut_0"]}],
+	# The smithy: forge the first piece of gear, the vest.
+	["to_smithy", ""], ["menu_choose", "forge"], ["move_right", "forge"],
+	["menu_choose", "forge", {"village.forged": ["gear:vest"]}], ["pause", ""],
+	# Her pack at home: the vest worn from the start, then not left home but back in the pack, with
+	# too little gear packed to leave any home; a weapon not left home either.
+	["to_house", ""], ["menu_choose", "pack"], ["move_right", "pack"],
+	["menu_choose", "pack", {"village.starting_piece": "gear:vest"}],
+	["menu_choose", "pack", {"village.left_home": [], "village.starting_piece": ""}],
+	["move_left", "pack"], ["move_down", "pack"], ["move_down", "pack"], ["menu_choose", "pack", {"village.left_home": []}], ["pause", ""],
+	# The weaver's hut: buy a gray coat, and wear it.
+	["to_weaver", ""], ["menu_choose", "looks"], ["move_down", "looks"], ["menu_choose", "looks", {"village.coat": "gray"}], ["pause", ""],
+	# The book of stories at the longhouse.
+	["to_longhouse", ""], ["menu_choose", "book"], ["move_down", "book"], ["pause", ""],
+	# The map board: it opens on the next area, the clearing; up four, round to Endless.
+	["to_board", ""], ["menu_choose", "board"], ["move_up", "board"], ["move_left", "board"], ["move_up", "board"],
+	["move_up", "board"], ["menu_choose", "board", {"village.next_run": "endless"}],
 	["pause", ""], ["to_home", ""],
 	# Out to Endless, then giving the run up: back to the village from the pause menu.
-	["leave_village", "", {"_place": "run", "_run_kind": "endless"}], ["pick_1", ""],
+	["leave_village", "", {"_place": "leaving"}], ["pause", "", {"_place": "run", "_run_kind": "endless"}], ["pick_1", ""],
 	["pause", "pause"], ["move_down", "pause"], ["move_down", "pause"], ["move_down", "pause"],
 	["menu_choose", "", {"_place": "arriving"}], ["pause", "", {"_place": "village"}],
 	# From the village's pause menu, back to the title.
@@ -87,20 +104,27 @@ func _process(_delta: float) -> bool:
 		elif action == "leave_village":
 			# Walked to the end of the path out.
 			_main.village_map.cat.body.position = Vector2(VillageMap.SIZE.x - 0.1, VillageMap.RETURN_SPOT.y)
-		elif action == "grant":
+		elif action == "grant_salvage":
 			_main.village.salvage = 200
 			_main.village.cloth = 50
+		elif action == "catch_up":
 			for index in 6:
 				_main.village.cats.append({"name": Cage.NAMES[index], "coat": "gray"})
+			_main.village.liberate("deep")
+			_main.village.liberate("sawpits")
+			for building in _main.village.catch_up():
+				_main.village_map.show_restored(building)
+		elif action == "drop_salvage":
+			_main.arena.drop_salvage(_main.cat.body.position + Vector2(1.5, 0.0), 6)
 		elif action == "free_area":
 			# The area's goal done and its boss down.
 			_main.arena.goal_done = true
 			if _main.arena.boss == null:
 				_main.arena._bring_in_the_boss()
 			_main.arena.strike(_main.arena.boss, 1.0e7, Vector2.ZERO, 0.0, 0.0, "round")
-		elif action in ["to_smithy", "to_weaver", "to_home", "to_board"]:
+		elif action in ["to_smithy", "to_weaver", "to_home", "to_board", "to_house", "to_longhouse"]:
 			# Walked up to a door, or back into the open.
-			var spots := {"to_smithy": VillageMap.SMITHY, "to_weaver": VillageMap.HUTS[0], "to_board": VillageMap.BOARD}
+			var spots := {"to_smithy": VillageMap.SMITHY, "to_weaver": VillageMap.HUTS[0], "to_board": VillageMap.BOARD, "to_house": VillageMap.HOME, "to_longhouse": VillageMap.LONGHOUSE}
 			var footprint: Rect2 = spots.get(action, Rect2(VillageMap.HOME_SPOT, Vector2.ZERO))
 			_main.village_map.cat.body.position = Vector2(footprint.get_center().x, footprint.end.y + 0.45) if action != "to_home" else VillageMap.HOME_SPOT
 		else:

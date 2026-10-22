@@ -45,8 +45,7 @@ func test_every_weapon_is_built_drawn_named_and_forged() -> void:
 		check(Sprites.held_art().has(weapon_name), "%s has no drawing" % weapon_name)
 		check(Upgrades.WEAPON_NAMES.has(weapon_name), "%s has no name" % weapon_name)
 	for weapon_name in Upgrades.WEAPONS:
-		if not weapon_name in ["knife", "handgun"]:
-			check(Village.FORGE.has("weapon:" + weapon_name), "%s can't be forged" % weapon_name)
+		check(Village.FORGE.has("weapon:" + weapon_name) != ("weapon:" + weapon_name in Village.STARTING), "%s is neither forged nor had from the start, or both" % weapon_name)
 	for support: String in Upgrades.SUPPORT:
 		check(Village.FORGE.has("support:" + support), "the %s can't be forged" % support)
 
