@@ -17,11 +17,42 @@ extends RefCounted
 ## trampled flat. The radio, set down and turned up loud, draws the horde to it instead of her
 ## until its battery's flat.
 
+## The alarm drum, the kentongan, is set down when the horde crowds her and beaten: each beat a
+## shove that throws the horde back off her, until the drum splits. The bee swarm lives in a hive on
+## her pack and goes out to sting whatever's nearest, slowing it, and comes home when it's quiet.
+## The snare, a jerat of rattan, is set down where she stands, and catches the first foot in it:
+## a rat held down, a giant held by the boot, unable to walk off.
+
 ## Which slot each takes: a drone, or something set down. One of each.
 const SLOTS := {
 	"gun_drone": "drone", "net_drone": "drone", "layang_layang": "drone",
 	"meriam_bambu": "set_down", "mines": "set_down", "ranjau_bambu": "set_down", "radio": "set_down",
+	"bee_swarm": "drone", "alarm_drum": "set_down", "snare": "set_down",
 }
+## The alarm drum: how many of the horde close by before she sets it down, how wide a beat throws
+## them, what a beat does, how often it's beaten, how many beats before it splits, and how long a
+## new one takes.
+const DRUM_CROWD := 5
+const DRUM_REACH := 1.6
+const DRUM_DAMAGE := 0.6
+const DRUM_KNOCK := 3.6
+const DRUM_INTERVAL := 0.6
+const DRUM_BEATS := 6
+const DRUM_REBUILD := 8.0
+## The bee swarm: how far out it goes, how fast it flies, how often it stings, what a sting does,
+## and how much a sting slows.
+const SWARM_REACH := 5.0
+const SWARM_SPEED := 4.0
+const STING_INTERVAL := 0.3
+const STING_DAMAGE := 0.5
+const STING_SLOW := 0.3
+## The snare: how far she watches before setting it down, how wide its loop, what catching does,
+## how long it holds a rat or a giant, and how long a new one takes to tie.
+const SNARE_RADIUS := 0.25
+const SNARE_DAMAGE := 2.0
+const SNARE_HOLD := 2.5
+const SNARE_GIANT_HOLD := 2.0
+const SNARE_REBUILD := 7.0
 ## The kite: how far out it flies, how high, how far its string sags in the middle, how fast it
 ## circles, and what its string does to what it crosses, and how often to each.
 const KITE_REACH := 2.2
@@ -99,6 +130,15 @@ var _cut_ready := {}
 var _bed = null
 var _battery := 0.0
 var _decoy: Cat
+## The drum's beats left and the time to the next; the swarm's sting ready in, and what it's
+## after; the snare lying set, as its spot, or none (INF).
+var beats_left := 0
+var _next_beat_in := 0.0
+var beats := 0
+var _sting_in := 0.0
+var _stinging: Object
+var snare_at := Vector2.INF
+var catches := 0
 
 
 static func named(support_name: String) -> Support:
@@ -135,7 +175,7 @@ static func named(support_name: String) -> Support:
 			support.weapon = nets
 			support.body.radius = 0.12
 			support.body.tall = 0.1
-		"layang_layang":
+		"layang_layang", "bee_swarm":
 			support.body.radius = 0.15
 			support.body.tall = 0.2
 		"meriam_bambu":
@@ -167,6 +207,9 @@ func _base_damage() -> float:
 		"layang_layang": return STRING_DAMAGE
 		"ranjau_bambu": return SPIKES_DAMAGE
 		"radio": return 0.0
+		"alarm_drum": return DRUM_DAMAGE
+		"bee_swarm": return STING_DAMAGE
+		"snare": return SNARE_DAMAGE
 	return weapon.damage
 
 
@@ -182,6 +225,9 @@ func step(delta: float, cat: Cat, arena: Arena) -> void:
 		"mines": _mines(delta, cat, arena)
 		"ranjau_bambu": _spikes(delta, cat, arena)
 		"radio": _radio(delta, cat, arena)
+		"alarm_drum": _drum(delta, cat, arena)
+		"bee_swarm": _swarm(delta, cat, arena)
+		"snare": _snare(delta, cat, arena)
 
 
 ## The drone: off the pack while there's something to shoot, docked when there isn't.
@@ -342,3 +388,108 @@ func _mines(delta: float, cat: Cat, arena: Arena) -> void:
 		else:
 			left.append(mine)
 	mines = left
+
+
+## The alarm drum: set down when the horde crowds her, and beaten, each beat throwing what's close
+## back off her, until it splits; then a new one takes a while.
+func _drum(delta: float, cat: Cat, arena: Arena) -> void:
+	if deployed:
+		_next_beat_in -= delta
+		if _next_beat_in > 0.0:
+			return
+		_next_beat_in += DRUM_INTERVAL / (1.0 + tempo + cat.attack_speed_bonus)
+		beats_left -= 1
+		beats += 1
+		arena.events.append({"position": body.position, "height": 0.1, "direction": Vector2.ZERO, "killed": false, "by": "beat", "giant": false, "kind": name, "radius": DRUM_REACH})
+		for creature in arena.creatures.duplicate():
+			var away: Vector2 = creature.body.position - body.position
+			if away.length() <= DRUM_REACH:
+				arena.strike(creature, hit_for(cat), away.normalized() if away.length_squared() > 0.0001 else Vector2.RIGHT, DRUM_KNOCK, 0.6, "alarm_drum", cat)
+		if beats_left <= 0:
+			deployed = false
+			rebuilt_in = DRUM_REBUILD
+			cracks += 1
+			arena.events.append({"position": body.position, "height": 0.1, "direction": Vector2.ZERO, "killed": false, "by": "crack", "giant": false, "kind": name})
+		return
+	if rebuilt_in > 0.0:
+		rebuilt_in = maxf(rebuilt_in - delta, 0.0)
+		return
+	if not cat.alive() or cat.body.airborne():
+		return
+	var crowd := arena.creatures.filter(func(creature: Creature) -> bool: return creature.body.position.distance_to(cat.body.position) < DRUM_REACH * 1.5).size()
+	if crowd < DRUM_CROWD:
+		return
+	deployed = true
+	body.position = cat.body.position
+	body.height = 0.0
+	beats_left = DRUM_BEATS
+	_next_beat_in = 0.2
+	arena.events.append({"position": body.position, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "set_down", "giant": false, "kind": name})
+
+
+## The bee swarm: out of its hive on her pack after whatever's nearest, stinging it and slowing it,
+## on to the next when it's down, and home when there's nothing left in reach.
+func _swarm(delta: float, cat: Cat, arena: Arena) -> void:
+	_sting_in = maxf(_sting_in - delta, 0.0)
+	var gone: bool = _stinging == null or not _stinging.alive() or not (_stinging in arena.creatures or _stinging in arena.giants or _stinging in arena.machines or _stinging in arena.structures)
+	if gone or _stinging.body.position.distance_to(cat.body.position) > SWARM_REACH:
+		_stinging = arena.target_for(cat.body.position, SWARM_REACH, "nearest") if cat.alive() else null
+	var home := cat.body.position
+	if not deployed:
+		# Out of the hive on her pack: that's where it sets off from.
+		body.position = home
+		body.height = cat.body.height + DOCKED_HEIGHT
+	var goal := home if _stinging == null else (_stinging.body.position as Vector2)
+	deployed = _stinging != null or body.position.distance_to(home) > 0.1
+	if not deployed:
+		body.position = home
+		body.height = cat.body.height + DOCKED_HEIGHT
+		return
+	var toward := goal - body.position
+	body.position += toward.limit_length(SWARM_SPEED * delta)
+	body.height = move_toward(body.height, 0.35 if _stinging != null else cat.body.height + DOCKED_HEIGHT, 2.0 * delta)
+	if _stinging != null and toward.length() < 0.3 and _sting_in <= 0.0:
+		_sting_in = STING_INTERVAL / (1.0 + tempo + cat.attack_speed_bonus)
+		if _stinging is Creature:
+			_stinging.afflictions.slow = {"share": STING_SLOW, "left": 1.0}
+		arena.strike(_stinging, hit_for(cat), Vector2.ZERO, 0.0, 0.0, "sting", cat)
+
+
+## The snare: set down where she stands while something's near, it catches the first foot in its
+## loop, a rat's or a giant's, and holds it; then she ties another.
+func _snare(delta: float, cat: Cat, arena: Arena) -> void:
+	if deployed:
+		var caught: Object = null
+		for creature in arena.creatures:
+			if not creature.body.airborne() and creature.body.position.distance_to(snare_at) <= SNARE_RADIUS + creature.body.radius:
+				caught = creature
+				break
+		if caught == null:
+			for giant in arena.giants:
+				if giant.standing() and giant.body.position.distance_to(snare_at) <= SNARE_RADIUS + giant.body.radius:
+					caught = giant
+					break
+		if caught == null:
+			return
+		if caught is Giant:
+			caught.snared_for = SNARE_GIANT_HOLD * (1.0 + power)
+		else:
+			caught.tripped_for = SNARE_HOLD * (1.0 + power)
+			caught.body.velocity = Vector2.ZERO
+		arena.strike(caught, hit_for(cat), Vector2.ZERO, 0.0, 0.0, "snare", cat)
+		arena.events.append({"position": snare_at, "height": 0.05, "direction": Vector2.ZERO, "killed": false, "by": "snared", "giant": caught is Giant, "kind": name})
+		catches += 1
+		deployed = false
+		snare_at = Vector2.INF
+		rebuilt_in = SNARE_REBUILD
+		return
+	if rebuilt_in > 0.0:
+		rebuilt_in = maxf(rebuilt_in - delta, 0.0)
+		return
+	if not cat.alive() or cat.body.airborne() or arena.target_for(cat.body.position, MINE_WATCH, "nearest") == null:
+		return
+	deployed = true
+	snare_at = cat.body.position
+	body.position = snare_at
+	body.height = 0.0
+	arena.events.append({"position": snare_at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "set_down", "giant": false, "kind": name})

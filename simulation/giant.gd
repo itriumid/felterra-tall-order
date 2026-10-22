@@ -82,6 +82,8 @@ var fallen_for := 0.0
 var _last_knock := Vector2.RIGHT
 ## Poison and fire on him, as {dps, left, by}: he takes them as the horde does.
 var afflictions := {}
+## Caught by the foot in a snare: he can't walk off, though he can still stomp, for this long.
+var snared_for := 0.0
 var whistle_in := 3.0
 ## Where he walks when there's no cat to go after, or nowhere (INF).
 var wander_to := Vector2.INF
@@ -131,6 +133,9 @@ func step(delta: float, arena: Arena) -> void:
 		State.SWEEPING: _sweep(delta, arena)
 		State.FALLING: _fall(delta, arena)
 		State.FALLEN: fallen_for += delta
+	if snared_for > 0.0:
+		snared_for = maxf(snared_for - delta, 0.0)
+		body.velocity = Vector2.ZERO
 	if standing():
 		body.step(delta)
 

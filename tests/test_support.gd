@@ -180,3 +180,63 @@ func test_levels_make_support_hit_harder() -> void:
 	var before: float = (cat.supports.set_down as Support).hit_for(cat)
 	Upgrades.apply(cat, {"id": "support_level:mines", "rarity": Upgrades.Rarity.COMMON})
 	check((cat.supports.set_down as Support).hit_for(cat) > before, "a level didn't make the mines hit harder")
+
+
+func test_the_alarm_drum_is_beaten_when_the_horde_crowds_her_and_throws_it_back() -> void:
+	var arena := _arena()
+	var cat := _cat(arena, "alarm_drum")
+	var drum: Support = cat.supports.set_down
+	var rats: Array[Creature] = []
+	for index in Support.DRUM_CROWD:
+		rats.append(arena.add_creature(cat.body.position + Vector2.from_angle(index * TAU / Support.DRUM_CROWD) * 1.0))
+	var steps := 0
+	while drum.beats == 0 and steps < 120:
+		for index in rats.size():
+			_hold(rats[index], cat.body.position + Vector2.from_angle(index * TAU / Support.DRUM_CROWD) * 1.0)
+		arena.step()
+		steps += 1
+	check(drum.deployed and drum.beats > 0, "the drum was never beaten with the horde round her")
+	arena.step()
+	check(rats.all(func(rat: Creature) -> bool: return rat.body.velocity.dot(rat.body.position - drum.body.position) > 0.0 or not rat.alive()), "a beat didn't throw the horde back")
+	for step in 60 * 6:
+		arena.step()
+	check(drum.cracks == 1 and drum.beats == Support.DRUM_BEATS and not drum.deployed, "the drum took %d beats and split %d times" % [drum.beats, drum.cracks])
+
+
+func test_the_bee_swarm_stings_and_slows_then_comes_home() -> void:
+	var arena := _arena()
+	var cat := _cat(arena, "bee_swarm")
+	var swarm: Support = cat.supports.drone
+	var rat := arena.add_creature(cat.body.position + Vector2(3.0, 0.0))
+	rat.health = 1000.0
+	for step in 120:
+		_hold(rat, cat.body.position + Vector2(3.0, 0.0))
+		arena.step()
+	check(swarm.deployed and rat.health < 1000.0, "the swarm never stung the rat")
+	check(rat.afflictions.has("slow"), "a sting didn't slow the rat")
+	arena.creatures.erase(rat)
+	for step in 120:
+		arena.step()
+	check(not swarm.deployed, "the swarm never came home")
+
+
+func test_the_snare_holds_the_first_foot_in_it() -> void:
+	var arena := _arena()
+	var cat := _cat(arena, "snare")
+	var snare: Support = cat.supports.set_down
+	var lure := arena.add_creature(cat.body.position + Vector2(4.0, 0.0))
+	for step in 5:
+		_hold(lure, cat.body.position + Vector2(4.0, 0.0))
+		arena.step()
+	check(snare.deployed and snare.snare_at.is_finite(), "the snare wasn't set down with something near")
+	var giant := arena.add_giant(snare.snare_at + Vector2(0.6, 0.0))
+	giant.body.position = snare.snare_at
+	arena.creatures.erase(lure)
+	cat.body.position += Vector2(0.0, 6.0)
+	arena.step()
+	check(snare.catches == 1 and giant.snared_for > 0.0, "a giant's boot in the snare wasn't caught")
+	var held_at := giant.body.position
+	for step in 30:
+		arena.step()
+	check(giant.body.position.distance_to(held_at) < 0.05, "a snared giant walked off")
+	check(not snare.deployed and snare.rebuilt_in > 0.0, "a sprung snare stayed set")

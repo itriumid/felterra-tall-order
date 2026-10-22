@@ -97,6 +97,9 @@ const ARSENAL := {
 	"flare_gun": {"reach": 7.0, "interval": 1.3, "damage": 2.0, "muzzle_speed": 30.0, "spread": 1.0, "burn": 2.0, "knock": 1.0},
 	"crossbow": {"hands": 2, "reach": 9.0, "interval": 1.0, "damage": 5.0, "muzzle_speed": 90.0, "spread": 0.8, "pierce": 2, "knock": 2.2},
 	"lamp_oil": {"reach": 6.0, "interval": 2.0, "damage": 1.0, "muzzle_speed": 8.0, "lobbed": true, "fire_patch": 0.9, "burn": 2.5, "knock": 0.5},
+	# Two sticks on a chain, one in her paw: the swing goes most of the way round her, and it's blunt,
+	# so it shoves harder than it cuts.
+	"nunchaku": {"melee": true, "reach": 0.55, "interval": 0.34, "damage": 1.9, "arc": 220.0, "swing_time": 0.16, "knock": 2.8, "lift": 1.0},
 	# Indonesian blades and staffs.
 	"golok": {"melee": true, "reach": 0.6, "interval": 0.5, "damage": 4.2, "arc": 110.0, "knock": 2.4},
 	"celurit": {"melee": true, "reach": 0.55, "interval": 0.45, "damage": 2.8, "arc": 130.0, "trips": 1.2, "knock": 1.0},

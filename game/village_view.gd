@@ -110,7 +110,7 @@ func _draw() -> void:
 	standing.append([village.cat.body.position.y, village.cat])
 	for villager in village.villagers:
 		standing.append([villager.body.position.y, villager])
-	var longhouse_restored: bool = village.buildings[0].restored
+	var longhouse_restored: bool = village.buildings.any(func(building: Dictionary) -> bool: return building.name == "longhouse" and building.restored)
 	for pole: Vector2 in FLAG_POLES:
 		standing.append([pole.y, {"pole": pole, "restored": longhouse_restored}])
 	standing.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])

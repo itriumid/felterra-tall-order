@@ -38,6 +38,29 @@ const LEAP_GROWTH := 0.15
 ## Riposte: a hit dodged as it lands strikes back at everything this close.
 const RIPOSTE_REACH := 0.9
 const RIPOSTE_DAMAGE := 4.0
+## Lick your wounds: each roll heals this much, a common card's worth, but no more than so much in
+## a minute.
+const LICK_HEAL := 0.6
+const LICK_MOST := 3.0
+const LICK_WINDOW := 60.0
+## Caltrops: each roll scatters this many behind her, each lying so long, pricking and slowing the
+## first foot on it.
+const CALTROPS := 3
+const CALTROP_DAMAGE := 1.5
+const CALTROP_LAST := 8.0
+## Dust cloud: the roll kicks up dust where it starts, this wide, and the horde in it stops to cough
+## for this long.
+const DUST_RADIUS := 0.9
+const DUST_TIME := 0.7
+## Scent trail: where she rolls from, her scent lingers this long, and the horde goes to it instead
+## of her.
+const SCENT_TIME := 1.2
+## Slipstream: rolling past a crewmate this close speeds them up by this share, for this long.
+const SLIPSTREAM_REACH := 0.8
+const SLIPSTREAM_SPEED := 0.3
+const SLIPSTREAM_TIME := 2.0
+## Chain roll: a kill during a roll gives back this share of a charge, once a roll.
+const CHAIN_SHARE := 0.6
 ## A knock off its feet takes this long to recover from.
 const STAGGER_TIME := 0.25
 ## Where the gun is held, above the ground.
@@ -110,6 +133,16 @@ var _riposte_due := false
 ## A knock to roll out of, once she's down, and whether this roll is a leap.
 var _knocked := false
 var _leaping := false
+## A roll just begun, for what happens as it starts; what licking has healed this minute, and how
+## long the minute has left; whether this roll's kill gave a charge back; her scents lingering, as
+## {decoy, left}; and a crewmate's slipstream speeding her up, by how much and for how long.
+var _fresh_roll := false
+var _licked := 0.0
+var _lick_window := 0.0
+var _chained := false
+var _scents: Array[Dictionary] = []
+var _haste := 0.0
+var _hasted_for := 0.0
 
 
 func _init() -> void:
@@ -156,6 +189,8 @@ func _roll(direction: Vector2, safe_time: float) -> void:
 	staggered_for = 0.0
 	_rolled_through.clear()
 	_riposted = false
+	_chained = false
+	_fresh_roll = true
 	dodges += 1
 	_leaping = has("long_leap")
 	if _leaping:
@@ -276,6 +311,11 @@ func step(delta: float, arena: Arena) -> void:
 	safe_for = maxf(safe_for - delta, 0.0)
 	dodge_charges = minf(dodge_charges + delta / recharge_time(), most_charges())
 	staggered_for = maxf(staggered_for - delta, 0.0)
+	_lick_window = maxf(_lick_window - delta, 0.0)
+	if _lick_window <= 0.0:
+		_licked = 0.0
+	_hasted_for = maxf(_hasted_for - delta, 0.0)
+	_fade_scents(delta, arena)
 	if not alive():
 		body.slide(delta)
 		body.step(delta)
@@ -286,7 +326,7 @@ func step(delta: float, arena: Arena) -> void:
 	elif body.airborne() or staggered_for > 0.0:
 		body.slide(delta)
 	else:
-		body.velocity = steering.limit_length(1.0) * SPEED * (1.0 + speed_bonus)
+		body.velocity = steering.limit_length(1.0) * SPEED * (1.0 + speed_bonus + (_haste if _hasted_for > 0.0 else 0.0))
 	heal(regeneration * delta)
 	if steering.length_squared() > 0.01:
 		facing = steering.normalized()
@@ -306,9 +346,67 @@ func step(delta: float, arena: Arena) -> void:
 		(supports[slot] as Support).step(delta, self, arena)
 
 
-## What her mutations do this step: cuts and strikes from the roll, the pounce at its end, the
-## roll out of a knock.
+## A crewmate's slipstream: she runs faster for a while.
+func hasten(share: float, time: float) -> void:
+	_haste = maxf(_haste if _hasted_for > 0.0 else 0.0, share)
+	_hasted_for = maxf(_hasted_for, time)
+
+
+## Whether a crewmate's slipstream is speeding her up.
+func hasted() -> bool:
+	return _hasted_for > 0.0
+
+
+## Something she hit is down: in a roll, Chain roll gives a charge back, once a roll.
+func killed_one() -> void:
+	if has("chain_roll") and dodging_for > 0.0 and not _chained:
+		_chained = true
+		dodge_charges = minf(dodge_charges + CHAIN_SHARE * strength("chain_roll"), most_charges())
+
+
+## Her scents fade: once one's gone, the horde comes back to her.
+func _fade_scents(delta: float, arena: Arena) -> void:
+	var lingering: Array[Dictionary] = []
+	for scent in _scents:
+		scent.left -= delta
+		if scent.left > 0.0:
+			lingering.append(scent)
+		else:
+			arena.decoys.erase(scent.decoy)
+	_scents = lingering
+
+
+## As a roll starts: licking her wounds, caltrops scattered behind her, dust kicked up, her scent
+## left where she was.
+func _start_roll(arena: Arena) -> void:
+	_fresh_roll = false
+	var from := body.position
+	if has("lick_your_wounds") and _licked < LICK_MOST:
+		var licked := minf(LICK_HEAL * strength("lick_your_wounds"), LICK_MOST - _licked)
+		if _licked <= 0.0:
+			_lick_window = LICK_WINDOW
+		_licked += licked
+		heal(licked)
+	if has("caltrops"):
+		var across := _dodge_direction.orthogonal()
+		for index in CALTROPS:
+			var spread := (index - (CALTROPS - 1) / 2.0) * 0.25
+			arena.hazards.append({"position": from - _dodge_direction * 0.2 + across * spread, "radius": 0.08, "damage": dodge_damage(CALTROP_DAMAGE, "caltrops"), "left": CALTROP_LAST, "kind": "caltrop", "by": self, "ready": {}})
+	if has("dust_cloud"):
+		arena.dust(from, DUST_RADIUS, DUST_TIME * strength("dust_cloud"))
+	if has("scent_trail"):
+		var decoy := Cat.new()
+		decoy.weapons.clear()
+		decoy.body.position = from
+		arena.decoys.append(decoy)
+		_scents.append({"decoy": decoy, "left": SCENT_TIME * strength("scent_trail")})
+
+
+## What her mutations do this step: what a roll does as it starts, cuts and strikes from the roll,
+## the slipstream it leaves crewmates, the pounce at its end, the roll out of a knock.
 func _mutate(arena: Arena, was_dodging: bool) -> void:
+	if _fresh_roll:
+		_start_roll(arena)
 	if _riposte_due:
 		_riposte_due = false
 		_riposted = true
@@ -320,6 +418,13 @@ func _mutate(arena: Arena, was_dodging: bool) -> void:
 				if not _rolled_through.has(creature):
 					_rolled_through[creature] = true
 					arena.strike(creature, dodge_damage(SLASH_DAMAGE, "rolling_slash") * at_speed, _dodge_direction, 1.2, 0.6, "slash", self)
+		if has("slipstream"):
+			for crewmate in arena.cats:
+				if crewmate != self and crewmate.alive() and not _rolled_through.has(crewmate) \
+						and crewmate.body.position.distance_to(body.position) <= SLIPSTREAM_REACH:
+					_rolled_through[crewmate] = true
+					crewmate.hasten(SLIPSTREAM_SPEED * strength("slipstream"), SLIPSTREAM_TIME)
+					arena.events.append({"position": crewmate.body.position, "height": 0.1, "direction": _dodge_direction, "killed": false, "by": "slipstream", "giant": false, "kind": "cat"})
 		if has("ankle_cutter"):
 			for giant in arena.legs_rolled_between(self):
 				if not _rolled_through.has(giant):

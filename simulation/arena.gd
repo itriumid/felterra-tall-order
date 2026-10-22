@@ -88,8 +88,8 @@ var cages: Array[Cage] = []
 var pickups: Array[Pickup] = []
 var rescued: Array[Dictionary] = []
 var salvage := 0
-## Fire burning on the ground, as {position, radius, left, dps, by}; hazards left lying, nails and
-## spike beds, as {position, radius, damage, left, kind, by, ready}; firecrackers still to pop, as
+## Fire burning on the ground, as {position, radius, left, dps, by}; hazards left lying, nails,
+## caltrops and spike beds, as {position, radius, damage, left, kind, by, ready}; firecrackers still to pop, as
 ## {position, left, count, damage, by}; and decoys the horde goes for instead of her.
 var fires: Array[Dictionary] = []
 var hazards: Array[Dictionary] = []
@@ -432,6 +432,15 @@ func stepped_on(at: Vector2, reach: float) -> bool:
 
 ## A burst on the ground: everything within its radius is struck and thrown outward, the giants
 ## at their feet. What set it off names it, for the view and the sound.
+## Dust kicked up: the horde in it stops to cough a while, down in the dust, and loses her.
+func dust(at: Vector2, radius: float, time: float) -> void:
+	events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "dust", "giant": false, "kind": "cat", "radius": radius})
+	for creature in _near(at, radius + 0.3):
+		if creature.alive() and creature.body.position.distance_to(at) <= radius + creature.body.radius:
+			creature.tripped_for = maxf(creature.tripped_for, time)
+			creature.body.velocity *= 0.3
+
+
 func blast(at: Vector2, radius: float, damage: float, knock: float, lift: float, by: String, attacker: Cat = null, afflicting: Weapon = null) -> void:
 	events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "blast", "giant": false, "kind": by, "radius": radius})
 	for creature: Creature in creatures.duplicate():
@@ -770,7 +779,8 @@ func _burn_fires() -> void:
 	fires = burning
 
 
-## Hazards lying on the ground: a nail goes into the first foot on it, and is gone; a spike bed
+## Hazards lying on the ground: a nail or a caltrop goes into the first foot on it, and is gone (a
+## caltrop slowing it); a spike bed
 ## pricks everything on it every TICK, slowing it, until it's trampled flat.
 func _spring_hazards() -> void:
 	var lying: Array[Dictionary] = []
@@ -780,8 +790,11 @@ func _spring_hazards() -> void:
 		for creature in _near(hazard.position, hazard.radius + 0.25):
 			if not creature.alive() or creature.body.airborne() or creature.body.position.distance_to(hazard.position) > hazard.radius + creature.body.radius:
 				continue
-			if hazard.kind == "nail":
-				strike(creature, hazard.damage, Vector2.ZERO, 0.0, 0.0, "nail", hazard.by)
+			if hazard.kind in ["nail", "caltrop"]:
+				# A caltrop lames what treads on it, too.
+				if hazard.kind == "caltrop":
+					creature.afflictions.slow = {"share": 0.5, "left": 1.5}
+				strike(creature, hazard.damage, Vector2.ZERO, 0.0, 0.0, hazard.kind, hazard.by)
 				used = true
 				break
 			if hazard.ready.get(creature, 0.0) <= time:
@@ -918,6 +931,8 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 		if not machine.alive():
 			kills += 1
 			machines_broken += 1
+			if attacker != null:
+				attacker.killed_one()
 			_gain_experience(machine.worth)
 			drop_salvage(machine.body.position, SALVAGE.get(machine.kind, 0))
 		return
@@ -933,6 +948,8 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 		if not giant.alive():
 			kills += 1
 			giants_felled += 1
+			if attacker != null:
+				attacker.killed_one()
 			_gain_experience(giant.worth)
 			drop_salvage(giant.body.position, SALVAGE.get(giant.kind, 0))
 		return
@@ -951,6 +968,8 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 	if creature.alive():
 		return
 	kills += 1
+	if attacker != null:
+		attacker.killed_one()
 	_gain_experience(creature.worth)
 	creatures.erase(creature)
 	# It falls where it was hit, and keeps the way the hit sent it.

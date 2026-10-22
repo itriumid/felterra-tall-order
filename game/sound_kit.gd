@@ -15,7 +15,7 @@ const NAMES: Array[String] = [
 	"track_clank", "hydraulic", "jaws", "clang", "hiss", "machine_break",
 	"lock_click", "cage_open", "meow", "pickup",
 	"shot_rifle", "shot_heavy", "shot_twang", "shot_puff", "shot_thunk", "shot_nail", "shot_flare",
-	"pop", "net", "ignite", "radio",
+	"pop", "net", "ignite", "radio", "drum", "snare", "buzz",
 	"boss_horn", "whistle", "truck_horn", "stall", "throw", "lever", "structure_down", "goal_done", "freed", "rotor",
 	"footstep_giant", "stomp", "fall", "dodge", "hurt", "bite",
 	"level_up", "card", "reroll", "banish", "menu_move", "menu_choose", "menu_back",
@@ -139,6 +139,15 @@ static func _render(sound_name: String, random: RandomNumberGenerator) -> Packed
 			return _mix([_noise(0.6, 0.25, 500.0, random, 6), _sweep(0.6, 90.0, 40.0, 0.2)], [0.5, 0.6])
 		"throw":
 			return _whoosh(0.6, 200.0, 900.0, random, 0.6)
+		"drum":
+			# The kentongan struck: a hollow bamboo knock, ringing a moment.
+			return _mix([_sweep(0.18, 520.0 * wobble, 380.0, 0.06), _noise(0.04, 0.01, 2400.0, random, 2)], [0.8, 0.3])
+		"snare":
+			# A rattan loop pulled tight: a creak and a snap.
+			return _mix([_sweep(0.12, 700.0 * wobble, 1100.0, 0.03), _noise(0.06, 0.015, 3000.0, random, 2)], [0.5, 0.6])
+		"buzz":
+			# A sting: bees, a short angry drone.
+			return _mix([_sweep(0.14, 220.0 * wobble, 240.0, 0.05), _noise(0.14, 0.05, 900.0, random, 3)], [0.4, 0.3])
 		"lever":
 			# A catch giving, and the stack starting to roll.
 			return _mix([_sweep(0.2, 260.0, 120.0, 0.06), _noise(1.0, 0.5, 400.0, random, 3)], [0.6, 0.6])

@@ -758,10 +758,12 @@ func _draw_pack(cat: Cat, view: String, flip: bool, at: Vector2, depth: String) 
 
 
 func _draw_docked(drone: Support, view: String, flip: bool, at: Vector2) -> void:
+	# The bees' hive sits where a drone would dock.
+	var art := Sprites.BEE_HIVE if drone.name == "bee_swarm" else Sprites.DRONE_DOCKED
 	var dock: Vector2 = Sprites.DOCK[view]
 	if flip:
-		dock.x = 24 - dock.x - Sprites.image(Sprites.DRONE_DOCKED).get_width()
-	draw_texture(Sprites.lit(Sprites.DRONE_DOCKED), at + dock)
+		dock.x = 24 - dock.x - Sprites.image(art).get_width()
+	draw_texture(Sprites.lit(art), at + dock)
 
 
 ## A support out on its own: the drone in the air, rotors spinning, or the cannon on its stand
@@ -786,6 +788,21 @@ func _draw_support(support: Support) -> void:
 				points.append(World.to_screen(holder.body.position.lerp(support.body.position, along), Support.string_height_at(along)))
 			draw_polyline(points, Palette.CREAM)
 		draw_texture(Sprites.lit(Sprites.KITE, int(_clock * 2.0) % 2 == 0), kite_at - Vector2(4, 4))
+	elif support.name == "bee_swarm":
+		# The swarm in the air: bees, each a pixel or two of yellow and black, buzzing about where it is.
+		var at := World.to_screen(support.body.position, support.body.height)
+		for bee in 7:
+			var wobble := Vector2(sin(_clock * 9.0 + bee * 2.1), cos(_clock * 11.0 + bee * 1.7)) * (2.0 + bee % 3)
+			draw_rect(Rect2((at + wobble).round(), Vector2(2, 1)), Palette.BRASS_LIGHT if bee % 2 == 0 else Palette.OUTLINE)
+	elif support.name == "alarm_drum":
+		var art := Sprites.lit(Sprites.ALARM_DRUM)
+		# Each beat jolts it.
+		var jolt := Vector2(0, -1) if support.beats % 2 == 1 and fmod(_clock, 0.2) < 0.1 else Vector2.ZERO
+		draw_texture(art, World.to_screen(support.body.position) - Vector2(art.get_width() / 2, art.get_height() - 1) + jolt)
+	elif support.name == "snare":
+		if support.snare_at.is_finite():
+			var art := Sprites.lit(Sprites.SNARE)
+			draw_texture(art, World.to_screen(support.snare_at) - Vector2(art.get_width() / 2, art.get_height() / 2))
 	elif support.name == "radio":
 		var at := World.to_screen(support.body.position) - Vector2(4, 8)
 		draw_texture(Sprites.lit(Sprites.RADIO), at)
@@ -800,7 +817,7 @@ func _draw_support(support: Support) -> void:
 		draw_texture(texture, World.to_screen(support.body.position) - feet)
 
 
-## What lies on the ground: burning oil, nails, and spike beds.
+## What lies on the ground: burning oil, nails, caltrops, and spike beds.
 func _draw_ground_hazards() -> void:
 	for fire in arena.fires:
 		var count := int(fire.radius * 14.0)
@@ -812,6 +829,12 @@ func _draw_ground_hazards() -> void:
 		if hazard.kind == "nail":
 			var at := World.to_screen(hazard.position)
 			draw_rect(Rect2(at, Vector2(2, 1)), Palette.STEEL_LIGHT)
+		elif hazard.kind == "caltrop":
+			# A bent nail twisted into four points: one up, lit, and three splayed on the ground.
+			var at := World.to_screen(hazard.position).floor()
+			draw_rect(Rect2(at + Vector2(-1, 0), Vector2(3, 1)), Palette.STEEL)
+			draw_rect(Rect2(at + Vector2(0, -1), Vector2(1, 1)), Palette.STEEL_LIGHT)
+			draw_rect(Rect2(at + Vector2(0, 1), Vector2(1, 1)), Palette.STEEL_DARK)
 		else:
 			var art := Sprites.lit(Sprites.SPIKES)
 			draw_texture(art, World.to_screen(hazard.position) - Vector2(art.get_width() / 2, art.get_height() - 1))
@@ -931,6 +954,42 @@ func _bleed(delta: float) -> void:
 					"position": event.position, "height": 0.2, "rise": randf_range(0.6, 1.8),
 					"velocity": Vector2.from_angle(randf() * TAU) * randf_range(0.3, 1.2),
 					"color": (Palette.DRY_GRASS if index % 2 else Palette.MOSS) if event.by == "snap" else (Palette.SPARK if index % 2 else Palette.HI_VIS), "stains": false,
+				})
+			continue
+		if event.by == "dust":
+			# The dust she kicks up: a low cloud of it, as wide as it reaches, slow to settle.
+			var radius: float = event.get("radius", 1.0)
+			for index in int(26 * radius):
+				_droplets.append({
+					"position": event.position + Vector2.from_angle(randf() * TAU) * randf() * radius * 0.6, "height": 0.02,
+					"rise": randf_range(0.3, 0.9), "velocity": Vector2.from_angle(randf() * TAU) * randf_range(0.2, 0.9) * radius,
+					"color": Palette.DRY_GRASS if index % 3 == 0 else Palette.SMOKE, "stains": false,
+				})
+			continue
+		if event.by == "beat":
+			# A beat of the drum: a ring of dust thrown up off the ground, as wide as it shoves.
+			var reach: float = event.get("radius", 1.5)
+			for index in 20:
+				var angle := TAU * index / 20.0
+				_droplets.append({
+					"position": event.position + Vector2.from_angle(angle) * 0.3, "height": 0.02, "rise": randf_range(0.2, 0.6),
+					"velocity": Vector2.from_angle(angle) * reach * randf_range(1.6, 2.2), "color": Palette.SMOKE if index % 2 else Palette.DRY_GRASS, "stains": false,
+				})
+			continue
+		if event.by == "snared":
+			# The loop pulled tight: rattan fibers thrown up.
+			for index in 6:
+				_droplets.append({
+					"position": event.position, "height": 0.05, "rise": randf_range(0.4, 1.0),
+					"velocity": Vector2.from_angle(randf() * TAU) * randf_range(0.3, 0.8), "color": Palette.LEATHER_LIGHT, "stains": false,
+				})
+			continue
+		if event.by == "slipstream":
+			# A crewmate caught in her wake: a streak of air pulled along behind them.
+			for index in 5:
+				_droplets.append({
+					"position": event.position - event.direction * (0.1 + index * 0.08), "height": 0.15 + (index % 2) * 0.1,
+					"rise": 0.1, "velocity": event.direction * randf_range(1.0, 2.0), "color": Palette.OFF_WHITE, "stains": false,
 				})
 			continue
 		if event.by == "strike_back":

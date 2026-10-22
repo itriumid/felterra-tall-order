@@ -10,13 +10,17 @@ const BOSS_NAMES := {
 	"feller_buncher": "Feller buncher", "log_loader": "Log loader", "logging_truck": "Logging truck",
 	"bulldozer": "Bulldozer", "helicopter": "Helicopter", "rat_baron": "The Rat Baron", "handler": "The Handler",
 }
+## How many of a shop's rows show at once, and how many lines its chosen thing's story gets.
+const SHOP_ROWS_SHOWN := 13
+const STORY_LINES := 3
+const BOOK_LINES := 8
 const AIM_NAMES := {"nearest": "Nearest", "toughest": "Toughest", "crowd": "Crowd"}
 
 var arena: Arena
 var cat: Cat
 var show_numbers := false
 ## Waiting for the player to choose a weapon to start with, and the forged weapon offered beside
-## the knife and the handgun once the longhouse is restored ("" if none).
+## the nunchaku and the handgun once the longhouse is restored ("" if none).
 var choosing := false
 var start_extra := ""
 ## Tab held: the cards' stats are explained. X held: picking banishes.
@@ -46,9 +50,17 @@ var cutscene := false
 var village_record: Village
 var door := ""
 var message := ""
+var shop_page := ""
 var shop_title := ""
 var shop_rows: Array[Dictionary] = []
 var shop_choice := 0
+## A shop's tabs, if it has them (the smithy does), and the one showing; and where the next run
+## goes, pinned on the map.
+var shop_tabs: Array[String] = []
+## Why the last thing chosen in a shop couldn't be done, if it couldn't ("" if it could).
+var shop_note := ""
+var shop_tab := 0
+var next_run := ""
 ## A liberation run: its area's name ("" in Endless), and its goal's progress, done of all.
 var area_name := ""
 var goal := Vector2.ZERO
@@ -70,7 +82,10 @@ func _draw() -> void:
 		_draw_village()
 		if not shop_rows.is_empty():
 			_dither()
-			_draw_shop()
+			if shop_page == "board":
+				_draw_map()
+			else:
+				_draw_shop()
 			return
 		if not menu.is_empty():
 			_dither()
@@ -208,31 +223,117 @@ func _draw_village_counts() -> void:
 		x += 42
 
 
-## A shop's page: what can be had, what each costs, and where it stands; what the village has to
-## spend on top, and the keys below.
+## A shop's page: what can be had, what each costs, and where it stands, as many rows as fit with
+## the rest a scroll away; its tabs, if it has them; the story of what's chosen; what the village
+## has to spend on top, and the keys below.
 func _draw_shop() -> void:
 	var screen := get_viewport_rect().size
 	var row := PixelFont.LINE_HEIGHT + 3
-	var width := 280.0
-	var height := 30 + shop_rows.size() * row + 6
-	var box := Rect2(floorf((screen.x - width) / 2.0), floorf((screen.y - height) / 2.0), width, height)
+	var width := 320.0
+	var shown := mini(shop_rows.size(), SHOP_ROWS_SHOWN)
+	var tabs_height := 16 if not shop_tabs.is_empty() else 0
+	var has_stories := shop_rows.any(func(entry: Dictionary) -> bool: return not (entry.get("story", "") as String).is_empty())
+	# The book's chapters are longer than a thing's story.
+	var story_lines := BOOK_LINES if shop_page == "book" else STORY_LINES
+	var story_height := story_lines * PixelFont.LINE_HEIGHT + 8 if has_stories else 0
+	# A page with tabs keeps its size from tab to tab, however many each holds.
+	var window := SHOP_ROWS_SHOWN if not shop_tabs.is_empty() else shown
+	var height := 30 + tabs_height + window * row + 6 + story_height
+	var box := Rect2(floorf((screen.x - width) / 2.0), floorf((screen.y - height) / 2.0) - 6, width, height)
 	InterfaceArt.panel(self, box)
 	InterfaceArt.bold(self, box.position + Vector2(10, 7), shop_title, Palette.PINK)
-	if village_record != null:
+	if village_record != null and shop_page in ["forge", "looks"]:
 		var have := "%d salvage, %d cloth" % [village_record.salvage, village_record.cloth]
 		PixelFont.draw(self, Vector2(box.end.x - 10 - PixelFont.width(have), box.position.y + 7), have, Palette.SMOKE)
-	for index in shop_rows.size():
+	var y := box.position.y + 24
+	if not shop_tabs.is_empty():
+		var x := box.position.x + 8
+		for index in shop_tabs.size():
+			var label := shop_tabs[index]
+			var tab := Rect2(Vector2(x, y - 2), Vector2(PixelFont.width(label) + 8, PixelFont.LINE_HEIGHT + 2))
+			if index == shop_tab:
+				draw_rect(tab, Palette.PINK)
+			PixelFont.draw(self, tab.position + Vector2(4, 2), label, Palette.GRAPHITE if index == shop_tab else Palette.SMOKE)
+			x += tab.size.x + 4
+		y += tabs_height
+	# The window of rows keeps the chosen one in it.
+	var first := clampi(shop_choice - shown / 2, 0, shop_rows.size() - shown)
+	for index in range(first, first + shown):
 		var entry: Dictionary = shop_rows[index]
-		var at := box.position + Vector2(6, 26 + index * row)
+		var at := Vector2(box.position.x + 6, y + 2 + (index - first) * row)
 		var chosen := index == shop_choice
 		if chosen:
 			draw_rect(Rect2(at - Vector2(0, 2), Vector2(box.size.x - 12, row)), Palette.PINK)
-		var ink := Palette.GRAPHITE if chosen else (Palette.OFF_WHITE if entry.can else Palette.SMOKE)
+		var ink := Palette.GRAPHITE if chosen else (Palette.OFF_WHITE if entry.can or entry.state in ["packed", "worn from the start"] else Palette.SMOKE)
 		PixelFont.draw(self, at + Vector2(10, 0), entry.name, ink)
 		PixelFont.draw(self, Vector2(box.end.x - 16 - PixelFont.width(entry.state), at.y), entry.state, ink)
+	# More above or below, marked by an arrow in the middle of the window's edge.
+	var middle := floorf(box.get_center().x)
+	if first > 0:
+		_arrow(Vector2(middle, y - 2), -1)
+	if first + shown < shop_rows.size():
+		_arrow(Vector2(middle, y + shown * row + 1), 1)
+	if has_stories:
+		var story_top := y + window * row + 6
+		draw_rect(Rect2(box.position.x + 6, story_top - 3, box.size.x - 12, 1), Palette.PANEL_LIGHT)
+		var lines := wrapped(shop_rows[shop_choice].get("story", ""), box.size.x - 24)
+		for index in mini(lines.size(), story_lines):
+			PixelFont.draw(self, Vector2(box.position.x + 12, story_top + 2 + index * PixelFont.LINE_HEIGHT), lines[index], Palette.CREAM)
+	if not shop_note.is_empty():
+		InterfaceArt.bold(self, Vector2(box.end.x - 10 - InterfaceArt.bold_width(shop_note), box.position.y + 7), shop_note, Palette.PINK)
 	var keys: Array[String] = ["W S", "choose", "Enter", "take", "Esc", "back"]
+	if not shop_tabs.is_empty():
+		keys = ["A D", "tab", "W S", "choose", "Enter", "forge" if shop_page == "forge" else "pack or leave home", "Esc", "back"]
+	elif shop_page == "book":
+		keys = ["W S", "choose", "Esc", "back"]
 	var keys_width := InterfaceArt.key_line_width(keys)
 	InterfaceArt.key_line(self, Vector2(floorf((screen.x - keys_width) / 2.0), box.end.y + 6), keys)
+
+
+## A small pink arrow, pointing up (-1) or down (1), its point at a spot.
+func _arrow(point: Vector2, way: int) -> void:
+	for step in 3:
+		draw_rect(Rect2(point + Vector2(-step, -way * step), Vector2(step * 2 + 1, 1)), Palette.PINK)
+
+
+## The board's map of the forest, and below it, where the chosen place is and how it stands.
+func _draw_map() -> void:
+	var screen := get_viewport_rect().size
+	var box := Rect2(floorf((screen.x - 460) / 2.0), 24, 460, 300)
+	InterfaceArt.panel(self, box)
+	InterfaceArt.bold(self, box.position + Vector2(10, 7), shop_title, Palette.PINK)
+	var map := Rect2(box.position + Vector2(8, 22), Vector2(box.size.x - 16, 230))
+	ForestMap.draw(self, map, shop_rows, shop_choice, next_run)
+	var chosen: Dictionary = shop_rows[shop_choice]
+	var y := map.end.y + 8
+	InterfaceArt.bold(self, Vector2(box.position.x + 12, y), chosen.name, Palette.OFF_WHITE)
+	var going := "the next run goes here" if chosen.id == next_run else ""
+	PixelFont.draw(self, Vector2(box.end.x - 12 - PixelFont.width(going), y), going, Palette.BRASS_LIGHT)
+	PixelFont.draw(self, Vector2(box.position.x + 12, y + PixelFont.LINE_HEIGHT + 2), _sentence(chosen.state), Palette.LEAF_LIGHT if chosen.free else Palette.SMOKE)
+	var keys: Array[String] = ["W A S D", "choose", "Enter", "go there", "Esc", "back"]
+	var keys_width := InterfaceArt.key_line_width(keys)
+	InterfaceArt.key_line(self, Vector2(floorf((screen.x - keys_width) / 2.0), box.end.y + 6), keys)
+
+
+## A line with its first letter capitalized, and nothing else touched.
+static func _sentence(text: String) -> String:
+	return text.left(1).to_upper() + text.substr(1)
+
+
+## Text broken into lines no wider than a width, at the spaces.
+static func wrapped(text: String, width: float) -> Array[String]:
+	var lines: Array[String] = []
+	var line := ""
+	for word in text.split(" ", false):
+		var longer := word if line.is_empty() else line + " " + word
+		if PixelFont.width(longer) > width and not line.is_empty():
+			lines.append(line)
+			line = word
+		else:
+			line = longer
+	if not line.is_empty():
+		lines.append(line)
+	return lines
 
 
 ## Cages out of sight: a mark at the edge of the screen, the way to each.
@@ -402,8 +503,8 @@ func _draw_start() -> void:
 	var screen := get_viewport_rect().size
 	var title := "Choose what you start with"
 	var cards := [
-		{"name": "Knife", "item": "knife", "ribbon": "Melee", "lines": ["Close and quick", "Never runs out"], "unfamiliar": false},
-		{"name": "Handgun", "item": "handgun", "ribbon": "Ranged", "lines": ["Slow, but", "it reaches"], "unfamiliar": false},
+		{"name": "Nunchaku", "item": "nunchaku", "ribbon": "Melee", "lines": ["Go Chuck Purris", "style"], "unfamiliar": false},
+		{"name": "Handgun", "item": "handgun", "ribbon": "Ranged", "lines": ["Go John Whisker", "style"], "unfamiliar": false},
 	]
 	if not start_extra.is_empty():
 		cards.append({"name": Upgrades.WEAPON_NAMES[start_extra], "item": start_extra, "ribbon": "Forged", "lines": ["From the smithy", "A or D: another"], "unfamiliar": false})
@@ -568,8 +669,12 @@ func _draw_summary() -> void:
 		["rescued", "Cats rescued", str(summary.get("rescued", 0))],
 		["salvage", "Salvage", str(summary.get("salvage", 0))],
 	]
+	# What freeing the area taught her, the first time.
+	var learned: Array = summary.get("learned", [])
+	if not learned.is_empty():
+		rows.append(["learned", "Learned", ", ".join(learned)])
 	var row_height := PixelFont.LINE_HEIGHT + 2
-	var width := 220.0
+	var width := 260.0 if not learned.is_empty() else 220.0
 	# The heading, the numbers, a gap, the choices, and the margin below.
 	var height := 26 + rows.size() * row_height + 8 + menu.size() * (PixelFont.LINE_HEIGHT + 3) + 2
 	var box := Rect2(floorf((screen.x - width) / 2.0), floorf((screen.y - height) / 2.0), width, height)

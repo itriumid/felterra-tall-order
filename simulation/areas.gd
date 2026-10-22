@@ -20,12 +20,14 @@ const COMPANY := "PT Makmur Bakti Gemilang"
 const NICKNAME := "Makmur Bakar"
 const AGENCY := "the Food Land Acceleration Agency"
 const SLOGAN := "Building a Greener Tomorrow!"
-const BOARD := "Lahan Tidur Jadi Makmur"
+const BOARD := "From Idle Land to Plenty"
 
 ## The areas, in the order they're freed. Each: its name; the look of its ground; what spawns there
 ## (a plan like Endless's, only what that place has); its goal, and where the goal's things stand,
 ## in meters; its boss and where it comes from; the story going in and coming home; and what
-## freeing it the first time brings the village.
+## freeing it the first time brings the village. And the send-off, the first time she leaves for it;
+## and the cat who teaches her what freeing it shows them, its dodge mutations, over the story
+## home.
 const LIST: Array[Dictionary] = [
 	{
 		"id": "edge", "name": "The village's edge", "ground": "edge",
@@ -43,6 +45,13 @@ const LIST: Array[Dictionary] = [
 			"Whoever left them there, it wasn't a rat.",
 			"Their tracks lead deeper into the forest.",
 		],
+		"send_off": [
+			"The elder walks you to the gate. \"Just past the last huts. Look, and come home.\"",
+		],
+		"teaches": {"by": "the elder", "mutations": ["rolling_slash", "land_on_feet"], "lines": [
+			"Home again, the elder takes you out to the long grass.",
+			"\"Never just get out of the way. Roll through, blade out. And when you fall, fall rolling.\"",
+		]},
 		"frees": [], "bonus": 15,
 	},
 	{
@@ -63,6 +72,13 @@ const LIST: Array[Dictionary] = [
 			"He wore that same bright orange as their harnesses.",
 			"Whatever this is, it's bigger than rats.",
 		],
+		"send_off": [
+			"\"Deeper than any of us forage now,\" the elder says. \"Bring back whoever you find.\"",
+		],
+		"teaches": {"by": "Nenek Pus", "mutations": ["pounce", "riposte"], "lines": [
+			"Nenek Pus is stiff from the cage, but not too stiff to show off.",
+			"\"Over the crowd, onto the one that matters. And let them swing first; be there after.\"",
+		]},
 		"frees": [{"name": "Nenek Pus", "coat": "gray"}, {"name": "Jingga", "coat": "orange"}], "bonus": 20,
 	},
 	{
@@ -76,13 +92,22 @@ const LIST: Array[Dictionary] = [
 			"We followed the ruts to a noise like the whole forest screaming.",
 			"Saws. Logs stacked higher than the trees they were.",
 			"And a sign over the gate: %s. Official partner of %s." % [COMPANY, AGENCY],
-			"%s, more like. It's humans. It was always humans." % NICKNAME,
+			"\"%s\", more like: prosperity by burning." % NICKNAME,
+			"It's humans. It was always humans.",
 		],
 		"after": [
 			"\"%s\" That's what the sign says." % SLOGAN,
 			"Green on the sign. Ash behind it.",
 			"Their machines came up from a clearing to the east. That's where we go.",
 		],
+		"send_off": [
+			"Nenek Pus sees you off. \"Follow the ruts. Whatever made them, it isn't small.\"",
+		],
+		"teaches": {"by": "Si Belang", "mutations": ["ankle_cutter", "caltrops"], "lines": [
+			"Si Belang worked the sawpits' scraps for a season, and watched the giants the whole time.",
+			"\"Their boots are slow to turn. Go between them, and cut.\"",
+			"He empties his pockets: bent nails, by the handful. \"And leave them these.\"",
+		]},
 		"frees": [{"name": "Si Belang", "coat": "cream"}], "bonus": 30,
 		"props": [{"kind": "sign", "at": Vector2(20.0, 3.4), "lines": [COMPANY, "Official partner of %s" % AGENCY, SLOGAN]}],
 	},
@@ -101,6 +126,14 @@ const LIST: Array[Dictionary] = [
 			"The loader's arm is still twitching. It'll stop.",
 			"The logs they cut go somewhere. Downhill, toward the river.",
 		],
+		"send_off": [
+			"Si Belang points east. \"Where the machines came from. Mind the big ones.\"",
+		],
+		"teaches": {"by": "Jingga", "mutations": ["long_leap", "dust_cloud"], "lines": [
+			"Jingga has never once used the bridge over the stream.",
+			"\"Why would you? Run, and leave the ground. Everything down there is slower than you.\"",
+			"\"And when you land, kick. They can't bite what they can't see.\"",
+		]},
 		"frees": [], "bonus": 40,
 	},
 	{
@@ -119,6 +152,14 @@ const LIST: Array[Dictionary] = [
 			"One truck less on the river road.",
 			"Its driver ran for the offices on the hill.",
 		],
+		"send_off": [
+			"\"Downhill to the river,\" says Jingga. \"Try not to ride a log down there.\"",
+		],
+		"teaches": {"by": "Kopi and Susu", "mutations": ["more_charges", "slipstream"], "lines": [
+			"Kopi and Susu never sit still. Not since the cage.",
+			"Keep up with them for a week, and you won't either.",
+			"They run in each other's wake, and show you how to pull a friend along in yours.",
+		]},
 		"frees": [{"name": "Kopi", "coat": "black"}, {"name": "Susu", "coat": "cream"}], "bonus": 50,
 	},
 	{
@@ -137,6 +178,13 @@ const LIST: Array[Dictionary] = [
 			"Every permit said the same: the rest of it, next season, for the nation's food.",
 			"An official flies in to the airstrip to cut the ribbon.",
 		],
+		"send_off": [
+			"Kopi and Susu walk you to the gate, arguing about which of them saw the hill first.",
+		],
+		"teaches": {"by": "Nenek Pus", "mutations": ["lick_your_wounds", "scent_trail"], "lines": [
+			"Nenek Pus says she's too old to teach anything else. Then she does.",
+			"\"Tend to your wounds as you go. And leave the dogs something to follow that isn't you.\"",
+		]},
 		"frees": [], "bonus": 60,
 		"props": [{"kind": "sign", "at": Vector2(12.0, 2.6), "lines": [BOARD, SLOGAN]}, {"kind": "sign", "at": Vector2(28.0, 2.6), "lines": ["Concession: idle land", COMPANY]}],
 	},
@@ -157,6 +205,14 @@ const LIST: Array[Dictionary] = [
 			"But they'll have to take us seriously now.",
 			"It was a tall order. We filled it.",
 		],
+		"send_off": [
+			"The whole village comes to the gate.",
+			"\"There's a ribbon to not get cut,\" the elder says.",
+		],
+		"teaches": {"by": "Datuk", "mutations": ["chain_roll"], "lines": [
+			"Datuk was a ferry hand on the river before the cage, and never wasted a move.",
+			"\"Finish one, start the next. A roll that ends in a fall is half a roll.\"",
+		]},
 		"frees": [{"name": "Datuk", "coat": "gray"}], "bonus": 80,
 		"props": [{"kind": "ribbon", "at": Vector2(20.0, 12.0)}, {"kind": "sign", "at": Vector2(20.0, 8.6), "lines": ["Grand opening", BOARD]}],
 	},
@@ -169,6 +225,13 @@ static func named(id: String) -> Dictionary:
 		if area.id == id:
 			return area
 	return {}
+
+
+## The dodge mutations an area's freeing teaches, by id, if any.
+static func teaches(id: String) -> Array[String]:
+	var mutations: Array[String] = []
+	mutations.assign(named(id).get("teaches", {}).get("mutations", []))
+	return mutations
 
 
 static func ids() -> Array[String]:
