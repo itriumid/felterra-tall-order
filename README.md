@@ -45,7 +45,7 @@ The builds aren't signed by a publisher Windows or macOS knows yet, so each warn
 | I | Left stick press | Gear and stats: what he carries, and every stat as it stands |
 | Escape | Start | Pause: carry on, settings, start again, back to the village, leave |
 | W A S D or the arrow keys | Left stick | In the village: walk about. The gate on its far side leads to a run |
-| Enter | A | In the village, at a door: use what it holds (her pack, the smith's forge, the elder's book, the weaver's looks, the map) |
+| Enter | A | In the village, at a door: use what it holds (her pack, the smith's forge, the Elder's book, the weaver's looks, the map) |
 | A and D, W and S | Stick | At the smithy and in his pack: change tab, and choose |
 | Enter | A | In a cutscene: finish the line, or move on to the next |
 | Enter | A | Home from a run: put away what's new |

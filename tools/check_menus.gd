@@ -34,7 +34,7 @@ const STEPS := [
 	["leave_village", "", {"_place": "leaving"}], ["pause", "", {"_place": "run", "_briefing": false, "_entering": true}],
 	["pause", "", {"_entering": false}], ["pick_1", ""],
 	["free_area", "", {"_freeing": true}], ["pause", "summary", {"village.liberated": ["edge"]}],
-	# Home: the elder's lesson and the smithy told on the way in, skipped; then what's new.
+	# Home: the Elder's lesson and the smithy told on the way in, skipped; then what's new.
 	["menu_choose", "", {"_place": "arriving"}], ["pause", "news", {"_place": "village", "village.restored": ["home", "smithy"]}],
 	["menu_choose", "", {"village.told": ["send_off:edge", "intro:edge", "outro:edge", "teach:edge"]}],
 	# Cats rescued, and the next areas freed, as the story would: the weaver's hut, the longhouse,
