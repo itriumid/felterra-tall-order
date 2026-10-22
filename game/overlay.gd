@@ -212,28 +212,15 @@ func _draw_village() -> void:
 		var keys: Array[String] = ["Enter", door]
 		var width := InterfaceArt.key_line_width(keys)
 		InterfaceArt.key_line(self, Vector2(floorf((screen.x - width) / 2.0), screen.y - 24), keys)
-	var to_screen := get_viewport().get_canvas_transform()
 	var tompel := village_map.cat.body.position
 	if village_map.jogi.body.position.distance_to(tompel) <= 1.6 and not cutscene:
-		var over: Vector2 = to_screen * World.to_screen(village_map.jogi.body.position, 0.45)
-		var spot := Vector2(floorf(over.x - PixelFont.width(Overlay.JOGI) / 2.0), floorf(over.y))
-		PixelFont.draw(self, spot + Vector2(1, 1), JOGI, Palette.GRAPHITE)
-		PixelFont.draw(self, spot, JOGI, Palette.PINK)
+		_name_over(village_map.jogi.body.position, Sprites.JOGI_FEET.y, JOGI)
 	if village_map.elder.body.position.distance_to(tompel) <= 1.6:
-		var above: Vector2 = to_screen * World.to_screen(village_map.elder.body.position, 0.6)
-		var label: String = SPEAKER_NAMES.elder
-		var spot := Vector2(floorf(above.x - PixelFont.width(label) / 2.0), floorf(above.y))
-		PixelFont.draw(self, spot + Vector2(1, 1), label, Palette.GRAPHITE)
-		PixelFont.draw(self, spot, label, Palette.PINK)
+		_name_over(village_map.elder.body.position, Sprites.CAT_FEET.y - 3, SPEAKER_NAMES.elder)
 	for index in village_map.villagers.size():
 		var villager := village_map.villagers[index]
-		if villager.body.position.distance_to(tompel) > 1.6:
-			continue
-		var name: String = village_map.names[index]
-		var above: Vector2 = to_screen * World.to_screen(villager.body.position, 0.6)
-		var at := Vector2(floorf(above.x - PixelFont.width(name) / 2.0), floorf(above.y))
-		PixelFont.draw(self, at + Vector2(1, 1), name, Palette.GRAPHITE)
-		PixelFont.draw(self, at, name, Palette.PINK)
+		if villager.body.position.distance_to(tompel) <= 1.6:
+			_name_over(villager.body.position, Sprites.CAT_FEET.y - 3, village_map.names[index])
 	if door.is_empty() and tompel.x > VillageMap.EXIT_FROM - 3.5 and tompel.y > VillageMap.PATH_TOP - 1.0 and tompel.y < VillageMap.PATH_BOTTOM + 1.0:
 		var hint := "On along the path: to " + leads_to
 		var at := Vector2(floorf((screen.x - PixelFont.width(hint)) / 2.0), screen.y - 24)
@@ -323,6 +310,15 @@ func _draw_rescue_talk() -> void:
 			continue
 		var over: Vector2 = cage.runner.position if line.by == "freed" else cat.body.position
 		_bubble(over, cage.prisoner.name if line.by == "freed" else "", line.text)
+
+
+## A name over someone in the village, clear of the top of them: centered over where they stand,
+## its bottom a pixel above their ears (so tall above their feet).
+func _name_over(feet: Vector2, tall: float, name: String) -> void:
+	var under: Vector2 = get_viewport().get_canvas_transform() * World.to_screen(feet)
+	var at := Vector2(floorf(under.x - PixelFont.width(name) / 2.0), floorf(under.y - tall - PixelFont.HEIGHT - 1))
+	PixelFont.draw(self, at + Vector2(1, 1), name, Palette.GRAPHITE)
+	PixelFont.draw(self, at, name, Palette.PINK)
 
 
 ## Text over the scene, centered, with a shadow under it so it reads on leaves or earth.
