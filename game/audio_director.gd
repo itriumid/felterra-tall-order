@@ -79,6 +79,18 @@ func take_events(events: Array[Dictionary]) -> void:
 					"mines": play_at("blast", event.position, 0.0)
 					_: play_at("blast", event.position, -3.0, 1.3)
 			"ignite": play_at("ignite", event.position, -4.0)
+			"boss_arrives": play_at("boss_horn", event.position, 2.0)
+			"whistle": play_at("whistle", event.position, -4.0)
+			"horn": play_at("truck_horn", event.position, -2.0)
+			"stall": play_at("stall", event.position, -4.0)
+			"blade_up", "strafe_marked": play_at("hydraulic", event.position, -3.0)
+			"throw": play_at("throw", event.position, -3.0)
+			"log_lands": play_at("fall", event.position, -2.0)
+			"lever": play_at("lever", event.position, -2.0)
+			"call": play_at("squeak", event.position, -4.0, 0.7)
+			"structure_down": play_at("structure_down", event.position, 0.0)
+			"goal_done": interface("goal_done")
+			"liberated": interface("freed")
 			"snap": play_at("crack", event.position, -6.0, 1.3)
 			"crack": play_at("crack", event.position, -4.0)
 			"set_down":
@@ -138,6 +150,10 @@ func _process(_delta: float) -> void:
 		if _counted(cage, "clicks", cage.clicks):
 			play_at("lock_click", cage.body.position, -10.0)
 	for machine in arena.machines:
+		if machine is Helicopter:
+			if _counted(machine, "rotor", int(machine.rotor)):
+				play_at("rotor", machine.body.position, -10.0)
+			continue
 		# Its tracks clank as they run, link by link.
 		var link := floori(machine.tracks_run / 0.5)
 		if _counted(machine, "links", link) and machine.standing():

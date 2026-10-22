@@ -73,6 +73,40 @@ var starting_piece := ""
 var looks: Array[String] = ["coat:orange", "banners:festival"]
 var coat := "orange"
 var banners := "festival"
+## The forest's areas freed, the cutscenes already told (as "intro:<area>" or "outro:<area>"),
+## and where the next run goes: an area's id, or "endless".
+var liberated: Array[String] = []
+var told: Array[String] = []
+var next_run := "edge"
+
+
+## Whether an area can be chosen: the first always, then each once the one before it is free.
+func found(area_id: String) -> bool:
+	var index := Areas.ids().find(area_id)
+	return index == 0 or (index > 0 and Areas.ids()[index - 1] in liberated)
+
+
+## The first area not yet freed, or Endless once they all are.
+func next_area() -> String:
+	for id in Areas.ids():
+		if not id in liberated:
+			return id
+	return "endless"
+
+
+## An area freed for the first time: it's marked free, and brings the village what freeing it
+## brings, its cats and its salvage. Returns false if it was free already.
+func liberate(area_id: String) -> bool:
+	if area_id in liberated:
+		return false
+	liberated.append(area_id)
+	var area := Areas.named(area_id)
+	salvage += area.bonus
+	for freed: Dictionary in area.frees:
+		cats.append(freed)
+	if next_run == area_id:
+		next_run = next_area()
+	return true
 
 
 ## What a run brought home: its rescued cats join, its salvage goes on the pile, and the cats
@@ -174,6 +208,9 @@ func clear() -> void:
 	looks.assign(["coat:orange", "banners:festival"])
 	coat = "orange"
 	banners = "festival"
+	liberated.clear()
+	told.clear()
+	next_run = "edge"
 
 
 func save(path := PATH) -> bool:
@@ -188,6 +225,9 @@ func save(path := PATH) -> bool:
 	file.set_value("village", "looks", looks)
 	file.set_value("village", "coat", coat)
 	file.set_value("village", "banners", banners)
+	file.set_value("village", "liberated", liberated)
+	file.set_value("village", "told", told)
+	file.set_value("village", "next_run", next_run)
 	return file.save(path) == OK
 
 
@@ -214,6 +254,14 @@ func load_from(path := PATH) -> void:
 	starting_piece = piece if piece is String and piece in forged else ""
 	var saved_coat: Variant = file.get_value("village", "coat", "orange")
 	coat = saved_coat if saved_coat is String and "coat:" + saved_coat in looks else "orange"
+	_names(file, "liberated", liberated, Areas.ids())
+	var known_scenes: Array = []
+	for id in Areas.ids():
+		known_scenes.append("intro:" + id)
+		known_scenes.append("outro:" + id)
+	_names(file, "told", told, known_scenes)
+	var saved_next: Variant = file.get_value("village", "next_run", "edge")
+	next_run = saved_next if saved_next is String and (saved_next == "endless" or saved_next in Areas.ids()) else next_area()
 	var saved_banners: Variant = file.get_value("village", "banners", "festival")
 	banners = saved_banners if saved_banners is String and "banners:" + saved_banners in looks else "festival"
 

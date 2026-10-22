@@ -36,7 +36,29 @@ const CAGE_INTERVAL := 75.0
 const MOST_CAGES := 2
 const CAGE_DISTANCE := 6.0
 ## The salvage what she breaks throws out: a giant, a chainsaw worker, a machine.
-const SALVAGE := {"worker": 2, "chainsaw": 4, "feller_buncher": 12}
+const SALVAGE := {
+	"worker": 2, "chainsaw": 4, "handler": 8, "feller_buncher": 12, "log_loader": 14, "logging_truck": 16,
+	"bulldozer": 18, "helicopter": 24,
+}
+## What spawns, and when: Endless's plan is everything, from these numbers. A liberation area has
+## its own (see Areas): only what that place has.
+const ENDLESS := {
+	"rats": {"rate": SPAWN_RATE, "growth": SPAWN_GROWTH},
+	"dogs": {"from": DOGS_FROM, "interval": DOG_INTERVAL, "pack": DOG_PACK, "most": MOST_DOGS},
+	"giants": {"from": GIANTS_FROM, "interval": GIANT_INTERVAL, "most": MOST_GIANTS, "chainsaw_from": CHAINSAW_FROM, "chainsaw_every": CHAINSAW_EVERY},
+	"machines": {"from": MACHINE_FROM, "interval": MACHINE_INTERVAL, "kind": "feller_buncher"},
+	"cages": {"from": CAGES_FROM, "interval": CAGE_INTERVAL, "most": MOST_CAGES},
+}
+## The log slide's levers take this long to pull, from this close; a released stack waits a moment,
+## then rolls down the slope at this pace, its logs this long and this thick, and what it does.
+const LEVER_TIME := 2.0
+const LEVER_REACH := 0.7
+const LOG_WAIT := 0.8
+const LOG_SPEED := 3.0
+const LOG_LENGTH := 5.0
+const LOG_RADIUS := 0.3
+const LOG_DAMAGE := 40.0
+const LOG_HURT := 3.0
 ## Afflictions bite this often; burning oil lasts FIRE_TIME, a nail NAIL_TIME; firecrackers pop
 ## this often, this wide; a ricochet looks this far for its next target; and a decoy draws the
 ## horde from this far.
@@ -73,6 +95,21 @@ var fires: Array[Dictionary] = []
 var hazards: Array[Dictionary] = []
 var crackers: Array[Dictionary] = []
 var decoys: Array[Cat] = []
+## What spawns, and the liberation area this run is in (empty in Endless): its structures, its
+## caged cats, its levers and the logs they let go; whether its goal is done, how long the clearing
+## has been held, its boss once it comes, and whether it's free.
+var plan := ENDLESS
+var area := {}
+var structures: Array[Structure] = []
+var goal_cages: Array[Cage] = []
+var levers: Array[Dictionary] = []
+var logs: Array[Dictionary] = []
+var goal_done := false
+var held_for := 0.0
+var boss: Object = null
+var liberated := false
+## Once an area's free, the company's own go home: the horde and the giants head for the jungle.
+var fleeing := false
 var shots: Array[Shot] = []
 var fallen: Array[Body] = []
 ## The oldest of the fallen crumbling away, as {body, left}: seconds until it's gone.
@@ -117,11 +154,12 @@ func add_giant(where: Vector2, kind := "worker") -> Giant:
 	return giant
 
 
-func add_machine(where: Vector2, heading := 0.0) -> Machine:
-	var machine := Machine.new()
+func add_machine(where: Vector2, heading := 0.0, kind := "feller_buncher") -> Machine:
+	var machine := Machine.make(kind)
 	machine.body.position = where
 	machine.heading = heading
 	machine.head = machine.point(Machine.REST_FORWARD, Machine.BOOM_ROOT.y)
+	machine.arrived(self)
 	machines.append(machine)
 	return machine
 
@@ -179,12 +217,16 @@ func step() -> void:
 		body.step(STEP)
 		_keep_inside(body)
 	_crumble()
+	_stand_structures()
+	_pull_levers()
+	_roll_logs()
 	_afflict_all()
 	_burn_fires()
 	_spring_hazards()
 	_pop_crackers()
 	_pick_locks()
 	_pick_up()
+	_pursue_goal()
 	_spawn()
 
 
@@ -221,6 +263,9 @@ func _targets() -> Array:
 			targets.append(machine)
 		if machine.joint.alive():
 			targets.append(machine.joint)
+	for structure in structures:
+		if structure.alive():
+			targets.append(structure)
 	return targets
 
 
@@ -265,10 +310,20 @@ func cut(center: Vector2, height: float, reach: float, weapon: Weapon, from_angl
 		var into := angle_difference(from_angle, offset.angle())
 		if offset.length() < giant.body.radius + 0.12 or (signf(into) == signf(sweep) and absf(into) <= absf(sweep)):
 			cut_through.append(giant)
+	# A structure is cut like anything standing in the blade's way.
+	for structure in structures:
+		if not structure.alive():
+			continue
+		var offset := structure.body.position - center
+		if offset.length() > reach + structure.body.radius:
+			continue
+		var into := angle_difference(from_angle, offset.angle())
+		if offset.length() < structure.body.radius + 0.12 or (signf(into) == signf(sweep) and absf(into) <= absf(sweep)):
+			cut_through.append(structure)
 	# A machine is cut where the blade meets it, and its joint while it's down on the ground.
 	for machine in machines:
 		for part: Object in [machine, machine.joint]:
-			if not part.alive() or (part == machine and not machine.standing()):
+			if not part.alive() or (part == machine and not machine.standing()) or part.body.height > height + 0.8:
 				continue
 			var offset: Vector2 = part.body.position - center
 			if offset.length() > reach + part.body.radius:
@@ -344,17 +399,17 @@ func saw(giant: Giant, from_angle: float, to_angle: float) -> void:
 
 ## A feller buncher's jaws shutting on a point: what's between them is cut, cats, giants and its
 ## own horde alike.
-func jaws(machine: Machine, at: Vector2) -> void:
-	events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "jaws_shut", "giant": true, "kind": machine.kind})
+func jaws(machine: Machine, at: Vector2, radius := Machine.JAW_RADIUS, by := "jaws_shut") -> void:
+	events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": by, "giant": true, "kind": machine.kind, "radius": radius})
 	for creature: Creature in creatures.duplicate():
-		if creature.body.position.distance_to(at) <= Machine.JAW_RADIUS + creature.body.radius and creature.body.height < 1.0:
+		if creature.body.position.distance_to(at) <= radius + creature.body.radius and creature.body.height < 1.0:
 			strike(creature, 100.0, Vector2.ZERO, 0.0, 0.0, "jaws")
 	for giant in giants:
-		if giant.standing() and giant.body.position.distance_to(at) <= Machine.JAW_RADIUS + giant.body.radius:
+		if giant.standing() and giant.body.position.distance_to(at) <= radius + giant.body.radius:
 			strike(giant, 30.0, (giant.body.position - at).normalized(), 0.0, 0.0, "jaws")
 	for cat in cats:
 		var apart := cat.body.position - at
-		if apart.length() <= Machine.JAW_RADIUS + cat.body.radius and cat.body.height < 0.6:
+		if apart.length() <= radius + cat.body.radius and cat.body.height < 0.6:
 			cat.hurt(Machine.BITE_DAMAGE, (apart.normalized() if apart.length() > 0.001 else Vector2.DOWN) * Machine.BITE_KNOCK)
 
 
@@ -390,6 +445,9 @@ func blast(at: Vector2, radius: float, damage: float, knock: float, lift: float,
 		if giant.standing() and apart.length() <= radius + giant.body.radius:
 			strike(giant, damage, apart.normalized() if apart.length() > 0.001 else Vector2.RIGHT, knock, 0.0, by, attacker)
 	_strike_machines(at, radius, damage, by, attacker)
+	for structure in structures:
+		if structure.alive() and structure.body.position.distance_to(at) <= radius + structure.body.radius:
+			strike(structure, damage, Vector2.ZERO, 0.0, 0.0, by, attacker)
 
 
 ## Strikes every machine within reach of a point, and its joint if that's in reach too.
@@ -489,6 +547,8 @@ func brushing(where: Vector2, reach: float) -> int:
 
 
 func nearest_cat(where: Vector2) -> Cat:
+	if fleeing:
+		return null
 	var nearest: Cat = null
 	var nearest_distance := INF
 	for cat in cats:
@@ -561,8 +621,10 @@ func _bite() -> void:
 						events.append({"position": cat.body.position, "height": 0.15, "direction": apart.normalized(), "killed": false, "by": "bite", "giant": false, "kind": creature.kind})
 
 
-## What a creature runs at: a decoy close enough, or the nearest cat.
+## What a creature runs at: a decoy close enough, or the nearest cat; nothing, once they've fled.
 func _prey_for(creature: Creature) -> Cat:
+	if fleeing:
+		return null
 	for decoy in decoys:
 		if decoy.alive() and decoy.body.position.distance_to(creature.body.position) < DECOY_REACH:
 			return decoy
@@ -796,13 +858,24 @@ func _first_hit(shot: Shot) -> Object:
 		if passing >= 0.0 and passing <= Giant.TALL and along < first_along:
 			first_along = along
 			first = giant
+	for structure in structures:
+		if not structure.alive() or shot.struck.has(structure):
+			continue
+		var closest := Geometry2D.get_closest_point_to_segment(structure.body.position, from, to)
+		if closest.distance_to(structure.body.position) > structure.body.radius:
+			continue
+		var along := from.distance_to(closest)
+		var passing := lerpf(shot.previous_height, shot.height, along / maxf(from.distance_to(to), 0.0001))
+		if passing <= structure.body.tall + 0.1 and along < first_along:
+			first_along = along
+			first = structure
 	# A machine stops a round where the round meets its steel, its joint where that's open.
 	for machine in machines:
 		for part: Object in [machine.joint, machine]:
 			if not part.alive() or (part == machine and not machine.standing()):
 				continue
 			var closest := Geometry2D.get_closest_point_to_segment(part.body.position, from, to)
-			var inside: bool = machine.covers(closest) if part == machine else closest.distance_to(part.body.position) <= part.body.radius
+			var inside: bool = (machine.covers(closest) if not machine.flying else closest.distance_to(machine.body.position) <= machine.body.radius) if part == machine else closest.distance_to(part.body.position) <= part.body.radius
 			if not inside:
 				continue
 			var along := from.distance_to(closest)
@@ -826,6 +899,15 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 		if attacker.critical > 0.0 and random.randf() < attacker.critical:
 			damage *= 2.0
 		knock *= 1.0 + attacker.knockback_bonus
+	if target is Structure:
+		var structure: Structure = target
+		structure.health -= damage
+		events.append({"position": structure.body.position, "height": structure.body.tall * 0.6, "direction": direction, "killed": not structure.alive(), "by": by, "giant": true, "kind": "structure"})
+		if not structure.alive():
+			structure.broken(self)
+			drop_salvage(structure.body.position, 2)
+			events.append({"position": structure.body.position, "height": 0.0, "direction": Vector2.ZERO, "killed": true, "by": "structure_down", "giant": false, "kind": structure.kind})
+		return
 	if target is Machine or target is Machine.Joint:
 		var on_joint: bool = target is Machine.Joint
 		var machine: Machine = target.machine if on_joint else target
@@ -938,8 +1020,19 @@ func _gain_experience(amount: int) -> void:
 
 
 ## With no cat in the clearing (behind the title, say) the horde and the giants amble about: each
-## picks somewhere and goes there, then somewhere else.
+## picks somewhere and goes there, then somewhere else. Fleeing, each makes for the jungle's edge
+## nearest it, and is gone into it.
 func _wander() -> void:
+	if fleeing:
+		for walker: Object in creatures + giants:
+			if not walker.wander_to.is_finite():
+				var at: Vector2 = walker.body.position
+				var edges := [Vector2(at.x, -1.0), Vector2(at.x, SIZE.y + 1.0), Vector2(-1.0, at.y), Vector2(SIZE.x + 1.0, at.y)]
+				edges.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.distance_to(at) < b.distance_to(at))
+				walker.wander_to = edges[0]
+		creatures = creatures.filter(func(creature: Creature) -> bool: return creature.body.position.distance_to(creature.wander_to) > 1.6)
+		giants = giants.filter(func(giant: Giant) -> bool: return not giant.standing() or giant.body.position.distance_to(giant.wander_to) > 1.8)
+		return
 	if not cats.is_empty():
 		return
 	for creature in creatures:
@@ -959,43 +1052,188 @@ func _keep_inside(body: Body) -> void:
 	body.position = inside
 
 
-## The horde comes out of the jungle all around the clearing, and now and then, a giant.
+## The horde comes out of the jungle all around the clearing, and now and then, a giant: what the
+## plan has, when it says.
 func _spawn() -> void:
 	if not spawning:
 		return
-	_since_giant += STEP
-	if _since_giant >= GIANT_INTERVAL and giants.filter(func(giant: Giant) -> bool: return giant.standing()).size() < MOST_GIANTS:
-		_since_giant = 0.0
-		_giants_sent += 1
-		var chainsaw := time >= CHAINSAW_FROM and _giants_sent % CHAINSAW_EVERY == 0
-		add_giant(edge_point(), "chainsaw" if chainsaw else "worker")
-	_since_machine += STEP
-	if _since_machine >= MACHINE_INTERVAL and not machines.any(func(machine: Machine) -> bool: return machine.standing()):
-		_since_machine = 0.0
-		# It drives in out of the jungle, facing the clearing.
-		var gate := edge_point()
-		add_machine(gate.clamp(Vector2.ONE * 1.6, SIZE - Vector2.ONE * 1.6), (SIZE / 2.0 - gate).angle())
-	_since_cage += STEP
-	if _since_cage >= CAGE_INTERVAL and cages.filter(func(cage: Cage) -> bool: return not cage.opened).size() < MOST_CAGES:
-		var spot := _cage_spot()
-		if spot.is_finite():
-			_since_cage = 0.0
-			add_cage(spot)
-	_since_dogs += STEP
-	if _since_dogs >= DOG_INTERVAL:
-		_since_dogs = 0.0
-		var dogs := creatures.filter(func(creature: Creature) -> bool: return creature.kind == "dog").size()
-		# A pack comes out of the jungle together.
-		var gate := edge_point()
-		for index in mini(DOG_PACK, MOST_DOGS - dogs):
-			add_creature((gate + Vector2(random.randf_range(-0.6, 0.6), random.randf_range(-0.6, 0.6))).clamp(Vector2.ONE * 0.3, SIZE - Vector2.ONE * 0.3), "dog")
-	if creatures.size() >= MOST_CREATURES:
+	var giants_plan: Dictionary = plan.get("giants", {})
+	if not giants_plan.is_empty():
+		_since_giant += STEP
+		if _since_giant >= giants_plan.interval and giants.filter(func(giant: Giant) -> bool: return giant.standing()).size() < giants_plan.most:
+			_since_giant = 0.0
+			_giants_sent += 1
+			var chainsaw: bool = time >= giants_plan.chainsaw_from and _giants_sent % int(giants_plan.chainsaw_every) == 0
+			add_giant(edge_point(), "chainsaw" if chainsaw else "worker")
+	var machines_plan: Dictionary = plan.get("machines", {})
+	if not machines_plan.is_empty():
+		_since_machine += STEP
+		if _since_machine >= machines_plan.interval and not machines.any(func(machine: Machine) -> bool: return machine.standing()):
+			_since_machine = 0.0
+			# It drives in out of the jungle, facing the clearing.
+			var gate := edge_point()
+			add_machine(gate.clamp(Vector2.ONE * 1.6, SIZE - Vector2.ONE * 1.6), (SIZE / 2.0 - gate).angle(), machines_plan.kind)
+	var cages_plan: Dictionary = plan.get("cages", {})
+	if not cages_plan.is_empty():
+		_since_cage += STEP
+		if _since_cage >= cages_plan.interval and cages.filter(func(cage: Cage) -> bool: return not cage.opened).size() < cages_plan.most + goal_cages.filter(func(cage: Cage) -> bool: return not cage.opened).size():
+			var spot := _cage_spot()
+			if spot.is_finite():
+				_since_cage = 0.0
+				add_cage(spot)
+	var dogs_plan: Dictionary = plan.get("dogs", {})
+	if not dogs_plan.is_empty():
+		_since_dogs += STEP
+		if _since_dogs >= dogs_plan.interval:
+			_since_dogs = 0.0
+			var dogs := creatures.filter(func(creature: Creature) -> bool: return creature.kind == "dog").size()
+			# A pack comes out of the jungle together.
+			var gate := edge_point()
+			for index in mini(dogs_plan.pack, dogs_plan.most - dogs):
+				add_creature((gate + Vector2(random.randf_range(-0.6, 0.6), random.randf_range(-0.6, 0.6))).clamp(Vector2.ONE * 0.3, SIZE - Vector2.ONE * 0.3), "dog")
+	var rats_plan: Dictionary = plan.get("rats", {})
+	if rats_plan.is_empty() or creatures.size() >= MOST_CREATURES:
 		return
 	_since_spawn += STEP
-	var interval := 1.0 / (SPAWN_RATE + SPAWN_GROWTH * time)
+	var interval: float = 1.0 / (rats_plan.rate + rats_plan.growth * time)
 	while _since_spawn >= interval and creatures.size() < MOST_CREATURES:
 		_since_spawn -= interval
 		add_creature(edge_point())
+
+
+## Into an area of the forest: its plan for what spawns, and its goal's things where it puts them.
+func begin_area(area_id: String) -> void:
+	area = Areas.named(area_id)
+	plan = area.plan
+	_reset_spawning()
+	var goal: Dictionary = area.goal
+	match goal.kind:
+		"structures":
+			for spot: Vector2 in goal.at:
+				var structure := Structure.new(goal.structure)
+				structure.body.position = spot
+				structures.append(structure)
+		"cages":
+			for spot: Vector2 in goal.at:
+				goal_cages.append(add_cage(spot))
+		"levers":
+			for spot: Vector2 in goal.at:
+				levers.append({"position": spot, "picked": 0.0, "pulled": false})
+
+
+## The timers for what the plan spawns, set so each first comes when the plan says.
+func _reset_spawning() -> void:
+	_since_spawn = 0.0
+	_since_giant = _first("giants")
+	_since_dogs = _first("dogs")
+	_since_machine = _first("machines")
+	_since_cage = _first("cages")
+
+
+func _first(key: String) -> float:
+	var part: Dictionary = plan.get(key, {})
+	return part.interval - part.from if not part.is_empty() else 0.0
+
+
+## Where the goal stands, for the view: how much of it is done, and how much there is.
+func goal_progress() -> Vector2:
+	if area.is_empty():
+		return Vector2.ZERO
+	match area.goal.kind:
+		"structures":
+			return Vector2(structures.filter(func(structure: Structure) -> bool: return not structure.alive()).size(), structures.size())
+		"cages":
+			return Vector2(goal_cages.filter(func(cage: Cage) -> bool: return cage.opened).size(), goal_cages.size())
+		"levers":
+			return Vector2(levers.filter(func(lever: Dictionary) -> bool: return lever.pulled).size(), levers.size())
+		"hold":
+			return Vector2(minf(held_for, area.goal.seconds), area.goal.seconds)
+	return Vector2.ZERO
+
+
+## The area's goal, then its boss: once the goal's done, the boss comes; once the boss is beaten,
+## the area is free.
+func _pursue_goal() -> void:
+	if area.is_empty() or liberated:
+		return
+	if not goal_done:
+		if area.goal.kind == "hold" and cats.any(func(cat: Cat) -> bool: return cat.alive()):
+			held_for += STEP
+		var progress := goal_progress()
+		if progress.y > 0.0 and progress.x >= progress.y:
+			goal_done = true
+			events.append({"position": SIZE / 2.0, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "goal_done", "giant": false, "kind": area.id})
+			_bring_in_the_boss()
+		return
+	if boss != null and not (boss.standing() if boss is Machine or boss is Giant else boss.alive()):
+		liberated = true
+		events.append({"position": boss.body.position, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "liberated", "giant": false, "kind": area.id})
+
+
+func _bring_in_the_boss() -> void:
+	var coming: Dictionary = area.boss
+	var at: Vector2 = coming.at
+	match coming.kind:
+		"creature": boss = add_creature(at, coming.type)
+		"giant": boss = add_giant(at, coming.type)
+		"machine": boss = add_machine(at, (SIZE / 2.0 - at).angle(), coming.type)
+	events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "boss_arrives", "giant": true, "kind": coming.type})
+
+
+## Structures stand where they are: they act, and nothing walks through them.
+func _stand_structures() -> void:
+	for structure in structures:
+		if not structure.alive():
+			continue
+		structure.step(STEP, self)
+		var walkers: Array = []
+		walkers.append_array(cats)
+		walkers.append_array(_near(structure.body.position, structure.body.radius + 0.4))
+		for walker: Object in walkers:
+			var apart: Vector2 = walker.body.position - structure.body.position
+			var reach: float = structure.body.radius + walker.body.radius
+			if apart.length() < reach and walker.body.height < structure.body.tall:
+				walker.body.position = structure.body.position + (apart.normalized() if apart.length() > 0.001 else Vector2.DOWN) * reach
+
+
+## Levers at the top of the slide: standing by one pulls it, a little at a time, and when it goes,
+## its stack of logs comes rolling down the slope, crushing what's in the way.
+func _pull_levers() -> void:
+	for lever in levers:
+		if lever.pulled:
+			continue
+		var pulling := cats.any(func(cat: Cat) -> bool: return cat.alive() and cat.body.position.distance_to(lever.position) <= LEVER_REACH)
+		lever.picked = clampf(lever.picked + (STEP / LEVER_TIME if pulling else -STEP * 0.3), 0.0, 1.0)
+		if lever.picked >= 1.0:
+			lever.pulled = true
+			logs.append({"y": lever.position.y + 0.8, "from": lever.position.x - LOG_LENGTH / 2.0, "to": lever.position.x + LOG_LENGTH / 2.0, "wait": LOG_WAIT, "struck": {}})
+			events.append({"position": lever.position, "height": 0.0, "direction": Vector2.DOWN, "killed": false, "by": "lever", "giant": false, "kind": "lever"})
+
+
+func _roll_logs() -> void:
+	var rolling: Array[Dictionary] = []
+	for log in logs:
+		if log.wait > 0.0:
+			# The stack shifts and groans before it lets go: the warning.
+			log.wait -= STEP
+			rolling.append(log)
+			continue
+		log.y += LOG_SPEED * STEP
+		var crushing := func(where: Vector2, reach: float) -> bool: return where.x >= log.from - reach and where.x <= log.to + reach and absf(where.y - log.y) <= LOG_RADIUS + reach
+		for creature: Creature in creatures.duplicate():
+			if not creature.body.airborne() and crushing.call(creature.body.position, creature.body.radius):
+				strike(creature, 100.0, Vector2.DOWN, 2.0, 1.0, "log")
+		for target: Object in giants + machines:
+			if target.standing() and not log.struck.has(target) and crushing.call(target.body.position, target.body.radius):
+				log.struck[target] = true
+				strike(target, LOG_DAMAGE, Vector2.DOWN, 0.0, 0.0, "log")
+		for cat in cats:
+			if not log.struck.has(cat) and cat.body.height < LOG_RADIUS * 2.0 and crushing.call(cat.body.position, cat.body.radius):
+				if cat.hurt(LOG_HURT, Vector2.DOWN * 3.0):
+					log.struck[cat] = true
+		if log.y < SIZE.y + 1.0:
+			rolling.append(log)
+	logs = rolling
 
 
 ## Somewhere in the clearing for a cage: away from the edge, and far enough from every cat that

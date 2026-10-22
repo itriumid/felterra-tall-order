@@ -13,6 +13,8 @@ extends Node
 ## --support=<id>,<id> puts those on her back; --machine starts with a feller buncher close by;
 ## --cage=<count> sets that many cages around her, the first right beside her, the rest far off;
 ## --village starts in the village instead of a fight; --intro tells the story's opening again;
+## --area=<id> starts a liberation run in that area, --freed as if it's been freed already, --boss
+## with its goal done and its boss on the way;
 ## --villagers=<count> puts that many rescued cats in it, for this run only; --restored=<all, or
 ## names> shows those buildings brought back from ruin; --salvage=<count> and --cloth=<count> give
 ## the village that much to spend; --at-door=<building> stands her at its door; --shop opens what
@@ -40,15 +42,18 @@ const PAGES := {
 	"village_pause": ["carry_on", "settings", "title", "leave"],
 	"summary": ["home", "go_again", "leave"],
 }
-## The story's opening, told once, as she walks into the village the first time.
+## The story's opening, told once, as she walks into the village the first time. Nobody knows
+## yet what's wrong; finding out is the story.
 const INTRO: Array[String] = [
 	"This forest has been ours for as long as anyone remembers.",
-	"Then a company bought it, and moved in with its machines.",
-	"To them, we're pests. They set traps for us, like we're rats.",
-	"We can't out-muscle a giant. But we can get underfoot.",
-	"Bring our people home. Take back what they leave behind.",
-	"Make them take us seriously. It's a tall order.",
+	"Lately, it doesn't feel like ours.",
+	"Rats where there never were any. A smell of oil in the stream.",
+	"Cats gone out foraging, and not come home.",
+	"Something is wrong out there. Someone has to go and look.",
+	"It might as well be you.",
 ]
+## After a boss falls, how long before the area's free, even with nothing to tell.
+const FREED_PAUSE := 2.5
 
 ## The settings page: each row's section, setting and name, by section.
 const SETTING_ROWS: Array[Array] = [
@@ -99,6 +104,15 @@ var _cutscene: Cutscene
 var _open_village_first := false
 ## Whether the runs this session go out from the village, so starting again keeps its rules.
 var _ran_from_village := false
+## The run under way: an area's id, or "endless"; whether its story is being told going in, or
+## the area is being freed; and how long the freeing has left at least.
+var _run_kind := ""
+var _briefing := false
+var _freeing := false
+var _free_for := 0.0
+var _dev_area := ""
+var _dev_freed := false
+var _dev_boss := false
 var _at_door := ""
 ## Which forged weapon the start choice's third card shows.
 var _start_extra := 0
@@ -184,6 +198,12 @@ func _ready() -> void:
 		elif argument.begins_with("--restored="):
 			var names := argument.trim_prefix("--restored=")
 			village.restored.assign(VillageMap.building_names() if names == "all" else Array(names.split(",", false)))
+		elif argument.begins_with("--area="):
+			_dev_area = argument.trim_prefix("--area=")
+		elif argument == "--freed":
+			_dev_freed = true
+		elif argument == "--boss":
+			_dev_boss = true
 		elif argument == "--village":
 			_open_village_first = true
 		elif argument == "--intro":
@@ -258,6 +278,14 @@ func _ready() -> void:
 			_arrive(true)
 	else:
 		_begin(horde, spawning)
+		if not _dev_area.is_empty():
+			if _dev_freed:
+				village.liberated.append(_dev_area)
+				village.told.append_array(["intro:" + _dev_area, "outro:" + _dev_area])
+			_set_up_run(_dev_area)
+			if _dev_boss:
+				arena.goal_done = true
+				arena._bring_in_the_boss()
 		if _open_menu_first or _open_settings_first:
 			_open_page("pause")
 			if _open_settings_first:
@@ -396,6 +424,7 @@ func _enter_village(spot: Vector2) -> void:
 	village_map.cat.coat = village.coat
 	_village_view.banners = village.banners
 	_village_view.village = village_map
+	_village_view.village_record = village
 	_show_layer(true)
 	_music.place = "village"
 	# Nothing to fight here: the clearing's views watch an empty one, out of sight.
@@ -469,6 +498,7 @@ func _in_village(delta: float) -> void:
 	_village_message_for = maxf(_village_message_for - delta, 0.0)
 	var door := village_map.at_door()
 	_overlay.door = _door_prompt(door)
+	_overlay.leads_to = Areas.named(village.next_run).get("name", "Endless").to_lower() if village.next_run != "endless" else "Endless"
 	_overlay.message = _village_message if _village_message_for > 0.0 else ""
 	_overlay.village_record = village
 	if Input.is_action_just_pressed("menu_choose") and not door.is_empty():
@@ -479,8 +509,7 @@ func _in_village(delta: float) -> void:
 		village_map.cat.steering = _walk
 	_step_village(delta)
 	if village_map.leaving():
-		_begin(0, true)
-		_from_the_village()
+		_start_run(village.next_run)
 
 
 ## What Enter does at a building's door, in words: restore it, or use what it holds.
@@ -488,11 +517,12 @@ func _door_prompt(building: String) -> String:
 	if building.is_empty():
 		return ""
 	var name := _building_name(building)
-	if not village.is_restored(building):
+	if building != "board" and not village.is_restored(building):
 		var cost: Dictionary = Village.RESTORE[building]
 		var helpers := "%d %s" % [cost.cats, "cat" if cost.cats == 1 else "cats"]
 		return "Restore %s: %d salvage, %s to help" % [name, cost.salvage, helpers]
 	match building:
+		"board": return "The map of the forest: choose where to go"
 		"smithy": return "The smithy: forge"
 		"hut_0": return "The weaver's hut: looks"
 		"longhouse": return "The elder's longhouse"
@@ -510,7 +540,7 @@ func _building_name(building: String) -> String:
 ## Enter at a door: a ruin is restored if the village can manage it, and a restored building is
 ## used: the smith's forge, the weaver's looks.
 func _use(building: String) -> void:
-	if not village.is_restored(building):
+	if building != "board" and not village.is_restored(building):
 		var why := village.cant_restore(building)
 		if not why.is_empty():
 			_say("Not yet: %s %s" % [_building_name(building), why])
@@ -524,6 +554,9 @@ func _use(building: String) -> void:
 		_say("Restored %s%s" % [_building_name(building), (": " + Village.OPENS[building]) if Village.OPENS.has(building) else ""])
 		return
 	match building:
+		"board":
+			_shop_choice = 0
+			_open_page("board")
 		"smithy":
 			_shop_choice = 0
 			_open_page("forge")
@@ -545,6 +578,15 @@ func _keep_village() -> void:
 ## The forge's rows, or the looks': what each is, what it costs, and where it stands.
 func _shop_rows() -> Array[Dictionary]:
 	var rows: Array[Dictionary] = []
+	if _page == "board":
+		for area: Dictionary in Areas.LIST:
+			var found := village.found(area.id)
+			var state := "free" if area.id in village.liberated else ("held by the company" if found else "not found yet")
+			if village.next_run == area.id:
+				state = "going: " + state
+			rows.append({"id": area.id, "name": area.name if found else "?", "state": state, "can": found})
+		rows.append({"id": "endless", "name": "Endless", "state": "going" if village.next_run == "endless" else "a fresh clearing every run", "can": true})
+		return rows
 	if _page == "forge":
 		for id: String in Village.FORGE:
 			var card := Upgrades.describe({"id": id, "rarity": Upgrades.Rarity.COMMON})
@@ -579,7 +621,11 @@ func _read_shop() -> void:
 	if Input.is_action_just_pressed("menu_choose"):
 		var id: String = rows[_shop_choice].id
 		var done := false
-		if _page == "forge":
+		if _page == "board":
+			done = rows[_shop_choice].can
+			if done:
+				village.next_run = id
+		elif _page == "forge":
 			if id in village.forged:
 				done = id.begins_with("gear:") and village.wear_from_start("" if village.starting_piece == id else id)
 			else:
@@ -591,7 +637,7 @@ func _read_shop() -> void:
 			_keep_village()
 			village_map.cat.coat = village.coat
 			_village_view.banners = village.banners
-	_overlay.shop_title = "The smithy" if _page == "forge" else "The weaver's hut"
+	_overlay.shop_title = {"forge": "The smithy", "looks": "The weaver's hut", "board": "The map of the forest"}[_page]
 	_overlay.shop_rows = _shop_rows()
 	_overlay.shop_choice = _shop_choice
 	_overlay.village_record = village
@@ -657,6 +703,16 @@ func _process(delta: float) -> void:
 		_in_village(delta)
 		_take_screenshot(delta)
 		return
+	if _briefing:
+		_briefed(delta)
+		_take_screenshot(delta)
+		return
+	if _freeing:
+		_step_world(delta)
+		_freeing_step(delta)
+		_camera.position = World.to_screen(cat.body.position)
+		_take_screenshot(delta)
+		return
 	_read_controls()
 	if _menu_after >= 0.0 and arena.time >= _menu_after:
 		_menu_after = -1.0
@@ -674,8 +730,11 @@ func _process(delta: float) -> void:
 	_camera.position = World.to_screen(cat.body.position)
 	_muzzle_light.position = World.to_screen(cat.body.position, Cat.GUN_HEIGHT) + cat.aim * 10.0
 	_muzzle_light.energy = 1.6 * _entities.flash.get(cat, 0.0)
-	if not cat.alive():
+	if arena.liberated and cat.alive():
+		_begin_freeing()
+	elif not cat.alive():
 		_end_run()
+	_overlay.goal = arena.goal_progress()
 	_take_screenshot(delta)
 
 
@@ -699,10 +758,13 @@ func _step_world(delta: float) -> void:
 
 ## She's down: the run's numbers go into the records, and its summary opens.
 func _end_run() -> void:
-	_beaten = records.record(Records.of(arena))
+	# The best run is Endless's: a liberation run is the story, not a score.
+	_beaten.clear()
+	if _run_kind in ["", "endless"]:
+		_beaten = records.record(Records.of(arena))
+		if _keeping_settings:
+			records.save()
 	_bring_home()
-	if _keeping_settings:
-		records.save()
 	_overlay.summary = Records.of(arena)
 	_overlay.summary.rescued = arena.rescued.size()
 	_overlay.summary.salvage = arena.salvage
@@ -719,6 +781,101 @@ func _forged_weapons() -> Array[String]:
 		if id.begins_with("weapon:"):
 			weapons.append(id.trim_prefix("weapon:"))
 	return weapons
+
+
+## A run out from the village: into the area the map board says, or Endless. Endless is a fresh
+## clearing every time; an area is the same place each time, wrecked while the company holds it
+## and healed once it's free, and the first time she goes in, its story is told first.
+func _start_run(run_kind: String) -> void:
+	_begin(0, true)
+	_from_the_village()
+	_set_up_run(run_kind)
+
+
+func _set_up_run(run_kind: String) -> void:
+	_run_kind = run_kind
+	_freeing = false
+	if run_kind == "endless" or run_kind.is_empty():
+		var fresh := randi()
+		arena.random.seed = fresh
+		_ground.paint("clearing", fresh, false)
+		_overlay.area_name = ""
+		return
+	var area := Areas.named(run_kind)
+	arena.begin_area(run_kind)
+	_ground.paint(area.ground, _area_seed(run_kind), run_kind in village.liberated)
+	_entities._freed_areas = village.liberated
+	_overlay.area_name = area.name
+	if not ("intro:" + run_kind) in village.told:
+		_cutscene = Cutscene.new(Array(area.before, TYPE_STRING, "", null), settings.get_value("gameplay", "story_waits"))
+		_briefing = true
+		_music.place = "intro"
+
+
+## Each area's ground is painted from its own seed, so it's the same place every time.
+func _area_seed(run_kind: String) -> int:
+	return absi(hash(run_kind)) % 100000
+
+
+## Going in: the area's story told over it, the world held still. Enter hurries it; Escape skips.
+func _briefed(delta: float) -> void:
+	_cutscene.step(delta, Input.is_action_just_pressed("menu_choose"), Input.is_action_just_pressed("pause"))
+	_overlay.intro = _cutscene.written()
+	_overlay.cutscene = true
+	_camera.position = World.to_screen(cat.body.position)
+	if _cutscene.done():
+		_briefing = false
+		_cutscene = null
+		_overlay.intro = ""
+		_overlay.cutscene = false
+		_music.place = "run"
+		village.told.append("intro:" + _run_kind)
+		_keep_village()
+
+
+## The boss is beaten: the horde scatters, the ground heals from where the boss fell, and the
+## first time, the area's story going on is told to its own music. Then it's free.
+func _begin_freeing() -> void:
+	_freeing = true
+	arena.spawning = false
+	arena.fleeing = true
+	var area := Areas.named(_run_kind)
+	var first_time := not ("outro:" + _run_kind) in village.told
+	var fell_at: Vector2 = arena.boss.body.position if arena.boss != null else cat.body.position
+	if not _run_kind in village.liberated:
+		_ground.heal(fell_at, area.ground, _area_seed(_run_kind))
+	_cutscene = Cutscene.new(Array(area.after, TYPE_STRING, "", null) if first_time else ([] as Array[String]), settings.get_value("gameplay", "story_waits"))
+	_free_for = FREED_PAUSE
+	_music.place = "freed"
+
+
+func _freeing_step(delta: float) -> void:
+	_free_for = maxf(_free_for - delta, 0.0)
+	var skip := Input.is_action_just_pressed("pause")
+	_cutscene.step(delta, Input.is_action_just_pressed("menu_choose"), skip)
+	_overlay.intro = _cutscene.written()
+	_overlay.cutscene = not _cutscene.lines.is_empty() and not _cutscene.done()
+	# Skipped, it's over at once; left to run, it ends when its story's told and the pause is up.
+	if skip or (_cutscene.done() and _free_for <= 0.0):
+		_overlay.intro = ""
+		_overlay.cutscene = false
+		_end_liberation()
+
+
+## Free: the village takes the area, and what freeing it brings the first time, and the summary
+## says so.
+func _end_liberation() -> void:
+	var first := village.liberate(_run_kind)
+	if not ("outro:" + _run_kind) in village.told:
+		village.told.append("outro:" + _run_kind)
+	_bring_home()
+	_overlay.summary = Records.of(arena)
+	_overlay.summary.rescued = arena.rescued.size()
+	_overlay.summary.salvage = arena.salvage
+	_overlay.summary.freed = Areas.named(_run_kind).name
+	_overlay.summary.first_time = first
+	_overlay.beaten.clear()
+	_open_page("summary")
 
 
 ## A run out from the village carries what it gives: only what's been forged can turn up on the
@@ -781,7 +938,7 @@ func _close_page() -> void:
 
 
 func _read_page() -> void:
-	if _page in ["forge", "looks"]:
+	if _page in ["forge", "looks", "board"]:
 		_read_shop()
 		_overlay.page = _page
 		return
@@ -830,10 +987,11 @@ func _read_choices() -> void:
 			_close_page()
 			_start_weapon = ""
 			_outfit = 0
-			var from_the_village := cat != null and not cat.locked.is_empty() or _ran_from_village
-			_begin(0, true)
-			if from_the_village:
-				_from_the_village()
+			if _ran_from_village:
+				_start_run(_run_kind)
+			else:
+				_begin(0, true)
+				_set_up_run(_run_kind)
 		"home":
 			_close_page()
 			_go_home()

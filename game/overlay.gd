@@ -5,8 +5,11 @@ extends Node2D
 
 const CARD_FRAMES: Array[Color] = [Palette.OFF_WHITE, Palette.LEAF_LIGHT, Palette.CLOTH_LIGHT, Palette.BRASS_LIGHT]
 const CARD_SIZE := Vector2(150, 70)
-## What each machine is called on its health bar.
-const BOSS_NAMES := {"feller_buncher": "Feller buncher"}
+## What each boss is called on its health bar.
+const BOSS_NAMES := {
+	"feller_buncher": "Feller buncher", "log_loader": "Log loader", "logging_truck": "Logging truck",
+	"bulldozer": "Bulldozer", "helicopter": "Helicopter", "rat_baron": "The Rat Baron", "handler": "The Handler",
+}
 const AIM_NAMES := {"nearest": "Nearest", "toughest": "Toughest", "crowd": "Crowd"}
 
 var arena: Arena
@@ -46,6 +49,11 @@ var message := ""
 var shop_title := ""
 var shop_rows: Array[Dictionary] = []
 var shop_choice := 0
+## A liberation run: its area's name ("" in Endless), and its goal's progress, done of all.
+var area_name := ""
+var goal := Vector2.ZERO
+## Where the path out leads, for the hint by the gate.
+var leads_to := "the clearing"
 
 
 func _process(_delta: float) -> void:
@@ -74,6 +82,10 @@ func _draw() -> void:
 	if not menu.is_empty():
 		_dither()
 	if cat == null:
+		return
+	if cutscene:
+		# A story told over the run: the world held still, only the lines and their keys.
+		_draw_cutscene()
 		return
 	_draw_status()
 	_draw_score()
@@ -120,6 +132,18 @@ func _draw_status() -> void:
 	InterfaceArt.key_cap(self, Vector2(box.end.x - 14, y - 2), "T")
 
 
+## A story's line as it's written out, and the keys to hurry it or skip it.
+func _draw_cutscene() -> void:
+	var screen := get_viewport_rect().size
+	if not intro.is_empty():
+		_shadowed(intro, 46, Palette.OFF_WHITE)
+	var keys: Array[String] = ["Esc", "skip"]
+	if not intro.is_empty():
+		keys = ["Enter", "next", "Esc", "skip"]
+	var width := InterfaceArt.key_line_width(keys)
+	InterfaceArt.key_line(self, Vector2(screen.x - width - 8, screen.y - 16), keys)
+
+
 ## In the village: the story's opening as it's told, the names of the cats near her, and once
 ## she's near the path out, where it goes.
 func _draw_village() -> void:
@@ -157,7 +181,7 @@ func _draw_village() -> void:
 		PixelFont.draw(self, at + Vector2(1, 1), name, Palette.GRAPHITE)
 		PixelFont.draw(self, at, name, Palette.PINK)
 	if door.is_empty() and her.x > VillageMap.EXIT_FROM - 3.5 and her.y > VillageMap.PATH_TOP - 1.0 and her.y < VillageMap.PATH_BOTTOM + 1.0:
-		var hint := "On along the path: to the clearing"
+		var hint := "On along the path: to " + leads_to
 		var at := Vector2(floorf((screen.x - PixelFont.width(hint)) / 2.0), screen.y - 24)
 		PixelFont.draw(self, at + Vector2(1, 1), hint, Palette.GRAPHITE)
 		PixelFont.draw(self, at, hint, Palette.OFF_WHITE)
@@ -226,16 +250,32 @@ func _draw_cage_markers() -> void:
 
 
 ## A machine at work: its name and its health, across the top of the screen.
+## The boss, across the top of the screen: an area's once it comes, or in Endless, a machine at
+## work. Until an area's boss comes, its goal is there instead.
 func _draw_boss() -> void:
-	for machine in arena.machines:
-		if not machine.standing():
-			continue
-		var screen := get_viewport_rect().size
-		var box := Rect2(floorf(screen.x / 2.0 - 90.0), 4, 180, 22)
+	var screen := get_viewport_rect().size
+	var box := Rect2(floorf(screen.x / 2.0 - 90.0), 4, 180, 22)
+	var boss: Object = arena.boss
+	if boss == null:
+		for machine in arena.machines:
+			if machine.standing():
+				boss = machine
+	var standing: bool = boss != null and (boss.standing() if boss is Machine or boss is Giant else boss.alive())
+	if standing:
+		var most: float = boss.most_health if "most_health" in boss else boss.stat("health")
 		InterfaceArt.panel(self, box)
-		InterfaceArt.bold(self, box.position + Vector2(6, 3), BOSS_NAMES[machine.kind], Palette.OFF_WHITE)
-		InterfaceArt.bar(self, Rect2(box.position + Vector2(6, 14), Vector2(box.size.x - 12, 5)), machine.health / machine.most_health, Palette.HI_VIS)
+		InterfaceArt.bold(self, box.position + Vector2(6, 3), BOSS_NAMES.get(boss.kind, boss.kind), Palette.OFF_WHITE)
+		InterfaceArt.bar(self, Rect2(box.position + Vector2(6, 14), Vector2(box.size.x - 12, 5)), boss.health / most, Palette.HI_VIS)
 		return
+	if area_name.is_empty() or arena.goal_done:
+		return
+	var title: String = arena.area.goal.title
+	var count := "%d:%02d left" % [int(goal.y - goal.x) / 60, int(goal.y - goal.x) % 60] if arena.area.goal.kind == "hold" else "%d of %d" % [goal.x, goal.y]
+	InterfaceArt.panel(self, box)
+	InterfaceArt.bold(self, box.position + Vector2(6, 3), title, Palette.OFF_WHITE)
+	PixelFont.draw(self, Vector2(box.end.x - 6 - PixelFont.width(count), box.position.y + 3), count, Palette.LEAF_LIGHT)
+	InterfaceArt.bar(self, Rect2(box.position + Vector2(6, 14), Vector2(box.size.x - 12, 5)), goal.x / maxf(goal.y, 1.0), Palette.LEAF_LIGHT)
+	PixelFont.draw(self, Vector2(floorf(screen.x / 2.0 - PixelFont.width(area_name) / 2.0), box.end.y + 2), area_name, Palette.SMOKE)
 
 
 func _draw_score() -> void:
@@ -534,7 +574,8 @@ func _draw_summary() -> void:
 	var height := 26 + rows.size() * row_height + 8 + menu.size() * (PixelFont.LINE_HEIGHT + 3) + 2
 	var box := Rect2(floorf((screen.x - width) / 2.0), floorf((screen.y - height) / 2.0), width, height)
 	InterfaceArt.panel(self, box)
-	InterfaceArt.bold(self, box.position + Vector2(10, 7), "She's down", Palette.PINK)
+	var freed: String = summary.get("freed", "")
+	InterfaceArt.bold(self, box.position + Vector2(10, 7), ("Freed: " + freed) if not freed.is_empty() else "She's down", Palette.LEAF_LIGHT if not freed.is_empty() else Palette.PINK)
 	var y := box.position.y + 26
 	for row: Array in rows:
 		PixelFont.draw(self, Vector2(box.position.x + 14, y), row[1], Palette.OFF_WHITE)

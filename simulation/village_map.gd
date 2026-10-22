@@ -30,6 +30,9 @@ const AMBLE_SPEED := 0.7
 ## it's restored, and stays solid either way: a ruin is still in the way.
 const LONGHOUSE := Rect2(15.5, 1.3, 5.0, 1.6)
 const SMITHY := Rect2(22.5, 1.4, 3.2, 1.5)
+## The map of the forest, carved on a board at the gate: where the next run goes. It was never a
+## ruin.
+const BOARD := Rect2(27.3, 6.7, 1.2, 0.45)
 const HUTS: Array[Rect2] = [
 	Rect2(14.0, 7.0, 2.0, 1.4), Rect2(17.5, 7.2, 2.0, 1.4), Rect2(21.0, 7.0, 2.0, 1.4),
 	Rect2(24.5, 7.2, 2.0, 1.4), Rect2(26.8, 1.6, 2.0, 1.3), Rect2(12.6, 1.6, 2.0, 1.3),
@@ -67,6 +70,7 @@ func _init(rescued: Array = [], restored: Array = [], seed_value := 39) -> void:
 		buildings.append({"name": "hut_%d" % index, "kind": "hut", "footprint": HUTS[index], "paint": index})
 	for building in buildings:
 		building.restored = building.name in restored
+	buildings.append({"name": "board", "kind": "board", "footprint": BOARD, "restored": true})
 	for each: Dictionary in rescued:
 		var villager := Cat.new()
 		villager.weapons.clear()

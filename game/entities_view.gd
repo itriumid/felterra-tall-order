@@ -23,6 +23,8 @@ var _rounds_seen := {}
 var _droplets: Array[Dictionary] = []
 ## Hits handed over since the last frame, to throw blood or dust for.
 var _pending: Array[Dictionary] = []
+## The areas already free, for props that show it (the airstrip's ribbon, cut).
+var _freed_areas: Array[String] = []
 ## Chainsaw bars running this frame: their teeth are drawn moving along them.
 var _running_chain: Array[Dictionary] = []
 var _stains: Array[Dictionary] = []
@@ -102,6 +104,12 @@ func _draw() -> void:
 		standing.append([giant.body.position.y, giant])
 	for machine in arena.machines:
 		standing.append([machine.body.position.y, machine])
+	for structure in arena.structures:
+		standing.append([structure.body.position.y, structure])
+	for lever in arena.levers:
+		standing.append([lever.position.y, {"lever": lever}])
+	for rolling in arena.logs:
+		standing.append([rolling.y, {"rolling": rolling}])
 	for cat in arena.cats:
 		for slot: String in cat.supports:
 			var support: Support = cat.supports[slot]
@@ -121,6 +129,7 @@ func _draw() -> void:
 				var art := Sprites.MINE if mine.armed_in <= 0.0 else Sprites.MINE_ARMING
 				draw_texture(Sprites.lit(art), World.to_screen(mine.body.position) - Vector2(4, 3))
 	_draw_ground_hazards()
+	_draw_props()
 	for entry in standing:
 		_draw_shadow(entry[1])
 	for entry in standing:
@@ -129,10 +138,24 @@ func _draw() -> void:
 			_draw_cat(thing)
 		elif thing is Support:
 			_draw_support(thing)
+		elif thing is LogLoader:
+			_draw_loader(thing)
+		elif thing is LoggingTruck:
+			_draw_truck(thing)
+		elif thing is Bulldozer:
+			_draw_bulldozer(thing)
+		elif thing is Helicopter:
+			_draw_helicopter(thing)
 		elif thing is Machine:
 			_draw_machine(thing)
 		elif thing is Cage:
 			_draw_cage(thing)
+		elif thing is Structure:
+			_draw_structure(thing)
+		elif thing is Dictionary and thing.has("lever"):
+			_draw_lever(thing.lever)
+		elif thing is Dictionary and thing.has("rolling"):
+			_draw_rolling(thing.rolling)
 		elif thing is Pickup:
 			var art: String = Sprites.SALVAGE[absi(hash(thing)) % Sprites.SALVAGE.size()]
 			var texture := Sprites.lit(art)
@@ -143,7 +166,13 @@ func _draw() -> void:
 				_draw_flames(thing.body.position, 0.4, 6)
 		elif thing is Creature:
 			# Tripped, it's down on its side, drawn as the fallen are until it's up.
-			if thing.kind == "dog":
+			if thing.kind == "rat_baron":
+				var texture := Sprites.lit(Sprites.RAT_BARON[_frame(thing, RAT_STRIDE * 2.0) % 2], thing.body.velocity.x < 0.0, thing.tripped())
+				var feet := Sprites.RAT_BARON_FEET
+				if thing.body.velocity.x < 0.0:
+					feet.x = texture.get_width() - 1 - feet.x
+				draw_texture(texture, World.to_screen(thing.body.position, thing.body.height) - feet)
+			elif thing.kind == "dog":
 				_draw_dog(thing.body, _frame(thing, DOG_STRIDE), thing.tripped(), thing.state == Creature.State.CROUCHING)
 			else:
 				_draw_rat(thing.body, _frame(thing, RAT_STRIDE), thing.tripped())
@@ -152,7 +181,10 @@ func _draw() -> void:
 			elif thing.afflictions.has("poison"):
 				draw_rect(Rect2(World.to_screen(thing.body.position, thing.body.tall + 0.12), Vector2(1, 1)), Palette.LEAF_LIGHT)
 		elif thing is Body:
-			if thing.kind == "dog":
+			if thing.kind == "rat_baron":
+				var texture := Sprites.lit(Sprites.RAT_BARON[0], false, true)
+				draw_texture(texture, World.to_screen(thing.position, thing.height) - Sprites.RAT_BARON_FEET)
+			elif thing.kind == "dog":
 				_draw_dog(thing, 1, true, false)
 			else:
 				_draw_rat(thing, 0, true)
@@ -192,7 +224,7 @@ func _draw_shadow(thing: Variant) -> void:
 		if not cage.opened:
 			draw_rect(Rect2(World.to_screen(cage.body.position) + Vector2(-12, -1), Vector2(24, 3)), Palette.GROUND_SHADOW)
 		return
-	var body: Body = thing.body if thing is Cat or thing is Creature or thing is Support else thing
+	var body: Body = thing.body if thing is Cat or thing is Creature or thing is Support or thing is Structure else thing
 	# A pixel ellipse on the ground, narrower the higher the body is.
 	var width := roundi(body.radius * 2.0 * World.PIXELS_PER_METER * clampf(1.0 - body.height, 0.5, 1.0))
 	var center := World.to_screen(body.position)
@@ -277,8 +309,30 @@ func _draw_cat(cat: Cat) -> void:
 ## The machine's shadow, its footprint on the ground; and while the boom swings out to bite, the
 ## head's shadow where it will come down, rimmed in hi-vis: the warning, like a boot's.
 func _draw_machine_shadow(machine: Machine) -> void:
-	var corners := _footprint(machine, machine.body.position, Machine.LENGTH + 0.2, Machine.WIDTH + 0.2, 0.0)
+	if machine is Helicopter:
+		# A shadow far below, smaller the higher it flies; its strafe marked on the ground.
+		var shrink := clampf(1.0 - machine.body.height * 0.15, 0.5, 1.0)
+		draw_colored_polygon(_footprint(machine, machine.body.position, machine.length * shrink, machine.width * shrink, 0.0), Palette.GROUND_SHADOW)
+		if machine.state == Machine.State.AIMING:
+			_draw_warning_strip(machine.strafe_from, machine.strafe_to, Helicopter.STRAFE_WIDTH * 2.0)
+		return
+	var corners := _footprint(machine, machine.body.position, machine.length + 0.2, machine.width + 0.2, 0.0)
 	draw_colored_polygon(corners, Palette.GROUND_SHADOW)
+	if machine is LoggingTruck and machine.state == Machine.State.AIMING:
+		var line: PackedVector2Array = machine.charge_line()
+		_draw_warning_strip(line[0], line[1], machine.width)
+		return
+	if machine is Bulldozer and machine.state == Machine.State.AIMING:
+		_draw_warning_strip(machine.point(machine.length * 0.5, 0.0), machine.point(machine.length * 0.5 + Bulldozer.RAM_LENGTH, 0.0), machine.width + 0.4)
+		return
+	if machine is LogLoader and (machine.state == Machine.State.AIMING or machine.log_flying > 0.0):
+		var center := World.to_screen(machine.bite_at)
+		var across := LogLoader.SLAM_RADIUS * World.PIXELS_PER_METER
+		var angle := 0.0
+		while angle < TAU:
+			draw_rect(Rect2((center + Vector2(cos(angle) * across, sin(angle) * across * 0.5)).round(), Vector2.ONE), Palette.HI_VIS)
+			angle += 0.18
+		return
 	if machine.state in [Machine.State.AIMING, Machine.State.BITING]:
 		var share := 1.0 - (machine.state_for / Machine.AIM_TIME if machine.state == Machine.State.AIMING else 0.0)
 		# The shadow grows as the head closes in over her; its rim is dotted, like the saw's arc.
@@ -450,6 +504,231 @@ func _draw_cage(cage: Cage) -> void:
 		var bar := Rect2(feet + Vector2(-12, -26), Vector2(24, 3))
 		draw_rect(bar, Palette.GRAPHITE)
 		draw_rect(Rect2(bar.position + Vector2(1, 1), Vector2(roundf(22 * cage.picked), 1)), Palette.LEAF_LIGHT)
+
+
+## The log loader: tracks, deck and cab like the feller buncher's, and an arm out to its grapple,
+## holding a log until it throws one; a thrown log arcs through the air to where it lands.
+func _draw_loader(machine: LogLoader) -> void:
+	_draw_tracked_body(machine, Palette.HI_VIS, Palette.HI_VIS, Palette.SCARF_RED)
+	var root := World.to_screen(machine.root(), Machine.ROOT_HEIGHT)
+	var grip := World.to_screen(machine.head, machine.head_height + 0.3)
+	var elbow := World.to_screen(machine.root().lerp(machine.head, 0.5), maxf(Machine.ROOT_HEIGHT, machine.head_height) + 0.8)
+	_thick(root, elbow, 5, Palette.SCARF_RED, 0.0)
+	_thick(elbow, grip, 4, Palette.SCARF_RED, 0.0)
+	var holding := machine.state in [Machine.State.DRIVING, Machine.State.AIMING, Machine.State.RAISING] and machine.standing()
+	if holding:
+		_draw_log(machine.head, machine.head_height, machine.facing().orthogonal())
+	for side in [-1, 1]:
+		_thick(grip, grip + Vector2(side * 4, 5), 2, Palette.STEEL, 0.0)
+	if machine.log_flying > 0.0:
+		var done := 1.0 - machine.log_flying / LogLoader.FLIGHT
+		var at: Vector2 = machine.thrown_from.lerp(machine.bite_at, done)
+		_draw_log(at, lerpf(LogLoader.LIFT_HEIGHT, 0.2, done) + sin(done * PI) * 1.5, Vector2.RIGHT.rotated(done * 6.0))
+	_draw_joint(machine)
+
+
+## A log: a trunk section, its end showing its rings.
+func _draw_log(at: Vector2, height: float, across: Vector2) -> void:
+	var from := World.to_screen(at - across * 0.7, height)
+	var to := World.to_screen(at + across * 0.7, height)
+	_thick(from, to, 5, Palette.BARK_LIGHT, 0.0)
+	draw_rect(Rect2(to - Vector2(1, 1), Vector2(3, 3)), Palette.DRY_GRASS)
+
+
+## The logging truck: its cab in front, the trailer behind stacked with trunks, on wheels. Wrecked,
+## it's tipped over on its side, its load spilled.
+func _draw_truck(machine: LoggingTruck) -> void:
+	var tipped := not machine.standing()
+	var lift := 0.0 if tipped else 0.35
+	var parts: Array[Dictionary] = []
+	for along in [-1.6, -0.4, 1.6]:
+		for across in [-0.7, 0.7]:
+			parts.append({"box": [machine.point(along, across), 0.6, 0.2, 0.0, 0.45], "colors": [Palette.STEEL_DARK, Palette.OUTLINE, Palette.OUTLINE]})
+	parts.append({"box": [machine.point(-0.6, 0.0), 3.4, 1.5, lift, lift + 0.25], "colors": [Palette.STEEL, Palette.STEEL_DARK, Palette.STEEL_DARK]})
+	parts.append({"box": [machine.point(1.6, 0.0), 1.3, 1.6, lift, lift + (0.9 if tipped else 1.5)], "colors": [Palette.HI_VIS, Palette.HI_VIS, Palette.SCARF_RED], "cab": true})
+	for row in (0 if tipped else 2):
+		for across in [-0.45, 0.0, 0.45]:
+			parts.append({"box": [machine.point(-0.6, across + (0.22 if row == 1 else 0.0)), 3.2, 0.42, lift + 0.25 + row * 0.42, lift + 0.67 + row * 0.42], "colors": [Palette.BARK_LIGHT, Palette.BARK, Palette.BARK]})
+	_draw_parts(machine, parts)
+	if tipped:
+		# Spilled trunks lying across the road.
+		for index in 4:
+			_draw_log(machine.point(-1.2 + index * 0.7, 1.4 + index * 0.2), 0.15, machine.facing())
+	_draw_joint(machine)
+
+
+## The bulldozer: tracks, a body and cab, the blade in front (raised as it warns), the exhaust
+## stack, and its engine's grille at the back.
+func _draw_bulldozer(machine: Bulldozer) -> void:
+	_draw_tracked_body(machine, Palette.BRASS_LIGHT, Palette.BRASS_LIGHT, Palette.BRASS)
+	var raised := 0.35 if machine.state == Machine.State.AIMING else 0.0
+	var blade: Array[Dictionary] = [{"box": [machine.point(machine.length * 0.5 + 0.2, 0.0), 0.25, machine.width + 0.5, raised, raised + 0.7], "colors": [Palette.STEEL_LIGHT, Palette.STEEL, Palette.STEEL_DARK]}]
+	_draw_parts(machine, blade)
+	_draw_joint(machine)
+
+
+## The helicopter: its shadow far below, the fuselage, the cockpit's glass, its tail boom, skids,
+## and the rotor's blur. Shot down, it lies wrecked on its side.
+func _draw_helicopter(machine: Helicopter) -> void:
+	var height := machine.body.height
+	var parts: Array[Dictionary] = []
+	parts.append({"box": [machine.point(0.2, 0.0), 2.6, 1.2, height + 0.2, height + 1.2], "colors": [Palette.CREAM, Palette.CREAM, Palette.SMOKE]})
+	parts.append({"box": [machine.point(1.4, 0.0), 0.5, 1.0, height + 0.35, height + 1.0], "colors": [Palette.STEEL_LIGHT, Palette.STEEL_LIGHT, Palette.STEEL]})
+	parts.append({"box": [machine.point(-1.8, 0.0), 1.8, 0.25, height + 0.7, height + 0.95], "colors": [Palette.CREAM, Palette.CREAM, Palette.SMOKE]})
+	parts.append({"box": [machine.point(0.2, 0.0), 2.6, 0.2, height + 0.55, height + 0.7], "colors": [Palette.HI_VIS, Palette.HI_VIS, Palette.SCARF_RED]})
+	for across in [-0.55, 0.55]:
+		parts.append({"box": [machine.point(0.2, across), 2.4, 0.08, height, height + 0.08], "colors": [Palette.STEEL_DARK, Palette.STEEL_DARK, Palette.STEEL_DARK]})
+	_draw_parts(machine, parts)
+	if machine.standing():
+		# The main rotor, a ring of blur turning.
+		var hub := World.to_screen(machine.point(0.2, 0.0), height + 1.35)
+		var turn := _clock * 18.0
+		for index in 24:
+			var angle := turn + TAU * index / 24.0
+			if index % 3 != 0:
+				draw_rect(Rect2((hub + Vector2(cos(angle) * 46.0, sin(angle) * 18.0)).round(), Vector2.ONE), Palette.SMOKE)
+		draw_line(hub - Vector2(cos(turn) * 46.0, sin(turn) * 18.0), hub + Vector2(cos(turn) * 46.0, sin(turn) * 18.0), Palette.STEEL_DARK)
+	_draw_joint(machine)
+
+
+## A tracked body for any machine: two tracks, a deck, the engine housing, and the cab with its
+## operator, in the machine's own paint.
+func _draw_tracked_body(machine: Machine, top: Color, lit: Color, shaded: Color) -> void:
+	var length := machine.length
+	var width := machine.width
+	var parts: Array[Dictionary] = []
+	for across in [-width * 0.375, width * 0.375]:
+		parts.append({"box": [machine.point(0.0, across), length, width * 0.25, 0.0, 0.5], "colors": [Palette.STEEL, Palette.STEEL_DARK, Palette.STEEL_DARK], "treads": true})
+	parts.append({"box": [machine.point(0.0, 0.0), length * 0.85, width * 0.85, 0.5, 1.05], "colors": [top, lit, shaded]})
+	parts.append({"box": [machine.point(-length * 0.28, 0.0), length * 0.3, width * 0.75, 1.05, 1.6], "colors": [top, lit, shaded]})
+	parts.append({"box": [machine.point(-length * 0.35, width * 0.25), 0.15, 0.15, 1.6, 2.0], "colors": [Palette.OUTLINE, Palette.STEEL_DARK, Palette.STEEL_DARK]})
+	parts.append({"box": [machine.point(length * 0.15, -width * 0.18), length * 0.33, width * 0.48, 1.05, 2.0], "colors": [top, Palette.STEEL_LIGHT, Palette.STEEL], "cab": true})
+	_draw_parts(machine, parts)
+
+
+## Boxes drawn lower ones first, then far to near; a cab gets its operator behind the glass.
+func _draw_parts(machine: Machine, parts: Array[Dictionary]) -> void:
+	for part in parts:
+		part.depth = float(part.box[3]) * 100.0 + (part.box[0] as Vector2).y
+	parts.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.depth < b.depth)
+	for part in parts:
+		var face := _box(machine, part.box, part.colors, part.get("treads", false))
+		if part.get("cab", false) and machine.standing() and not face.is_empty():
+			var seat := World.to_screen(face.ground, float(part.box[3]) + 0.45)
+			draw_rect(Rect2(seat + Vector2(-2, -5), Vector2(4, 4)), Palette.SKIN)
+			draw_rect(Rect2(seat + Vector2(-3, -1), Vector2(6, 5)), Palette.HI_VIS)
+
+
+## A machine's weak joint: red hoses, flashing while it's open to hits.
+func _draw_joint(machine: Machine) -> void:
+	if not machine.standing():
+		return
+	var at := World.to_screen(machine.joint.body.position, machine.joint.body.height + 0.2)
+	draw_rect(Rect2(at - Vector2(3, 2), Vector2(6, 4)), Palette.OUTLINE)
+	draw_rect(Rect2(at - Vector2(2, 1), Vector2(4, 2)), Palette.SCARF_RED)
+	if machine.exposed() and int(_clock * 8.0) % 2 == 0:
+		draw_rect(Rect2(at - Vector2(4, 3), Vector2(8, 6)), Palette.SPARK, false, 1.0)
+
+
+## A warning marked on the ground in dotted hi-vis: a strip from one point to another, this wide.
+func _draw_warning_strip(from: Vector2, to: Vector2, width: float) -> void:
+	var along := to - from
+	var across := along.orthogonal().normalized() * width * 0.5
+	var steps := int(along.length() / 0.15)
+	for step in steps:
+		var at := from + along * float(step) / steps
+		for side in [-1.0, 1.0]:
+			if step % 2 == 0:
+				draw_rect(Rect2(World.to_screen(at + across * side), Vector2.ONE), Palette.HI_VIS)
+
+
+## An area's props: signs on their posts, and the airstrip's ribbon, strung for the ceremony and,
+## once the area's free, hanging cut.
+func _draw_props() -> void:
+	if arena.area.is_empty():
+		return
+	for prop: Dictionary in arena.area.get("props", []):
+		var at: Vector2 = prop.at
+		if prop.kind == "sign":
+			var lines: Array = prop.lines
+			var width := 0
+			for line: String in lines:
+				width = maxi(width, PixelFont.width(line))
+			var base := World.to_screen(at)
+			var box := Rect2(base + Vector2(-width / 2 - 6, -30 - lines.size() * PixelFont.LINE_HEIGHT), Vector2(width + 12, lines.size() * PixelFont.LINE_HEIGHT + 6))
+			for post_x in [box.position.x + 4, box.end.x - 6]:
+				draw_rect(Rect2(Vector2(post_x, box.end.y), Vector2(2, base.y - box.end.y)), Palette.BARK)
+			draw_rect(box.grow(1), Palette.OUTLINE)
+			draw_rect(box, Palette.CREAM)
+			draw_rect(Rect2(box.position, Vector2(box.size.x, 2)), Palette.HI_VIS)
+			for index in lines.size():
+				var text: String = lines[index]
+				PixelFont.draw(self, Vector2(floorf(base.x - PixelFont.width(text) / 2.0), box.position.y + 4 + index * PixelFont.LINE_HEIGHT), text, Palette.CLOTH_SHADOW if index == 0 else Palette.STEEL_DARK)
+		elif prop.kind == "ribbon":
+			var left := World.to_screen(at + Vector2(-3.0, 0.0))
+			var right := World.to_screen(at + Vector2(3.0, 0.0))
+			for post in [left, right]:
+				draw_rect(Rect2(post + Vector2(-1, -24), Vector2(2, 24)), Palette.STEEL)
+			if arena.liberated or arena.area.id in _freed_areas:
+				# Cut: each half hanging from its post.
+				draw_line(left + Vector2(0, -22), left + Vector2(10, -2), Palette.SCARF_RED)
+				draw_line(right + Vector2(0, -22), right + Vector2(-10, -2), Palette.SCARF_RED)
+			else:
+				draw_line(left + Vector2(0, -22), right + Vector2(0, -22), Palette.SCARF_RED)
+				var middle := (left + right) / 2.0 + Vector2(0, -22)
+				draw_colored_polygon(PackedVector2Array([middle, middle + Vector2(-5, -3), middle + Vector2(-5, 3)]), Palette.SCARF_RED)
+				draw_colored_polygon(PackedVector2Array([middle, middle + Vector2(5, -3), middle + Vector2(5, 3)]), Palette.SCARF_RED)
+
+
+## A structure of an area's goal: its art, a saw's blade spinning over its bench, and how much of
+## it is left once it's hit.
+func _draw_structure(structure: Structure) -> void:
+	if not structure.alive():
+		# Broken: a heap of what it was.
+		var heap := World.to_screen(structure.body.position)
+		for index in 10:
+			draw_rect(Rect2(heap + Vector2((index * 7) % 15 - 7, -(index % 3)), Vector2(3, 1)), [Palette.BARK, Palette.STEEL_DARK, Palette.BURNT][index % 3])
+		return
+	var art: String = Sprites.STRUCTURES[structure.kind]
+	var texture := Sprites.lit(art)
+	var at := World.to_screen(structure.body.position) - Vector2(texture.get_width() / 2, texture.get_height() - 1)
+	draw_texture(texture, at)
+	if structure.kind == "saw":
+		var hub := at + Vector2(texture.get_width() / 2, 0)
+		var turn := structure.spun
+		for tooth in 8:
+			var angle := turn + TAU * tooth / 8.0
+			draw_rect(Rect2((hub + Vector2(cos(angle) * 7.0, sin(angle) * 3.0)).round(), Vector2.ONE), Palette.STEEL_LIGHT)
+		draw_rect(Rect2(hub - Vector2(1, 1), Vector2(3, 2)), Palette.STEEL)
+	if structure.health < structure.most_health:
+		var top := at + Vector2(texture.get_width() / 2 - 10, -5)
+		draw_rect(Rect2(top, Vector2(20, 3)), Palette.GRAPHITE)
+		draw_rect(Rect2(top + Vector2(1, 1), Vector2(roundf(18 * structure.health / structure.most_health), 1)), Palette.LEAF_LIGHT)
+
+
+## A lever at the top of the slide, its stack of logs behind it: thrown as she pulls it.
+func _draw_lever(lever: Dictionary) -> void:
+	var base := World.to_screen(lever.position)
+	for index in 3:
+		_draw_log(lever.position + Vector2(0.0, -0.5 - index * 0.3), 0.15 + index * 0.05, Vector2.RIGHT * 3.0)
+	var tilt: float = lever.picked if not lever.pulled else 1.0
+	_thick(base, base + Vector2(lerpf(-6.0, 6.0, tilt), -14), 2, Palette.STEEL, 0.0)
+	draw_rect(Rect2(base + Vector2(lerpf(-7.0, 5.0, tilt), -16), Vector2(3, 3)), Palette.SCARF_RED)
+	if lever.picked > 0.0 and not lever.pulled:
+		var bar := Rect2(base + Vector2(-12, -24), Vector2(24, 3))
+		draw_rect(bar, Palette.GRAPHITE)
+		draw_rect(Rect2(bar.position + Vector2(1, 1), Vector2(roundf(22 * lever.picked), 1)), Palette.LEAF_LIGHT)
+
+
+## Logs let go: shifting before they roll, then rolling down the slope.
+func _draw_rolling(rolling: Dictionary) -> void:
+	var shake := Vector2((int(_clock * 30.0) % 2) * 2 - 1, 0) if rolling.wait > 0.0 else Vector2.ZERO
+	for index in 3:
+		var y: float = rolling.y - index * 0.25
+		var from := World.to_screen(Vector2(rolling.from, y), 0.25) + shake
+		var to := World.to_screen(Vector2(rolling.to, y), 0.25) + shake
+		_thick(from, to, 6, Palette.BARK_LIGHT if index % 2 == 0 else Palette.BARK, 0.0)
+		draw_rect(Rect2(to - Vector2(2, 2), Vector2(4, 4)), Palette.DRY_GRASS)
 
 
 ## Her pack and what's on it, at one depth: behind her or over her. The cannon's tube shows only
@@ -850,8 +1129,12 @@ func _draw_giant(giant: Giant) -> void:
 	# The reflective band across the vest, the head, and the hard hat over it.
 	parts.append(_part(giant, [0.0, 1.15, 0.0], [0.0, 1.15, 0.0], 14, Palette.STEEL_LIGHT, 0.01, 2))
 	parts.append(_part(giant, [0.0, 1.5, 0.02], [0.0, 1.62, 0.02], 9, Palette.SKIN, 0.02))
-	parts.append(_part(giant, [0.0, 1.66, 0.02], [0.0, 1.7, 0.02], 11, Palette.BRASS_LIGHT, 0.03, 5))
-	parts.append(_part(giant, [0.0, 1.64, -0.06], [0.0, 1.64, 0.16], 3, Palette.BRASS, 0.04))
+	var hat := Palette.CLOTH_SHADOW if giant.kind == "handler" else Palette.BRASS_LIGHT
+	parts.append(_part(giant, [0.0, 1.66, 0.02], [0.0, 1.7, 0.02], 11, hat, 0.03, 5))
+	parts.append(_part(giant, [0.0, 1.64, -0.06], [0.0, 1.64, 0.16], 3, Palette.CLOTH if giant.kind == "handler" else Palette.BRASS, 0.04))
+	if giant.kind == "handler":
+		# The whistle on its cord at his chest.
+		parts.append(_part(giant, [0.0, 1.4, 0.12], [0.0, 1.32, 0.12], 2, Palette.STEEL_LIGHT, 0.05))
 	parts.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.depth < b.depth)
 	for part in parts:
 		_thick(part.from, part.to, part.width, part.color, dissolve, part.tall)

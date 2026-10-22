@@ -21,13 +21,14 @@ func test_the_cats_she_rescued_live_there() -> void:
 
 func test_everything_starts_in_ruins() -> void:
 	var map := VillageMap.new()
-	check(map.buildings.size() == VillageMap.building_names().size(), "%d buildings stand" % map.buildings.size())
-	check(map.buildings.all(func(each: Dictionary) -> bool: return not each.restored), "something stood restored before anything was")
+	var ruins := map.buildings.filter(func(each: Dictionary) -> bool: return each.kind != "board")
+	check(ruins.size() == VillageMap.building_names().size(), "%d buildings stand" % ruins.size())
+	check(ruins.all(func(each: Dictionary) -> bool: return not each.restored), "something stood restored before anything was")
 
 
 func test_restored_buildings_stand_restored() -> void:
 	var map := VillageMap.new([], ["smithy", "hut_2"])
-	var restored := map.buildings.filter(func(each: Dictionary) -> bool: return each.restored).map(func(each: Dictionary) -> String: return each.name)
+	var restored := map.buildings.filter(func(each: Dictionary) -> bool: return each.restored and each.kind != "board").map(func(each: Dictionary) -> String: return each.name)
 	check(restored == ["smithy", "hut_2"], "restored: %s" % str(restored))
 
 

@@ -48,6 +48,195 @@ static func ground(size: Vector2i, seed_value: int) -> Image:
 	return picture
 
 
+## An area of the forest, as the company left it or as it's been since it was freed. Each place
+## has its own floor: leaf litter at the village's edge, deep shade and roots in the forest, sawdust
+## at the sawpits, the logged clearing's regrowth, the log slide's chute of mud down to the river,
+## the offices' gravel, the airstrip's tarmac. Held by the company, it's wrecked: litter and oil,
+## ruts and stumps, scorched peat. Freed, it heals: the ruts grassed over, the oil gone, flowers and
+## saplings coming back. Sizes in pixels.
+static func area_ground(size: Vector2i, seed_value: int, theme: String, healed: bool, smoldering: Array = []) -> Image:
+	var picture := ground(size, seed_value) if theme == "clearing" and not healed else _floor(size, seed_value, theme, healed)
+	var random := RandomNumberGenerator.new()
+	random.seed = seed_value + 7
+	match theme:
+		"slide":
+			_river(picture, healed)
+			_chute(picture, healed, random)
+		"airstrip":
+			_strip(picture, healed, random)
+		"offices":
+			_gravel_pads(picture, healed, random)
+	if not healed:
+		# What the company leaves: stumps everywhere it's been, and where it's burned, scorched
+		# peat; at the edge and in the forest, litter and oil from the crates.
+		var stumps := {"edge": 14, "deep": 50, "sawpits": 60, "clearing": 40, "slide": 26, "offices": 18, "airstrip": 14}.get(theme, 14) as int
+		for index in stumps:
+			_stump(picture, Vector2(random.randf() * size.x, random.randf() * size.y), random.randi_range(6, 11), false)
+		# Trunks felled and left lying, and the ruts of what dragged the rest away.
+		for index in {"deep": 10, "sawpits": 14, "clearing": 10, "slide": 8, "edge": 3}.get(theme, 4) as int:
+			_felled(picture, Vector2(random.randf() * size.x, random.randf() * size.y), random)
+		if theme in ["edge", "deep"]:
+			_skid_trails(picture, random)
+		var scorched := {"edge": 1, "deep": 2, "clearing": 6, "airstrip": 9, "slide": 3, "offices": 2, "sawpits": 3}.get(theme, 0) as int
+		for index in scorched:
+			var center := Vector2(random.randf() * size.x, random.randf() * size.y)
+			_scorch(picture, center, random.randf_range(30.0, 70.0), random)
+			smoldering.append(center)
+		var litter := {"edge": 220, "deep": 160, "sawpits": 260, "offices": 300, "airstrip": 200}.get(theme, 80) as int
+		for index in litter:
+			var at := Vector2i(random.randi_range(0, size.x - 3), random.randi_range(0, size.y - 2))
+			picture.fill_rect(Rect2i(at, Vector2i(random.randi_range(1, 3), 1)), [Palette.STEEL, Palette.CREAM, Palette.HI_VIS, Palette.STEEL_DARK][random.randi_range(0, 3)])
+		for index in {"edge": 5, "deep": 4, "slide": 6}.get(theme, 2) as int:
+			_oil(picture, Vector2(random.randf() * size.x, random.randf() * size.y), random)
+	else:
+		# Healed: stumps sprouting, and flowers through the grass.
+		for index in {"deep": 30, "sawpits": 36, "clearing": 24}.get(theme, 8) as int:
+			_stump(picture, Vector2(random.randf() * size.x, random.randf() * size.y), random.randi_range(4, 6), true)
+		# Flowers in little clumps, and saplings: the forest coming back.
+		for index in 420:
+			var at := Vector2i(random.randi_range(2, size.x - 3), random.randi_range(2, size.y - 3))
+			var color: Color = [Palette.PINK, Palette.BRASS_LIGHT, Palette.CREAM, Palette.SCARF_RED][random.randi_range(0, 3)]
+			for petal in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)]:
+				if random.randf() < 0.8:
+					picture.set_pixelv(at + petal, color)
+			picture.set_pixelv(at + Vector2i(0, 2), Palette.LEAF)
+		for index in 40:
+			_sapling(picture, Vector2(random.randf() * size.x, random.randf() * size.y))
+	return picture
+
+
+## The floor of a place, before anything is done to it.
+static func _floor(size: Vector2i, seed_value: int, theme: String, healed: bool) -> Image:
+	var growth := FastNoiseLite.new()
+	growth.seed = seed_value
+	growth.frequency = 0.008
+	growth.fractal_octaves = 3
+	var random := RandomNumberGenerator.new()
+	random.seed = seed_value
+	# Each place's ground, as its bands from lowest to highest: on a healed one, greener throughout.
+	var bands: Array = {
+		"edge": [Palette.MUD, Palette.MOSS, Palette.JUNGLE, Palette.LEAF],
+		"deep": [Palette.MUD_DARK, Palette.JUNGLE_DARK, Palette.JUNGLE, Palette.MOSS],
+		"sawpits": [Palette.MUD, Palette.MUD_LIGHT, Palette.DRY_GRASS, Palette.BRASS],
+		"clearing": [Palette.MOSS, Palette.JUNGLE, Palette.LEAF, Palette.LEAF_LIGHT],
+		"slide": [Palette.MUD, Palette.MOSS, Palette.JUNGLE, Palette.LEAF],
+		"offices": [Palette.STEEL_DARK, Palette.SMOKE, Palette.STEEL, Palette.MUD_LIGHT],
+		"airstrip": [Palette.BURNT, Palette.DRY_GRASS, Palette.MOSS, Palette.JUNGLE],
+	}.get(theme, [Palette.MUD, Palette.MOSS, Palette.JUNGLE, Palette.LEAF])
+	if healed:
+		bands = [Palette.MOSS, Palette.JUNGLE, Palette.LEAF, Palette.LEAF_LIGHT] if theme != "deep" else [Palette.JUNGLE_DARK, Palette.JUNGLE, Palette.MOSS, Palette.LEAF]
+	var data := PackedByteArray()
+	data.resize(size.x * size.y * 4)
+	for y in size.y:
+		for x in size.x:
+			var value := growth.get_noise_2d(x, y) * 0.5 + 0.5 + (0.03 if (x + y) % 2 == 0 else -0.03)
+			var color: Color = bands[clampi(int(value * bands.size()), 0, bands.size() - 1)]
+			if random.randf() < 0.01:
+				color = Palette.DRY_GRASS if not healed else Palette.LEAF_LIGHT
+			data.encode_u32((y * size.x + x) * 4, color.to_abgr32())
+	return Image.create_from_data(size.x, size.y, false, Image.FORMAT_RGBA8, data)
+
+
+## A trunk felled and left lying where it dropped, its cut end pale.
+static func _felled(picture: Image, at: Vector2, random: RandomNumberGenerator) -> void:
+	var length := random.randf_range(50.0, 110.0)
+	var along := Vector2.from_angle(random.randf_range(-0.4, 0.4))
+	for step in int(length):
+		var point := at + along * step
+		_stamp(picture, point, 4.0, Palette.BARK)
+		_stamp(picture, point + Vector2(0, -1), 2.0, Palette.BARK_LIGHT)
+	_stamp(picture, at + along * length, 4.0, Palette.DRY_GRASS)
+
+
+## Oil spilled from a drum: dark, uneven, with a sheen on it.
+static func _oil(picture: Image, center: Vector2, random: RandomNumberGenerator) -> void:
+	for blob in 5:
+		_stamp(picture, center + Vector2(random.randf_range(-14.0, 14.0), random.randf_range(-6.0, 6.0)), random.randf_range(5.0, 11.0), Palette.GRAPHITE)
+	for glint in 6:
+		var at := Vector2i(center + Vector2(random.randf_range(-12.0, 12.0), random.randf_range(-5.0, 5.0)))
+		picture.fill_rect(Rect2i(at, Vector2i(3, 1)), [Palette.CLOTH_LIGHT, Palette.PAINT_TEAL, Palette.NOSE][glint % 3])
+
+
+## A sapling: a young tree's crown of leaves on a thin stem.
+static func _sapling(picture: Image, at: Vector2) -> void:
+	picture.fill_rect(Rect2i(Vector2i(at) + Vector2i(0, -3), Vector2i(1, 4)), Palette.BARK)
+	_stamp(picture, at + Vector2(0, -6), 3.0, Palette.LEAF)
+	_stamp(picture, at + Vector2(-1, -7), 1.5, Palette.LEAF_LIGHT)
+
+
+## A stump: rings of bark, cut flat; healed, a sprout coming up out of it.
+static func _stump(picture: Image, center: Vector2, radius: int, sprouting: bool) -> void:
+	_stamp(picture, center, radius, Palette.BARK)
+	_stamp(picture, center, radius - 1, Palette.BARK_LIGHT)
+	_stamp(picture, center, maxf(radius - 3, 1), Palette.DRY_GRASS)
+	if sprouting:
+		picture.fill_rect(Rect2i(Vector2i(center) + Vector2i(1, -2), Vector2i(1, 3)), Palette.LEAF)
+		picture.fill_rect(Rect2i(Vector2i(center) + Vector2i(0, -3), Vector2i(3, 1)), Palette.LEAF_LIGHT)
+
+
+## Peat burned black, smoldering at its heart.
+static func _scorch(picture: Image, center: Vector2, radius: float, random: RandomNumberGenerator) -> void:
+	# Burned peat isn't a circle: it creeps out in blotches, char at the heart, ash at the edges.
+	radius *= 0.55
+	for blotch in 9:
+		var at := center + Vector2.from_angle(random.randf() * TAU) * random.randf() * radius
+		_stamp(picture, at, random.randf_range(radius * 0.25, radius * 0.55), Palette.BURNT)
+	for blotch in 4:
+		var at := center + Vector2.from_angle(random.randf() * TAU) * random.randf() * radius * 0.5
+		_stamp(picture, at, random.randf_range(radius * 0.15, radius * 0.3), Palette.GRAPHITE)
+	for ash in 40:
+		var at := Vector2i(center + Vector2.from_angle(random.randf() * TAU) * random.randf() * radius * 1.3)
+		picture.set_pixelv(at.clamp(Vector2i.ZERO, picture.get_size() - Vector2i.ONE), Palette.SMOKE)
+	for ember in 12:
+		var at := center + Vector2.from_angle(random.randf() * TAU) * random.randf() * radius * 0.5
+		picture.set_pixelv(Vector2i(at).clamp(Vector2i.ZERO, picture.get_size() - Vector2i.ONE), Palette.SCARF_RED if ember % 3 else Palette.HI_VIS)
+
+
+## The river along the bottom: oily and gray where the company runs its barges, clear once freed.
+static func _river(picture: Image, healed: bool) -> void:
+	var size := picture.get_size()
+	var top := size.y - 70
+	picture.fill_rect(Rect2i(0, top, size.x, size.y - top), Palette.CLOTH_SHADOW)
+	for x in range(0, size.x, 2):
+		var ripple := int(sin(x * 0.08) * 3.0)
+		picture.fill_rect(Rect2i(x, top + 20 + ripple, 2, 1), Palette.CLOTH_LIGHT if healed else Palette.CLOTH)
+		if not healed and x % 9 == 0:
+			picture.fill_rect(Rect2i(x, top + 40 - ripple, 5, 1), Palette.GRAPHITE)
+	picture.fill_rect(Rect2i(0, top, size.x, 2), Palette.MUD_DARK)
+
+
+## The chute the logs slide down: churned mud, top to bottom; healed, grass over it.
+static func _chute(picture: Image, healed: bool, random: RandomNumberGenerator) -> void:
+	var size := picture.get_size()
+	var left := size.x / 2 - 200
+	for y in range(0, size.y - 70):
+		var wobble := int(sin(y * 0.02) * 12.0)
+		picture.fill_rect(Rect2i(left + wobble, y, 400, 1), Palette.MUD if not healed else Palette.MOSS)
+		if y % 6 == 0 and not healed:
+			picture.fill_rect(Rect2i(left + wobble + random.randi_range(0, 380), y, 18, 1), Palette.MUD_DARK)
+
+
+## The airstrip's tarmac down the middle, its dashes; healed, grass coming up through its cracks.
+static func _strip(picture: Image, healed: bool, random: RandomNumberGenerator) -> void:
+	var size := picture.get_size()
+	var top := size.y / 2 - 90
+	picture.fill_rect(Rect2i(0, top, size.x, 180), Palette.STEEL_DARK)
+	for x in range(20, size.x, 70):
+		picture.fill_rect(Rect2i(x, size.y / 2 - 2, 36, 4), Palette.CREAM)
+	if healed:
+		for crack in 160:
+			var at := Vector2i(random.randi_range(0, size.x - 1), top + random.randi_range(0, 179))
+			picture.fill_rect(Rect2i(at, Vector2i(random.randi_range(2, 8), 1)), Palette.LEAF)
+
+
+## The offices' poured pads, where the cabins stood; healed, the grass taking them back.
+static func _gravel_pads(picture: Image, healed: bool, random: RandomNumberGenerator) -> void:
+	for pad in 6:
+		var at := Vector2i(random.randi_range(40, picture.get_width() - 240), random.randi_range(40, picture.get_height() - 160))
+		picture.fill_rect(Rect2i(at, Vector2i(200, 120)), Palette.SMOKE if not healed else Palette.MOSS)
+		picture.fill_rect(Rect2i(at, Vector2i(200, 2)), Palette.STEEL)
+
+
 ## The way into the village: forest floor to the left, deep in leaf litter, the village's
 ## trodden earth to the right, and a path of bare earth running through both. Sizes in pixels.
 static func village_ground(size: Vector2i, seed_value: int, village_from: int, path_top: int, path_bottom: int) -> Image:
