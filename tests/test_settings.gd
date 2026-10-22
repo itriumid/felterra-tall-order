@@ -59,3 +59,9 @@ func test_the_audio_buses_exist() -> void:
 	Settings.ensure_buses()
 	for bus in Settings.BUSES:
 		check(AudioServer.get_bus_index(bus) != -1, "no %s bus" % bus)
+
+
+func test_the_game_shows_the_version_it_is() -> void:
+	var version: String = ProjectSettings.get_setting("application/config/version", "")
+	check(not version.is_empty(), "the project has no version")
+	check(Overlay.version_text() == "Version " + version, "the game shows %s, not version %s" % [Overlay.version_text(), version])

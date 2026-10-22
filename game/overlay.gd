@@ -783,6 +783,8 @@ func _draw_settings() -> void:
 	var box := Rect2(floorf((screen.x - width) / 2.0), floorf((screen.y - height) / 2.0), width, height)
 	InterfaceArt.panel(self, box)
 	InterfaceArt.bold(self, box.position + Vector2(10, 7), "Settings", Palette.PINK)
+	var version := version_text()
+	PixelFont.draw(self, Vector2(box.end.x - 10 - PixelFont.width(version), box.position.y + 7), version, Palette.SMOKE)
 	var y := box.position.y + 24
 	var section := "none"
 	for index in setting_rows.size():
@@ -839,6 +841,20 @@ func _draw_title() -> void:
 	var keys: Array[String] = ["W S", "choose", "Enter", "take"]
 	var keys_width := InterfaceArt.key_line_width(keys)
 	InterfaceArt.key_line(self, Vector2(floorf((screen.x - keys_width) / 2.0), box.end.y + 6), keys)
+	_draw_version()
+
+
+## Which version this is, small in the bottom corner: what a report of something going wrong
+## should say it was played on.
+func _draw_version() -> void:
+	var screen := get_viewport_rect().size
+	var version := version_text()
+	PixelFont.draw(self, Vector2(screen.x - PixelFont.width(version) - 6, screen.y - PixelFont.LINE_HEIGHT - 3), version, Palette.SMOKE)
+
+
+## The game's version, as players see it: "Version 0.0.2".
+static func version_text() -> String:
+	return "Version %s" % ProjectSettings.get_setting("application/config/version", "")
 
 
 ## How the run went, what beat the best, and where to go from here.
