@@ -69,6 +69,19 @@ func test_a_cutscene_walks_her_there() -> void:
 	check(not map.walking() and map.cat.body.position.distance_to(VillageMap.HOME_SPOT) < 0.1, "she stopped at %s" % map.cat.body.position)
 
 
+func test_with_nothing_to_tell_she_walks_in_at_her_full_pace() -> void:
+	var map := VillageMap.new()
+	map.stroll_speed = VillageMap.WALK_IN_SPEED
+	map.walk_to(VillageMap.HOME_SPOT)
+	var steps := 0
+	while map.walking() and steps < 60 * 30:
+		map.step(Arena.STEP)
+		steps += 1
+	var seconds := steps * Arena.STEP
+	var at_full_pace := VillageMap.TITLE_SPOT.distance_to(VillageMap.HOME_SPOT) / Cat.SPEED
+	check(seconds <= at_full_pace + 0.2, "the walk in took %.1f seconds, not %.1f" % [seconds, at_full_pace])
+
+
 func test_the_path_out_starts_a_run() -> void:
 	var map := VillageMap.new()
 	map.cat.body.position = VillageMap.RETURN_SPOT

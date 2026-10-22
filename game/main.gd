@@ -466,7 +466,7 @@ func _arrive(from_the_forest: bool) -> void:
 
 
 ## The walk in plays on its own. Enter hurries the opening's lines along; Escape skips the whole
-## scene, and she's simply there. Once the lines are told, the walk finishes at her own pace.
+## scene, and she's simply there. With nothing (left) to tell, she walks in at her full pace.
 func _arriving(delta: float) -> void:
 	var skip := Input.is_action_just_pressed("pause")
 	_cutscene.step(delta, Input.is_action_just_pressed("menu_choose"), skip)
@@ -476,7 +476,7 @@ func _arriving(delta: float) -> void:
 		if _keeping_settings:
 			village.save()
 	if _cutscene.done() or _cutscene.lines.is_empty():
-		village_map.stroll_speed = VillageMap.STROLL_SPEED
+		village_map.stroll_speed = VillageMap.WALK_IN_SPEED
 		_music.place = "village"
 	if skip and village_map.walking():
 		village_map.cat.body.position = village_map.walking_to

@@ -23,8 +23,10 @@ const EXIT_FROM := 29.7
 const RETURN_SPOT := Vector2(26.5, 5.0)
 ## How close to a door she has to be to use it, past a share of the building's width.
 const DOOR_REACH := 0.7
-## How fast she walks in the cutscene, and how fast the villagers amble.
+## How fast she walks in a cutscene with a story to tell over it, how fast with none (her own
+## full pace: nothing to wait for), and how fast the villagers amble.
 const STROLL_SPEED := 1.4
+const WALK_IN_SPEED := Cat.SPEED
 const AMBLE_SPEED := 0.7
 ## The buildings, by name: the elder's longhouse, the smithy, and the huts. Each is a ruin until
 ## it's restored, and stays solid either way: a ruin is still in the way.
