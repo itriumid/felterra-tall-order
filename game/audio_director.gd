@@ -34,10 +34,14 @@ var _seen := {}
 ## How many times each sound has played: what a test or a probe can check, since nobody can hear
 ## a headless run.
 var played := {}
+## The worker making every sound as the game starts, until it's done (-1 after).
+var _making := -1
 
 
 func setup(world: Node2D) -> void:
 	_world = world
+	# Every sound made off the main thread while the game starts, not on its first play mid-fight.
+	_making = WorkerThreadPool.add_task(_make_sounds)
 	for index in VOICES:
 		var voice := AudioStreamPlayer2D.new()
 		voice.bus = "Effects"
@@ -51,6 +55,24 @@ func setup(world: Node2D) -> void:
 		player.process_mode = Node.PROCESS_MODE_ALWAYS
 		add_child(player)
 		_interface.append(player)
+
+
+func _make_sounds() -> void:
+	var made := SoundKit.make_all()
+	_keep_sounds.call_deferred(made)
+
+
+func _keep_sounds(made: Dictionary) -> void:
+	SoundKit.take(made)
+	WorkerThreadPool.wait_for_task_completion(_making)
+	_making = -1
+
+
+func _exit_tree() -> void:
+	# Leaving before the sounds are made: wait for the worker, so it isn't cut off mid-sound.
+	if _making >= 0:
+		WorkerThreadPool.wait_for_task_completion(_making)
+		_making = -1
 
 
 ## A new run: forget what was counted in the last one.
