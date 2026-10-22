@@ -148,7 +148,7 @@ func _draw_status() -> void:
 	var sturdy := cat.health > 1000.0
 	InterfaceArt.icon(self, Vector2(x, y), "health", Palette.SCARF_RED)
 	InterfaceArt.bar(self, Rect2(x + 10, y + 1, 92, 5), 1.0 if sturdy else cat.health / cat.max_health, Palette.SCARF_RED)
-	PixelFont.draw(self, Vector2(x + 106, y - 1), "Sturdy" if sturdy else "%d/%d" % [ceili(cat.health), roundi(cat.max_health)], Palette.OFF_WHITE)
+	PixelFont.draw(self, Vector2(x + 106, y - 1), "Sturdy" if sturdy else health_text(cat.health, cat.max_health, "/"), Palette.OFF_WHITE)
 	y += 11
 	InterfaceArt.icon(self, Vector2(x, y), "level", Palette.BRASS_LIGHT)
 	InterfaceArt.bar(self, Rect2(x + 10, y + 1, 92, 5), float(arena.experience) / Arena.experience_needed(arena.level), Palette.BRASS_LIGHT)
@@ -445,6 +445,13 @@ func _draw_map() -> void:
 	InterfaceArt.key_line(self, Vector2(floorf((screen.x - keys_width) / 2.0), box.end.y + 6), keys)
 
 
+## His health as whole numbers, out of his most: both rounded up, the same way, so a sliver of
+## health still shows as one and full health never reads as more than the most (gear gives
+## fractions of a point: 41.4 of 41.4 is 42 of 42, never 42 of 41).
+static func health_text(health: float, most: float, between: String) -> String:
+	return "%d%s%d" % [ceili(health), between, ceili(most)]
+
+
 ## A line with its first letter capitalized, and nothing else touched.
 static func _sentence(text: String) -> String:
 	return text.left(1).to_upper() + text.substr(1)
@@ -531,7 +538,7 @@ func _draw_kit() -> void:
 	if cat.mutations.is_empty():
 		kit.append(["(none yet)", ""])
 	var stats: Array[Array] = [["Stats", ""],
-		["Health", "%d of %d" % [ceili(cat.health), roundi(cat.max_health)] if cat.health < 1000.0 else "Sturdy"],
+		["Health", health_text(cat.health, cat.max_health, " of ") if cat.health < 1000.0 else "Sturdy"],
 		["Armor", "%.1f" % cat.armor], ["Regeneration", "%.2f a second" % cat.regeneration],
 		["Adrenaline", "%d%%" % roundi(cat.adrenaline * 100.0)], ["Damage", "+%d%%" % roundi(cat.damage_bonus * 100.0)],
 		["Attack speed", "+%d%%" % roundi(cat.attack_speed_bonus * 100.0)], ["Reach", "+%d%%" % roundi(cat.reach_bonus * 100.0)],

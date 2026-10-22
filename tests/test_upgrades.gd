@@ -206,3 +206,19 @@ func test_the_last_of_a_family_takes_mastery_without_limit() -> void:
 		check(id in Upgrades.available(cat), "%s wasn't offered at level %d" % [id, cat.weapons[0].level])
 		Upgrades.apply(cat, {"id": id, "rarity": Upgrades.Rarity.COMMON})
 	check(cat.weapons[0].level == Upgrades.WEAPON_TOP + 11, "the kerambit stopped at level %d" % cat.weapons[0].level)
+
+
+func test_full_health_never_reads_as_more_than_the_most() -> void:
+	var cat := Cat.new()
+	# Gear gives fractions of a point of health: an uncommon vest, a rare batik shirt.
+	Upgrades.apply(cat, {"id": "gear:vest", "rarity": Upgrades.Rarity.UNCOMMON})
+	Upgrades.apply(cat, {"id": "gear:batik_shirt", "rarity": Upgrades.Rarity.RARE})
+	check(not is_equal_approx(cat.max_health, roundf(cat.max_health)), "the most health came out whole, %.2f, so this checks nothing" % cat.max_health)
+	check(is_equal_approx(cat.health, cat.max_health), "he wasn't at full health")
+	var shown := Overlay.health_text(cat.health, cat.max_health, "/").split("/")
+	check(shown[0] == shown[1], "full health reads as %s" % "/".join(shown))
+	check(Overlay.health_text(0.3, cat.max_health, "/").begins_with("1/"), "a sliver of health didn't read as one")
+	# And healing never goes past the most: adrenaline and regeneration heal the same way.
+	cat.adrenaline = 1.0
+	cat.heal(1000.0)
+	check(cat.health <= cat.max_health, "healing went past the most, to %.2f of %.2f" % [cat.health, cat.max_health])
