@@ -36,7 +36,7 @@ func setup() -> void:
 		add_child(player)
 		_players[layer] = player
 		_levels[layer] = 0.0
-	# All together, so every layer keeps the same beat.
+	# All together, so every layer keeps the same beat; the ones not wanted yet pause at once.
 	for layer: String in _players:
 		_players[layer].play()
 
@@ -89,5 +89,26 @@ func _process(delta: float) -> void:
 
 func _fade(wanted: Dictionary, delta: float) -> void:
 	for layer: String in _players:
+		var player: AudioStreamPlayer = _players[layer]
 		_levels[layer] = move_toward(_levels[layer], wanted[layer], delta * FADE)
-		_players[layer].volume_db = linear_to_db(maxf(_levels[layer], 0.0001))
+		player.volume_db = linear_to_db(maxf(_levels[layer], 0.0001))
+		# A layer faded out all the way stops being mixed: only what can be heard costs anything.
+		# Wanted again, it picks up where the rest of its family is, so the beat stays together.
+		if _levels[layer] <= 0.0 and wanted[layer] <= 0.0:
+			player.stream_paused = true
+		elif player.stream_paused:
+			player.stream_paused = false
+			player.seek(_family_position(layer))
+
+
+## Where the playing layers of a layer's family are in the loop, so a layer coming back comes in
+## on their beat: the run's, the village's, the intro's or the freeing's. The start, if none are.
+func _family_position(layer: String) -> float:
+	for family: Array[String] in [MusicKit.LAYERS, MusicKit.VILLAGE_LAYERS, MusicKit.INTRO_LAYERS, MusicKit.FREED_LAYERS]:
+		if not layer in family:
+			continue
+		for other in family:
+			var player: AudioStreamPlayer = _players.get(other)
+			if other != layer and player != null and not player.stream_paused and player.playing:
+				return player.get_playback_position()
+	return 0.0

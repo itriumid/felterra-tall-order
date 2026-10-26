@@ -26,6 +26,9 @@ var _smoldering: Array = []
 var _smoke: Array[Dictionary] = []
 var _growth: Array[Dictionary] = []
 var _edge: Array[Dictionary] = []
+## The crowns of the trees at the edge, high overhead: the canopy draws them, over everything.
+var crowns: Array[Dictionary] = []
+signal planted
 var _upright := {}
 ## Whether this place is as the company left it: fewer trees stand at its edges.
 var _wrecked := false
@@ -58,11 +61,13 @@ func paint(theme: String, seed_value: int, healed: bool) -> void:
 	random.seed = seed_value + 3
 	_growth.clear()
 	_edge.clear()
+	crowns.clear()
 	# Growth is thin where the company has been, and thick where it's gone.
 	for index in GROWTH * (2 if healed else 1) / (1 if theme in ["clearing", "edge", "deep", "slide"] or healed else 3):
 		var where := Vector2(random.randf() * Arena.SIZE.x, random.randf() * Arena.SIZE.y)
 		_growth.append({"position": where, "kind": "fern" if random.randf() < 0.25 else "tuft"})
 	_plant_edge(random)
+	planted.emit()
 
 
 ## Freeing the area: the healed ground spreads out from a point.
@@ -141,6 +146,9 @@ func _plant_edge(random: RandomNumberGenerator) -> void:
 		var picture := EnvironmentArt.trunk(height, random.randi_range(8, 14), random.randi())
 		var foot := point + outward * random.randf_range(14.0, 40.0)
 		trees.append({"texture": ImageTexture.create_from_image(picture), "at": (foot - Vector2(picture.get_width() / 2, height)).round(), "y": foot.y})
+		# Its crown on top, thinner where the company has been.
+		var crown := EnvironmentArt.crown(random.randi_range(30, 40) if not _wrecked else random.randi_range(20, 26), random.randi())
+		crowns.append({"texture": ImageTexture.create_from_image(crown), "at": (foot - Vector2(0, height + 4) - Vector2(crown.get_size()) / 2.0).round()})
 	along = 0.0
 	while along < perimeter:
 		along += random.randf_range(10.0, 20.0)

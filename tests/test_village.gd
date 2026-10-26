@@ -148,3 +148,17 @@ func test_left_standing_jogiboy_plays_then_comes_back() -> void:
 	map.cat.steering = Vector2.RIGHT
 	map.step(Arena.STEP)
 	check(map.jogi_playing.is_empty(), "Jogiboy kept playing when Tompel set off")
+
+
+func test_every_door_can_be_reached_from_the_road() -> void:
+	var map := VillageMap.new()
+	for building in map.buildings:
+		var footprint: Rect2 = building.footprint
+		var step := VillageMap.door_step(footprint)
+		map.cat.body.position = step
+		check(map.at_door() == building.name, "standing at the %s's door, he was at %s" % [building.name, map.at_door()])
+		for solid in map._solid():
+			check(not solid.grow(map.cat.body.radius).has_point(step), "the %s's door step is inside something" % building.name)
+		# Below the road, the door faces it: the step is on the road's side.
+		if footprint.position.y > VillageMap.PATH_BOTTOM and building.kind != "board":
+			check(step.y < footprint.position.y, "the %s turns its back on the road" % building.name)

@@ -81,6 +81,8 @@ const DRONE_GRIP := 14.0
 const DRONE_LINGER := 1.5
 ## Docked, it sits on top of his pack.
 const DOCKED_HEIGHT := 0.42
+## How fast its rotors turn in the air, in turns a second as the sound counts them.
+const DRONE_ROTOR := 9.0
 
 ## The meriam bambu: the shots a tube takes before it cracks, and how long a new one takes him.
 const TUBE_SHOTS := 8
@@ -113,6 +115,8 @@ var body := Body.new()
 ## The drone off his pack, or the cannon set down.
 var deployed := false
 var _idle_for := 0.0
+## How far the drone's rotors have turned, for the sound of them: only in the air.
+var rotor := 0.0
 ## The cannon: shots left in this tube, and the time until a cracked one is replaced.
 var shots_left := TUBE_SHOTS
 var rebuilt_in := 0.0
@@ -241,6 +245,7 @@ func _fly(delta: float, cat: Cat, arena: Arena) -> void:
 		if in_reach and cat.alive():
 			deployed = true
 		return
+	rotor += delta * DRONE_ROTOR
 	var docking := _idle_for >= DRONE_LINGER or not cat.alive()
 	var goal := cat.body.position if docking else cat.body.position + DRONE_OFFSET
 	var goal_height := cat.body.height + (DOCKED_HEIGHT if docking else DRONE_HEIGHT)

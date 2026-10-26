@@ -95,6 +95,9 @@ var salvage := 0
 ## {position, left, count, damage, by}; and decoys the horde goes for instead of him.
 var fires: Array[Dictionary] = []
 var hazards: Array[Dictionary] = []
+## Nets the drone has thrown, lying over what they caught, as {position, radius, left, caught}:
+## what's under one stays down until the net is torn through, or everything under it is dead.
+var nets: Array[Dictionary] = []
 var crackers: Array[Dictionary] = []
 var decoys: Array[Cat] = []
 ## What spawns, and the liberation area this run is in (empty in Endless): its structures, its
@@ -228,6 +231,7 @@ func step() -> void:
 	_afflict_all()
 	_burn_fires()
 	_spring_hazards()
+	_hold_nets()
 	_pop_crackers()
 	_pick_locks()
 	_pick_up()
@@ -448,12 +452,18 @@ func dust(at: Vector2, radius: float, time: float) -> void:
 
 func blast(at: Vector2, radius: float, damage: float, knock: float, lift: float, by: String, attacker: Cat = null, afflicting: Weapon = null) -> void:
 	events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "blast", "giant": false, "kind": by, "radius": radius})
+	var caught: Array[Creature] = []
 	for creature: Creature in creatures.duplicate():
 		var apart := creature.body.position - at
 		if apart.length() <= radius + creature.body.radius and creature.body.height < radius:
 			strike(creature, damage, apart.normalized() if apart.length() > 0.001 else Vector2.RIGHT, knock, lift, by, attacker)
 			if afflicting != null:
 				afflict(creature, afflicting, attacker)
+			if creature.alive():
+				caught.append(creature)
+	# A net comes down over what it fell on, and holds it for as long as the net trips it.
+	if afflicting != null and afflicting.trips > 0.0 and not caught.is_empty():
+		nets.append({"position": at, "radius": radius, "left": afflicting.trips, "caught": caught})
 	for giant in giants:
 		var apart := giant.body.position - at
 		if giant.standing() and apart.length() <= radius + giant.body.radius:
@@ -782,6 +792,25 @@ func _burn_fires() -> void:
 		if fire.left > 0.0:
 			burning.append(fire)
 	fires = burning
+
+
+## Nets lying over what they caught: each keeps what's under it down, until it's torn through or
+## nothing under it is left alive.
+func _hold_nets() -> void:
+	var lying: Array[Dictionary] = []
+	for net in nets:
+		net.left -= STEP
+		var held: Array[Creature] = []
+		for creature: Creature in net.caught:
+			if creature.alive():
+				creature.tripped_for = maxf(creature.tripped_for, minf(net.left, STEP * 2.0))
+				held.append(creature)
+		net.caught = held
+		if net.left > 0.0 and not held.is_empty():
+			lying.append(net)
+		else:
+			events.append({"position": net.position, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "torn", "giant": false, "kind": "net_drone"})
+	nets = lying
 
 
 ## Hazards lying on the ground: a nail or a caltrop goes into the first foot on it, and is gone (a

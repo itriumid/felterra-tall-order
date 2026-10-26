@@ -158,9 +158,9 @@ Families can branch: a rifle grows into the automatic rifle or the sniper rifle,
 ### The dodge
 
 A short roll, with a moment where hits don't land. It takes a charge, which comes back in a
-little under a second. Over a run it takes up to **three mutations**, each changing what the
-dodge *does*, not just its numbers. Upgrading a mutation you already have strengthens it without
-taking another slot, and, as everywhere, a card's rarity changes only how much it gives.
+little under a second. Over a run it takes **one mutation**, changing what the dodge *does*,
+not just its numbers: the one chosen is the run's way of dodging. Once it's taken, its cards only
+strengthen it, and, as everywhere, a card's rarity changes only how much it gives.
 
 Every mutation, built and planned, is in [`catalog.md`](catalog.md). Some wait on what they act
 on: fire and oil, or crewmates who can be downed.
@@ -171,10 +171,9 @@ on: fire and oil, or crewmates who can be downed.
   Play, Settings and Leave. Play makes the menu fall away, and he walks into the village, a
   cutscene; the first time, the Elder walks out to meet him where the village starts, and the
   story's opening is told over the walk, the Elder's part in his own words (what's wrong, what
-  needs doing). From the village, walking out through the gate is seen off: the villagers come to
-  the gate as he heads for it, the Elder at the front, and line the path while he walks on into
-  the forest. The first time he leaves for an area, someone has a word for him on the way; any
-  other time he just goes, at his own pace. He walks into every run the same way, from the way
+  needs doing). From the village, he walks out through the gate and on into the forest; the village
+  goes on with its day. The first time he leaves for an area, someone has a word for him on the
+  way, and comes to the gate to say it; any other time he just goes, at his own pace. He walks into every run the same way, from the way
   he came, the world held still until he's in: slowly enough for the area's story to be told
   on the way the first time, at his own pace after. Then he chooses what he starts with,
   nunchaku or handgun. Coming home, whatever has happened since is told on the walk in: what an
@@ -271,13 +270,21 @@ on: fire and oil, or crewmates who can be downed.
     shows the way to a cage out of sight. What he breaks throws out salvage (a worker 2 pieces,
     a chainsaw worker 4, a machine 12), which flies, lands and slides, and walking over it takes
     it. Both are counted on the summary and kept in the village between runs.
-  - **The village is walked**: a forest path in, the village itself a screen wide, and the path
-    out to the clearing on its far side. The cats he's rescued live there, each in its own
-    coat, and show their names as he passes.
+  - **The village is walked**: a forest path in, the village itself, two screens tall, with the
+    camera following him about it, and the path out to the clearing on its far side. A road runs
+    through it; the houses stand off it at their own depths, each up or down a footpath worn to
+    its door, and every door faces the road. The longhouse heads a square with a well and a
+    bench; gardens behind the houses, a woodpile by the smithy, a washing line, rice drying on a
+    mat and coconut palms make it a village and not a row of huts. A house below the road shows
+    its back wall, and lifts its roof off while he's at its door, so he's never hidden behind
+    it. The cats he's rescued live there, each in its own coat, and show their names as he
+    passes.
   - **It starts in ruins.** The company's machines have already been through: his own home, the
     Elder's longhouse, the smithy and five huts all stand wrecked, holed, scorched and
-    half-roofed. Restored, the village is bright and lived-in: walls painted in reds, teal,
-    yellow and pink, trimmed in cream; bunting under every eave; flowers in the grass; the
+    half-roofed. Restored, the village is bright and lived-in, drawn the cartoon way: chunky stilts,
+    walls a touch out of true, arched doors and round windows with their shutters, and big puffy
+    gold thatch with scalloped edges; walls painted in reds, teal, yellow and pink, trimmed in
+    cream; bunting under every eave; flowers in the grass; the
     longhouse's painted band and its umbul-umbul, the tall flags on bamboo poles, at the way in.
   - **The story brings it back, never salvage.** His home is fixed up by the first cat he
     rescues, as a thank-you. Freeing the village's edge brings back the smithy (the company's
@@ -298,7 +305,7 @@ on: fire and oil, or crewmates who can be downed.
     offer only what he wants; a piece of gear can also be worn from a run's start. Leaving
     things home narrows the cards but never past a draw: three of each kind stay packed for every
     place a run has for one (his mouth and his tail, so six weapons; seven slots, so twenty-one pieces of gear;
-    a drone and a set-down, so six support; three mutations, so nine).
+    a drone and a set-down, so six support; one mutation, so three).
   - **Everything has its story**, read on a card with Tab and at the smithy and the pack: where
     it came from, as the cats tell it.
   - **Housed cats weave cloth**: each restored hut houses two rescued cats, and every run brings

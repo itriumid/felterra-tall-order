@@ -224,7 +224,7 @@ func cant_leave_home(id: String) -> String:
 
 
 ## How many of a kind must stay packed: three for every place a run has for one, his mouth and tail for
-## weapons, its seven slots for gear, one drone and one thing set down, and three mutations.
+## weapons, its seven slots for gear, one drone and one thing set down, and one mutation.
 static func keep_packed(kind: String) -> int:
 	return places(kind) * KEEP_PACKED_PER_PLACE
 

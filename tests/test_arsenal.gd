@@ -223,6 +223,22 @@ func test_the_net_drone_pins_them_down() -> void:
 	check(pinned, "no net ever pinned the rat")
 
 
+func test_a_net_lies_over_what_it_caught_then_comes_off() -> void:
+	var arena := _arena()
+	var rat := _rat(arena, Vector2(5.0, 5.0))
+	var nets := Support.named("net_drone").weapon
+	arena.blast(rat.body.position, nets.blast, 0.0, 0.0, 0.0, "net_drone", null, nets)
+	check(arena.nets.size() == 1 and rat in arena.nets[0].caught, "the net didn't lie over the rat it fell on")
+	for step in int(nets.trips * 30.0):
+		arena.step()
+	check(rat.tripped() and arena.nets.size() == 1, "the rat got up from under the net while it still lay there")
+	for step in int(nets.trips * 60.0):
+		arena.step()
+	check(arena.nets.is_empty() and not rat.tripped(), "the net never came off")
+	arena.blast(Vector2(20.0, 20.0), nets.blast, 0.0, 0.0, 0.0, "net_drone", null, nets)
+	check(arena.nets.is_empty(), "a net that caught nothing was left lying")
+
+
 func test_the_kite_string_cuts_what_it_crosses() -> void:
 	var arena := _arena()
 	var cat := arena.add_cat(Arena.SIZE / 2.0)

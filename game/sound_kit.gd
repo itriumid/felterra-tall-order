@@ -15,7 +15,7 @@ const NAMES: Array[String] = [
 	"track_clank", "hydraulic", "jaws", "clang", "hiss", "machine_break",
 	"lock_click", "cage_open", "meow", "pickup",
 	"shot_rifle", "shot_heavy", "shot_twang", "shot_puff", "shot_thunk", "shot_nail", "shot_flare",
-	"pop", "net", "ignite", "radio", "drum", "snare", "buzz",
+	"pop", "net", "net_launch", "net_torn", "drone_rotor", "ignite", "radio", "drum", "snare", "buzz",
 	"boss_horn", "whistle", "truck_horn", "stall", "throw", "lever", "structure_down", "goal_done", "freed", "rotor",
 	"footstep_giant", "stomp", "fall", "dodge", "hurt", "bite",
 	"level_up", "card", "reroll", "banish", "menu_move", "menu_choose", "menu_back",
@@ -92,8 +92,14 @@ static func _render(sound_name: String, random: RandomNumberGenerator) -> Packed
 		"dodge":
 			return _whoosh(0.22, 500.0 * wobble, 1400.0 * wobble, random, 0.35)
 		"shot_drone":
-			# A small gun on a light frame: a thinner, higher crack.
-			return _mix([_noise(0.1, 0.02, 5200.0 * wobble, random, 2), _sweep(0.08, 320.0 * wobble, 120.0, 0.03)], [0.7, 0.5])
+			# A small gun on a light frame: a thinner, higher crack, with the frame's tinny ring.
+			return _mix([_noise(0.1, 0.02, 5200.0 * wobble, random, 2), _sweep(0.08, 320.0 * wobble, 120.0, 0.03), _chirp(0.07, [1900.0 * wobble, 1400.0 * wobble], 0.3)], [0.8, 0.5, 0.25])
+		"drone_rotor":
+			# One turn of the drone's little rotors: a thin, quick buzz. Turn after turn, a whine.
+			return _mix([_sweep(0.07, 240.0 * wobble, 210.0, 0.03), _noise(0.07, 0.03, 2600.0, random, 3)], [0.45, 0.3])
+		"net_launch":
+			# The net fired off its tube: a puff of air, and the rope streaming out after it.
+			return _mix([_sweep(0.14, 170.0 * wobble, 70.0, 0.05), _noise(0.1, 0.02, 1100.0, random, 1), _whoosh(0.3, 500.0, 1500.0, random, 0.4)], [0.8, 0.5, 0.45])
 		"meriam":
 			# The bamboo cannon: a deep, hollow boom, the tube ringing under it.
 			return _mix([_sweep(0.8, 95.0 * wobble, 34.0, 0.26), _noise(0.6, 0.2, 520.0, random, 1), _chirp(0.25, [180.0 * wobble, 150.0 * wobble], 0.5)], [1.0, 0.7, 0.25])
@@ -141,7 +147,11 @@ static func _render(sound_name: String, random: RandomNumberGenerator) -> Packed
 		"pop":
 			return _mix([_noise(0.07, 0.015, 4800.0 * wobble, random, 1), _sweep(0.06, 400.0 * wobble, 150.0, 0.02)], [0.8, 0.4])
 		"net":
-			return _mix([_whoosh(0.2, 300.0, 900.0, random, 0.4), _sweep(0.1, 120.0, 60.0, 0.04)], [0.5, 0.5])
+			# The net coming down over them: a soft slap of rope, and its weights thudding in.
+			return _mix([_whoosh(0.2, 300.0, 900.0, random, 0.4), _sweep(0.1, 120.0, 60.0, 0.04), _noise(0.12, 0.03, 700.0, random, 2)], [0.5, 0.6, 0.5])
+		"net_torn":
+			# Rope giving way: fibers snapping, a few at a time.
+			return _mix([_crackle(0.25, random), _noise(0.06, 0.015, 3000.0, random, 2)], [0.5, 0.4])
 		"ignite":
 			# Oil catching: a soft whoomph that keeps burning.
 			return _mix([_sweep(0.5, 90.0 * wobble, 40.0, 0.2), _noise(0.6, 0.3, 1200.0, random, 1)], [0.6, 0.6])

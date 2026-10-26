@@ -9,28 +9,27 @@ extends RefCounted
 ## Runs headless at the arena's step, in meters and seconds.
 
 ## The whole of it, in meters: the forest path to the left of VILLAGE_FROM, the village to the
-## right. The path runs along the middle, between PATH_TOP and PATH_BOTTOM.
-const SIZE := Vector2(37.0, 9.0)
+## right, two screens tall. The path runs along the middle, between PATH_TOP and PATH_BOTTOM, and
+## on through the village as its road; the houses stand off it, up and down their own footpaths.
+const SIZE := Vector2(37.0, 18.0)
 const VILLAGE_FROM := 12.0
-const PATH_TOP := 3.6
-const PATH_BOTTOM := 6.4
+const PATH_TOP := 7.6
+const PATH_BOTTOM := 10.4
 ## Where he stands on the title, on the forest path, and where he walks in to, in the village.
-const TITLE_SPOT := Vector2(5.0, 5.0)
-const HOME_SPOT := Vector2(19.0, 5.2)
+const TITLE_SPOT := Vector2(5.0, 9.0)
+const HOME_SPOT := Vector2(19.0, 9.2)
 ## Where the Elder meets him, the first time he walks in: just inside the village.
-const MEETING_SPOT := Vector2(14.6, 5.0)
+const MEETING_SPOT := Vector2(14.6, 9.0)
 ## The exit: walking out through the gate, on the path, starts a run: he's seen off, and walks on
 ## off the village's right edge, into the forest. Off the path, the edge is trees. Coming home
 ## from a run, he walks back in from there.
 const EXIT_FROM := 35.6
-const RETURN_SPOT := Vector2(33.5, 5.0)
-## Where he walks on to as he's seen off, past the edge and out of sight; and where the villagers
-## stand to see him off, either side of the path inside the gate.
-const OFF_INTO_THE_FOREST := Vector2(38.6, 5.0)
-const SEE_OFF_FROM := 30.6
-## How close to the gate he is, along the path, when the villagers start over to see him off, and
-## how fast they trot there.
-const GATHER_FROM := 5.0
+const RETURN_SPOT := Vector2(33.5, 9.0)
+## Where he walks on to as he's seen off, past the edge and out of sight; where a villager with a
+## word for him on the way stands, beside the path inside the gate; and how fast whoever has that
+## word trots over.
+const OFF_INTO_THE_FOREST := Vector2(38.6, 9.0)
+const SEE_OFF_SPOT := Vector2(33.0, 11.0)
 const TROT_SPEED := 1.8
 ## How close to a door he has to be to use it, past a share of the building's width.
 const DOOR_REACH := 0.7
@@ -39,10 +38,10 @@ const DOOR_REACH := 0.7
 const STROLL_SPEED := 1.4
 const WALK_IN_SPEED := Cat.SPEED
 const AMBLE_SPEED := 0.7
-## Where the Elder keeps, before the longhouse; where he stands to see him off, at the gate; and
-## how far from him he stops when he walks out to meet him.
-const ELDER_SPOT := Vector2(18.0, 3.3)
-const ELDER_AT_THE_GATE := Vector2(34.6, 3.3)
+## Where the Elder keeps, in the square before the longhouse; where he stands to see him off, at
+## the gate; and how far from him he stops when he walks out to meet him.
+const ELDER_SPOT := Vector2(18.0, 4.2)
+const ELDER_AT_THE_GATE := Vector2(34.6, 7.2)
 const ELDER_MEETS := 1.0
 ## How far behind Tompel Jogiboy keeps, and how fast he trots to catch up.
 const JOGI_HEEL := 0.9
@@ -64,21 +63,43 @@ const EDGE_GAP := 0.001
 ## The buildings, by name: his home, the Elder's longhouse, the smithy, the huts, and the
 ## watchtower, the market and the healer's hut. Each is a ruin until
 ## it's restored, and stays solid either way: a ruin is still in the way.
-const LONGHOUSE := Rect2(15.5, 1.3, 5.0, 1.6)
-const SMITHY := Rect2(22.5, 1.4, 3.2, 1.5)
+## The longhouse heads the village square, and the smithy stands at its side.
+const LONGHOUSE := Rect2(16.8, 2.0, 5.0, 1.6)
+const SMITHY := Rect2(23.6, 4.6, 3.2, 1.5)
+const SQUARE := Rect2(16.4, 3.6, 6.4, 4.0)
 ## The map of the forest, carved on a board at the gate: where the next run goes. It was never a
 ## ruin.
-const BOARD := Rect2(34.3, 6.7, 1.2, 0.45)
-## What the cats freed in the story bring back, by the gate: Jingga's watchtower, Kopi and Susu's
-## market stall, and Bu Jamu's healer's hut.
-const WATCHTOWER := Rect2(30.0, 1.5, 1.4, 1.2)
-const MARKET := Rect2(28.4, 7.1, 2.4, 1.2)
-const HEALER := Rect2(32.0, 1.6, 2.0, 1.3)
+const BOARD := Rect2(34.3, 10.9, 1.2, 0.45)
+## What the cats freed in the story bring back: Jingga's watchtower, Kopi and Susu's market stall
+## across the road from the square, and Bu Jamu's healer's hut by the gate.
+const WATCHTOWER := Rect2(31.0, 3.0, 1.4, 1.2)
+const MARKET := Rect2(20.0, 11.4, 2.4, 1.2)
+const HEALER := Rect2(32.8, 4.8, 2.0, 1.3)
 ## His own home: the first house in from the forest.
-const HOME := Rect2(12.6, 1.6, 2.0, 1.3)
+const HOME := Rect2(12.6, 4.6, 2.0, 1.3)
+## The huts, each at its own depth off the road: the weaver's first, by the way in.
 const HUTS: Array[Rect2] = [
-	Rect2(14.0, 7.0, 2.0, 1.4), Rect2(17.5, 7.2, 2.0, 1.4), Rect2(21.0, 7.0, 2.0, 1.4),
-	Rect2(24.5, 7.2, 2.0, 1.4), Rect2(26.8, 1.6, 2.0, 1.3),
+	Rect2(13.8, 12.0, 2.0, 1.4), Rect2(17.2, 14.4, 2.0, 1.4), Rect2(24.0, 12.4, 2.0, 1.4),
+	Rect2(27.6, 14.8, 2.0, 1.4), Rect2(28.4, 1.6, 2.0, 1.3),
+]
+## What makes it a village and not a row of huts, each in the way where it stands, but for
+## what's flat on the ground or overhead: the well in the square and a bench by it, the gardens
+## behind the houses, the woodpile by the smithy, a washing line, rice drying on its mat, and the
+## coconut palms.
+const PROPS: Array[Dictionary] = [
+	{"kind": "well", "footprint": Rect2(18.9, 5.2, 0.9, 0.7)},
+	{"kind": "bench", "footprint": Rect2(21.0, 6.2, 1.2, 0.35)},
+	{"kind": "garden", "footprint": Rect2(12.4, 2.2, 2.6, 1.6)},
+	{"kind": "garden", "footprint": Rect2(13.4, 14.8, 2.6, 1.6)},
+	{"kind": "garden", "footprint": Rect2(30.4, 15.0, 2.4, 1.6)},
+	{"kind": "woodpile", "footprint": Rect2(27.1, 5.4, 1.1, 0.5)},
+	{"kind": "washing", "footprint": Rect2(21.0, 15.0, 2.6, 0.1), "flat": true},
+	{"kind": "mat", "footprint": Rect2(30.0, 12.0, 1.8, 1.0), "flat": true},
+	{"kind": "palm", "footprint": Rect2(15.5, 0.9, 0.3, 0.3)},
+	{"kind": "palm", "footprint": Rect2(23.0, 1.6, 0.3, 0.3)},
+	{"kind": "palm", "footprint": Rect2(16.6, 11.4, 0.3, 0.3)},
+	{"kind": "palm", "footprint": Rect2(26.8, 16.4, 0.3, 0.3)},
+	{"kind": "palm", "footprint": Rect2(32.6, 12.8, 0.3, 0.3)},
 ]
 
 var cat := Cat.new()
@@ -112,13 +133,13 @@ var time := 0.0
 ## And how fast: slower while a story is told over the walk.
 var walking_to := Vector2.INF
 var stroll_speed := STROLL_SPEED
-## Whether the villagers have come to the gate to see him off: they stay there, watching him go.
+## Whether he's being seen off, walking out of the village: whoever has a word for him on the way
+## comes to the gate, and stays there, watching him go.
 var seeing_off := false
-## Whether they're on their way to the gate, because he's heading out.
-var gathering := false
 var _amble_to: Array[Vector2] = []
 ## The villagers called over to say something, by index: they stay put until let go.
 var _staying := {}
+var _solids: Array[Rect2] = []
 
 
 ## Every building's name, in the order they stand.
@@ -140,7 +161,7 @@ func _init(rescued: Array = [], restored: Array = [], seed_value := 39) -> void:
 	elder.body.position = ELDER_SPOT
 	elder.facing = Vector2.DOWN
 	jogi.weapons.clear()
-	jogi.body.position = ELDER_SPOT + Vector2(1.2, 0.5)
+	jogi.body.position = ELDER_SPOT + Vector2(-1.2, 0.5)
 	buildings.append({"name": "home", "kind": "home", "footprint": HOME, "paint": 5})
 	buildings.append({"name": "longhouse", "kind": "longhouse", "footprint": LONGHOUSE})
 	buildings.append({"name": "smithy", "kind": "smithy", "footprint": SMITHY})
@@ -163,14 +184,53 @@ func _init(rescued: Array = [], restored: Array = [], seed_value := 39) -> void:
 
 
 ## The building he's at the door of, by name, or "" if he isn't at one: close to the middle of
-## its front, where its door is.
+## the side facing the road, where its door is.
 func at_door() -> String:
 	for building in buildings:
 		var footprint: Rect2 = building.footprint
-		var door := Vector2(footprint.get_center().x, footprint.end.y)
-		if cat.body.position.distance_to(door) <= DOOR_REACH + footprint.size.x * 0.25:
+		if cat.body.position.distance_to(door_of(footprint)) <= DOOR_REACH + footprint.size.x * 0.25:
 			return building.name
 	return ""
+
+
+## Whether a building stands below the road, its door on its far side so it faces the road like
+## the rest; but the map board, a sign, faces the village.
+static func faces_up(footprint: Rect2) -> bool:
+	return footprint.position.y > PATH_BOTTOM and footprint != BOARD
+
+
+## The middle of a building's side that faces the road: its door.
+static func door_of(footprint: Rect2) -> Vector2:
+	return Vector2(footprint.get_center().x, footprint.position.y if faces_up(footprint) else footprint.end.y)
+
+
+## Where he stands at a building's door, a step out from it.
+static func door_step(footprint: Rect2) -> Vector2:
+	return door_of(footprint) + Vector2(0.0, -0.45 if faces_up(footprint) else 0.45)
+
+
+## The ground worn bare by feet: the square, and a footpath from every door to the road.
+static func worn_ground() -> Array[Rect2]:
+	var worn: Array[Rect2] = [SQUARE]
+	var footprints: Array[Rect2] = [HOME, LONGHOUSE, SMITHY, WATCHTOWER, MARKET, HEALER]
+	footprints.append_array(HUTS)
+	for footprint in footprints:
+		var door := door_of(footprint)
+		var road := PATH_BOTTOM if faces_up(footprint) else PATH_TOP
+		worn.append(Rect2(door.x - 0.45, minf(door.y, road), 0.9, absf(road - door.y)))
+	return worn
+
+
+## Everything in the way: the buildings, and the props that aren't flat. Nothing moves once
+## built, so it's gathered once.
+func _solid() -> Array[Rect2]:
+	if _solids.is_empty():
+		for building in buildings:
+			_solids.append(building.footprint)
+		for prop: Dictionary in PROPS:
+			if not prop.get("flat", false):
+				_solids.append(prop.footprint)
+	return _solids
 
 
 ## Marks a building restored, as he sees it: the village keeps the record.
@@ -189,11 +249,19 @@ func walking() -> bool:
 	return walking_to.is_finite()
 
 
-## Everyone comes to the gate to see him off: the villagers line the path either side, and stay
-## there, and he walks on out of the village.
-func see_off() -> void:
+## He walks on out of the village. Whoever has a word for him on the way, by who they are (see
+## speaker_named), comes to the gate to say it; everyone else goes on with their day.
+func see_off(speakers: Array = []) -> void:
 	seeing_off = true
-	_gather()
+	if "elder" in speakers:
+		elder_to = ELDER_AT_THE_GATE
+	var others := 0
+	for who in speakers:
+		var index := names.find(who)
+		if index >= 0:
+			_amble_to[index] = SEE_OFF_SPOT + Vector2(-0.8 * others, 0.3 * (others % 2))
+			_staying[index] = true
+			others += 1
 	walk_to(OFF_INTO_THE_FOREST)
 
 
@@ -234,23 +302,6 @@ func speaker_named(who: String) -> Cat:
 	return villagers[index] if index >= 0 else null
 
 
-## Whether he's heading out: on the path, close to the gate. The villagers come over.
-func heading_out() -> bool:
-	var at := cat.body.position
-	return at.x >= EXIT_FROM - GATHER_FROM and at.y > PATH_TOP - 1.0 and at.y < PATH_BOTTOM + 1.0
-
-
-## The villagers make for the gate, a place each along the path, and the Elder to the front.
-func _gather() -> void:
-	gathering = true
-	elder_to = ELDER_AT_THE_GATE
-	for index in villagers.size():
-		# Two to a stretch of the path, one either side; a big village stands a row further back.
-		var along := SEE_OFF_FROM + (index / 2) % 6 * 0.75
-		var back := 0.45 + index / 12 * 0.6
-		_amble_to[index] = Vector2(along, PATH_TOP - back if index % 2 == 0 else PATH_BOTTOM + back)
-
-
 ## Whether he's out of sight past the village's edge, seen off.
 func gone() -> bool:
 	return cat.body.position.x >= SIZE.x + 1.0
@@ -264,15 +315,6 @@ func leaving() -> bool:
 
 func step(delta: float) -> void:
 	time += delta
-	# Heading out, the villagers come over to the gate; turning back, they go about their day.
-	if not seeing_off and heading_out() != gathering:
-		if heading_out():
-			_gather()
-		else:
-			gathering = false
-			elder_home()
-			for index in villagers.size():
-				_amble_to[index] = _somewhere_in_the_village()
 	_step_elder(delta)
 	_step_jogi(delta)
 	if walking():
@@ -288,7 +330,7 @@ func step(delta: float) -> void:
 		var toward := _amble_to[index] - villager.body.position
 		if toward.length() < 0.2:
 			# A moment's pause, then somewhere else.
-			if gathering or _staying.has(index):
+			if _staying.has(index):
 				# At the gate watching him go, or by him, talking.
 				villager.facing = (cat.body.position - villager.body.position).normalized()
 			elif random.randf() < delta * 0.5:
@@ -296,7 +338,7 @@ func step(delta: float) -> void:
 			_move(villager, Vector2.ZERO, delta)
 		else:
 			villager.steering = toward.normalized()
-			_move(villager, toward.normalized() * (TROT_SPEED if gathering else AMBLE_SPEED), delta)
+			_move(villager, toward.normalized() * (TROT_SPEED if seeing_off and _staying.has(index) else AMBLE_SPEED), delta)
 
 
 ## The Elder walks where he's going, at a trot to the gate and an old cat's pace otherwise; there,
@@ -309,7 +351,7 @@ func _step_elder(delta: float) -> void:
 		if elder.body.position.distance_to(cat.body.position) < 4.0:
 			elder.facing = (cat.body.position - elder.body.position).normalized()
 		return
-	_move(elder, toward.normalized() * (TROT_SPEED if gathering else AMBLE_SPEED * 1.6), delta)
+	_move(elder, toward.normalized() * (TROT_SPEED if seeing_off else AMBLE_SPEED * 1.6), delta)
 
 
 ## Jogiboy follows Tompel at his heels, a step behind and to the side. While Tompel walks, he keeps
@@ -318,11 +360,11 @@ func _step_elder(delta: float) -> void:
 ## fussing at every step keeps him from stopping and starting. Seeing him off, he waits at the gate.
 func _step_jogi(delta: float) -> void:
 	var goal := cat.body.position - cat.facing * JOGI_HEEL + cat.facing.orthogonal() * 0.35
-	if gathering:
-		goal = ELDER_AT_THE_GATE + Vector2(0.8, 0.5)
+	if seeing_off:
+		goal = Vector2(EXIT_FROM - 0.6, PATH_BOTTOM - 0.4)
 	var toward := goal - jogi.body.position
-	var walking := cat.body.velocity.length() > 0.2 and not gathering
-	if walking or gathering:
+	var walking := cat.body.velocity.length() > 0.2 and not seeing_off
+	if walking or seeing_off:
 		jogi_playing = ""
 		jogi_digging = false
 		_jogi_idle = 0.0
@@ -347,7 +389,7 @@ func _step_jogi(delta: float) -> void:
 			jogi.facing = Vector2(signf(to_him.x), 0.0)
 		# Left standing a while, he finds something to play at.
 		_jogi_idle += delta
-		if _jogi_idle >= _jogi_bored_after and not gathering:
+		if _jogi_idle >= _jogi_bored_after and not seeing_off:
 			_start_playing()
 		return
 	# Coming up to him: slowing as he arrives, not stopping dead.
@@ -398,17 +440,22 @@ func _move(walker: Cat, velocity: Vector2, delta: float) -> void:
 	if velocity.length_squared() > 0.0001:
 		walker.facing = velocity.normalized()
 	var next := walker.body.position + velocity * delta
-	for building in buildings:
-		var footprint: Rect2 = (building.footprint as Rect2).grow(walker.body.radius)
+	for solid in _solid():
+		var footprint := solid.grow(walker.body.radius)
 		if footprint.has_point(next):
 			# Against a wall, he slides along it, the way that's still open; failing that, out. A
 			# villager, going somewhere on its own, slides at its full pace, or it would creep.
+			# A villager goes round by the wall's nearer corner, and keeps to it, or it would
+			# turn back and forth at the wall's middle.
 			var pace := velocity.length() if walker != cat else 0.0
-			var across := walker.body.position + Vector2(signf(velocity.x) * maxf(absf(velocity.x), pace), 0.0) * delta
+			var sideways := signf(velocity.x)
+			if pace > 0.0:
+				sideways = -1.0 if walker.body.position.x < footprint.get_center().x else 1.0
+			var across := walker.body.position + Vector2(sideways * maxf(absf(velocity.x), pace), 0.0) * delta
 			var along := walker.body.position + Vector2(0.0, signf(velocity.y) * maxf(absf(velocity.y), pace)) * delta
 			if not footprint.has_point(along) and absf(velocity.y) > 0.0001:
 				next = along
-			elif not footprint.has_point(across) and absf(velocity.x) > 0.0001:
+			elif not footprint.has_point(across) and sideways != 0.0:
 				next = across
 			else:
 				next = _push_out(next, footprint)
@@ -436,6 +483,6 @@ func _push_out(point: Vector2, box: Rect2) -> Vector2:
 func _somewhere_in_the_village() -> Vector2:
 	for attempt in 20:
 		var spot := Vector2(random.randf_range(VILLAGE_FROM + 1.0, SIZE.x - 2.0), random.randf_range(1.0, SIZE.y - 1.0))
-		if not buildings.any(func(building: Dictionary) -> bool: return (building.footprint as Rect2).grow(0.3).has_point(spot)):
+		if not _solid().any(func(footprint: Rect2) -> bool: return footprint.grow(0.3).has_point(spot)):
 			return spot
 	return HOME_SPOT

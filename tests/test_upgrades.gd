@@ -173,10 +173,11 @@ func test_power_keeps_growing_past_every_top_level() -> void:
 	random.seed = 4
 	var cat := Cat.new()
 	cat.wear({"weapons": ["knife", "handgun"]})
+	# Damage a second, not a hit: an evolution can trade a heavy hit for many lighter ones.
 	_play_levels(cat, random, 80)
-	var damage_at_80 := cat.weapons.map(func(weapon: Weapon) -> float: return weapon.hit_for(cat))
+	var damage_at_80 := cat.weapons.map(func(weapon: Weapon) -> float: return weapon.hit_for(cat) / weapon.interval_for(cat))
 	_play_levels(cat, random, 80)
-	var damage_at_160 := cat.weapons.map(func(weapon: Weapon) -> float: return weapon.hit_for(cat))
+	var damage_at_160 := cat.weapons.map(func(weapon: Weapon) -> float: return weapon.hit_for(cat) / weapon.interval_for(cat))
 	check(damage_at_160.reduce(func(a: float, b: float) -> float: return a + b) > damage_at_80.reduce(func(a: float, b: float) -> float: return a + b), "eighty more levels made him no stronger")
 
 

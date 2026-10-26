@@ -80,11 +80,18 @@ func apply() -> void:
 			var scale: int = get_value("graphics", "window_scale")
 			DisplayServer.window_set_size(Vector2i(640, 360) * scale)
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if get_value("graphics", "vsync") else DisplayServer.VSYNC_DISABLED)
+	# The world changes at the simulation's step, 60 times a second: a frame drawn between two
+	# steps would be the same picture again, so no more are drawn. Vertical sync can't be relied on
+	# for that (on macOS, Godot's OpenGL ignores it more often than not), so the cap holds either way.
+	Engine.max_fps = MOST_FRAMES
 	ensure_buses()
 	AudioServer.set_bus_volume_db(0, volume_db(get_value("audio", "master")))
 	for bus in BUSES:
 		AudioServer.set_bus_volume_db(AudioServer.get_bus_index(bus), volume_db(get_value("audio", bus.to_lower())))
 
+
+## The most frames drawn a second: as often as the world changes, and no more.
+const MOST_FRAMES := 60
 
 ## The audio buses, made in code so they live in one readable place: music, effects and the
 ## interface, each sending to the master.

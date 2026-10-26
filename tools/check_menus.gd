@@ -136,7 +136,7 @@ func _process(_delta: float) -> bool:
 			# Walked up to a door, or back into the open.
 			var spots := {"to_smithy": VillageMap.SMITHY, "to_weaver": VillageMap.HUTS[0], "to_board": VillageMap.BOARD, "to_house": VillageMap.HOME, "to_longhouse": VillageMap.LONGHOUSE, "to_market": VillageMap.MARKET, "to_healer": VillageMap.HEALER}
 			var footprint: Rect2 = spots.get(action, Rect2(VillageMap.HOME_SPOT, Vector2.ZERO))
-			_main.village_map.cat.body.position = Vector2(footprint.get_center().x, footprint.end.y + 0.45) if action != "to_home" else VillageMap.HOME_SPOT
+			_main.village_map.cat.body.position = VillageMap.door_step(footprint) if action != "to_home" else VillageMap.HOME_SPOT
 		else:
 			Input.action_press(action)
 	elif phase == 1 and InputMap.has_action(action):
