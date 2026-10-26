@@ -12,6 +12,11 @@ const CAT_STRIDE := 0.42
 const RAT_STRIDE := 0.24
 const DOG_STRIDE := 0.6
 const GIANT_STRIDE := 1.4
+## The drone's net: how far apart its mesh is, in pixels; how wide it's opened out in flight, by
+## the time it lands; and how high it starts opening, coming down, in meters.
+const NET_MESH := 4.0
+const NET_FLYING_RADIUS := 10.0
+const NET_OPENS_FROM := 1.2
 
 var arena: Arena
 ## Blood, or with it off, the same hits throwing up dust and fur instead.
@@ -110,6 +115,9 @@ func _draw() -> void:
 		standing.append([lever.position.y, {"lever": lever}])
 	for rolling in arena.logs:
 		standing.append([rolling.y, {"rolling": rolling}])
+	# A net lies over what it caught: drawn after everything under it.
+	for net in arena.nets:
+		standing.append([net.position.y + net.radius, {"net": net}])
 	for cat in arena.cats:
 		for slot: String in cat.supports:
 			var support: Support = cat.supports[slot]
@@ -156,6 +164,8 @@ func _draw() -> void:
 			_draw_lever(thing.lever)
 		elif thing is Dictionary and thing.has("rolling"):
 			_draw_rolling(thing.rolling)
+		elif thing is Dictionary and thing.has("net"):
+			_draw_net(World.to_screen(thing.net.position), roundi(thing.net.radius * World.PIXELS_PER_METER), true)
 		elif thing is Pickup:
 			var art: String = Sprites.SALVAGE[absi(hash(thing)) % Sprites.SALVAGE.size()]
 			var texture := Sprites.lit(art)
@@ -196,10 +206,12 @@ func _draw() -> void:
 		draw_rect(Rect2(World.to_screen(droplet.position, droplet.height), Vector2.ONE), droplet.color)
 	for shot in arena.shots:
 		if shot.weapon != null and shot.weapon.name == "net_drone":
-			# A net in flight, spread like a hand.
-			var center := World.to_screen(shot.position, shot.height)
-			for corner in [Vector2(-2, -2), Vector2(2, -2), Vector2(-2, 2), Vector2(2, 2)]:
-				draw_line(center, center + corner, Palette.DRY_GRASS)
+			# A net in flight: bundled as it goes up, opening out as it comes down, its shadow under
+			# it showing where it'll land.
+			var opening := 0.0 if shot.vertical_speed > 0.0 else clampf(1.0 - shot.height / NET_OPENS_FROM, 0.0, 1.0)
+			var size := roundi(lerpf(2.0, NET_FLYING_RADIUS, opening))
+			draw_rect(Rect2(World.to_screen(shot.position) - Vector2(size, 0), Vector2(size * 2 + 1, 1)), Palette.GROUND_SHADOW)
+			_draw_net(World.to_screen(shot.position, shot.height), size, false)
 			continue
 		if shot.falls:
 			# A stone in flight, its shadow on the ground under it.
@@ -231,6 +243,36 @@ func _draw_shadow(thing: Variant) -> void:
 	var center := World.to_screen(body.position)
 	draw_rect(Rect2(center + Vector2(-width / 2 + 1, -1), Vector2(maxi(width - 2, 1), 3)), Palette.GROUND_SHADOW)
 	draw_rect(Rect2(center + Vector2(-width / 2, 0), Vector2(width, 1)), Palette.GROUND_SHADOW)
+
+
+## The drone's net: rope in a diamond mesh inside its round rim, weighted at the edge, lit from the
+## top left. Bundled, it's a knot of rope. Lying over what it caught, it twitches as they struggle.
+func _draw_net(center: Vector2, radius: int, lying: bool) -> void:
+	if radius <= 2:
+		draw_rect(Rect2(center - Vector2(1, 1), Vector2(3, 3)), Palette.DRY_GRASS)
+		draw_rect(Rect2(center - Vector2(1, 1), Vector2(1, 1)), Palette.BRASS_LIGHT)
+		draw_rect(Rect2(center + Vector2(1, 1), Vector2(1, 1)), Palette.BARK)
+		return
+	var shift := Vector2.ZERO
+	if lying:
+		# A tug from under it now and then, this way or that.
+		var beat := int(_clock * 7.0 + center.x * 0.37)
+		shift = [Vector2.ZERO, Vector2(1, 0), Vector2.ZERO, Vector2(0, 1), Vector2.ZERO, Vector2(-1, 0)][beat % 6]
+	var r := float(radius)
+	for along: Vector2 in [Vector2(1, 1).normalized(), Vector2(1, -1).normalized()]:
+		var across := along.orthogonal()
+		var offset := -r + NET_MESH / 2.0
+		while offset < r:
+			var half := sqrt(r * r - offset * offset)
+			var middle := center + shift + across * offset
+			draw_line((middle - along * half).round(), (middle + along * half).round(), Palette.DRY_GRASS)
+			offset += NET_MESH
+	# The rim: lit along its top left, in shade along its bottom right, and its weights.
+	draw_arc(center, r, PI * 0.75, PI * 1.75, 16, Palette.BRASS_LIGHT)
+	draw_arc(center, r, PI * -0.25, PI * 0.75, 16, Palette.BARK_LIGHT)
+	for weight in 6:
+		var at := (center + Vector2.from_angle(TAU * weight / 6.0 + 0.3) * r).round()
+		draw_rect(Rect2(at - Vector2(1, 1), Vector2(2, 2)), Palette.STEEL_DARK)
 
 
 func _draw_rat(body: Body, frame: int, fallen: bool) -> void:
