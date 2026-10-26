@@ -298,7 +298,7 @@ func _ready() -> void:
 		for building in village_map.buildings:
 			if building.name == _at_door:
 				var footprint: Rect2 = building.footprint
-				village_map.cat.body.position = Vector2(footprint.get_center().x, footprint.end.y + 0.45)
+				village_map.cat.body.position = VillageMap.door_step(footprint)
 		if _open_shop_first and not _at_door.is_empty():
 			_use(_at_door)
 		if _force_intro:
@@ -600,8 +600,8 @@ func _in_village(delta: float) -> void:
 		_send_off()
 
 
-## Out through the gate: the village sees him off, and he walks on into the forest. The first time
-## he goes to an area, someone has a word for him on the way; any other time he just goes, at his
+## Out through the gate, and on into the forest. The first time he goes to an area, someone has a
+## word for him on the way, and comes to the gate to say it; any other time he just goes, at his
 ## own pace.
 func _send_off() -> void:
 	_note("seen off to %s" % village.next_run)
@@ -612,7 +612,8 @@ func _send_off() -> void:
 	if village.next_run != "endless" and not scene in village.told:
 		lines = (Areas.named(village.next_run).get("send_off", []) as Array).duplicate()
 	_cutscene = Cutscene.new(lines, settings.get_value("gameplay", "story_waits"))
-	village_map.see_off()
+	var speakers := lines.filter(func(line: Variant) -> bool: return line is Dictionary).map(func(line: Dictionary) -> String: return line.by)
+	village_map.see_off(speakers)
 	village_map.stroll_speed = VillageMap.WALK_IN_SPEED
 	if not lines.is_empty():
 		village_map.stroll_speed = minf(VillageMap.WALK_IN_SPEED, village_map.cat.body.position.distance_to(VillageMap.OFF_INTO_THE_FOREST) / _cutscene.length())
@@ -910,12 +911,12 @@ func _step_village(delta: float) -> void:
 	_camera.position = _village_camera()
 
 
-## The view follows him along the path, but never past either end; the village is a screen tall.
+## The view follows him about the village, but never past its edges.
 func _village_camera() -> Vector2:
 	var screen := get_viewport().get_visible_rect().size
-	var width := VillageMap.SIZE.x * World.PIXELS_PER_METER
-	var x := clampf(World.to_screen(village_map.cat.body.position).x, screen.x / 2.0, width - screen.x / 2.0)
-	return Vector2(x, VillageMap.SIZE.y * World.PIXELS_PER_METER / 2.0)
+	var size := VillageMap.SIZE * World.PIXELS_PER_METER
+	var at := World.to_screen(village_map.cat.body.position)
+	return Vector2(clampf(at.x, screen.x / 2.0, size.x - screen.x / 2.0), clampf(at.y, screen.y / 2.0, size.y - screen.y / 2.0))
 
 
 ## Puts the outfit on him, with the weapon he chose to start with unless the outfit names its

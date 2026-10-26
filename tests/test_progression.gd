@@ -198,15 +198,18 @@ func test_she_is_seen_off_out_of_sight() -> void:
 	for index in 5:
 		cats.append({"name": Cage.NAMES[index], "coat": "gray"})
 	var map := VillageMap.new(cats)
-	map.cat.body.position = Vector2(VillageMap.EXIT_FROM + 0.1, 5.0)
+	map.cat.body.position = Vector2(VillageMap.EXIT_FROM + 0.1, VillageMap.RETURN_SPOT.y)
 	check(map.leaving(), "he wasn't leaving through the gate")
-	map.see_off()
+	var amble_to := map._amble_to.duplicate()
+	map.see_off(["elder", Cage.NAMES[1]])
+	check(map._amble_to[0] == amble_to[0], "a villager with nothing to say came to see him off")
 	for step in 60 * 20:
 		map.step(Arena.STEP)
 	check(map.gone(), "he was seen off and never left, stopping at %s" % map.cat.body.position)
-	for villager in map.villagers:
-		check(villager.body.position.x > VillageMap.SEE_OFF_FROM - 1.0, "a villager didn't come to see him off, stopping at %s" % villager.body.position)
-		check(villager.facing.x > 0.0, "a villager at the gate looked away as he left")
+	var speaker := map.villagers[1]
+	check(speaker.body.position.distance_to(VillageMap.SEE_OFF_SPOT) < 0.5, "the villager with a word for him didn't come to the gate, stopping at %s" % speaker.body.position)
+	check(speaker.facing.x > 0.0, "the villager at the gate looked away as he left")
+	check(map.elder.body.position.distance_to(VillageMap.ELDER_AT_THE_GATE) < 0.5, "the Elder didn't walk him to the gate")
 
 
 func test_everyone_who_speaks_in_a_cutscene_has_a_portrait() -> void:

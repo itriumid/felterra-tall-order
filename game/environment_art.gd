@@ -239,7 +239,7 @@ static func _gravel_pads(picture: Image, healed: bool, random: RandomNumberGener
 
 ## The way into the village: forest floor to the left, deep in leaf litter, the village's
 ## trodden earth to the right, and a path of bare earth running through both. Sizes in pixels.
-static func village_ground(size: Vector2i, seed_value: int, village_from: int, path_top: int, path_bottom: int) -> Image:
+static func village_ground(size: Vector2i, seed_value: int, village_from: int, path_top: int, path_bottom: int, worn: Array[Rect2] = []) -> Image:
 	var growth := FastNoiseLite.new()
 	growth.seed = seed_value
 	growth.frequency = 0.01
@@ -250,6 +250,16 @@ static func village_ground(size: Vector2i, seed_value: int, village_from: int, p
 	var random := RandomNumberGenerator.new()
 	random.seed = seed_value
 	var picture := Image.create_empty(size.x, size.y, false, Image.FORMAT_RGBA8)
+	# Bare earth worn by feet off the road: the square, and the footpaths to the doors, their edges
+	# ragged. Marked first, patch by patch, so the whole picture isn't checked against every one.
+	var worn_mask := PackedByteArray()
+	worn_mask.resize(size.x * size.y)
+	for patch in worn:
+		var reach := Rect2i(patch.grow(3.0)).intersection(Rect2i(Vector2i.ZERO, size))
+		for y in range(reach.position.y, reach.end.y):
+			for x in range(reach.position.x, reach.end.x):
+				if patch.grow(wobble.get_noise_1d(x + y) * 3.0).has_point(Vector2(x, y)):
+					worn_mask[y * size.x + x] = 1
 	for y in size.y:
 		for x in size.x:
 			var value := growth.get_noise_2d(x, y) * 0.5 + 0.5 + (0.03 if (x + y) % 2 == 0 else -0.03)
@@ -258,11 +268,14 @@ static func village_ground(size: Vector2i, seed_value: int, village_from: int, p
 			# Through the village the path is a worn track, narrower than the way through the trees.
 			var narrowing := 18.0 if in_village else 0.0
 			var on_path := y > path_top + narrowing + edge and y < path_bottom - narrowing + edge
+			var trodden := worn_mask[y * size.x + x] == 1
 			# Grass keeps to the village's edges, where nobody walks.
 			var from_edge := minf(y, size.y - y) / size.y
 			var color: Color
 			if on_path:
 				color = (Palette.MUD if value > 0.45 else Palette.MUD_DARK) if in_village else (Palette.MUD_LIGHT if value > 0.42 else Palette.MUD)
+			elif trodden:
+				color = Palette.MUD_LIGHT if value > 0.4 else Palette.MUD
 			elif in_village:
 				var grassy := value + (0.18 - from_edge) * 1.6
 				color = Palette.MOSS if grassy > 0.62 else (Palette.DRY_GRASS if grassy > 0.5 else Palette.MUD_LIGHT)
@@ -371,6 +384,24 @@ static func trunk(height: int, width: int, seed_value: int) -> Image:
 			if near_foot > 0.0 and random.randf() < 0.05:
 				color = Palette.MOSS
 			picture.set_pixel(x, y, color)
+	return picture
+
+
+## A tree's crown, the leaves at the top of its trunk: clusters heaped together, the shaded ones
+## low and to the right, the lit ones up on the top left, so it reads as round and full.
+static func crown(radius: int, seed_value: int) -> Image:
+	var random := RandomNumberGenerator.new()
+	random.seed = seed_value
+	var size := radius * 3
+	var picture := Image.create_empty(size, size, false, Image.FORMAT_RGBA8)
+	var center := Vector2(size, size) * 0.5
+	for index in 16:
+		var lit := index >= 10
+		var cluster := leaves(random.randi_range(radius * 11 / 20, radius * 3 / 4), random.randi(), not lit)
+		var toward := Vector2(-1, -1) if lit else Vector2(1, 1)
+		var at := center + Vector2.from_angle(random.randf() * TAU) * Vector2(1.0, 0.75) * radius * sqrt(random.randf()) * 0.7 + toward * radius * 0.15
+		var corner := Vector2i((at - Vector2(cluster.get_size()) / 2.0).round())
+		picture.blend_rect(cluster, Rect2i(Vector2i.ZERO, cluster.get_size()), corner)
 	return picture
 
 
