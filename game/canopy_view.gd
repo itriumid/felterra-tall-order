@@ -1,14 +1,18 @@
 class_name CanopyView
 extends Node2D
-## The canopy overhead: leaves hanging out over the clearing from the jungle around it, thinning
-## toward the middle. It's above everyone's heads, so nothing collides with it, and it's drawn
+## The canopy overhead: the crowns of the trees at the clearing's edge, and leaves hanging out
+## over it from the jungle around, thinning toward the middle. It's above everyone's heads, so nothing collides with it, and it's drawn
 ## over everything. The lights don't touch it: it's the shade.
 
 var _clusters: Array[Dictionary] = []
+## The ground, whose edge trees' crowns hang here with the rest of the leaves.
+var ground: GroundView
 
 
 func _ready() -> void:
 	light_mask = 0
+	if ground != null:
+		ground.planted.connect(queue_redraw)
 	var random := RandomNumberGenerator.new()
 	random.seed = 11
 	var size := Arena.SIZE * World.PIXELS_PER_METER
@@ -26,5 +30,8 @@ func _ready() -> void:
 
 
 func _draw() -> void:
+	if ground != null:
+		for crown in ground.crowns:
+			draw_texture(crown.texture, crown.at)
 	for cluster in _clusters:
 		draw_texture(cluster.texture, cluster.at)

@@ -344,6 +344,7 @@ func _build_scene() -> void:
 	_entities = EntitiesView.new()
 	_arena_layer.add_child(_entities)
 	var canopy := CanopyView.new()
+	canopy.ground = _ground
 	_arena_layer.add_child(canopy)
 	var shaft_texture := _soft_light(Vector2i(220, 120))
 	for spot in SHAFTS:
