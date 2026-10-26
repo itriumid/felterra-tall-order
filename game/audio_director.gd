@@ -97,12 +97,13 @@ func take_events(events: Array[Dictionary]) -> void:
 			"dust": play_at("dodge", event.position, -8.0, 0.6)
 			"beat": play_at("drum", event.position, -4.0)
 			"snared": play_at("snare", event.position, -4.0)
+			"torn": play_at("net_torn", event.position, -8.0)
 			"sting": play_at("buzz", event.position, -10.0)
 			"slipstream": play_at("dodge", event.position, -10.0, 1.4)
 			"blast":
 				match event.get("kind", ""):
 					"petasan": play_at("pop", event.position, -6.0)
-					"net_drone": play_at("net", event.position, -6.0)
+					"net_drone": play_at("net", event.position, -3.0)
 					"mines": play_at("blast", event.position, 0.0)
 					_: play_at("blast", event.position, -3.0, 1.3)
 			"ignite": play_at("ignite", event.position, -4.0)
@@ -163,8 +164,11 @@ func _process(_delta: float) -> void:
 		for slot: String in cat.supports:
 			var support: Support = cat.supports[slot]
 			if support.weapon != null and _counted(support.weapon, "rounds", support.weapon.rounds_fired):
-				var fired: String = {"gun_drone": "shot_drone", "net_drone": "shot_thunk"}.get(support.name, "meriam")
-				play_at(fired, support.body.position, -1.0 if fired == "meriam" else -8.0)
+				var fired: String = {"gun_drone": "shot_drone", "net_drone": "net_launch"}.get(support.name, "meriam")
+				play_at(fired, support.body.position, {"meriam": -1.0, "net_launch": -3.0}.get(fired, -5.0))
+			# A drone's rotors, turn by turn, while it's in the air.
+			if support.name in ["gun_drone", "net_drone"] and _counted(support, "rotor", int(support.rotor)):
+				play_at("drone_rotor", support.body.position, -16.0, 1.15 if support.name == "gun_drone" else 1.0)
 			if support.name == "mines" and _counted(support, "dropped", support.mines_dropped):
 				play_at("mine_drop", cat.body.position, -10.0)
 		if _counted(cat, "dodges", cat.dodges):
