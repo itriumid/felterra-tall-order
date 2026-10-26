@@ -158,9 +158,9 @@ Families can branch: a rifle grows into the automatic rifle or the sniper rifle,
 ### The dodge
 
 A short roll, with a moment where hits don't land. It takes a charge, which comes back in a
-little under a second. Over a run it takes up to **three mutations**, each changing what the
-dodge *does*, not just its numbers. Upgrading a mutation you already have strengthens it without
-taking another slot, and, as everywhere, a card's rarity changes only how much it gives.
+little under a second. Over a run it takes **one mutation**, changing what the dodge *does*,
+not just its numbers: the one chosen is the run's way of dodging. Once it's taken, its cards only
+strengthen it, and, as everywhere, a card's rarity changes only how much it gives.
 
 Every mutation, built and planned, is in [`catalog.md`](catalog.md). Some wait on what they act
 on: fire and oil, or crewmates who can be downed.
@@ -305,7 +305,7 @@ on: fire and oil, or crewmates who can be downed.
     offer only what he wants; a piece of gear can also be worn from a run's start. Leaving
     things home narrows the cards but never past a draw: three of each kind stay packed for every
     place a run has for one (his mouth and his tail, so six weapons; seven slots, so twenty-one pieces of gear;
-    a drone and a set-down, so six support; three mutations, so nine).
+    a drone and a set-down, so six support; one mutation, so three).
   - **Everything has its story**, read on a card with Tab and at the smithy and the pack: where
     it came from, as the cats tell it.
   - **Housed cats weave cloth**: each restored hut houses two rescued cats, and every run brings

@@ -49,7 +49,7 @@ func test_too_few_packed_and_nothing_more_is_left_home() -> void:
 	check(not village.repack("weapon:machete"), "a weapon was left home, leaving five")
 	for kind in ["weapon", "gear", "support", "mutation"]:
 		check(Village.keep_packed(kind) == 3 * Village.places(kind), "%d %s kept packed, for %d places" % [Village.keep_packed(kind), kind, Village.places(kind)])
-	check(Village.places("weapon") == 2 and Village.places("gear") == 7 and Village.places("support") == 2 and Village.places("mutation") == 3, "a run's places are counted wrong")
+	check(Village.places("weapon") == 2 and Village.places("gear") == 7 and Village.places("support") == 2 and Village.places("mutation") == 1, "a run's places are counted wrong")
 
 
 func test_freeing_an_area_teaches_its_mutations() -> void:

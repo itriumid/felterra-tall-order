@@ -1,7 +1,7 @@
 class_name Cat
 extends RefCounted
 ## A player's cat: moves freely, dodges, and fires at the nearest enemy on its own. Over a run his
-## dodge takes up to three mutations, each changing what it does, not just its numbers.
+## dodge takes one mutation, changing what it does, not just its numbers.
 
 const SPEED := 2.6
 const RADIUS := 0.15
@@ -13,8 +13,9 @@ const DODGE_SPEED := 6.5
 const DODGE_TIME := 0.22
 const DODGE_SAFE_TIME := 0.28
 const DODGE_COOLDOWN := 0.9
-## Dodge mutations: no more than this many in a run.
-const MOST_MUTATIONS := 3
+## Dodge mutations: no more than this many in a run. One, so the one chosen is the run's way of
+## dodging, and a card for it only makes it stronger.
+const MOST_MUTATIONS := 1
 ## Rolling slash: what a cut does at a roll's full speed, a common card's worth.
 const SLASH_DAMAGE := 3.0
 ## Pounce: as the roll ends, a leap onto the nearest enemy this close, taking this long in the

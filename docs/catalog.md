@@ -182,8 +182,7 @@ level gives. Every piece is forged at the smithy before the cards can offer it.
 
 ## Dodge mutations
 
-Up to three a run, each changing what the dodge does. Another card for one he has strengthens
-it. What the dodge deals grows with damage from his gear, the same as his weapons. None is in the
+One a run, changing what the dodge does. Another card for the one he has strengthens it. What the dodge deals grows with damage from his gear, the same as his weapons. None is in the
 cards at first: each is taught by a cat, when an area is freed. The village's edge teaches rolling
 slash and land on your feet (the Elder); the deep forest, pounce and riposte (Nenek Pus); the
 sawpits, the ankle cutter and caltrops (Si Belang); the logged clearing, the long leap and the dust

@@ -401,7 +401,7 @@ static func _describe(choice: Dictionary) -> Dictionary:
 		card.name = MUTATIONS[mutation].name + ("" if id.begins_with("mutation:") else " up")
 		card.lines = _mutation_lines(mutation, amount, id.begins_with("mutation:"))
 		card.explain = ["%s: %s" % [MUTATIONS[mutation].name, MUTATIONS[mutation].explain],
-			"Dodge mutations: %d a run; another card for one makes it stronger" % Cat.MOST_MUTATIONS]
+			"One dodge mutation a run; another card for it makes it stronger"]
 		card.unfamiliar = true
 	else:
 		card.item = id.trim_prefix("weapon:")
