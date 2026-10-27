@@ -17,7 +17,7 @@ const NAMES: Array[String] = [
 	"shot_rifle", "shot_heavy", "shot_twang", "shot_puff", "shot_thunk", "shot_nail", "shot_flare",
 	"pop", "net", "net_launch", "net_torn", "drone_rotor", "ignite", "radio", "drum", "snare", "buzz",
 	"boss_horn", "whistle", "truck_horn", "stall", "throw", "lever", "structure_down", "goal_done", "freed", "rotor",
-	"footstep_giant", "stomp", "fall", "dodge", "hurt", "bite",
+	"footstep_giant", "stomp", "fall", "dodge", "hurt", "bite", "roar", "splash",
 	"level_up", "card", "reroll", "banish", "menu_move", "menu_choose", "menu_back",
 ]
 
@@ -105,6 +105,12 @@ static func _render(sound_name: String, random: RandomNumberGenerator) -> Packed
 			return _mix([_sweep(0.8, 95.0 * wobble, 34.0, 0.26), _noise(0.6, 0.2, 520.0, random, 1), _chirp(0.25, [180.0 * wobble, 150.0 * wobble], 0.5)], [1.0, 0.7, 0.25])
 		"blast":
 			return _mix([_sweep(0.8, 72.0 * wobble, 26.0, 0.28), _noise(0.8, 0.28, 900.0, random, 1), _crackle(0.6, random)], [1.0, 0.8, 0.4])
+		"roar":
+			# A great cat's roar: a low growl that swells and falls, rough with breath.
+			return _mix([_chirp(1.1, [110.0 * wobble, 150.0 * wobble, 95.0 * wobble, 70.0 * wobble], 0.5), _noise(1.1, 0.7, 700.0, random, 4), _sweep(1.1, 80.0 * wobble, 45.0, 0.6)], [0.6, 0.55, 0.5])
+		"splash":
+			# A bucket of water thrown: a slap, and the spray hissing off.
+			return _mix([_noise(0.45, 0.12, 2400.0 * wobble, random, 1), _sweep(0.12, 210.0 * wobble, 90.0, 0.04), _noise(0.45, 0.3, 5200.0, random, 2)], [0.7, 0.5, 0.35])
 		"crack":
 			# Bamboo splitting: a dry snap and splinters.
 			return _mix([_noise(0.22, 0.03, 3600.0, random, 2), _crackle(0.3, random)], [0.8, 0.5])

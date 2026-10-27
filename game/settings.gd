@@ -8,10 +8,13 @@ const PATH := "user://settings.cfg"
 const BUSES: Array[String] = ["Music", "Effects", "Interface"]
 const AIM_MODES: Array[String] = ["nearest", "toughest", "crowd"]
 const WINDOW_SCALES: Array[int] = [1, 2, 3, 4]
+## How many of the fallen are left lying before the oldest crumble away: fewer is lighter work
+## for a slower machine.
+const FALLEN: Array[int] = [0, 100, 300, 600]
 
 ## Every setting, its section, and its default. Volumes are 0 to 10.
 const DEFAULTS := {
-	"graphics": {"full_screen": false, "window_scale": 2, "vsync": true},
+	"graphics": {"full_screen": false, "window_scale": 2, "vsync": true, "fallen": 300},
 	"audio": {"master": 8, "music": 7, "effects": 8, "interface": 6},
 	"gameplay": {"aim": "nearest", "blood": true, "story_waits": false},
 }
@@ -41,6 +44,8 @@ func step(section: String, key: String, direction: int) -> void:
 		values[section][key] = AIM_MODES[wrapi(AIM_MODES.find(value) + direction, 0, AIM_MODES.size())]
 	elif key == "window_scale":
 		values[section][key] = WINDOW_SCALES[clampi(WINDOW_SCALES.find(value) + direction, 0, WINDOW_SCALES.size() - 1)]
+	elif key == "fallen":
+		values[section][key] = FALLEN[clampi(FALLEN.find(value) + direction, 0, FALLEN.size() - 1)]
 	else:
 		values[section][key] = clampi(int(value) + direction, 0, 10)
 
@@ -69,6 +74,9 @@ func load_from(path := PATH) -> void:
 			var saved: Variant = file.get_value(section, key, DEFAULTS[section][key])
 			if typeof(saved) == typeof(DEFAULTS[section][key]):
 				values[section][key] = saved
+		# A count off the list (hand-edited, say) goes back to its default.
+		if section == "graphics" and not values.graphics.fallen in FALLEN:
+			values.graphics.fallen = DEFAULTS.graphics.fallen
 
 
 ## Puts the graphics and audio settings into effect. The gameplay ones are read by the run.

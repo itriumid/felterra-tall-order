@@ -3,6 +3,12 @@ extends RefCounted
 ## One of the horde: a rat from the company's supply crates, or one of its guard dogs. Runs at the
 ## nearest cat and bites. A dog that gets close crouches (the warning), then lunges: a real leap
 ## through the air, which a dodge can get out from under, and after it lands it needs a moment.
+##
+## Or one of the forest's restless spirits, come for the village: ember wisps floating up off the
+## burned peat; tuyul, who go for salvage and run off with it; charred saplings walking on their
+## roots; smoke monkeys, who leap like the dogs and hide in their own smoke; and pocong, wrapped in
+## their shrouds, who can only hop, and go over when they're hit hard. A spirit leaves nothing
+## lying when it falls: it goes out.
 
 enum State { RUNNING, CROUCHING, LUNGING, RECOVERING }
 
@@ -25,7 +31,37 @@ const KINDS := {
 		"speed": 1.5, "grip": 8.0, "bite": 3.0, "bite_interval": 1.0, "health": 160.0,
 		"radius": 0.3, "tall": 0.34, "heft": 12.0, "worth": 40, "calls": 4, "call_interval": 5.0,
 	},
+	# The spirits. An ember wisp floats just off the ground, so it goes over what's low, and
+	# blades and rounds still meet it.
+	"wisp": {
+		"speed": 1.9, "grip": 10.0, "bite": 1.0, "bite_interval": 1.0, "health": 1.5,
+		"radius": 0.08, "tall": 0.12, "heft": 0.6, "worth": 1, "spirit": true, "hovers": 0.2,
+	},
+	# A tuyul goes for salvage lying about, or bites what he's carrying off him, and runs for the
+	# trees with it: caught, he drops it.
+	"tuyul": {
+		"speed": 2.5, "grip": 14.0, "bite": 0.5, "bite_interval": 0.8, "health": 4.0,
+		"radius": 0.08, "tall": 0.16, "heft": 1.0, "worth": 2, "spirit": true, "steals": true,
+	},
+	"sapling": {
+		"speed": 0.8, "grip": 6.0, "bite": 2.5, "bite_interval": 1.4, "health": 24.0,
+		"radius": 0.17, "tall": 0.6, "heft": 6.0, "worth": 5, "spirit": true,
+	},
+	"monkey": {
+		"speed": 3.2, "grip": 10.0, "bite": 1.5, "bite_interval": 1.0, "health": 6.0,
+		"radius": 0.14, "tall": 0.35, "heft": 2.5, "worth": 3, "spirit": true, "smokes": true,
+		"lunge_reach": 2.2, "crouch_time": 0.3, "lunge_speed": 6.5, "lunge_lift": 2.6, "recover_time": 0.7,
+	},
+	# A pocong hops: a push and a lift each time, and nothing to steer with in the air. A hit that
+	# would throw it this hard (over its heft) knocks it flat, and it struggles to get up.
+	"pocong": {
+		"speed": 2.3, "grip": 30.0, "bite": 2.0, "bite_interval": 1.0, "health": 10.0,
+		"radius": 0.12, "tall": 0.5, "heft": 3.0, "worth": 3, "spirit": true,
+		"hop_lift": 1.5, "hop_rest": 0.25, "topples": 0.8, "flat_for": 1.6,
+	},
 }
+## How far off a tuyul can tell salvage is lying, in meters.
+const SNIFFS := 8.0
 
 var kind := "rat"
 var body := Body.new()
@@ -45,6 +81,10 @@ var afflictions := {}
 var tripped_for := 0.0
 ## How long until it calls the horde in again, if it's one that calls.
 var call_in := 2.0
+## Where it's going instead of at a cat, or nowhere (INF): a tuyul after salvage, or off into the
+## trees with it. And the salvage it's carrying.
+var errand := Vector2.INF
+var carrying := 0
 
 
 func _init(creature_kind := "rat") -> void:
@@ -54,6 +94,17 @@ func _init(creature_kind := "rat") -> void:
 	body.radius = stat("radius")
 	body.tall = stat("tall")
 	body.kind = kind
+	body.hovers = KINDS[kind].get("hovers", 0.0)
+	body.height = body.hovers
+
+
+## Whether it's one of the forest's spirits, which leave nothing lying when they fall.
+func spirit() -> bool:
+	return KINDS[kind].get("spirit", false)
+
+
+func hops() -> bool:
+	return KINDS[kind].has("hop_lift")
 
 
 func stat(name: String) -> Variant:
@@ -80,7 +131,9 @@ func pace() -> float:
 
 func step(delta: float, prey: Cat, arena: Arena = null) -> void:
 	bite_ready_in = maxf(bite_ready_in - delta, 0.0)
-	state_for = maxf(state_for - delta, 0.0)
+	# A hop's rest is taken on the ground.
+	if not (hops() and body.airborne()):
+		state_for = maxf(state_for - delta, 0.0)
 	if KINDS[kind].has("calls") and arena != null:
 		call_in -= delta
 		if call_in <= 0.0:
@@ -109,22 +162,29 @@ func step(delta: float, prey: Cat, arena: Arena = null) -> void:
 			if not body.airborne():
 				state = State.RECOVERING
 				state_for = stat("recover_time")
+				if KINDS[kind].get("smokes", false) and arena != null:
+					arena.add_smoke(body.position)
 		State.RECOVERING:
 			body.slide(delta)
 			if state_for <= 0.0:
 				state = State.RUNNING
 		State.RUNNING:
-			_run(delta, prey)
+			_run(delta, prey, arena)
 	body.step(delta)
 
 
-func _run(delta: float, prey: Cat) -> void:
+func _run(delta: float, prey: Cat, arena: Arena) -> void:
 	if body.airborne():
 		return
 	var wanted := Vector2.ZERO
-	if prey != null and prey.alive():
+	if errand.is_finite():
+		var going: Vector2 = arena.way(body.position, errand) if arena != null else (errand - body.position).normalized()
+		wanted = going * float(stat("speed")) * pace()
+	elif prey != null and prey.alive():
 		var toward := prey.body.position - body.position
-		wanted = toward.normalized() * float(stat("speed")) * pace()
+		# Around whatever stands between, if anything does.
+		var going: Vector2 = arena.way(body.position, prey.body.position) if arena != null else toward.normalized()
+		wanted = going * float(stat("speed")) * pace()
 		# A dog close enough crouches to lunge, committing to where he is now.
 		if KINDS[kind].has("lunge_reach") and toward.length() < float(stat("lunge_reach")) and bite_ready_in <= 0.0:
 			state = State.CROUCHING
@@ -133,5 +193,19 @@ func _run(delta: float, prey: Cat) -> void:
 			return
 	elif wander_to.is_finite():
 		wanted = (wander_to - body.position).limit_length(1.0) * float(stat("speed")) * 0.35
+	if hops():
+		_hop(wanted, delta)
+		return
 	# Feet on the ground: it claws back to the pace it wants, so a knock carries it a way.
 	body.velocity = body.velocity.move_toward(wanted, float(stat("grip")) * delta)
+
+
+## Bound up in its shroud, it can only hop: it stops dead where it lands, gathers itself, and goes
+## again the way it wants to go, at its pace for as long as it's in the air.
+func _hop(wanted: Vector2, delta: float) -> void:
+	body.velocity = body.velocity.move_toward(Vector2.ZERO, float(stat("grip")) * delta)
+	if state_for > 0.0 or wanted == Vector2.ZERO:
+		return
+	body.velocity = wanted
+	body.push(Vector2.ZERO, stat("hop_lift"))
+	state_for = stat("hop_rest")

@@ -25,7 +25,7 @@ const PATH := "user://village.cfg"
 ## themselves.
 const RESTORED_BY := {
 	"home": "rescue", "smithy": "edge", "hut_0": "deep", "longhouse": "sawpits",
-	"watchtower": "clearing", "market": "slide", "healer": "offices",
+	"watchtower": "clearing", "market": "slide", "healer": "offices", "shrine": "siege",
 	"hut_1": 3, "hut_2": 5, "hut_3": 7, "hut_4": 9,
 }
 ## What's told as he walks home to a building just restored, by name; "%s" in his home's line is
@@ -42,6 +42,7 @@ const RESTORED_LINES := {
 	"hut_2": ["Another hut stands again, with room for two more."],
 	"hut_3": ["Another hut stands again, built from the company's own planks."],
 	"hut_4": ["The last hut stands again. The village is whole."],
+	"shrine": ["Inyiak Balang has raised its shrine by the gate, out of stone older than the village.", "Through it, the way to the groves still sick from the company."],
 }
 ## What each building does, in full, for what's new as he walks home to it.
 const EXPLAINS := {
@@ -56,6 +57,7 @@ const EXPLAINS := {
 	"hut_2": "Room for two more cats, weaving cloth while you're away.",
 	"hut_3": "Room for two more cats, weaving cloth while you're away.",
 	"hut_4": "Room for two more cats, weaving cloth while you're away.",
+	"shrine": "Endless is here now: cleanse a grove still sick from the company, a fresh one every run, with the forest's spirits on your side.",
 }
 ## What each building opens, in a line, for its prompt.
 const OPENS := {
@@ -66,6 +68,7 @@ const OPENS := {
 	"watchtower": "the map shows each boss, and how to beat it",
 	"market": "trade salvage and cloth",
 	"healer": "a tonic for the next run",
+	"shrine": "the way to the groves still sick",
 }
 ## The market's prices, as {give, get}: salvage for cloth, and cloth for salvage. And the healer's
 ## tonic: what it costs, and the rerolls it starts the next run with.
@@ -258,12 +261,24 @@ func found(area_id: String) -> bool:
 	return index == 0 or (index > 0 and Areas.ids()[index - 1] in liberated)
 
 
-## The first area not yet freed, or Endless once they all are.
+## Whether there's peace with the forest's spirits: the siege is over, and Endless is cleansing.
+func truce() -> bool:
+	return "siege" in liberated
+
+
+## The first area not yet freed, or Endless once they all are. The siege is never somewhere to
+## go: it comes to the village.
 func next_area() -> String:
 	for id in Areas.ids():
-		if not id in liberated:
+		if not id in liberated and not Areas.named(id).get("in_the_village", false):
 			return id
 	return "endless"
+
+
+## Whether the spirits are coming for the village: the last area is free, and there's no peace
+## with them yet. They come as he walks home.
+func siege_due() -> bool:
+	return "airstrip" in liberated and not truce()
 
 
 ## An area freed for the first time: it's marked free, and brings the village what freeing it
@@ -482,7 +497,7 @@ func load_from(path := PATH) -> void:
 		known_scenes.append("teach:" + id)
 	_names(file, "told", told, known_scenes)
 	var saved_next: Variant = file.get_value("village", "next_run", "edge")
-	next_run = saved_next if saved_next is String and (saved_next == "endless" or saved_next in Areas.ids()) else next_area()
+	next_run = saved_next if saved_next is String and (saved_next == "endless" or (saved_next in Areas.ids() and not Areas.named(saved_next).get("in_the_village", false))) else next_area()
 	tonic_ready = file.get_value("village", "tonic_ready", false) == true
 	_names(file, "goals_done", goals_done, Areas.ids())
 	for id in liberated:

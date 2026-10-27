@@ -150,7 +150,8 @@ func _walk(delta: float, arena: Arena) -> void:
 			facing = toward_wander.normalized()
 		return
 	var toward := prey.body.position - body.position
-	facing = toward.normalized()
+	# He goes the way around what's between them, and faces the way he goes.
+	facing = arena.way(body.position, prey.body.position, true)
 	if kind == "handler":
 		_handle(delta, toward, arena)
 		return
@@ -179,7 +180,7 @@ func _walk(delta: float, arena: Arena) -> void:
 ## The handler keeps off at his distance, backing away if he comes close, and whistles a pack in.
 func _handle(delta: float, toward: Vector2, arena: Arena) -> void:
 	var gap := toward.length() - HANDLER_DISTANCE
-	body.velocity = toward.normalized() * speed * clampf(gap, -1.0, 1.0)
+	body.velocity = facing * speed * clampf(gap, -1.0, 1.0)
 	whistle_in -= delta
 	if whistle_in <= 0.0:
 		whistle_in = WHISTLE_INTERVAL

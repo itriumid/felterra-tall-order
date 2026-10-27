@@ -9,6 +9,7 @@ const CARD_SIZE := Vector2(150, 70)
 const BOSS_NAMES := {
 	"feller_buncher": "Feller buncher", "log_loader": "Log loader", "logging_truck": "Logging truck",
 	"bulldozer": "Bulldozer", "helicopter": "Helicopter", "rat_baron": "The Rat Baron", "handler": "The Handler",
+	"tiger": "Inyiak Balang",
 }
 ## How many of a shop's rows show at once, and how many lines its chosen thing's story gets.
 const SHOP_ROWS_SHOWN := 13
@@ -485,6 +486,22 @@ func _draw_cage_markers() -> void:
 			continue
 		var edge := at.clamp(Vector2(6, 54), screen.size - Vector2(13, 13))
 		InterfaceArt.icon(self, edge.floor(), "cage", Palette.PINK)
+	# The siege: each burning house, and with no water carried, the well.
+	var burning := false
+	for roof in arena.roofs:
+		if roof.lit and not roof.out:
+			burning = true
+			_mark(to_screen * World.to_screen(roof.door, 0.25), "fire", Palette.HI_VIS)
+	if burning and cat != null and not cat.water:
+		_mark(to_screen * World.to_screen(arena.well.get_center(), 0.25), "water", Palette.CLOTH_LIGHT)
+
+
+## A mark at the edge of the screen, the way to something out of sight.
+func _mark(at: Vector2, icon: String, color: Color) -> void:
+	var screen := get_viewport_rect()
+	if screen.grow(-4).has_point(at):
+		return
+	InterfaceArt.icon(self, at.clamp(Vector2(6, 54), screen.size - Vector2(13, 13)).floor(), icon, color)
 
 
 ## A machine at work: its name and its health, across the top of the screen.
@@ -507,6 +524,10 @@ func _draw_boss() -> void:
 		return
 	if area_name.is_empty() or arena.goal_done:
 		return
+	# A grove has a name, and nothing to do but last.
+	if arena.area.is_empty():
+		PixelFont.draw(self, Vector2(floorf(screen.x / 2.0 - PixelFont.width(area_name) / 2.0), box.position.y + 3), area_name, Palette.SMOKE)
+		return
 	var title: String = arena.area.goal.title
 	var count := "%d:%02d left" % [int(goal.y - goal.x) / 60, int(goal.y - goal.x) % 60] if arena.area.goal.kind == "hold" else "%d of %d" % [goal.x, goal.y]
 	InterfaceArt.panel(self, box)
@@ -514,6 +535,9 @@ func _draw_boss() -> void:
 	PixelFont.draw(self, Vector2(box.end.x - 6 - PixelFont.width(count), box.position.y + 3), count, Palette.LEAF_LIGHT)
 	InterfaceArt.bar(self, Rect2(box.position + Vector2(6, 14), Vector2(box.size.x - 12, 5)), goal.x / maxf(goal.y, 1.0), Palette.LEAF_LIGHT)
 	PixelFont.draw(self, Vector2(floorf(screen.x / 2.0 - PixelFont.width(area_name) / 2.0), box.end.y + 2), area_name, Palette.SMOKE)
+	if arena.area.goal.kind == "fires" and cat != null:
+		var hint := "Empty it at a burning house's door" if cat.water else "Fill a bucket at the well"
+		PixelFont.draw(self, Vector2(floorf(screen.x / 2.0 - PixelFont.width(hint) / 2.0), box.end.y + 4 + PixelFont.LINE_HEIGHT), hint, Palette.CLOTH_LIGHT)
 
 
 ## What he carries and what it makes him, in two columns under the score: his weapons, gear,

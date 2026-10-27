@@ -97,14 +97,14 @@ catalog and the code agree.
   `godot --path . -- --screenshot=<path>.png --screenshot-after=4` (add `--horde=<count>`,
   `--no-spawn`, `--at=<x>,<y>`, `--gear=<0 to 2>`, `--sturdy`, `--fallen=<count>`,
   `--walk=<x>,<y>`, `--dogs=<count>`, `--chainsaw=<count>`, `--mutations=<id>,<id>`, `--dodge-every=<seconds>`,
-  `--offer=<id>,<id>,<id>`, `--support=<id>,<id>`, `--machine`, `--cage=<count>`, `--village`, `--villagers=<count>`, `--restored=<all or names>`, `--salvage=<count>`, `--cloth=<count>`, `--liberated=<ids>`, `--at-door=<building>`, `--shop`, `--intro`, `--area=<id>`, `--freed`, `--boss`, `--giant=<count>`, `--giant-from=<x>,<y>`, `--menu`, `--menu-after=<seconds>`, `--settings`, `--sound`, `--title`, `--down-after=<seconds>`, `--start=<nunchaku or handgun>`, `--no-blood`, or `--frames=<count>` for a
+  `--offer=<id>,<id>,<id>`, `--support=<id>,<id>`, `--machine`, `--cage=<count>`, `--village`, `--villagers=<count>`, `--restored=<all or names>`, `--salvage=<count>`, `--cloth=<count>`, `--liberated=<ids>`, `--at-door=<building>`, `--shop`, `--intro`, `--area=<id>` (`siege` is the village under attack), `--freed`, `--boss`, `--grove`, `--horde-kind=<kind>`, `--giant=<count>`, `--giant-from=<x>,<y>`, `--menu`, `--menu-after=<seconds>`, `--settings`, `--sound`, `--title`, `--down-after=<seconds>`, `--start=<nunchaku or handgun>`, `--no-blood`, or `--frames=<count>` for a
   sequence). It opens a window, saves one
   640 by 360 frame and quits; the window takes keyboard focus, so warn whoever is at the
   machine first. Check its log for `SCRIPT ERROR`, and check the frame itself: a frame that
   looks wrong can be the simulation going wrong, not the drawing.
 - **Measure the horde in its worst case**, crushed around a cat, with
-  `tools/benchmark_horde.gd`. A horde still on its way in costs a fraction of one that has
-  arrived.
+  `tools/benchmark_horde.gd` (add `-- --area=<id>` for a liberation area, with what stands in it).
+  A horde still on its way in costs a fraction of one that has arrived.
 - **Releases come from a signed `v*` tag** matching `config/version` in `project.godot`, and land
   as a draft that's published by hand; see `CONTRIBUTING.md`. Never tag or publish unless asked.
   Every build is made by `tools/export.sh`, locally, in the Export check and in the Release

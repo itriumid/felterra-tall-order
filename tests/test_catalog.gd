@@ -4,14 +4,17 @@ extends TestCase
 
 const CATALOG := "res://docs/catalog.md"
 ## What the catalog calls each kind of enemy in the code.
-const CREATURE_NAMES := {"rat": "Rat", "dog": "Guard dog", "rat_baron": "Rat Baron"}
+const CREATURE_NAMES := {
+	"rat": "Rat", "dog": "Guard dog", "rat_baron": "Rat Baron", "wisp": "Ember wisp", "tuyul": "Tuyul",
+	"sapling": "Charred sapling", "monkey": "Smoke monkey", "pocong": "Pocong",
+}
 const GIANT_NAMES := {"worker": "Worker", "chainsaw": "Chainsaw worker", "handler": "Handler"}
 const MACHINE_NAMES := {
 	"feller_buncher": "Feller buncher", "log_loader": "Log loader", "logging_truck": "Logging truck",
 	"bulldozer": "Bulldozer", "helicopter": "Helicopter",
 }
 ## The village's buildings by kind, as the catalog names them.
-const BUILDING_NAMES := {"home": "Home", "longhouse": "Longhouse", "smithy": "Smithy", "hut": "Huts", "board": "Map board", "watchtower": "Watchtower", "market": "Market", "healer": "Healer's hut"}
+const BUILDING_NAMES := {"home": "Home", "longhouse": "Longhouse", "smithy": "Smithy", "hut": "Huts", "board": "Map board", "watchtower": "Watchtower", "market": "Market", "healer": "Healer's hut", "shrine": "Shrine"}
 
 
 ## Each row's name, by its status: {"Built": [names], "Planned": [...], ...}.
@@ -47,14 +50,17 @@ func _in_the_game() -> Array[String]:
 		names.append(Upgrades.SUPPORT[support].name)
 	for mutation: String in Upgrades.MUTATIONS:
 		names.append(Upgrades.MUTATIONS[mutation].name)
+	names.append("Inyiak Balang")
 	var kinds := {}
-	for building in VillageMap.new().buildings:
+	for building in VillageMap.new([], ["shrine"]).buildings:
 		kinds[building.kind] = true
 	for kind: String in kinds:
 		names.append(BUILDING_NAMES.get(kind, "(building %s)" % kind))
 	for area in Areas.LIST:
 		names.append(area.name)
 	names.append("Endless")
+	for grove in Areas.GROVES:
+		names.append(grove.name)
 	for look: String in Village.LOOKS:
 		names.append(Village.LOOKS[look].name)
 	for stat: String in Upgrades.STATS:

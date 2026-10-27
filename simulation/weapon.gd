@@ -233,7 +233,8 @@ func step(delta: float, cat: Cat, arena: Arena, from: Body = null, muzzle_height
 		_swing(delta, cat, arena)
 		return false
 	var origin := cat.body if from == null else from
-	var target := arena.target_for(origin.position, reach_for(cat), cat.aim_mode)
+	# A lobbed round goes over what's in the way; a straight one needs to see past it.
+	var target := arena.target_for(origin.position, reach_for(cat), cat.aim_mode, INF if lobbed else origin.height + muzzle_height)
 	if target == null or ready_in > 0.0:
 		return false
 	ready_in += interval_for(cat)

@@ -47,6 +47,22 @@ func test_steps_stay_within_their_limits() -> void:
 	check(settings.get_value("gameplay", "aim") == aim, "aim didn't come round")
 	settings.step("gameplay", "blood", 1)
 	check(settings.get_value("gameplay", "blood") == false, "blood didn't switch off")
+	for step in 10:
+		settings.step("graphics", "fallen", -1)
+	check(settings.get_value("graphics", "fallen") == 0, "fewer than none of the fallen were left lying")
+	for step in 10:
+		settings.step("graphics", "fallen", 1)
+	check(settings.get_value("graphics", "fallen") == Arena.MOST_FALLEN, "more of the fallen were left lying than there can be")
+
+
+func test_a_count_of_the_fallen_off_the_list_goes_back_to_its_default() -> void:
+	var file := ConfigFile.new()
+	file.set_value("graphics", "fallen", 451)
+	file.save(TEST_PATH)
+	var settings := Settings.new()
+	settings.load_from(TEST_PATH)
+	DirAccess.remove_absolute(TEST_PATH)
+	check(settings.get_value("graphics", "fallen") == Settings.DEFAULTS.graphics.fallen, "451 of the fallen were kept lying")
 
 
 func test_a_volume_of_nothing_is_silence() -> void:

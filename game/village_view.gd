@@ -3,6 +3,9 @@ extends EntitiesView
 ## The village and the forest path into it: the ground, the trees along the path, the houses on
 ## their stilts, the cats walking about, and the leaves overhead. Cats are drawn the way they are
 ## in the clearing; the rest is environment, painted in code with no outlines.
+##
+## In the siege, the fight is in the village: with an arena to watch, it draws the arena's fight
+## the way the clearing does, among its own houses, trees and props, and the roofs burning.
 
 ## How high a house's floor stands on its stilts, its walls, and its roof's peak over them, in
 ## meters.
@@ -39,6 +42,9 @@ var _restoring_for := 0.0
 var _ground: ImageTexture
 var _trees: Array[Dictionary] = []
 var _leaves: Array[Dictionary] = []
+## The map carved on the board, painted for what's been freed so far.
+var _board_map: ImageTexture
+var _board_key := ""
 
 
 func _ready() -> void:
@@ -53,7 +59,9 @@ func _ready() -> void:
 	random.seed = 23
 	# The forest the path runs through: trees thick on either side of it, all the way up and down.
 	var x := 0.3
-	while x < VillageMap.VILLAGE_FROM + 0.5:
+	# The forest stops where the village starts: its last trees stand back from the village's
+	# edge, so their crowns don't hang out over its open ground.
+	while x < VillageMap.VILLAGE_FROM - 0.8:
 		# Below the path the trunks stand back from it, so their crowns stop short of it.
 		for band: Array in [[0.4, VillageMap.PATH_TOP - 0.5], [VillageMap.PATH_BOTTOM + 3.6, VillageMap.SIZE.y + 0.4]]:
 			var y: float = band[0] + random.randf_range(0.0, 0.8)
@@ -80,7 +88,7 @@ func _ready() -> void:
 		y += random.randf_range(1.2, 2.0)
 	# Leaves overhead: heavy over the forest path, open over the village.
 	for index in 140:
-		var spot := Vector2(random.randf_range(0.0, VillageMap.VILLAGE_FROM + 1.0), random.randf_range(-0.2, VillageMap.SIZE.y + 0.2))
+		var spot := Vector2(random.randf_range(0.0, VillageMap.VILLAGE_FROM - 0.6), random.randf_range(-0.2, VillageMap.SIZE.y + 0.2))
 		if spot.y > VillageMap.PATH_TOP + 0.4 and spot.y < VillageMap.PATH_BOTTOM - 0.4 and random.randf() < 0.7:
 			continue
 		var picture := EnvironmentArt.leaves(random.randi_range(12, 22), random.randi(), random.randf() < 0.6)
@@ -98,6 +106,10 @@ func _plant_tree(foot: Vector2, random: RandomNumberGenerator) -> void:
 
 func _process(delta: float) -> void:
 	if village == null:
+		return
+	if arena != null:
+		super(delta)
+		_restoring_for = maxf(_restoring_for - delta, 0.0)
 		return
 	var walkers: Array = [village.cat, village.elder, village.jogi] + village.villagers
 	var walked := {}
@@ -130,6 +142,14 @@ func restoring(building_name: String) -> void:
 
 func _draw() -> void:
 	if village == null:
+		return
+	if arena != null:
+		var started := Time.get_ticks_usec()
+		draw_texture(_ground, Vector2.ZERO)
+		_draw_all()
+		for cluster in _leaves:
+			draw_texture(cluster.texture, cluster.at)
+		draw_milliseconds = (Time.get_ticks_usec() - started) / 1000.0
 		return
 	draw_texture(_ground, Vector2.ZERO)
 	var standing: Array[Array] = []
@@ -178,6 +198,92 @@ func _draw() -> void:
 		draw_texture(cluster.texture, cluster.at)
 
 
+## The village's own things, stood up in the fight: its trees, buildings, props and flags.
+func _more_standing(standing: Array[Array]) -> void:
+	for tree in _trees:
+		standing.append([tree.y, {"more": tree}])
+	for building in village.buildings:
+		standing.append([(building.footprint as Rect2).end.y, {"more": building}])
+	for prop: Dictionary in VillageMap.PROPS:
+		if prop.kind != "mat":
+			standing.append([(prop.footprint as Rect2).end.y, {"more": {"prop": prop}}])
+	var longhouse_restored := village.buildings.any(func(building: Dictionary) -> bool: return building.name == "longhouse" and building.restored)
+	for pole: Vector2 in FLAG_POLES:
+		standing.append([pole.y, {"more": {"pole": pole, "restored": longhouse_restored}}])
+
+
+func _draw_more(thing: Variant) -> void:
+	if thing.has("texture"):
+		draw_texture(thing.texture, thing.at)
+	elif thing.has("pole"):
+		_draw_flag(thing.pole, thing.restored)
+	elif thing.has("prop"):
+		_draw_prop(thing.prop)
+		if thing.prop.kind == "well":
+			_draw_filling()
+	else:
+		_draw_building(thing)
+		_draw_roof_fire(thing)
+
+
+func _draw_underfoot() -> void:
+	for building in village.buildings:
+		if building.restored:
+			_draw_flowers(building.footprint)
+	for prop: Dictionary in VillageMap.PROPS:
+		if prop.kind == "mat":
+			_draw_mat(prop.footprint)
+
+
+## A roof the spirits have set alight: flames all along its thatch, smoke going up, and how far
+## the water's got at its door. Put out, a little steam for a while, and the thatch blackened.
+func _draw_roof_fire(building: Dictionary) -> void:
+	for roof in arena.roofs:
+		if roof.building != building.name or not roof.lit:
+			continue
+		var footprint: Rect2 = building.footprint
+		var ridge := footprint.get_center().y
+		if roof.out:
+			for index in 3:
+				var rise := fmod(_clock * 0.5 + index * 0.33, 1.0)
+				draw_rect(Rect2(World.to_screen(Vector2(footprint.position.x + footprint.size.x * (0.3 + index * 0.2), ridge), FLOOR + WALL + ROOF + rise * 0.8), Vector2(1, 2)), Palette.SMOKE)
+			continue
+		# Tongues of flame all along the thatch, each flickering at its own pace, tallest along the
+		# ridge.
+		var left := roundi(footprint.position.x * World.PIXELS_PER_METER) + 3
+		var right := roundi(footprint.end.x * World.PIXELS_PER_METER) - 3
+		var base := World.to_screen(Vector2(0.0, footprint.position.y + 0.45), FLOOR + WALL + ROOF).y
+		for x in range(left, right, 2):
+			var middle := 1.0 - absf((x - left) / float(maxi(right - left, 1)) * 2.0 - 1.0)
+			var flicker := (int(_clock * 10.0) + x * 7) % 5
+			var tall := 5 + roundi(middle * 9.0) + flicker * 2
+			draw_rect(Rect2(x, base - tall, 2, tall), Palette.HI_VIS)
+			draw_rect(Rect2(x, base - tall + 2, 2, maxi(tall - 4, 1)), Palette.BRASS_LIGHT)
+			draw_rect(Rect2(x, base - tall, 1, 1), Palette.SCARF_RED)
+			if flicker == 0:
+				draw_rect(Rect2(x, base - tall - 3, 1, 1), Palette.SPARK)
+		for index in 4:
+			var rise := fmod(_clock * 0.4 + index * 0.25, 1.0)
+			var at := World.to_screen(Vector2(footprint.position.x + footprint.size.x * (0.2 + index * 0.2), ridge), FLOOR + WALL + ROOF + 0.3 + rise * 1.4)
+			draw_rect(Rect2(at + Vector2(sin(_clock + index) * 3.0, 0), Vector2(2, 2)), Palette.SMOKE if index % 2 else Palette.GRAPHITE)
+		if roof.doused > 0.0:
+			_progress(World.to_screen(roof.door, 0.6), roof.doused, Palette.CLOTH_LIGHT)
+
+
+## A bucket filling at the well.
+func _draw_filling() -> void:
+	for cat in arena.cats:
+		var full := arena.filling(cat)
+		if full > 0.0:
+			_progress(World.to_screen(cat.body.position, 0.7), full, Palette.CLOTH_LIGHT)
+
+
+## A small bar of how far something's got, centered on a point.
+func _progress(at: Vector2, share: float, color: Color) -> void:
+	draw_rect(Rect2(at - Vector2(7, 0), Vector2(14, 3)), Palette.OUTLINE)
+	draw_rect(Rect2(at - Vector2(6, -1), Vector2(roundi(12.0 * clampf(share, 0.0, 1.0)), 1)), color)
+
+
 func _draw_building(building: Dictionary) -> void:
 	var footprint: Rect2 = building.footprint
 	var restored: bool = building.restored
@@ -190,13 +296,14 @@ func _draw_building(building: Dictionary) -> void:
 		"healer":
 			_draw_house(footprint, restored, building.paint)
 			_draw_herbs(footprint, restored)
+		"shrine": _draw_shrine(footprint)
 		_: _draw_house(footprint, restored, building.paint)
 
 
 ## Whether a building below the road has its roof lifted off: he's behind it, at its door on the
 ## road side, where it would hide him.
 func _lifted(footprint: Rect2) -> bool:
-	var at := village.cat.body.position
+	var at := village.cat.body.position if arena == null or arena.cats.is_empty() else arena.cats[0].body.position
 	return VillageMap.faces_up(footprint) and at.x > footprint.position.x - 0.3 and at.x < footprint.end.x + 0.3 \
 		and at.y < footprint.position.y and at.y > footprint.position.y - 1.6
 
@@ -572,19 +679,69 @@ func _draw_palm(footprint: Rect2) -> void:
 
 ## The map of the forest, carved on a board on two posts: green where it's free, the company's
 ## orange marks where it isn't, and the paths between.
+## Inyiak Balang's shrine: a small candi of old stone, three tiers stepping in, moss in its
+## joints, a niche where the forest's lights keep, and offerings of flowers at its foot.
+func _draw_shrine(footprint: Rect2) -> void:
+	var tier_height := 12
+	var left := roundi(footprint.position.x * World.PIXELS_PER_METER)
+	var right := roundi(footprint.end.x * World.PIXELS_PER_METER)
+	var back := roundi(footprint.position.y * World.PIXELS_PER_METER)
+	var front := roundi(footprint.end.y * World.PIXELS_PER_METER)
+	# Its shadow, down and to the right.
+	for y in range(front - 6, front + 3):
+		for x in range(left + 4, right + 6):
+			if (x + y) % 2 == 0:
+				draw_rect(Rect2(x, y, 1, 1), Palette.GROUND_SHADOW)
+	for tier in 3:
+		var inset := tier * 8
+		var lift := tier * tier_height
+		var tier_left := left + inset
+		var tier_right := right - inset
+		var tier_back := back + inset / 2
+		var tier_front := front - inset / 2
+		# Its top, lit; its face below that; its right edge in shade.
+		draw_rect(Rect2(tier_left, tier_back - lift - tier_height, tier_right - tier_left, tier_front - tier_back), Palette.SMOKE)
+		draw_rect(Rect2(tier_left, tier_front - lift - tier_height, tier_right - tier_left, tier_height), Palette.STEEL)
+		draw_rect(Rect2(tier_right - 3, tier_front - lift - tier_height, 3, tier_height), Palette.STEEL_DARK)
+		draw_rect(Rect2(tier_left, tier_front - lift - 1, tier_right - tier_left, 1), Palette.STEEL_DARK)
+		# Moss in the joints.
+		for index in 4:
+			var x := tier_left + 3 + ((index * 11 + tier * 5) % maxi(tier_right - tier_left - 6, 1))
+			draw_rect(Rect2(x, tier_front - lift - tier_height, 3, 1), Palette.MOSS)
+	# The niche, and the forest's lights in it, flickering.
+	var middle := (left + right) / 2
+	var niche_bottom := front - 4 - tier_height
+	draw_rect(Rect2(middle - 4, niche_bottom - 9, 8, 9), Palette.GRAPHITE)
+	draw_rect(Rect2(middle - 3, niche_bottom - 10, 6, 1), Palette.GRAPHITE)
+	for light in 2:
+		var flicker := (int(_clock * 6.0) + light * 3) % 3
+		draw_rect(Rect2(middle - 2 + light * 3, niche_bottom - 3 - flicker, 1, 2), [Palette.SPARK, Palette.BRASS_LIGHT, Palette.HI_VIS][flicker])
+	# Its crown: a stone finial on the top tier.
+	draw_rect(Rect2(middle - 2, back + 8 - 3 * tier_height - 6, 4, 6), Palette.STEEL)
+	draw_rect(Rect2(middle - 1, back + 8 - 3 * tier_height - 8, 2, 2), Palette.SMOKE)
+	# Offerings at its foot.
+	for index in 5:
+		var at := Vector2(left + 6 + index * 12, front + 1)
+		draw_rect(Rect2(at, Vector2(2, 2)), [Palette.PINK, Palette.BRASS_LIGHT, Palette.CREAM, Palette.SCARF_RED, Palette.PINK][index])
+		draw_rect(Rect2(at + Vector2(0, 2), Vector2(1, 1)), Palette.LEAF)
+
+
 func _draw_board(footprint: Rect2) -> void:
 	var front := footprint.end.y
 	for post_x in [footprint.position.x + 0.05, footprint.end.x - 0.12]:
 		_quad([Vector2(post_x, front), Vector2(post_x + 0.07, front)], 0.0, 1.0, Palette.BARK)
 	_quad([Vector2(footprint.position.x - 0.1, front + 0.02), Vector2(footprint.end.x + 0.1, front + 0.02)], 0.45, 1.05, Palette.BARK_LIGHT)
-	var top_left := World.to_screen(Vector2(footprint.position.x - 0.05, front + 0.02), 1.0)
+	# The map carved into it and painted: the same territories as the board's page, the cats' green,
+	# the company's orange, and bare wood where nobody's been yet.
+	var top_left := World.to_screen(Vector2(footprint.position.x - 0.1, front + 0.02), 1.05)
+	var bottom_right := World.to_screen(Vector2(footprint.end.x + 0.1, front + 0.02), 0.45)
+	var size := Vector2i(bottom_right - top_left) - Vector2i(4, 4)
 	var freed: Array = village_record.liberated if village_record != null else []
-	var ids := Areas.ids()
-	for index in ids.size():
-		var at := top_left + Vector2(4 + index * 7, 4 + (index % 2) * 6)
-		draw_rect(Rect2(at, Vector2(4, 4)), Palette.LEAF if ids[index] in freed else Palette.HI_VIS)
-		if index > 0:
-			draw_line(at + Vector2(-3, 2 - (index % 2) * 6 + 3), at + Vector2(0, 2), Palette.BARK)
+	var key := "%s|%s" % [size, freed]
+	if key != _board_key:
+		_board_key = key
+		_board_map = ImageTexture.create_from_image(ForestMap.board_picture(size, freed))
+	draw_texture(_board_map, (top_left + Vector2(2, 2)).floor())
 
 
 ## The smithy: an open shed, its roof on four posts over the forge and the anvil. Restored, the

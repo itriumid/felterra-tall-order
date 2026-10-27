@@ -14,7 +14,8 @@ extends Node
 ## --cage=<count> sets that many cages around him, the first right beside him, the rest far off;
 ## --village starts in the village instead of a fight; --intro tells the story's opening again;
 ## --area=<id> starts a liberation run in that area, --freed as if it's been freed already, --boss
-## with its goal done and its boss on the way;
+## with its goal done and its boss on the way; --grove starts Endless as cleansing, in a corrupted
+## grove; --horde-kind=<kind> makes the --horde that kind (wisp, tuyul, pocong, sapling, monkey);
 ## --villagers=<count> puts that many rescued cats in it, for this run only; --restored=<all, or
 ## names> shows those buildings brought back from ruin; --salvage=<count> and --cloth=<count> give
 ## the village that much to spend; --liberated=<ids> has those areas freed already; --at-door=<building>
@@ -58,6 +59,8 @@ const INTRO: Array = [
 ]
 ## How far he walks into a run before it starts, in meters.
 const ENTRANCE := 5.0
+## The most steps of the world one frame catches up: 60 a second down to 20 frames a second.
+const CATCH_UP := 3
 ## After a boss falls, how long before the area's free, even with nothing to tell.
 const FREED_PAUSE := 2.5
 
@@ -67,7 +70,7 @@ const THING_TABS: Array[Array] = [["weapon", "Weapons"], ["gear", "Gear"], ["sup
 ## The settings page: each row's section, setting and name, by section.
 const SETTING_ROWS: Array[Array] = [
 	["graphics", "full_screen", "Full screen"], ["graphics", "window_scale", "Window size"],
-	["graphics", "vsync", "Vertical sync"],
+	["graphics", "vsync", "Vertical sync"], ["graphics", "fallen", "Fallen left lying"],
 	["audio", "master", "Volume"], ["audio", "music", "Music"], ["audio", "effects", "Effects"],
 	["audio", "interface", "Interface"],
 	["gameplay", "aim", "Aim"], ["gameplay", "blood", "Blood"], ["gameplay", "story_waits", "Story lines"],
@@ -124,6 +127,8 @@ var _entering_pace := Cat.SPEED
 var _freeing := false
 var _free_for := 0.0
 var _dev_area := ""
+var _dev_grove := false
+var _horde_kind := "rat"
 var _dev_freed := false
 var _dev_boss := false
 var _at_door := ""
@@ -143,6 +148,9 @@ var _just_restored: Array[String] = []
 var _news: Array[Dictionary] = []
 ## Whether Jogiboy has something to give him once he's walked in.
 var _found_by_jogiboy := false
+## Whether the spirits have just beaten him back in the siege: they let the village be until he
+## next walks home.
+var _spirits_withdrew := false
 var _force_intro := false
 ## Which of the last run's numbers beat the best.
 var _beaten: Array[String] = []
@@ -160,6 +168,8 @@ var _menu_after := -1.0
 var _always_reading := false
 var _menu_choice := 0
 var _start := Arena.SIZE / 2.0
+## Whether a development flag put him somewhere, so an area doesn't move him to its own start.
+var _placed := false
 var _fallen := 0
 var _giants := 0
 var _dogs := 0
@@ -191,6 +201,7 @@ func _ready() -> void:
 		elif argument.begins_with("--at="):
 			var parts := argument.trim_prefix("--at=").split(",")
 			_start = Vector2(parts[0].to_float(), parts[1].to_float())
+			_placed = true
 		elif argument.begins_with("--fallen="):
 			_fallen = argument.trim_prefix("--fallen=").to_int()
 		elif argument.begins_with("--walk="):
@@ -226,6 +237,10 @@ func _ready() -> void:
 			village.next_run = village.next_area()
 		elif argument.begins_with("--area="):
 			_dev_area = argument.trim_prefix("--area=")
+		elif argument == "--grove":
+			_dev_grove = true
+		elif argument.begins_with("--horde-kind="):
+			_horde_kind = argument.trim_prefix("--horde-kind=")
 		elif argument == "--freed":
 			_dev_freed = true
 		elif argument == "--boss":
@@ -314,6 +329,10 @@ func _ready() -> void:
 			if _dev_boss:
 				arena.goal_done = true
 				arena._bring_in_the_boss()
+		elif _dev_grove:
+			if not village.truce():
+				village.liberated.append("siege")
+			_set_up_run("endless")
 		if _open_menu_first or _open_settings_first:
 			_open_page("pause")
 			if _open_settings_first:
@@ -384,6 +403,7 @@ func _begin(horde: int, spawning: bool) -> void:
 	_music.place = "run"
 	arena = Arena.new()
 	arena.spawning = spawning
+	arena.most_fallen = settings.get_value("graphics", "fallen")
 	cat = arena.add_cat(_start)
 	cat.aim_mode = settings.get_value("gameplay", "aim")
 	_dress()
@@ -405,7 +425,7 @@ func _begin(horde: int, spawning: bool) -> void:
 	if _sturdy:
 		cat.health = 1.0e9
 	for index in horde:
-		arena.add_creature(arena.edge_point() * 0.7 + Arena.SIZE * 0.15)
+		arena.add_creature(arena.edge_point() * 0.7 + Arena.SIZE * 0.15, _horde_kind)
 	for index in _giants:
 		arena.add_giant(_start + _giant_from + Vector2(index, index))
 	for index in _chainsaws:
@@ -448,6 +468,7 @@ func _show_title() -> void:
 
 ## Into the village, with everyone he's brought home in it, and him standing at a spot.
 func _enter_village(spot: Vector2) -> void:
+	_village_view.arena = null
 	village_map = VillageMap.new(village.cats, village.restored)
 	village_map.cat.body.position = spot
 	village_map.cat.coat = village.coat
@@ -507,6 +528,10 @@ func _arrive(from_the_forest: bool) -> void:
 			if after < Areas.ids().size() and not Areas.ids()[after] in village.liberated:
 				_news.append({"title": "On the map: " + (Areas.named(Areas.ids()[after]).name as String).to_lower(), "text": "Choose it at the board by the gate."})
 		lines.append_array(village.restored_lines(_just_restored))
+		# With the last area free, the spirits come as he walks home: the first time, Jogiboy smells
+		# them before anyone sees them.
+		if _siege_coming() and not "send_off:siege" in village.told:
+			lines.append_array(Areas.named("siege").send_off)
 		# Jogiboy, the village's finder, has dug something up while he was gone.
 		village.salvage += Village.JOGIBOY_FINDS
 		_found_by_jogiboy = true
@@ -576,6 +601,28 @@ func _arriving(delta: float) -> void:
 		if not _news.is_empty():
 			_overlay.news = _news.duplicate()
 			_open_page("news")
+		else:
+			_besiege()
+
+
+## Whether the spirits come for the village as he walks home now.
+func _siege_coming() -> bool:
+	return _ran_from_village and village.siege_due() and not _spirits_withdrew
+
+
+## Home with the last area free, and what's new read: the spirits are at the village, and the
+## siege starts where he stands. Beaten back, they let it be until he next walks home.
+func _besiege() -> void:
+	if _spirits_withdrew:
+		_spirits_withdrew = false
+		return
+	if not _siege_coming():
+		return
+	if not "send_off:siege" in village.told:
+		village.told.append("send_off:siege")
+		_keep_village()
+	_note("the spirits come for the village")
+	_start_run("siege")
 
 
 ## In the village: he walks where he's steered, and walking out on the path to the clearing
@@ -587,7 +634,7 @@ func _in_village(delta: float) -> void:
 	_village_message_for = maxf(_village_message_for - delta, 0.0)
 	var door := village_map.at_door()
 	_overlay.door = _door_prompt(door)
-	_overlay.leads_to = Areas.named(village.next_run).get("name", "Endless").to_lower() if village.next_run != "endless" else "Endless"
+	_overlay.leads_to = Areas.named(village.next_run).get("name", "Endless").to_lower() if village.next_run != "endless" else ("a sick grove" if village.truce() else "Endless")
 	_overlay.message = _village_message if _village_message_for > 0.0 else ""
 	_overlay.village_record = village
 	if Input.is_action_just_pressed("menu_choose") and not door.is_empty():
@@ -660,6 +707,7 @@ func _door_prompt(building: String) -> String:
 		"watchtower": return "Jingga's watchtower: she tells you what's out there, on the board"
 		"market": return "Kopi and Susu's market: trade"
 		"healer": return "Bu Jamu's hut: a tonic for the next run"
+		"shrine": return "Inyiak Balang's shrine: the way to a sick grove"
 	return "%s, home to two" % name.capitalize()
 
 
@@ -672,6 +720,7 @@ func _building_name(building: String) -> String:
 		"watchtower": return "the watchtower"
 		"market": return "the market"
 		"healer": return "the healer's hut"
+		"shrine": return "the shrine"
 	return "a hut"
 
 
@@ -686,9 +735,12 @@ func _use(building: String) -> void:
 	_shop_tab = 0
 	match building:
 		"board":
-			# The map opens on where the next run goes.
-			_shop_choice = maxi(Areas.ids().find(village.next_run), 0) if village.next_run != "endless" else Areas.ids().size()
 			_open_page("board")
+			# The map opens on where the next run goes.
+			var rows := _shop_rows()
+			for index in rows.size():
+				if rows[index].id == village.next_run:
+					_shop_choice = index
 		"home":
 			_open_page("pack")
 		"smithy":
@@ -703,6 +755,11 @@ func _use(building: String) -> void:
 			_open_page("healer")
 		"watchtower":
 			_say("Jingga: \"Everything I see, I've put on the board by the gate.\"")
+		"shrine":
+			village.next_run = "endless"
+			_keep_village()
+			_audio.interface("menu_choose")
+			_say("The way to a sick grove is open: out through the gate.")
 
 
 func _say(line: String) -> void:
@@ -724,6 +781,9 @@ func _shop_rows() -> Array[Dictionary]:
 		for area: Dictionary in Areas.LIST:
 			var found := village.found(area.id)
 			var free: bool = area.id in village.liberated
+			# The siege isn't somewhere in the forest: it comes to the village, and isn't on the map.
+			if area.get("in_the_village", false):
+				continue
 			var state: String = "free" if free else ("held by the company: " + area.goal.title.to_lower() if found else "not found yet")
 			# From the watchtower, Jingga tells what's waiting there, and how to beat it.
 			var told := ""
@@ -735,7 +795,9 @@ func _shop_rows() -> Array[Dictionary]:
 				var caged := Village.caged_in(area.id)
 				smelled = "Jogiboy smells %d caged %s here" % [caged, "cat" if caged == 1 else "cats"] if caged > 0 else "Jogiboy smells no cages here"
 			rows.append({"id": area.id, "name": area.name if found else "Somewhere in the mist", "state": state, "can": found, "found": found, "free": free, "boss": told, "smelled": smelled})
-		rows.append({"id": "endless", "name": "Endless", "state": "a fresh clearing every run", "can": true, "found": true, "free": false})
+		# Once there's peace with the forest, Endless is through the shrine.
+		if not village.truce():
+			rows.append({"id": "endless", "name": "Endless", "state": "a fresh clearing every run", "can": true, "found": true, "free": false})
 	elif _page in ["forge", "pack"]:
 		var kind: String = _tabs()[_shop_tab][0]
 		for id in Village.everything():
@@ -975,7 +1037,7 @@ func _process(delta: float) -> void:
 	if _freeing:
 		_step_world(delta)
 		_freeing_step(delta)
-		_camera.position = World.to_screen(cat.body.position)
+		_camera.position = _run_camera()
 		_take_screenshot(delta)
 		return
 	_read_controls()
@@ -984,7 +1046,7 @@ func _process(delta: float) -> void:
 		_open_page("pause")
 	_overlay.choosing = _start_weapon.is_empty()
 	if _start_weapon.is_empty():
-		_camera.position = World.to_screen(cat.body.position)
+		_camera.position = _run_camera()
 		_take_screenshot(delta)
 		return
 	if _down_after >= 0.0 and arena.time >= _down_after:
@@ -992,7 +1054,7 @@ func _process(delta: float) -> void:
 		cat.health = 0.0
 	_step_world(delta)
 	# On his spot on the ground, not his height: a hop or a throw moves him in the frame.
-	_camera.position = World.to_screen(cat.body.position)
+	_camera.position = _run_camera()
 	_muzzle_light.position = World.to_screen(cat.body.position, Cat.GUN_HEIGHT) + cat.aim * 10.0
 	_muzzle_light.energy = 1.6 * _entities.flash.get(cat, 0.0)
 	if arena.liberated and cat.alive():
@@ -1004,9 +1066,10 @@ func _process(delta: float) -> void:
 
 
 ## Steps the simulation to catch up with the time passed, and hands its hits to the blood and
-## the sound.
+## the sound. Never more than CATCH_UP steps for one frame: a machine too slow to keep up would
+## only fall further behind, each frame slower than the last, so the world slows a little instead.
 func _step_world(delta: float) -> void:
-	_behind = minf(_behind + delta, Arena.STEP * 5.0)
+	_behind = minf(_behind + delta, Arena.STEP * CATCH_UP)
 	var started := Time.get_ticks_usec()
 	var steps := 0
 	while _behind >= Arena.STEP:
@@ -1016,6 +1079,8 @@ func _step_world(delta: float) -> void:
 	var events: Array[Dictionary] = arena.events.duplicate()
 	arena.events.clear()
 	_entities.take_events(events)
+	if _village_view.arena != null:
+		_village_view.take_events(events)
 	_audio.take_events(events)
 	if steps > 0:
 		_overlay.step_milliseconds = (Time.get_ticks_usec() - started) / 1000.0 / steps
@@ -1066,30 +1131,49 @@ func _start_run(run_kind: String) -> void:
 func _enter() -> void:
 	_entering = true
 	_entering_to = cat.body.position
-	cat.body.position = _entering_to - Vector2(ENTRANCE, 0.0)
-	cat.facing = Vector2.RIGHT
+	# From the way he came: out of the forest on the left, or for the siege, back in at the gate.
+	var from: Vector2 = Areas.named(_run_kind).get("enters_from", Vector2.LEFT)
+	cat.body.position = _entering_to + from * ENTRANCE
+	cat.facing = -from
 	if _cutscene == null:
 		_cutscene = Cutscene.new([], settings.get_value("gameplay", "story_waits"))
 	_entering_pace = Cat.SPEED
 	if not _cutscene.lines.is_empty():
 		_entering_pace = minf(Cat.SPEED, ENTRANCE / _cutscene.length())
 	_overlay.cutscene = true
-	_camera.position = World.to_screen(cat.body.position)
+	_camera.position = _run_camera()
 
 
 func _set_up_run(run_kind: String) -> void:
 	_run_kind = run_kind
 	_freeing = false
+	_fight_in_the_village(false)
 	if run_kind == "endless" or run_kind.is_empty():
 		var fresh := randi()
 		arena.random.seed = fresh
-		_ground.paint("clearing", fresh, false)
 		_overlay.area_name = ""
+		# Once there's peace with the forest, Endless is cleansing a grove still sick from the
+		# company, laid out fresh from the run's seed.
+		if run_kind == "endless" and village.truce():
+			arena.begin_grove(fresh)
+			var grove := Areas.grove(fresh)
+			if not _placed:
+				cat.body.position = grove.start
+			_ground.paint(grove.ground, fresh, false)
+			_overlay.area_name = grove.name
+			return
+		_ground.paint("clearing", fresh, false)
 		return
 	var area := Areas.named(run_kind)
 	var goal_kept: bool = run_kind in village.goals_done and not run_kind in village.liberated
 	arena.begin_area(run_kind, goal_kept)
-	_ground.paint(area.ground, _area_seed(run_kind), run_kind in village.liberated)
+	# He comes in where the area has him stand, unless he's been put somewhere to try something.
+	if not _placed:
+		cat.body.position = area.get("start", arena.size / 2.0)
+	if area.get("in_the_village", false):
+		_fight_in_the_village(true)
+	else:
+		_ground.paint(area.ground, _area_seed(run_kind), run_kind in village.liberated)
 	_entities._freed_areas = village.liberated
 	_overlay.area_name = area.name
 	# The first time in, its story; back in with its goal done before, a word on what's left.
@@ -1102,6 +1186,31 @@ func _set_up_run(run_kind: String) -> void:
 		_cutscene = Cutscene.new(lines, settings.get_value("gameplay", "story_waits"))
 		_briefing = true
 		_music.place = "intro"
+
+
+## The siege is fought in the village itself: the village's own view draws the fight, among its
+## houses, and the clearing's views are put away; or back again after.
+func _fight_in_the_village(fighting: bool) -> void:
+	_village_view.arena = arena if fighting else null
+	if not fighting:
+		return
+	village_map = VillageMap.new([], village.restored)
+	_village_view.village = village_map
+	_village_view.village_record = village
+	_village_view.banners = village.banners
+	_village_layer.visible = true
+	_arena_layer.visible = false
+	_shade.color = VILLAGE_SHADE
+
+
+## Where the view looks during a run: at him, but in the village, never past its edges.
+func _run_camera() -> Vector2:
+	var at := World.to_screen(cat.body.position)
+	if _village_view.arena == null:
+		return at
+	var screen := get_viewport().get_visible_rect().size
+	var size := VillageMap.SIZE * World.PIXELS_PER_METER
+	return Vector2(clampf(at.x, screen.x / 2.0, size.x - screen.x / 2.0), clampf(at.y, screen.y / 2.0, size.y - screen.y / 2.0))
 
 
 ## Each area's ground is painted from its own seed, so it's the same place every time.
@@ -1128,7 +1237,7 @@ func _briefed(delta: float) -> void:
 		else:
 			cat.body.velocity = toward.normalized() * _entering_pace
 			cat.body.position += cat.body.velocity * delta
-	_camera.position = World.to_screen(cat.body.position)
+	_camera.position = _run_camera()
 	if (_cutscene.done() and arrived) or skip:
 		if _briefing and _run_kind in Areas.ids() and not ("intro:" + _run_kind) in village.told:
 			village.told.append("intro:" + _run_kind)
@@ -1150,7 +1259,7 @@ func _begin_freeing() -> void:
 	var area := Areas.named(_run_kind)
 	var first_time := not ("outro:" + _run_kind) in village.told
 	var fell_at: Vector2 = arena.boss.body.position if arena.boss != null else cat.body.position
-	if not _run_kind in village.liberated:
+	if not _run_kind in village.liberated and not area.get("in_the_village", false):
 		_ground.heal(fell_at, area.ground, _area_seed(_run_kind))
 	# What freeing it teaches him is taught at home, by the cat who shows him how.
 	_cutscene = Cutscene.new(area.after if first_time else [], settings.get_value("gameplay", "story_waits"))
@@ -1222,6 +1331,7 @@ func _bring_home() -> void:
 ## Home from a run: he walks back into the village on the path from the clearing.
 func _go_home() -> void:
 	_note("home to the village")
+	_spirits_withdrew = _run_kind == "siege" and not arena.liberated
 	_enter_village(Vector2(VillageMap.SIZE.x - 0.5, VillageMap.RETURN_SPOT.y))
 	_arrive(false)
 
@@ -1233,8 +1343,9 @@ func _take_screenshot(delta: float) -> void:
 	if _screenshot_after <= 0.0:
 		if _frames_saved == 0:
 			print("sounds played: ", _audio.played)
-			print("%d frames a second, %.2f ms a step, %d in the horde" % [
-				Engine.get_frames_per_second(), _overlay.step_milliseconds, arena.creatures.size()])
+			print("%d frames a second, %.2f ms a step, %.2f ms drawing the fight, %.2f ms a frame's processing, %d in the horde, %d fallen" % [
+				Engine.get_frames_per_second(), _overlay.step_milliseconds, _entities.draw_milliseconds,
+				Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, arena.creatures.size(), arena.fallen.size()])
 		_frames_saved += 1
 		var path := _screenshot_path if _frames == 1 else _screenshot_path.replace(".png", "_%d.png" % _frames_saved)
 		get_viewport().get_texture().get_image().save_png(path)
@@ -1275,6 +1386,8 @@ func _read_page() -> void:
 			_audio.interface("menu_choose")
 			_overlay.news.clear()
 			_close_page()
+			if _place == "village":
+				_besiege()
 			return
 		_overlay.page = "news"
 		return
@@ -1407,6 +1520,8 @@ func _settings_changed() -> void:
 	if cat != null:
 		cat.aim_mode = settings.get_value("gameplay", "aim")
 	_entities.blood = settings.get_value("gameplay", "blood")
+	if arena != null:
+		arena.most_fallen = settings.get_value("graphics", "fallen")
 	if _keeping_settings:
 		settings.save()
 
@@ -1436,6 +1551,7 @@ func _setting_lines() -> Array[Dictionary]:
 			var value: Variant = settings.get_value(row[0], row[1])
 			match row[1]:
 				"window_scale": line.value = "%d by %d" % [640 * int(value), 360 * int(value)]
+				"fallen": line.value = {0: "None: they crumble away", 100: "A few: 100", 300: "Some: 300", 600: "All of them: 600"}[value]
 				"aim": line.value = {"nearest": "Nearest", "toughest": "Toughest first", "crowd": "Thickest crowd"}[value]
 				"blood": line.value = "On" if value else "Off: dust and fur instead"
 				"story_waits": line.value = "Wait for Enter" if value else "Move on by themselves"

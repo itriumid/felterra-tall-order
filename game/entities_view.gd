@@ -42,6 +42,17 @@ var _clock := 0.0
 var _support_rounds := {}
 ## How far each cat and creature has walked, and where it was last frame.
 var _walked := {}
+## Each obstacle's picture, drawn once, as {texture, at}, for the arena they were drawn for.
+## How long the last frame's drawing took to set out, in milliseconds, for the numbers on screen.
+var draw_milliseconds := 0.0
+## A dog's pictures, in stride order, for its sheet.
+var _dog_arts: Array[String] = []
+var _obstacle_pictures := {}
+## The spirits' pictures, on one sheet, and where each kind's first frame is on it.
+var _spirit_arts: Array[String] = []
+var _spirit_first := {}
+var _spirit_sheet := {}
+var _pictured_for: Arena
 var _last := {}
 
 
@@ -96,21 +107,34 @@ func _frame(walker: Object, stride: float) -> int:
 
 
 func _draw() -> void:
+	var started := Time.get_ticks_usec()
+	_draw_all()
+	draw_milliseconds = (Time.get_ticks_usec() - started) / 1000.0
+
+
+func _draw_all() -> void:
 	var standing: Array[Array] = []
 	for creature in arena.creatures:
 		standing.append([creature.body.position.y, creature])
+	# The fallen lying still are flat on the ground, under everything standing: drawn first, all
+	# together, not sorted in among the rest, so a field of them costs little. Only those still
+	# flying are sorted in.
+	var lying: Array = []
 	for body in arena.fallen:
-		standing.append([body.position.y, body])
+		if body.resting():
+			lying.append(body)
+		else:
+			standing.append([body.position.y, body])
 	for cat in arena.cats:
 		standing.append([cat.body.position.y, cat])
-	for remains in arena.fading:
-		standing.append([remains.body.position.y, remains])
 	for giant in arena.giants:
 		standing.append([giant.body.position.y, giant])
 	for machine in arena.machines:
 		standing.append([machine.body.position.y, machine])
 	for structure in arena.structures:
 		standing.append([structure.body.position.y, structure])
+	for obstacle in arena.obstacles:
+		standing.append([obstacle.center.y if obstacle.is_round() else obstacle.rect.end.y, obstacle])
 	for lever in arena.levers:
 		standing.append([lever.position.y, {"lever": lever}])
 	for rolling in arena.logs:
@@ -123,6 +147,7 @@ func _draw() -> void:
 			var support: Support = cat.supports[slot]
 			if support.deployed:
 				standing.append([support.body.position.y, support])
+	_more_standing(standing)
 	standing.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	for stain in _stains:
 		draw_rect(Rect2(World.to_screen(stain.position), Vector2.ONE), Palette.BLOOD if stain.age < STAIN_DRIES else Palette.BLOOD_DRY)
@@ -136,14 +161,23 @@ func _draw() -> void:
 			for mine in mines.mines:
 				var art := Sprites.MINE if mine.armed_in <= 0.0 else Sprites.MINE_ARMING
 				draw_texture(Sprites.lit(art), World.to_screen(mine.body.position) - Vector2(4, 3))
+	_draw_underfoot()
 	_draw_ground_hazards()
+	for remains in arena.fading:
+		_draw_remains(remains)
+	for body: Body in lying:
+		_draw_lying(body)
 	_draw_props()
 	for entry in standing:
 		_draw_shadow(entry[1])
 	for entry in standing:
 		var thing: Variant = entry[1]
-		if thing is Cat:
+		if thing is Dictionary and thing.has("more"):
+			_draw_more(thing.more)
+		elif thing is Cat:
 			_draw_cat(thing)
+			if thing.water:
+				_draw_bucket(thing)
 		elif thing is Support:
 			_draw_support(thing)
 		elif thing is LogLoader:
@@ -160,6 +194,8 @@ func _draw() -> void:
 			_draw_cage(thing)
 		elif thing is Structure:
 			_draw_structure(thing)
+		elif thing is Obstacle:
+			_draw_obstacle(thing, entry[0])
 		elif thing is Dictionary and thing.has("lever"):
 			_draw_lever(thing.lever)
 		elif thing is Dictionary and thing.has("rolling"):
@@ -170,6 +206,8 @@ func _draw() -> void:
 			var art: String = Sprites.SALVAGE[absi(hash(thing)) % Sprites.SALVAGE.size()]
 			var texture := Sprites.lit(art)
 			draw_texture(texture, World.to_screen(thing.body.position, thing.body.height) - Vector2(texture.get_width() / 2, texture.get_height() - 1))
+		elif thing is Guardian:
+			_draw_guardian(thing)
 		elif thing is Giant:
 			_draw_giant(thing)
 			if thing.afflictions.has("burn"):
@@ -184,6 +222,8 @@ func _draw() -> void:
 				draw_texture(texture, World.to_screen(thing.body.position, thing.body.height) - feet)
 			elif thing.kind == "dog":
 				_draw_dog(thing.body, _frame(thing, DOG_STRIDE), thing.tripped(), thing.state == Creature.State.CROUCHING)
+			elif SpiritArt.HORDE.has(thing.kind):
+				_draw_spirit(thing)
 			else:
 				_draw_rat(thing.body, _frame(thing, RAT_STRIDE), thing.tripped())
 			if thing.afflictions.has("burn"):
@@ -191,17 +231,12 @@ func _draw() -> void:
 			elif thing.afflictions.has("poison"):
 				draw_rect(Rect2(World.to_screen(thing.body.position, thing.body.tall + 0.12), Vector2(1, 1)), Palette.LEAF_LIGHT)
 		elif thing is Body:
-			if thing.kind == "rat_baron":
-				var texture := Sprites.lit(Sprites.RAT_BARON[0], false, true)
-				draw_texture(texture, World.to_screen(thing.position, thing.height) - Sprites.RAT_BARON_FEET)
-			elif thing.kind == "dog":
-				_draw_dog(thing, 1, true, false)
-			else:
-				_draw_rat(thing, 0, true)
+			_draw_lying(thing)
 		else:
 			_draw_remains(entry[1])
 	for speck in _dust:
 		draw_rect(Rect2(World.to_screen(speck.position, speck.height), Vector2.ONE), Palette.SMOKE)
+	_draw_smoke()
 	for droplet in _droplets:
 		draw_rect(Rect2(World.to_screen(droplet.position, droplet.height), Vector2.ONE), droplet.color)
 	for shot in arena.shots:
@@ -222,8 +257,50 @@ func _draw() -> void:
 			draw_line(World.to_screen(shot.previous, shot.previous_height), World.to_screen(shot.position, shot.height), Palette.SPARK)
 
 
+## What a view drawing a fight somewhere else stands up in it, as [depth, {more: thing}], drawn
+## in turn by _draw_more; and what it lays flat on the ground first. The clearing has none.
+func _more_standing(_standing: Array[Array]) -> void:
+	pass
+
+
+func _draw_more(_thing: Variant) -> void:
+	pass
+
+
+func _draw_underfoot() -> void:
+	pass
+
+
+## A bucket of water from the well, carried at his side.
+func _draw_bucket(cat: Cat) -> void:
+	var side := 5.0 if cat.facing.x >= 0.0 else -8.0
+	var at := World.to_screen(cat.body.position, cat.body.height + 0.12) + Vector2(side, 0)
+	draw_rect(Rect2(at, Vector2(4, 4)), Palette.OUTLINE)
+	draw_rect(Rect2(at + Vector2(1, 1), Vector2(2, 2)), Palette.BARK_LIGHT)
+	draw_rect(Rect2(at + Vector2(1, 1), Vector2(2, 1)), Palette.CLOTH_LIGHT)
+	draw_rect(Rect2(at + Vector2(0, -2), Vector2(4, 1)), Palette.STEEL_DARK)
+
+
+## Smoke hanging where the monkeys landed: a dithered cloud, thinning as it goes.
+func _draw_smoke() -> void:
+	for puff in arena.smoke:
+		var center := World.to_screen(puff.position, 0.25)
+		var radius := Arena.SMOKE_RADIUS * World.PIXELS_PER_METER
+		var thick: float = clampf(puff.left / Arena.SMOKE_TIME, 0.0, 1.0)
+		for y in range(-int(radius * 0.6), int(radius * 0.6), 2):
+			for x in range(-int(radius), int(radius), 2):
+				var share := Vector2(x / radius, y / (radius * 0.6)).length()
+				if share > 1.0 or fmod(absf(x * 7.0 + y * 13.0 + puff.position.x * 31.0), 10.0) > thick * 10.0 * (1.0 - share * 0.5):
+					continue
+				draw_rect(Rect2(center + Vector2(x, y), Vector2(2, 2)), Palette.SMOKE if (x + y) % 4 else Palette.GRAY_FUR)
+
+
 func _draw_shadow(thing: Variant) -> void:
-	if thing is Dictionary:
+	# What stands for good has its shadow drawn into its picture.
+	if thing is Dictionary or thing is Obstacle:
+		return
+	if thing is Guardian:
+		_draw_guardian_shadow(thing)
 		return
 	if thing is Giant:
 		_draw_giant_shadow(thing)
@@ -275,28 +352,114 @@ func _draw_net(center: Vector2, radius: int, lying: bool) -> void:
 		draw_rect(Rect2(at - Vector2(1, 1), Vector2(2, 2)), Palette.STEEL_DARK)
 
 
+## One of the restless spirits, off one sheet for all of them: a wisp flickering, the rest
+## stepping as they go. A pocong knocked flat lies on its back; a tuyul carrying salvage holds it
+## over his head.
+func _draw_spirit(creature: Creature) -> void:
+	if _spirit_sheet.is_empty():
+		for kind: String in SpiritArt.HORDE:
+			_spirit_first[kind] = _spirit_arts.size()
+			for art: String in SpiritArt.HORDE[kind]:
+				_spirit_arts.append(art)
+		_spirit_sheet = Sprites.sheet(_spirit_arts)
+	var kind := creature.kind
+	var frames: int = SpiritArt.HORDE[kind].size()
+	var frame := 0
+	if kind == "wisp":
+		frame = (int(_clock * 8.0) + absi(hash(creature)) % 2) % frames
+	elif frames > 1:
+		frame = _frame(creature, RAT_STRIDE * 1.5) % frames
+	var left := creature.body.velocity.x < 0.0 if kind != "tuyul" else false
+	var flat := creature.tripped()
+	var region: Rect2 = _spirit_sheet.regions["%d|%s|%s" % [_spirit_first[kind] + frame, left, flat]]
+	var feet: Vector2 = SpiritArt.FEET[kind]
+	if left:
+		feet.x = region.size.x - 1 - feet.x
+	if flat:
+		feet.y = region.size.y - 1 - feet.y
+	var corner := World.to_screen(creature.body.position, creature.body.height) - feet
+	draw_texture_rect_region(_spirit_sheet.texture, Rect2(corner, region.size), region)
+	if creature.carrying > 0:
+		var texture := Sprites.lit(Sprites.SALVAGE[0])
+		draw_texture(texture, corner + Vector2(region.size.x / 2 - 2, -texture.get_height()))
+
+
+## Inyiak Balang: walking, crouched, in the air, or lying down, a picture each, facing the way it
+## goes. With a paw raised for a swipe, it's lifted off the ground a little at the front.
+func _draw_guardian(guardian: Guardian) -> void:
+	var pose := "walk_%d" % (int(_walked.get(guardian, 0.0) / 0.9) % 2)
+	match guardian.move:
+		Guardian.Move.CROUCHING, Guardian.Move.GATHERING: pose = "crouch"
+		Guardian.Move.POUNCING: pose = "pounce"
+		Guardian.Move.LYING: pose = "lying"
+		Guardian.Move.ROARING, Guardian.Move.RAISING, Guardian.Move.SWIPING: pose = "walk_0"
+	var left := guardian.facing.x < 0.0
+	var texture := Sprites.lit(SpiritArt.TIGER[pose], left)
+	var feet := SpiritArt.TIGER_FEET
+	if left:
+		feet.x = texture.get_width() - 1 - feet.x
+	var rearing := 2.0 if guardian.move in [Guardian.Move.RAISING, Guardian.Move.ROARING] else 0.0
+	draw_texture(texture, World.to_screen(guardian.body.position, guardian.body.height) - feet - Vector2(0, rearing))
+	if guardian.move == Guardian.Move.ROARING:
+		# The roar going out: rings widening off it.
+		var ring := 1.0 - guardian.move_for / Guardian.ROAR_TIME
+		draw_arc(World.to_screen(guardian.body.position, 0.6), 10.0 + ring * Guardian.ROAR_REACH * World.PIXELS_PER_METER * 0.5, 0.0, TAU, 32, Palette.CREAM, 1.0)
+	if guardian.afflictions.has("burn"):
+		_draw_flames(guardian.body.position, 0.8, 8)
+
+
+## Its shadow, wide and low, smaller the higher it leaps; and the warnings: where a pounce will land,
+## marked while it crouches, and the sweep of a raised paw.
+func _draw_guardian_shadow(guardian: Guardian) -> void:
+	var width := roundi(48.0 * clampf(1.0 - guardian.body.height * 0.3, 0.5, 1.0))
+	var center := World.to_screen(guardian.body.position)
+	draw_rect(Rect2(center + Vector2(-width / 2 + 2, -2), Vector2(width - 4, 5)), Palette.GROUND_SHADOW)
+	draw_rect(Rect2(center + Vector2(-width / 2, -1), Vector2(width, 3)), Palette.GROUND_SHADOW)
+	if guardian.move == Guardian.Move.CROUCHING or guardian.move == Guardian.Move.POUNCING:
+		var landing := World.to_screen(guardian.pounce_to)
+		var radius := Guardian.POUNCE_CRUSH * World.PIXELS_PER_METER
+		var angle := 0.0
+		while angle < TAU:
+			draw_rect(Rect2(landing + Vector2(cos(angle) * radius, sin(angle) * radius * 0.5), Vector2.ONE), Palette.HI_VIS)
+			angle += 0.12
+	if guardian.move == Guardian.Move.RAISING:
+		var angle := guardian.sweep_center - Guardian.SWIPE_ARC * 0.5
+		while angle <= guardian.sweep_center + Guardian.SWIPE_ARC * 0.5:
+			for reach in [Guardian.SWIPE_REACH, Guardian.SWIPE_REACH * 0.6]:
+				draw_rect(Rect2(World.to_screen(guardian.body.position + Vector2.from_angle(angle) * reach), Vector2.ONE), Palette.HI_VIS)
+			angle += 0.07
+
+
 func _draw_rat(body: Body, frame: int, fallen: bool) -> void:
 	var facing_left := body.velocity.x < 0.0
-	# The fallen lie belly up.
-	var texture := Sprites.lit(Sprites.RAT_STRIDES[frame], facing_left, fallen)
-	draw_texture(texture, _rat_corner(body, texture, facing_left) - Vector2(0, 0 if fallen else Sprites.RAT_LIFT[frame]))
+	# The fallen lie belly up. Every rat comes off the one sheet, so the horde is drawn together.
+	var sheet := Sprites.sheet(Sprites.RAT_STRIDES)
+	var region: Rect2 = sheet.regions["%d|%s|%s" % [frame, facing_left, fallen]]
+	var feet := Sprites.RAT_FEET
+	if facing_left:
+		feet.x = region.size.x - 1 - feet.x
+	var corner := World.to_screen(body.position, body.height) - feet - Vector2(0, 0 if fallen else Sprites.RAT_LIFT[frame])
+	draw_texture_rect_region(sheet.texture, Rect2(corner, region.size), region)
 
 
 ## A dog: galloping, or bunched low before a lunge, or fallen on its back.
 func _draw_dog(body: Body, frame: int, fallen: bool, crouching: bool) -> void:
 	var facing_left := body.velocity.x < 0.0
-	var art := Sprites.dog_art(2 if crouching else frame)
-	var texture := Sprites.lit(art, facing_left, fallen)
+	if _dog_arts.is_empty():
+		for index in 4:
+			_dog_arts.append(Sprites.dog_art(index))
+	var sheet := Sprites.sheet(_dog_arts)
+	var region: Rect2 = sheet.regions["%d|%s|%s" % [(2 if crouching else frame) % 4, facing_left, fallen]]
 	var feet := Sprites.DOG_FEET
 	if facing_left:
-		feet.x = texture.get_width() - 1 - feet.x
+		feet.x = region.size.x - 1 - feet.x
 	var corner := World.to_screen(body.position, body.height) - feet
 	if crouching:
 		# Down on its haunches: the warning before the leap.
 		corner.y += 4
 	elif not fallen:
 		corner.y -= Sprites.DOG_LIFT[frame]
-	draw_texture(texture, corner)
+	draw_texture_rect_region(sheet.texture, Rect2(corner, region.size), region)
 
 
 ## Remains crumbling away, a few more pixels gone each stage.
@@ -721,6 +884,39 @@ func _draw_props() -> void:
 				draw_colored_polygon(PackedVector2Array([middle, middle + Vector2(5, -3), middle + Vector2(5, 3)]), Palette.SCARF_RED)
 
 
+## One of the fallen, on its side.
+func _draw_lying(body: Body) -> void:
+	if body.kind == "rat_baron":
+		var texture := Sprites.lit(Sprites.RAT_BARON[0], false, true)
+		draw_texture(texture, World.to_screen(body.position, body.height) - Sprites.RAT_BARON_FEET)
+	elif body.kind == "dog":
+		_draw_dog(body, 1, true, false)
+	else:
+		_draw_rat(body, 0, true)
+
+
+## Something standing in the area. One tall enough to hide him, when he's behind it, lets him show
+## through.
+func _draw_obstacle(obstacle: Obstacle, depth: float) -> void:
+	# What's drawn by something else: the village's walls, a river's edge.
+	if obstacle.kind in ["wall", "water"]:
+		return
+	if _pictured_for != arena:
+		_obstacle_pictures.clear()
+		_pictured_for = arena
+	if not _obstacle_pictures.has(obstacle):
+		var picture := ObstacleArt.picture(obstacle, _obstacle_pictures.size() * 7 + 39)
+		_obstacle_pictures[obstacle] = {"texture": ImageTexture.create_from_image(picture.image), "at": picture.at}
+	var drawn: Dictionary = _obstacle_pictures[obstacle]
+	var tint := Color.WHITE
+	if obstacle.tall >= 1.0 and obstacle.kind != "tree":
+		var covers := Rect2(drawn.at, drawn.texture.get_size())
+		for cat in arena.cats:
+			if cat.body.position.y < depth and covers.has_point(World.to_screen(cat.body.position, 0.2)):
+				tint = Color(1.0, 1.0, 1.0, 0.45)
+	draw_texture(drawn.texture, drawn.at, tint)
+
+
 ## A structure of an area's goal: its art, a saw's blade spinning over its bench, and how much of
 ## it is left once it's hit.
 func _draw_structure(structure: Structure) -> void:
@@ -988,7 +1184,34 @@ func _draw_smear(weapon: Weapon, paw: Vector2) -> void:
 ## dust and fur, which leave nothing.
 func _bleed(delta: float) -> void:
 	for event in _pending:
-		if event.by in ["lunge", "rev", "cut", "leap", "poison", "fire", "trampled"]:
+		if event.by in ["lunge", "rev", "cut", "leap", "poison", "fire", "trampled", "crouch", "pounce", "swipe", "roar", "roof_alight", "stolen", "escaped", "bucket"]:
+			continue
+		if event.by in ["smoke", "doused"] or Creature.KINDS.has(event.get("kind", "")) and Creature.KINDS[event.kind].get("spirit", false) and event.by != "bite":
+			# A spirit hit throws embers and ash, never blood; gone, it goes out in a puff. Smoke
+			# where a monkey lands, and steam off a fire put out.
+			var color: Color = Palette.SPARK
+			var count := 3
+			if event.by == "smoke" or event.by == "doused":
+				color = Palette.SMOKE if event.by == "smoke" else Palette.OFF_WHITE
+				count = 24
+			elif event.killed:
+				count = 10
+			for index in count:
+				_droplets.append({
+					"position": event.position + Vector2.from_angle(randf() * TAU) * randf() * event.get("radius", 0.1) * 0.5,
+					"height": maxf(event.height, 0.05), "rise": randf_range(0.6, 1.8),
+					"velocity": Vector2.from_angle(randf() * TAU) * randf_range(0.2, 0.9),
+					"color": color if index % 3 else (Palette.HI_VIS if color == Palette.SPARK else Palette.SMOKE), "stains": false,
+				})
+			continue
+		if event.by == "thud":
+			# A round into something standing: a few chips off it.
+			for index in 3:
+				_droplets.append({
+					"position": event.position, "height": event.height, "rise": randf_range(0.4, 1.0),
+					"velocity": -event.direction * randf_range(0.3, 0.9) + Vector2(randf_range(-0.3, 0.3), randf_range(-0.3, 0.3)),
+					"color": Palette.SMOKE if index % 2 else Palette.BARK_LIGHT, "stains": false,
+				})
 			continue
 		if event.by == "snap" or event.by == "ignite":
 			# A bamboo spear splitting, or oil catching: splinters or sparks thrown up.

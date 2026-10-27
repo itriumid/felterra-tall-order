@@ -39,9 +39,18 @@ cats seriously. Stopping them is a tall order.
 and land clearing without preaching about it. The humans are a company with a schedule, not
 cartoon villains.
 
-**No magic for the cats.** Everything they fight with could be built. Folklore spirits are kept
-in reserve as a possible later enemy faction, where being the first supernatural thing in the
-game is the point.
+**No magic for the cats.** Everything they fight with could be built. The forest's folklore
+spirits are the second faction, after Liberation, and being the first supernatural thing in the
+game is the point. If the cats ever have magic, it's the spirits' gift, never their own.
+
+**After Liberation, the spirits.** After a quiet, the forest's spirits, the penunggu, come for the
+village: wherever the forest burned, they found cats, so they think the cats burned it. The
+siege is a run in the village itself: the spirits set the roofs alight, he puts the fires out
+with water from the well, and then Inyiak Balang comes, the forest's grandfather, a great tiger.
+Beaten, it lies down and listens. The Elder shows it the company's cans, stamped MBG, and it
+knows the smell: Makmur Bakar burned the groves. There's peace after that, and Inyiak Balang
+raises a shrine by the gate. Endless goes through it from then on, cleansing groves still sick
+from the company, with the spirits on the cats' side.
 
 ## Factions
 
@@ -85,12 +94,22 @@ double; anywhere else, the steel shrugs off most of a hit. That's the fight: dod
 punish the joint. Too close for its boom, it backs off. Broken, its engine dies, the boom comes
 down, and it stays where it stopped, a wreck to fight around.
 
+The **spirits** are the second faction (each is in [`catalog.md`](catalog.md)). A spirit leaves
+nothing lying when it falls, and nothing that bleeds: it goes out in embers.
+
+| Role | Who |
+|---|---|
+| **The horde** | Ember wisps floating off the burned peat, tuyul who run off with salvage, pocong who can only hop, smoke monkeys who leap and hide in their own smoke |
+| **Heavies** | Charred saplings, walking on their roots in groups |
+| **The guardian** | Inyiak Balang, the great tiger: its pounce lands where he stood (the spot is marked), its paw sweeps (the arc is marked), and its roar throws him back and calls embers out of the trees. Gathering itself after a pounce, hits land double |
+
 ## The first map
 
 A clearing the company has cut in an Indonesian tropical forest.
 
 - **The ground is open.** The company has cleared it, which is why there's nothing to block
-  movement, and why they're there at all. Mud, burnt earth and log skids vary it: they slow you,
+  movement, and why they're there at all. (That's Endless's clearing; Liberation's areas each
+  have their own ground plan, with things standing in the way.) Mud, burnt earth and log skids vary it: they slow you,
   they never stop you.
 - **The jungle is the wall** around the arena: living, thick, impassable.
 - **The canopy hangs overhead**, drawn above everything, with no collision. It's above your
@@ -230,10 +249,14 @@ on: fire and oil, or crewmates who can be downed.
   growing until he's down; the best run is Endless's. Co-op is for Endless only: Liberation
   moves one village's story, so it's solo, but nothing in it assumes one cat, so a "help a friend"
   co-op Liberation stays possible later.
-- **Liberation** is chosen at the map board by the village's gate, drawn as a map of the forest
-  from above: the river, the village, and the path through every area in the order it's found,
-  each wrecked while it's held, green again once it's free, and under mist until it's found.
-  Endless lies off the map's corner. Each area is a fixed, hand-made place and one run: push in through what holds it, do
+- **Liberation** is chosen at the map board by the village's gate, drawn as a war map of the
+  forest from above, the way a conquest map is in Dynasty Warriors Empires: the forest cut into
+  territories with wandering borders, each banded in its holder's color (the cats' pink, the
+  company's hi-vis orange) and flying its banner, mist over what isn't found, and the river
+  through it. Each place's own picture sits in its territory, wrecked while it's held, green again
+  once it's free. An arrow goes out from the cats' land into each place they can take next, the
+  one chosen marching. The board itself has the same territories carved and painted on it.
+  Endless lies off the map's corner, until there's peace with the forest: then it's through the shrine. Each area is a fixed, hand-made place and one run: push in through what holds it, do
   what only that place asks, then its boss comes; beat it and the area is free, and the next one
   opens. Held by the company, an area is wrecked (stumps, felled trunks, ruts, oil, litter,
   smoldering peat, fewer trees standing at its edge); freed, it's healed (grassed over, saplings,
@@ -256,7 +279,47 @@ on: fire and oil, or crewmates who can be downed.
   | The log slide | Pull the three levers, and the logs roll down over everything | The logging truck: it charges, stalls with its tank open, and tips over when wrecked |
   | The company's offices | Cut the power: three generators | The bulldozer, whose engine at the back is the only weak point |
   | The airstrip | Cut the three fuel lines | The helicopter, out of reach until it lands to unload |
+  | The village, besieged | Put out the four fires, with water from the well | Inyiak Balang, the forest's guardian |
+
+  **Each area has its own ground plan**: its own size, and what stands in it for good, so each
+  plays differently, not only looks it.
+
+  | Area | Size | What stands there |
+  |---|---|---|
+  | The village's edge | 40 by 24 m | A few trees and bushes, two fallen trunks: mostly open |
+  | The deep forest | 44 by 28 m | Thick with trees and undergrowth, trunks lying across the way |
+  | The sawpits | 40 by 24 m | Rows of stacked logs, the saws in the lanes between them |
+  | The logged clearing | 48 by 28 m | Wide, littered with stumps, two log stacks |
+  | The log slide | 26 by 36 m | Long and narrow, down the hill: three chutes under the levers, rocks between them where the logs don't roll |
+  | The company's offices | 44 by 28 m | Two rows of cabins either side of a yard, crates |
+  | The airstrip | 60 by 24 m | Wide open: the hangar at the far end, a fuel tank, a few crates |
+  | The village, besieged | 37 by 18 m | The village itself: its houses, its props, the forest either side of the path in |
+
+  What stands is solid, at its own height. Nothing walks through it: the horde, the dogs, the
+  giants and the machines all find their way around it, so it's cover, and a crowd can be split
+  around it. A round flying lower than its top stops in it, and he shoots only what he can see; a
+  lobbed round goes over. Low things (stumps, fallen trunks) are cleared by a cat in a leap, and
+  stepped or driven over by the giants and the machines. A charging truck or a ramming bulldozer
+  stops dead against anything taller. Something tall enough to hide him lets him show through
+  while he's behind it, and a tree's crown over him thins. The fixed pieces are placed by hand;
+  the scattered ones (trees, stumps, bushes) from the area's own seed, the same every time, kept
+  clear of where he comes in, the goal's things, the boss's way in, and each other.
 - **Endless mode**: the giants never stop coming; factions arrive and start to mix.
+- **The siege** comes by itself, never chosen and never on the map: the first time he walks
+  home with the airstrip free, once what's new is read, Jogiboy smells smoke, and the spirits are
+  at the village. He walks in at the gate to it under attack. Beaten back, he's home, and the
+  spirits let the village be until he next walks home. It's the village as it stands, every house and prop solid, the forest walling the
+  path in. Two roofs are alight at the start and another catches every 20 seconds, four in all;
+  a roof left burning throws out an ember wisp every 6 seconds. Standing at the well fills a
+  bucket in a second; standing at a burning house's door with it puts the fire out in a little
+  over one. Marks at the screen's edge show the burning houses and, with no water carried, the
+  well. Once the last is out, Inyiak Balang comes out of the forest above the smithy.
+- **Cleansing**: once there's peace, Endless is through the shrine, in a grove still sick from
+  the company, laid out fresh from each run's seed: a sick grove in the deep forest, the burned
+  peat, or the riverbank, where nothing walks into the oily river. The restless spirits come in
+  their mix, the saplings and the monkeys in packs, the company's abandoned feller bunchers still
+  working with something else at the controls, and its traps, with cats in them. The best run is
+  still Endless's.
 - **The hub is the cats' village** at the forest's edge. It grows between runs: rescued cats
   join, the smith forges better gear. That growth is the progress that carries over, and it's
   the story moving forward.
@@ -328,7 +391,7 @@ Level-ups arrive as **cards**. A card offers a choice of three; you hold it unti
   keeps running, and its panel is see-through so you can see what's coming.
 - Held cards can be read in the pause menu, and are only played in action.
 - **The pause menu**: carry on, settings, start again, leave the game. **Settings**: graphics
-  (full screen, window size, vertical sync), audio (overall, music, effects and interface
+  (full screen, window size, vertical sync, how many of the fallen are left lying), audio (overall, music, effects and interface
   volumes, each its own bus) and gameplay (aim mode, blood), kept for next time. It opens
   on its own when a run ends, ready to start again. Its see-through panel is a checkerboard of
   palette pixels, not a blend.
@@ -479,8 +542,15 @@ follow procedurally, hits and recoil push the sprite, a felled body falls as phy
 
 **Blood** is honest: droplets are particles that arc, fall and stain the ground where they
 land; stains dry darker and in time are gone. A setting turns it off, and the same hits throw up
-dust and fur instead, so a hit still reads. The fallen lie where they fall, up to a few hundred;
-past that the oldest crumble away pixel by pixel rather than vanishing.
+dust and fur instead, so a hit still reads. The fallen lie where they fall, up to 300 by default
+(a setting has none, 100, 300 or all 600, for a slower machine); past that the oldest crumble
+away pixel by pixel rather than vanishing.
+
+**A slow machine plays it too.** The horde, the fallen and the growth are each drawn off one
+sheet, and the jungle's edge and the canopy are put together into one picture when a place is
+painted, so a full fight is a few dozen draw calls, not a thousand. The world steps 60 times a
+second; a frame that runs late catches up at most three steps, so a machine too slow to keep
+up sees the world slow a little rather than stutter.
 
 **Walking** steps with the ground covered, never a clock, so feet don't slide and a body
 thrown through the air doesn't run.

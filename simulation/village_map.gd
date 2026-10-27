@@ -77,6 +77,9 @@ const MARKET := Rect2(20.0, 11.4, 2.4, 1.2)
 const HEALER := Rect2(32.8, 4.8, 2.0, 1.3)
 ## His own home: the first house in from the forest.
 const HOME := Rect2(12.6, 4.6, 2.0, 1.3)
+## The shrine Inyiak Balang raises by the gate once there's peace with the forest: the way to the
+## groves still sick from the company. It's never a ruin; until then, it isn't there at all.
+const SHRINE := Rect2(33.4, 14.2, 1.6, 1.2)
 ## The huts, each at its own depth off the road: the weaver's first, by the way in.
 const HUTS: Array[Rect2] = [
 	Rect2(13.8, 12.0, 2.0, 1.4), Rect2(17.2, 14.4, 2.0, 1.4), Rect2(24.0, 12.4, 2.0, 1.4),
@@ -86,8 +89,9 @@ const HUTS: Array[Rect2] = [
 ## what's flat on the ground or overhead: the well in the square and a bench by it, the gardens
 ## behind the houses, the woodpile by the smithy, a washing line, rice drying on its mat, and the
 ## coconut palms.
+const WELL := Rect2(18.9, 5.2, 0.9, 0.7)
 const PROPS: Array[Dictionary] = [
-	{"kind": "well", "footprint": Rect2(18.9, 5.2, 0.9, 0.7)},
+	{"kind": "well", "footprint": WELL},
 	{"kind": "bench", "footprint": Rect2(21.0, 6.2, 1.2, 0.35)},
 	{"kind": "garden", "footprint": Rect2(12.4, 2.2, 2.6, 1.6)},
 	{"kind": "garden", "footprint": Rect2(13.4, 14.8, 2.6, 1.6)},
@@ -140,6 +144,18 @@ var _amble_to: Array[Vector2] = []
 ## The villagers called over to say something, by index: they stay put until let go.
 var _staying := {}
 var _solids: Array[Rect2] = []
+## The way to where each villager is going, around everything, and where it was found for; the
+## Elder's the same; and the ground they're found over, walls and all.
+var _ways: Array[FlowField] = []
+var _ways_for: Array[Vector2] = []
+var _elder_way: FlowField
+var _elder_way_for := Vector2.INF
+var _ground_plan: FlowField
+## How long each villager has gone without getting nearer to where it's going, and the nearest
+## it's been: one that can't get there goes somewhere else.
+var _held_up: Array[float] = []
+var _nearest: Array[float] = []
+const GIVES_UP := 3.0
 
 
 ## Every building's name, in the order they stand.
@@ -147,8 +163,37 @@ static func building_names() -> Array[String]:
 	var names_in_order: Array[String] = ["home", "longhouse", "smithy"]
 	for index in HUTS.size():
 		names_in_order.append("hut_%d" % index)
-	names_in_order.append_array(["watchtower", "market", "healer"])
+	names_in_order.append_array(["watchtower", "market", "healer", "shrine"])
 	return names_in_order
+
+
+## Where each building stands, by name.
+static func footprint_of(building_name: String) -> Rect2:
+	match building_name:
+		"home": return HOME
+		"longhouse": return LONGHOUSE
+		"smithy": return SMITHY
+		"watchtower": return WATCHTOWER
+		"market": return MARKET
+		"healer": return HEALER
+		"shrine": return SHRINE
+	return HUTS[building_name.trim_prefix("hut_").to_int()]
+
+
+## The village as somewhere to fight in: its buildings, its props that aren't flat, and the forest
+## either side of the path in, all standing for good.
+static func standing() -> Array[Obstacle]:
+	var walls: Array[Obstacle] = []
+	for building_name in building_names():
+		if building_name != "shrine":
+			walls.append(Obstacle.from({"kind": "wall", "rect": footprint_of(building_name)}))
+	walls.append(Obstacle.from({"kind": "wall", "rect": BOARD}))
+	for prop: Dictionary in PROPS:
+		if not prop.get("flat", false):
+			walls.append(Obstacle.from({"kind": "wall", "rect": prop.footprint}))
+	walls.append(Obstacle.from({"kind": "wall", "rect": Rect2(-1.0, -1.0, VILLAGE_FROM + 1.0, PATH_TOP + 1.0)}))
+	walls.append(Obstacle.from({"kind": "wall", "rect": Rect2(-1.0, PATH_BOTTOM, VILLAGE_FROM + 1.0, SIZE.y - PATH_BOTTOM + 1.0)}))
+	return walls
 
 
 func _init(rescued: Array = [], restored: Array = [], seed_value := 39) -> void:
@@ -172,6 +217,8 @@ func _init(rescued: Array = [], restored: Array = [], seed_value := 39) -> void:
 	buildings.append({"name": "healer", "kind": "healer", "footprint": HEALER, "paint": 5})
 	for building in buildings:
 		building.restored = building.name in restored
+	if "shrine" in restored:
+		buildings.append({"name": "shrine", "kind": "shrine", "footprint": SHRINE, "restored": true})
 	buildings.append({"name": "board", "kind": "board", "footprint": BOARD, "restored": true})
 	for each: Dictionary in rescued:
 		var villager := Cat.new()
@@ -337,8 +384,28 @@ func step(delta: float) -> void:
 				_amble_to[index] = _somewhere_in_the_village()
 			_move(villager, Vector2.ZERO, delta)
 		else:
-			villager.steering = toward.normalized()
-			_move(villager, toward.normalized() * (TROT_SPEED if seeing_off and _staying.has(index) else AMBLE_SPEED), delta)
+			# The way round whatever's between, not straight into it.
+			while _ways.size() <= index:
+				_ways.append(null)
+				_ways_for.append(Vector2.INF)
+				_held_up.append(0.0)
+				_nearest.append(INF)
+			if _ways_for[index] != _amble_to[index]:
+				_ways[index] = _way_to(_amble_to[index])
+				_ways_for[index] = _amble_to[index]
+				_nearest[index] = INF
+			if toward.length() < _nearest[index] - 0.05:
+				_held_up[index] = 0.0
+				_nearest[index] = toward.length()
+			else:
+				_held_up[index] += delta
+			if _held_up[index] >= GIVES_UP and not _staying.has(index):
+				# It can't get there from here: somewhere else, then.
+				_held_up[index] = 0.0
+				_amble_to[index] = _somewhere_in_the_village()
+			var going := _ways[index].way(villager.body.position, _amble_to[index])
+			villager.steering = going
+			_move(villager, going * (TROT_SPEED if seeing_off and _staying.has(index) else AMBLE_SPEED), delta)
 
 
 ## The Elder walks where he's going, at a trot to the gate and an old cat's pace otherwise; there,
@@ -351,7 +418,10 @@ func _step_elder(delta: float) -> void:
 		if elder.body.position.distance_to(cat.body.position) < 4.0:
 			elder.facing = (cat.body.position - elder.body.position).normalized()
 		return
-	_move(elder, toward.normalized() * (TROT_SPEED if seeing_off else AMBLE_SPEED * 1.6), delta)
+	if _elder_way_for != elder_to:
+		_elder_way = _way_to(elder_to)
+		_elder_way_for = elder_to
+	_move(elder, _elder_way.way(elder.body.position, elder_to) * (TROT_SPEED if seeing_off else AMBLE_SPEED * 1.6), delta)
 
 
 ## Jogiboy follows Tompel at his heels, a step behind and to the side. While Tompel walks, he keeps
@@ -443,19 +513,25 @@ func _move(walker: Cat, velocity: Vector2, delta: float) -> void:
 	for solid in _solid():
 		var footprint := solid.grow(walker.body.radius)
 		if footprint.has_point(next):
-			# Against a wall, he slides along it, the way that's still open; failing that, out. A
-			# villager, going somewhere on its own, slides at its full pace, or it would creep.
-			# A villager goes round by the wall's nearer corner, and keeps to it, or it would
-			# turn back and forth at the wall's middle.
-			var pace := velocity.length() if walker != cat else 0.0
-			var sideways := signf(velocity.x)
-			if pace > 0.0:
-				sideways = -1.0 if walker.body.position.x < footprint.get_center().x else 1.0
-			var across := walker.body.position + Vector2(sideways * maxf(absf(velocity.x), pace), 0.0) * delta
-			var along := walker.body.position + Vector2(0.0, signf(velocity.y) * maxf(absf(velocity.y), pace)) * delta
+			# Against a wall, he slides along it, the way that's still open; failing that, out.
+			if walker != cat:
+				# A villager has its way round already: it keeps what part of its going still
+				# fits, at its full pace, or it would creep along the wall.
+				var pace := velocity.length()
+				var first := Vector2(signf(velocity.x) * pace, 0.0) if absf(velocity.x) >= absf(velocity.y) else Vector2(0.0, signf(velocity.y) * pace)
+				var second := Vector2(0.0, signf(velocity.y) * pace) if first.x != 0.0 else Vector2(signf(velocity.x) * pace, 0.0)
+				if first != Vector2.ZERO and not footprint.has_point(walker.body.position + first * delta):
+					next = walker.body.position + first * delta
+				elif second != Vector2.ZERO and not footprint.has_point(walker.body.position + second * delta):
+					next = walker.body.position + second * delta
+				else:
+					next = _push_out(next, footprint)
+				continue
+			var across := walker.body.position + Vector2(velocity.x, 0.0) * delta
+			var along := walker.body.position + Vector2(0.0, velocity.y) * delta
 			if not footprint.has_point(along) and absf(velocity.y) > 0.0001:
 				next = along
-			elif not footprint.has_point(across) and sideways != 0.0:
+			elif not footprint.has_point(across) and absf(velocity.x) > 0.0001:
 				next = across
 			else:
 				next = _push_out(next, footprint)
@@ -469,6 +545,27 @@ func _move(walker: Cat, velocity: Vector2, delta: float) -> void:
 	walker.body.position = Vector2(clampf(next.x, 0.4, right), clampf(next.y, top, bottom))
 
 
+## The way to a spot from anywhere in the village, around the buildings, the props, and the forest
+## either side of the path.
+func _way_to(spot: Vector2) -> FlowField:
+	var field := FlowField.sharing(_plan())
+	var toward: Array[Vector2] = [spot]
+	field.toward(toward)
+	return field
+
+
+## The village's ground, walls and all, for the ways over it: found once.
+func _plan() -> FlowField:
+	if _ground_plan == null:
+		var standing: Array[Obstacle] = []
+		for footprint in _solid():
+			standing.append(Obstacle.from({"kind": "wall", "rect": footprint}))
+		standing.append(Obstacle.from({"kind": "wall", "rect": Rect2(-1.0, -1.0, VILLAGE_FROM + 1.0, PATH_TOP + 1.0)}))
+		standing.append(Obstacle.from({"kind": "wall", "rect": Rect2(-1.0, PATH_BOTTOM, VILLAGE_FROM + 1.0, SIZE.y - PATH_BOTTOM + 1.0)}))
+		_ground_plan = FlowField.new(SIZE, standing, Cat.RADIUS)
+	return _ground_plan
+
+
 func _push_out(point: Vector2, box: Rect2) -> Vector2:
 	var distances := [point.x - box.position.x, box.end.x - point.x, point.y - box.position.y, box.end.y - point.y]
 	var nearest: int = distances.find(distances.min())
@@ -480,9 +577,11 @@ func _push_out(point: Vector2, box: Rect2) -> Vector2:
 	return Vector2(point.x, box.end.y + EDGE_GAP)
 
 
+## Somewhere in the open to amble to: not in a building, and not wedged in a gap a cat would
+## have to squeeze into sideways.
 func _somewhere_in_the_village() -> Vector2:
 	for attempt in 20:
 		var spot := Vector2(random.randf_range(VILLAGE_FROM + 1.0, SIZE.x - 2.0), random.randf_range(1.0, SIZE.y - 1.0))
-		if not _solid().any(func(footprint: Rect2) -> bool: return footprint.grow(0.3).has_point(spot)):
+		if not _plan().blocked(spot):
 			return spot
 	return HOME_SPOT
