@@ -26,6 +26,19 @@ workers are giants.
 | **Cockroach** | Idea | From the supply crates too: tiny, in swarms, crunched underfoot by him and the giants alike |
 | **Survey drone** | Idea | The company's: flies over the clearing and marks him for the giants, who come faster while it sees him |
 
+### The spirits
+
+The forest's own, the second faction: restless, and sure at first that the cats burned the forest.
+A spirit leaves nothing lying when it falls, and nothing that bleeds: it goes out in embers.
+
+| Name | Status | What it does |
+|---|---|---|
+| **Ember wisp** | Built | Off the burned peat, and off a burning roof: floats just off the ground, over what's low, and comes in numbers |
+| **Tuyul** | Built | Small and quick: goes for salvage lying about, or bites a piece off what he's picked up, and runs for the trees with it. Caught, he drops it |
+| **Charred sapling** | Built | A burned young tree walking on its roots: slow and tough, in groups |
+| **Smoke monkey** | Built | A macaque made of haze: crouches and leaps like a dog, and lands in its own smoke, where it can't be made out from further than a meter or so |
+| **Pocong** | Built | Wrapped in its shroud, it can only hop. A hard hit knocks it flat, and it struggles to get up |
+
 ### Giants
 
 | Name | Status | What it does |
@@ -50,6 +63,7 @@ Machines.
 | **Bulldozer** | Built | The company's offices: raises its blade, then rams forward, shoving everything in front of it. Its engine at the back is the weak point: get behind it |
 | **Excavator** | Planned | |
 | **Logging truck** | Built | The log slide: revs, sounds its horn, then charges down a line; stalled, its fuel tank is open. Wrecked, it tips over |
+| **Inyiak Balang** | Built | The siege: the forest's grandfather, a great tiger. Crouches, its landing spot marked, and pounces, crushing what it lands on; gathering itself after, hits land double. Raises a paw (the sweep marked) and swipes; roars, throwing him back, and the trees send embers. Beaten, it lies down, and listens |
 | **Helicopter** | Built | The airstrip: out of reach in the air, strafing lines marked on the ground; it lands to unload workers, and only then can blades reach it, its tail rotor open |
 | **Wood chipper** | Idea | Pulls in what's near its chute, his own horde too; feeding it a giant's lost boot jams it |
 | **Skidder** | Idea | Drags logs across the clearing on a chain: a sweeping wall to get out of the way of |
@@ -68,7 +82,11 @@ Endless is the other mode: a fresh clearing every run, the horde growing until h
 | **The log slide** | Built | Pull the levers and let the logs roll; the logging truck |
 | **The company's offices** | Built | Cut the power; the bulldozer |
 | **The airstrip** | Built | Cut the fuel lines; the helicopter |
-| **Endless** | Built | A fresh clearing every run; co-op lives here |
+| **The village, besieged** | Built | After the airstrip: the spirits set the roofs alight. Fill a bucket at the well and put each fire out; then Inyiak Balang. Peace after it, and the shrine |
+| **Endless** | Built | A fresh clearing every run; co-op lives here. Once there's peace with the forest, it's through the shrine, cleansing a sick grove |
+| **A sick grove** | Built | Endless after the truce: deep forest, thick with trees, full of restless spirits and the company's abandoned machines |
+| **The burned peat** | Built | Endless after the truce: scorched and smoldering, stumps everywhere, wide open |
+| **The riverbank** | Built | Endless after the truce: the river along one side, oily and gray, that nothing walks into |
 | **The river** | Idea | Beyond the log slide: the barges that take the wood away |
 
 ## Weapons
@@ -241,6 +259,7 @@ home with the first cat he rescues, the rest with an area freed. Each opens what
 | **Map board** | Built | At the gate, never a ruin: the forest carved on a board and drawn as a map, each area wrecked, freed or under mist, where he chooses the next run, or Endless |
 | **Well** | Idea | Water for the village; a place the cats gather and talk |
 | **Watchtower** | Built | Jingga's, by the gate, back with the logged clearing freed: the map board shows each area's boss, and how to beat it |
+| **Shrine** | Built | Inyiak Balang's, by the gate, raised once there's peace with the forest: Endless is through it, cleansing a sick grove |
 | **Healer's hut** | Built | Bu Jamu's, back with the offices freed: a tonic for 6 salvage, and the next run starts with two more rerolls |
 | **Market** | Built | Kopi and Susu's stall, back with the log slide freed: trade salvage for cloth, three for one, or cloth for salvage, one for two |
 

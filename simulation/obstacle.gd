@@ -19,6 +19,9 @@ const KINDS := {
 	"tank": {"tall": 1.6, "round": true},
 	# Where nothing goes at all: a building's walls, the forest off the path.
 	"wall": {"tall": 9.0, "round": false},
+	# A river's edge: nothing walks into it, and everything flies over it. The giants and the
+	# machines wade.
+	"water": {"tall": 0.05, "round": false},
 }
 
 var kind := ""

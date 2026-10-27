@@ -22,7 +22,8 @@ func test_the_cats_she_rescued_live_there() -> void:
 func test_everything_starts_in_ruins() -> void:
 	var map := VillageMap.new()
 	var ruins := map.buildings.filter(func(each: Dictionary) -> bool: return each.kind != "board")
-	check(ruins.size() == VillageMap.building_names().size(), "%d buildings stand" % ruins.size())
+	# All but the shrine, which isn't there at all until there's peace with the forest.
+	check(ruins.size() == VillageMap.building_names().size() - 1, "%d buildings stand" % ruins.size())
 	check(ruins.all(func(each: Dictionary) -> bool: return not each.restored), "something stood restored before anything was")
 
 

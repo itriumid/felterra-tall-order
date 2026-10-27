@@ -94,6 +94,8 @@ var banished := {}
 var locked: Array[String] = []
 ## Where the player is steering, as a direction no longer than 1.
 var steering := Vector2.ZERO
+## Whether he's carrying a bucket of water from the well, in the siege, to empty over a fire.
+var water := false
 ## The way he faces and the way his gun points, as unit vectors.
 var facing := Vector2.RIGHT
 var aim := Vector2.RIGHT

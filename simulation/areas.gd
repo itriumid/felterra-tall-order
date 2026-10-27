@@ -277,7 +277,76 @@ const LIST: Array[Dictionary] = [
 		"frees": [{"name": "Datuk", "coat": "gray"}], "bonus": 80,
 		"props": [{"kind": "ribbon", "at": Vector2(30.0, 12.0)}, {"kind": "sign", "at": Vector2(30.0, 8.6), "lines": ["Grand opening", BOARD]}],
 	},
+	{
+		# After a quiet, the forest's spirits come for the village: they think the cats burned the
+		# forest. The run is the village itself, its houses standing where they stand; he comes
+		# back in through the gate, and the roofs are alight.
+		"id": "siege", "name": "The village, besieged", "ground": "village", "in_the_village": true,
+		"size": VillageMap.SIZE, "start": Vector2(30.5, 9.0), "enters_from": Vector2.RIGHT,
+		"plan": {"rats": {"rate": 1.3, "growth": 0.04, "kinds": {"wisp": 5, "tuyul": 1, "pocong": 2}},
+			"packs": [{"kind": "monkey", "from": 30.0, "interval": 30.0, "pack": 3, "most": 9}, {"kind": "sapling", "from": 50.0, "interval": 40.0, "pack": 3, "most": 9}]},
+		"goal": {"kind": "fires", "title": "Put out the fires", "well": VillageMap.WELL,
+			"roofs": ["longhouse", "healer", "hut_0", "market"], "lit_at_start": 2, "light_every": 20.0},
+		"boss": {"kind": "guardian", "type": "tiger", "at": Vector2(25.5, 1.4), "tip": "Its pounce lands where you stood: move, then hit it while it gathers itself"},
+		"before": [
+			"Lights come out of the trees, low and orange, and drift over the huts.",
+			"Where they touch the thatch, it catches.",
+			"Water from the well, a bucket at a time: get the fires out.",
+			"And something big is watching from the forest.",
+		],
+		"after": [
+			"The great tiger lies down in the square, and the lights go out, one by one.",
+			"It is Inyiak Balang, the forest's grandfather, older than the village.",
+			"The forest burned, it says, and wherever it burned, it found cats.",
+			"The Elder shows it the company's cans from the sawpits, stamped MBG. Makmur Bakar.",
+			"Inyiak Balang knows that smell. It's in every burned grove.",
+			"Groves are still sick with it, it says, and their spirits can't rest.",
+			"It will raise a shrine here, by the gate. Through it, the way to those groves.",
+		],
+		"send_off": [
+			"Halfway to the gate, Jogiboy stops dead, his ears up.",
+			{"by": "jogiboy", "text": "Smoke. Not out there. Behind us!"},
+		],
+		"again": ["The fires are out. Only Inyiak Balang is left."],
+		"frees": [], "bonus": 100,
+	},
 ]
+
+## Endless, once the forest's spirits are friends: a corrupted grove, a fresh one every run, to be
+## cleansed of what the company left. Each grove is one of these, laid out from the run's own
+## seed: its look, its size, and what stands in it.
+const GROVES: Array[Dictionary] = [
+	{
+		"id": "sick_grove", "name": "A sick grove", "ground": "deep", "size": Vector2(44.0, 28.0),
+		"scatter": [{"kind": "tree", "count": 24, "radius": [0.5, 0.85]}, {"kind": "bush", "count": 12, "radius": [0.5, 0.9]}],
+	},
+	{
+		"id": "burned_peat", "name": "The burned peat", "ground": "peat", "size": Vector2(48.0, 28.0),
+		"scatter": [{"kind": "stump", "count": 30, "radius": [0.3, 0.5]}, {"kind": "tree", "count": 6, "radius": [0.45, 0.6]}, {"kind": "rock", "count": 5, "radius": [0.4, 0.7]}],
+	},
+	{
+		"id": "riverbank", "name": "The riverbank", "ground": "riverbank", "size": Vector2(52.0, 24.0),
+		"obstacles": [{"kind": "water", "rect": Rect2(0.0, 24.0 - 1.75, 52.0, 1.75)}],
+		"scatter": [{"kind": "tree", "count": 10, "radius": [0.45, 0.7]}, {"kind": "bush", "count": 16, "radius": [0.45, 0.8]}, {"kind": "rock", "count": 8, "radius": [0.4, 0.8]}],
+	},
+]
+## What comes at him in a grove: the restless spirits, and the company's machines, left behind
+## and still working, with something else at the controls. The company's traps are still there too,
+## with cats in them.
+const GROVE_PLAN := {
+	"rats": {"rate": 1.4, "growth": 0.05, "kinds": {"wisp": 5, "tuyul": 1, "pocong": 2}},
+	"packs": [{"kind": "sapling", "from": 40.0, "interval": 35.0, "pack": 4, "most": 12}, {"kind": "monkey", "from": 60.0, "interval": 30.0, "pack": 3, "most": 9}],
+	"machines": {"from": 300.0, "interval": 300.0, "kind": "feller_buncher"},
+	"cages": {"from": 40.0, "interval": 75.0, "most": 2},
+}
+
+
+## The grove a run's seed lays out: one of the groves, as an area to stand in.
+static func grove(seed_value: int) -> Dictionary:
+	var chosen: Dictionary = GROVES[absi(seed_value) % GROVES.size()].duplicate()
+	chosen.start = chosen.size / 2.0
+	chosen.seed = seed_value
+	return chosen
 
 
 ## How far scattered things keep from where things happen (where he stands, the goal's things, the
@@ -294,14 +363,20 @@ static func obstacles(area: Dictionary) -> Array[Obstacle]:
 	var standing: Array[Obstacle] = []
 	for entry: Dictionary in area.get("obstacles", []):
 		standing.append(Obstacle.from(entry))
+	if area.get("in_the_village", false):
+		return VillageMap.standing()
 	var size: Vector2 = area.get("size", Arena.SIZE)
 	var start: Vector2 = area.get("start", size / 2.0)
-	var clear: Array[Vector2] = [start, area.boss.at]
-	clear.append_array(area.goal.get("at", []))
+	var clear: Array[Vector2] = [start]
+	if area.has("boss"):
+		clear.append(area.boss.at)
+	if area.has("goal"):
+		clear.append_array(area.goal.get("at", []))
 	for prop: Dictionary in area.get("props", []):
 		clear.append(prop.at)
 	var random := RandomNumberGenerator.new()
-	random.seed = absi(hash(area.id))
+	# An area is the same every time; a grove, as the run's seed has it.
+	random.seed = area.get("seed", absi(hash(area.id)))
 	for scattered: Dictionary in area.get("scatter", []):
 		var placed := 0
 		for attempt in scattered.count * 30:

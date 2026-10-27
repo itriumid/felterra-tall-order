@@ -62,6 +62,8 @@ static func area_ground(size: Vector2i, seed_value: int, theme: String, healed: 
 		"slide":
 			_river(picture, healed)
 			_chute(picture, healed, random)
+		"riverbank":
+			_river(picture, healed)
 		"airstrip":
 			_strip(picture, healed, random)
 		"offices":
@@ -78,7 +80,7 @@ static func area_ground(size: Vector2i, seed_value: int, theme: String, healed: 
 			_felled(picture, Vector2(random.randf() * size.x, random.randf() * size.y), random)
 		if theme in ["edge", "deep"]:
 			_skid_trails(picture, random)
-		var scorched := {"edge": 1, "deep": 2, "clearing": 6, "airstrip": 9, "slide": 3, "offices": 2, "sawpits": 3}.get(theme, 0) as int
+		var scorched := {"edge": 1, "deep": 2, "clearing": 6, "airstrip": 9, "slide": 3, "offices": 2, "sawpits": 3, "peat": 22, "riverbank": 2}.get(theme, 0) as int
 		for index in scorched:
 			var center := Vector2(random.randf() * size.x, random.randf() * size.y)
 			_scorch(picture, center, random.randf_range(30.0, 70.0), random)
@@ -123,6 +125,8 @@ static func _floor(size: Vector2i, seed_value: int, theme: String, healed: bool)
 		"slide": [Palette.MUD, Palette.MOSS, Palette.JUNGLE, Palette.LEAF],
 		"offices": [Palette.STEEL_DARK, Palette.SMOKE, Palette.STEEL, Palette.MUD_LIGHT],
 		"airstrip": [Palette.BURNT, Palette.DRY_GRASS, Palette.MOSS, Palette.JUNGLE],
+		"peat": [Palette.GRAPHITE, Palette.BURNT, Palette.MUD_DARK, Palette.MUD],
+		"riverbank": [Palette.MUD, Palette.MUD_LIGHT, Palette.MOSS, Palette.JUNGLE],
 	}.get(theme, [Palette.MUD, Palette.MOSS, Palette.JUNGLE, Palette.LEAF])
 	if healed:
 		bands = [Palette.MOSS, Palette.JUNGLE, Palette.LEAF, Palette.LEAF_LIGHT] if theme != "deep" else [Palette.JUNGLE_DARK, Palette.JUNGLE, Palette.MOSS, Palette.LEAF]

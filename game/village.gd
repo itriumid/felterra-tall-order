@@ -25,7 +25,7 @@ const PATH := "user://village.cfg"
 ## themselves.
 const RESTORED_BY := {
 	"home": "rescue", "smithy": "edge", "hut_0": "deep", "longhouse": "sawpits",
-	"watchtower": "clearing", "market": "slide", "healer": "offices",
+	"watchtower": "clearing", "market": "slide", "healer": "offices", "shrine": "siege",
 	"hut_1": 3, "hut_2": 5, "hut_3": 7, "hut_4": 9,
 }
 ## What's told as he walks home to a building just restored, by name; "%s" in his home's line is
@@ -42,6 +42,7 @@ const RESTORED_LINES := {
 	"hut_2": ["Another hut stands again, with room for two more."],
 	"hut_3": ["Another hut stands again, built from the company's own planks."],
 	"hut_4": ["The last hut stands again. The village is whole."],
+	"shrine": ["Inyiak Balang has raised its shrine by the gate, out of stone older than the village.", "Through it, the way to the groves still sick from the company."],
 }
 ## What each building does, in full, for what's new as he walks home to it.
 const EXPLAINS := {
@@ -56,6 +57,7 @@ const EXPLAINS := {
 	"hut_2": "Room for two more cats, weaving cloth while you're away.",
 	"hut_3": "Room for two more cats, weaving cloth while you're away.",
 	"hut_4": "Room for two more cats, weaving cloth while you're away.",
+	"shrine": "Endless is here now: cleanse a grove still sick from the company, a fresh one every run, with the forest's spirits on your side.",
 }
 ## What each building opens, in a line, for its prompt.
 const OPENS := {
@@ -66,6 +68,7 @@ const OPENS := {
 	"watchtower": "the map shows each boss, and how to beat it",
 	"market": "trade salvage and cloth",
 	"healer": "a tonic for the next run",
+	"shrine": "the way to the groves still sick",
 }
 ## The market's prices, as {give, get}: salvage for cloth, and cloth for salvage. And the healer's
 ## tonic: what it costs, and the rerolls it starts the next run with.
@@ -256,6 +259,11 @@ func locked_for_run() -> Array[String]:
 func found(area_id: String) -> bool:
 	var index := Areas.ids().find(area_id)
 	return index == 0 or (index > 0 and Areas.ids()[index - 1] in liberated)
+
+
+## Whether there's peace with the forest's spirits: the siege is over, and Endless is cleansing.
+func truce() -> bool:
+	return "siege" in liberated
 
 
 ## The first area not yet freed, or Endless once they all are.

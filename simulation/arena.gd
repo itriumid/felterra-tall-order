@@ -71,6 +71,19 @@ const RICOCHET_REACH := 3.0
 const DECOY_REACH := 9.0
 ## With an area's goal done on an earlier run, how long before its boss comes.
 const BOSS_BUILD_UP := 45.0
+## The smoke a smoke monkey lands in: how wide, and how long it hangs. A monkey in it can't be
+## made out to aim at from further than SEEN_IN_SMOKE.
+const SMOKE_RADIUS := 0.9
+const SMOKE_TIME := 2.5
+const SEEN_IN_SMOKE := 1.2
+## The siege's fires: how long filling a bucket at the well takes, from how close; how long
+## emptying it over a burning house takes, from how close to its door; and how often a roof left
+## burning throws out an ember wisp.
+const FILL_TIME := 1.0
+const WELL_REACH := 0.6
+const DOUSE_TIME := 1.2
+const DOOR_REACH := 0.9
+const EMBER_EVERY := 6.0
 ## The fallen stay where they lie, up to this many (the player can have fewer). Past that, the
 ## oldest crumble away over FADE_TIME seconds rather than vanishing.
 const MOST_FALLEN := 600
@@ -115,6 +128,8 @@ var hazards: Array[Dictionary] = []
 ## Nets the drone has thrown, lying over what they caught, as {position, radius, left, caught}:
 ## what's under one stays down until the net is torn through, or everything under it is dead.
 var nets: Array[Dictionary] = []
+## Smoke hanging where smoke monkeys landed, as {position, left}.
+var smoke: Array[Dictionary] = []
 var crackers: Array[Dictionary] = []
 var decoys: Array[Cat] = []
 ## What spawns, and the liberation area this run is in (empty in Endless): its structures, its
@@ -126,6 +141,11 @@ var structures: Array[Structure] = []
 var goal_cages: Array[Cage] = []
 var levers: Array[Dictionary] = []
 var logs: Array[Dictionary] = []
+## The siege: the roofs the spirits set alight, as {building, door, lit, out, lights_in, doused,
+## ember_in}; the well; and how far each cat has got filling a bucket there.
+var roofs: Array[Dictionary] = []
+var well := Rect2()
+var _filling := {}
 var goal_done := false
 ## With the goal done on an earlier run, the time until the boss comes: long enough for him to grow
 ## into a fight with it, since every run starts him at the first level.
@@ -159,6 +179,8 @@ var _giants_sent := 0
 var _since_machine := MACHINE_INTERVAL - MACHINE_FROM
 var _since_cage := CAGE_INTERVAL - CAGES_FROM
 var _since_dogs := DOG_INTERVAL - DOGS_FROM
+## The time since each of the plan's packs last came, by its place in the plan.
+var _since_packs: Array[float] = []
 var _grid := {}
 
 
@@ -222,6 +244,7 @@ func step() -> void:
 	for cat in cats:
 		cat.step(STEP, self)
 		_keep_inside(cat.body)
+	_send_on_errands()
 	for creature in creatures:
 		creature.step(STEP, _prey_for(creature), self)
 		_keep_inside(creature.body)
@@ -258,6 +281,8 @@ func step() -> void:
 	_pop_crackers()
 	_pick_locks()
 	_pick_up()
+	_drift_smoke()
+	_fight_fires()
 	_pursue_goal()
 	_spawn()
 
@@ -272,6 +297,8 @@ func target_for(where: Vector2, reach: float, mode: String, height := EYE) -> Ob
 	for target in _targets():
 		var distance: float = where.distance_to(target.body.position) - target.body.radius
 		if distance > reach:
+			continue
+		if not smoke.is_empty() and distance > SEEN_IN_SMOKE and target is Creature and target.kind == "monkey" and in_smoke(target.body.position):
 			continue
 		# Ties go to the nearer, by a hair.
 		var score: float = -distance
@@ -404,40 +431,42 @@ func _shoulder_through() -> void:
 						creature.body.position = giant.body.position + (apart.normalized() if apart.length() > 0.001 else Vector2.RIGHT) * reach
 
 
-## A stomp lands: whatever is under the boot is crushed, and the shockwave throws what's near.
-func stomp(giant: Giant, at: Vector2) -> void:
+## A stomp lands: whatever is under the boot is crushed, and the shockwave throws what's near. A
+## tiger's pounce lands the same way, only wider.
+func stomp(giant: Giant, at: Vector2, crush := Giant.CRUSH_RADIUS, shock := Giant.SHOCK_RADIUS, crush_damage := Giant.CRUSH_DAMAGE, shock_damage := Giant.SHOCK_DAMAGE) -> void:
 	for creature in creatures.duplicate():
 		var apart: Vector2 = creature.body.position - at
-		if apart.length() <= Giant.CRUSH_RADIUS:
+		if apart.length() <= crush:
 			strike(creature, 100.0, Vector2.ZERO, 0.0, 0.0, "boot")
-		elif apart.length() <= Giant.SHOCK_RADIUS:
+		elif apart.length() <= shock:
 			creature.body.push(apart.normalized() * Giant.SHOCK_KNOCK, 1.5)
 	for cat in cats:
 		var apart := cat.body.position - at
-		if apart.length() <= Giant.CRUSH_RADIUS + cat.body.radius:
-			cat.hurt(Giant.CRUSH_DAMAGE, apart.normalized() * Giant.SHOCK_KNOCK)
-		elif apart.length() <= Giant.SHOCK_RADIUS:
-			cat.hurt(Giant.SHOCK_DAMAGE, apart.normalized() * Giant.SHOCK_KNOCK)
-	events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "stomp", "giant": true})
+		if apart.length() <= crush + cat.body.radius:
+			cat.hurt(crush_damage, apart.normalized() * Giant.SHOCK_KNOCK)
+		elif apart.length() <= shock:
+			cat.hurt(shock_damage, apart.normalized() * Giant.SHOCK_KNOCK)
+	events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "stomp", "giant": true, "kind": giant.kind, "radius": shock})
 
 
 ## A chainsaw sweeping across the ground, from one angle to the next around the giant holding it:
-## anything in its reach that it passes, at a cat's height, is cut. His own horde too.
-func saw(giant: Giant, from_angle: float, to_angle: float) -> void:
+## anything in its reach that it passes, at a cat's height, is cut. His own horde too. A tiger's
+## paw sweeps the same way, with its own reach and weight.
+func saw(giant: Giant, from_angle: float, to_angle: float, reach := Giant.SAW_REACH, height := Giant.SAW_HEIGHT, damage := Giant.SAW_DAMAGE, knock := Giant.SAW_KNOCK, by := "saw") -> void:
 	var sweep := angle_difference(from_angle, to_angle)
 	var passes := func(offset: Vector2, radius: float) -> bool:
-		if offset.length() > Giant.SAW_REACH + radius or offset.length() < Giant.RADIUS:
+		if offset.length() > reach + radius or offset.length() < giant.body.radius:
 			return false
 		var into := angle_difference(from_angle, offset.angle())
 		return signf(into) == signf(sweep) and absf(into) <= absf(sweep) + 0.02
 	for creature in creatures.duplicate():
-		if creature.body.height < Giant.SAW_HEIGHT and passes.call(creature.body.position - giant.body.position, creature.body.radius):
-			strike(creature, 100.0, (creature.body.position - giant.body.position).normalized(), 2.0, 0.6, "saw")
+		if creature.body.height < height and passes.call(creature.body.position - giant.body.position, creature.body.radius):
+			strike(creature, 100.0, (creature.body.position - giant.body.position).normalized(), 2.0, 0.6, by)
 	for cat in cats:
 		var offset := cat.body.position - giant.body.position
-		if cat.body.height < Giant.SAW_HEIGHT and passes.call(offset, cat.body.radius):
-			if cat.hurt(Giant.SAW_DAMAGE, offset.normalized() * Giant.SAW_KNOCK):
-				events.append({"position": cat.body.position, "height": 0.2, "direction": offset.normalized(), "killed": false, "by": "saw", "giant": false, "kind": "cat"})
+		if cat.body.height < height and passes.call(offset, cat.body.radius):
+			if cat.hurt(damage, offset.normalized() * knock):
+				events.append({"position": cat.body.position, "height": 0.2, "direction": offset.normalized(), "killed": false, "by": by, "giant": false, "kind": "cat"})
 
 
 ## A feller buncher's jaws shutting on a point: what's between them is cut, cats, giants and its
@@ -668,11 +697,11 @@ func _part_the_crowd() -> void:
 			if body.radius > half:
 				wide.append(creature)
 				continue
-			if body.height > 0.0 or body.vertical_speed > 0.0:
+			if body.height > body.hovers or body.vertical_speed > 0.0:
 				continue
 			for other_index in range(index + 1, all):
 				var other_body: Body = near[other_index].body
-				if other_body.radius > half or other_body.height > 0.0 or other_body.vertical_speed > 0.0:
+				if other_body.radius > half or other_body.height > other_body.hovers or other_body.vertical_speed > 0.0:
 					continue
 				var apart := body.position - other_body.position
 				var reach := body.radius + other_body.radius
@@ -732,6 +761,11 @@ func _bite() -> void:
 					creature.bite_ready_in = creature.stat("bite_interval")
 					if cat.hurt(creature.stat("bite"), apart.normalized() * 0.6):
 						events.append({"position": cat.body.position, "height": 0.15, "direction": apart.normalized(), "killed": false, "by": "bite", "giant": false, "kind": creature.kind})
+						# A tuyul's bite takes a piece of what he's picked up, and he's off with it.
+						if Creature.KINDS[creature.kind].get("steals", false) and creature.carrying == 0 and salvage > 0:
+							salvage -= 1
+							creature.carrying = 1
+							events.append({"position": cat.body.position, "height": 0.2, "direction": Vector2.ZERO, "killed": false, "by": "stolen", "giant": false, "kind": creature.kind})
 
 
 ## What a creature runs at: a decoy close enough, or the nearest cat; nothing, once they've fled.
@@ -1017,7 +1051,7 @@ func _first_hit(shot: Shot) -> Object:
 			continue
 		var along := from.distance_to(closest)
 		var passing := lerpf(shot.previous_height, shot.height, along / maxf(from.distance_to(to), 0.0001))
-		if passing >= 0.0 and passing <= Giant.TALL and along < first_along:
+		if passing >= giant.body.height and passing <= giant.body.height + giant.body.tall and along < first_along:
 			first_along = along
 			first = giant
 	for structure in structures:
@@ -1107,6 +1141,9 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 	# A push is shared over its mass: a dog takes a hit a rat would fly from.
 	var heft: float = creature.stat("heft")
 	creature.body.push(direction * knock / heft, lift / heft)
+	# Hit hard enough, what can only hop goes over, and struggles a while to get up.
+	if creature.alive() and Creature.KINDS[creature.kind].has("topples") and knock / heft >= creature.stat("topples"):
+		creature.tripped_for = maxf(creature.tripped_for, creature.stat("flat_for"))
 	# The view drains these as it draws; headless, nothing does, so the oldest go.
 	if events.size() >= 256:
 		events.pop_front()
@@ -1121,6 +1158,12 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 		attacker.killed_one()
 	_gain_experience(creature.worth)
 	creatures.erase(creature)
+	# What a tuyul was running off with, he drops.
+	if creature.carrying > 0:
+		drop_salvage(creature.body.position, creature.carrying)
+	# A spirit goes out: nothing's left lying.
+	if creature.spirit():
+		return
 	# It falls where it was hit, and keeps the way the hit sent it.
 	var body := creature.body
 	body.restitution = 0.3
@@ -1338,6 +1381,17 @@ func _spawn() -> void:
 			var gate := edge_point()
 			for index in mini(dogs_plan.pack, dogs_plan.most - dogs):
 				add_creature((gate + Vector2(random.randf_range(-0.6, 0.6), random.randf_range(-0.6, 0.6))).clamp(Vector2.ONE * 0.3, size - Vector2.ONE * 0.3), "dog")
+	var packs: Array = plan.get("packs", [])
+	for index in packs.size():
+		var pack: Dictionary = packs[index]
+		_since_packs[index] += STEP
+		if _since_packs[index] >= pack.interval:
+			_since_packs[index] = 0.0
+			var out_already := creatures.filter(func(creature: Creature) -> bool: return creature.kind == pack.kind).size()
+			# A pack comes out of the trees together.
+			var gate := edge_point()
+			for each in mini(pack.pack, pack.most - out_already):
+				add_creature((gate + Vector2(random.randf_range(-0.6, 0.6), random.randf_range(-0.6, 0.6))).clamp(Vector2.ONE * 0.3, size - Vector2.ONE * 0.3), pack.kind)
 	var rats_plan: Dictionary = plan.get("rats", {})
 	if rats_plan.is_empty() or creatures.size() >= MOST_CREATURES:
 		return
@@ -1345,7 +1399,135 @@ func _spawn() -> void:
 	var interval: float = 1.0 / (rats_plan.rate + rats_plan.growth * time)
 	while _since_spawn >= interval and creatures.size() < MOST_CREATURES:
 		_since_spawn -= interval
-		add_creature(edge_point())
+		add_creature(edge_point(), _one_of(rats_plan.get("kinds", {"rat": 1})))
+
+
+## One kind from a mix, by its share of it.
+func _one_of(kinds: Dictionary) -> String:
+	var total := 0
+	for kind: String in kinds:
+		total += kinds[kind]
+	var pick := random.randi_range(1, total)
+	for kind: String in kinds:
+		pick -= kinds[kind]
+		if pick <= 0:
+			return kind
+	return kinds.keys()[0]
+
+
+## Whether a point is in smoke a smoke monkey left.
+func in_smoke(where: Vector2) -> bool:
+	for puff in smoke:
+		if where.distance_to(puff.position) <= SMOKE_RADIUS:
+			return true
+	return false
+
+
+func add_smoke(at: Vector2) -> void:
+	smoke.append({"position": at, "left": SMOKE_TIME})
+	events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "smoke", "giant": false, "kind": "monkey", "radius": SMOKE_RADIUS})
+
+
+func _drift_smoke() -> void:
+	if smoke.is_empty():
+		return
+	for puff in smoke:
+		puff.left -= STEP
+	smoke = smoke.filter(func(puff: Dictionary) -> bool: return puff.left > 0.0)
+
+
+## Tuyul on their errands: one carrying salvage makes for the trees, and is gone into them with
+## it; one with nothing goes for salvage lying near enough to smell, and takes it. With none, it
+## goes for a cat.
+func _send_on_errands() -> void:
+	var escaped: Array[Creature] = []
+	for creature in creatures:
+		if not Creature.KINDS[creature.kind].get("steals", false):
+			continue
+		var at := creature.body.position
+		if creature.carrying > 0:
+			if not creature.errand.is_finite():
+				creature.errand = _nearest_edge(at)
+			if at.distance_to(creature.errand) < 0.4:
+				escaped.append(creature)
+			continue
+		creature.errand = Vector2.INF
+		var nearest: Pickup = null
+		for piece in pickups:
+			if piece.body.height < 0.3 and at.distance_to(piece.body.position) <= Creature.SNIFFS and (nearest == null or at.distance_to(piece.body.position) < at.distance_to(nearest.body.position)):
+				nearest = piece
+		if nearest == null:
+			continue
+		if at.distance_to(nearest.body.position) <= creature.body.radius + Pickup.REACH * 0.5:
+			pickups.erase(nearest)
+			creature.carrying = nearest.amount
+			events.append({"position": at, "height": 0.1, "direction": Vector2.ZERO, "killed": false, "by": "stolen", "giant": false, "kind": creature.kind})
+		else:
+			creature.errand = nearest.body.position
+	for creature in escaped:
+		creatures.erase(creature)
+		events.append({"position": creature.body.position, "height": 0.1, "direction": Vector2.ZERO, "killed": false, "by": "escaped", "giant": false, "kind": creature.kind})
+
+
+## The nearest point just inside the edge, where the trees start, that nothing stands on.
+func _nearest_edge(at: Vector2) -> Vector2:
+	var edges: Array[Vector2] = [Vector2(at.x, 0.3), Vector2(at.x, size.y - 0.3), Vector2(0.3, at.y), Vector2(size.x - 0.3, at.y)]
+	edges.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.distance_to(at) < b.distance_to(at))
+	for edge in edges:
+		if not solid_at(edge, 0.3):
+			return edge
+	return edges[0]
+
+
+## The siege's fires: the roofs catch one after another; a cat at the well fills a bucket, and
+## standing at a burning house's door, empties it over the fire, and the fire's out. A roof left
+## burning throws embers out, ember wisps, one every so often.
+func _fight_fires() -> void:
+	if roofs.is_empty():
+		return
+	for roof in roofs:
+		if roof.out:
+			continue
+		if not roof.lit:
+			roof.lights_in -= STEP
+			if roof.lights_in <= 0.0:
+				roof.lit = true
+				events.append({"position": roof.door, "height": 1.8, "direction": Vector2.ZERO, "killed": false, "by": "roof_alight", "giant": false, "kind": roof.building})
+			continue
+		roof.ember_in -= STEP
+		if roof.ember_in <= 0.0:
+			roof.ember_in = EMBER_EVERY
+			add_creature(roof.door, "wisp")
+		var dousing := false
+		for cat in cats:
+			if cat.alive() and cat.water and cat.body.position.distance_to(roof.door) <= DOOR_REACH:
+				dousing = true
+				roof.doused += STEP / DOUSE_TIME
+				if roof.doused >= 1.0:
+					roof.out = true
+					cat.water = false
+					events.append({"position": roof.door, "height": 1.2, "direction": Vector2.ZERO, "killed": false, "by": "doused", "giant": false, "kind": roof.building})
+				break
+		if not dousing:
+			roof.doused = maxf(roof.doused - STEP * 0.3, 0.0)
+	for cat in cats:
+		if not cat.alive() or cat.water:
+			_filling.erase(cat)
+			continue
+		var at_well := Vector2(clampf(cat.body.position.x, well.position.x, well.end.x), clampf(cat.body.position.y, well.position.y, well.end.y))
+		if cat.body.position.distance_to(at_well) <= WELL_REACH + cat.body.radius:
+			_filling[cat] = _filling.get(cat, 0.0) + STEP / FILL_TIME
+			if _filling[cat] >= 1.0:
+				_filling.erase(cat)
+				cat.water = true
+				events.append({"position": cat.body.position, "height": 0.3, "direction": Vector2.ZERO, "killed": false, "by": "bucket", "giant": false, "kind": "cat"})
+		else:
+			_filling.erase(cat)
+
+
+## How full each cat's bucket is getting at the well, 0 to 1, for the view.
+func filling(cat: Cat) -> float:
+	return _filling.get(cat, 0.0)
 
 
 ## Into an area of the forest: its plan for what spawns, and its goal's things where it puts them.
@@ -1373,10 +1555,33 @@ func begin_area(area_id: String, goal_kept := false) -> void:
 		"levers":
 			for spot: Vector2 in goal.at:
 				levers.append({"position": spot, "picked": 0.0, "pulled": false})
+		"fires":
+			well = goal.well
+			for index in goal.roofs.size():
+				var building: String = goal.roofs[index]
+				var lit_at_start: int = goal.lit_at_start
+				roofs.append({
+					"building": building, "door": VillageMap.door_step(VillageMap.footprint_of(building)),
+					"lit": false, "out": false, "doused": 0.0, "ember_in": EMBER_EVERY,
+					"lights_in": 0.0 if index < lit_at_start else goal.light_every * (index - lit_at_start + 1),
+				})
+
+
+## A corrupted grove, for Endless once there's peace with the forest: laid out from the run's seed,
+## its spirits and the company's leftovers coming at him the way the grove plan has it.
+func begin_grove(seed_value: int) -> void:
+	area = {}
+	plan = Areas.GROVE_PLAN
+	var grove := Areas.grove(seed_value)
+	lay_out(grove.size, Areas.obstacles(grove))
+	_reset_spawning()
 
 
 ## The timers for what the plan spawns, set so each first comes when the plan says.
 func _reset_spawning() -> void:
+	_since_packs.clear()
+	for pack: Dictionary in plan.get("packs", []):
+		_since_packs.append(pack.interval - pack.from)
 	_since_spawn = 0.0
 	_since_giant = _first("giants")
 	_since_dogs = _first("dogs")
@@ -1402,6 +1607,8 @@ func goal_progress() -> Vector2:
 			return Vector2(levers.filter(func(lever: Dictionary) -> bool: return lever.pulled).size(), levers.size())
 		"hold":
 			return Vector2(minf(held_for, area.goal.seconds), area.goal.seconds)
+		"fires":
+			return Vector2(roofs.filter(func(roof: Dictionary) -> bool: return roof.out).size(), roofs.size())
 	return Vector2.ZERO
 
 
@@ -1435,6 +1642,11 @@ func _bring_in_the_boss() -> void:
 	match coming.kind:
 		"creature": boss = add_creature(at, coming.type)
 		"giant": boss = add_giant(at, coming.type)
+		"guardian":
+			var guardian := Guardian.new()
+			guardian.body.position = at
+			giants.append(guardian)
+			boss = guardian
 		"machine": boss = add_machine(at, (size / 2.0 - at).angle(), coming.type)
 	events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "boss_arrives", "giant": true, "kind": coming.type})
 

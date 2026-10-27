@@ -22,6 +22,8 @@ const LEGEND := {
 	"l": Palette.CREAM_FUR_SHADOW, "z": Palette.CREAM_FUR, "Z": Palette.CREAM_FUR_LIGHT,
 	"Q": Palette.WHITE_FUR_SHADOW, "W": Palette.WHITE_FUR, "Y": Palette.WHITE_FUR_LIGHT,
 	"X": Palette.CREAM,
+	# The forest's spirits: ember light, char, smoke.
+	"E": Palette.SPARK, "K": Palette.BURNT, "G": Palette.GRAPHITE, "M": Palette.SMOKE,
 }
 ## The letters a cat's fur is drawn in, shadow, base and light, for each coat: the art is drawn
 ## orange, and another coat swaps its letters.
@@ -1009,6 +1011,7 @@ static func all_art() -> Dictionary:
 		art["salvage_%d" % index] = SALVAGE[index]
 	for coat_name: String in COATS:
 		art["cat_coat_" + coat_name] = coat(cat_body_art("side", 0), coat_name, "side")
+	art.merge(SpiritArt.all_art())
 	art["meriam_bambu"] = MERIAM_BAMBU
 	art["mine"] = MINE
 	art["mine_arming"] = MINE_ARMING

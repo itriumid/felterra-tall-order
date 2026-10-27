@@ -39,9 +39,18 @@ cats seriously. Stopping them is a tall order.
 and land clearing without preaching about it. The humans are a company with a schedule, not
 cartoon villains.
 
-**No magic for the cats.** Everything they fight with could be built. Folklore spirits are kept
-in reserve as a possible later enemy faction, where being the first supernatural thing in the
-game is the point.
+**No magic for the cats.** Everything they fight with could be built. The forest's folklore
+spirits are the second faction, after Liberation, and being the first supernatural thing in the
+game is the point. If the cats ever have magic, it's the spirits' gift, never their own.
+
+**After Liberation, the spirits.** After a quiet, the forest's spirits, the penunggu, come for the
+village: wherever the forest burned, they found cats, so they think the cats burned it. The
+siege is a run in the village itself: the spirits set the roofs alight, he puts the fires out
+with water from the well, and then Inyiak Balang comes, the forest's grandfather, a great tiger.
+Beaten, it lies down and listens. The Elder shows it the company's cans, stamped MBG, and it
+knows the smell: Makmur Bakar burned the groves. There's peace after that, and Inyiak Balang
+raises a shrine by the gate. Endless goes through it from then on, cleansing groves still sick
+from the company, with the spirits on the cats' side.
 
 ## Factions
 
@@ -84,6 +93,15 @@ bite the head sits on the ground for a moment, its hydraulic joint exposed, and 
 double; anywhere else, the steel shrugs off most of a hit. That's the fight: dodge the bite, then
 punish the joint. Too close for its boom, it backs off. Broken, its engine dies, the boom comes
 down, and it stays where it stopped, a wreck to fight around.
+
+The **spirits** are the second faction (each is in [`catalog.md`](catalog.md)). A spirit leaves
+nothing lying when it falls, and nothing that bleeds: it goes out in embers.
+
+| Role | Who |
+|---|---|
+| **The horde** | Ember wisps floating off the burned peat, tuyul who run off with salvage, pocong who can only hop, smoke monkeys who leap and hide in their own smoke |
+| **Heavies** | Charred saplings, walking on their roots in groups |
+| **The guardian** | Inyiak Balang, the great tiger: its pounce lands where he stood (the spot is marked), its paw sweeps (the arc is marked), and its roar throws him back and calls embers out of the trees. Gathering itself after a pounce, hits land double |
 
 ## The first map
 
@@ -234,7 +252,7 @@ on: fire and oil, or crewmates who can be downed.
 - **Liberation** is chosen at the map board by the village's gate, drawn as a map of the forest
   from above: the river, the village, and the path through every area in the order it's found,
   each wrecked while it's held, green again once it's free, and under mist until it's found.
-  Endless lies off the map's corner. Each area is a fixed, hand-made place and one run: push in through what holds it, do
+  Endless lies off the map's corner, until there's peace with the forest: then it's through the shrine. Each area is a fixed, hand-made place and one run: push in through what holds it, do
   what only that place asks, then its boss comes; beat it and the area is free, and the next one
   opens. Held by the company, an area is wrecked (stumps, felled trunks, ruts, oil, litter,
   smoldering peat, fewer trees standing at its edge); freed, it's healed (grassed over, saplings,
@@ -257,6 +275,7 @@ on: fire and oil, or crewmates who can be downed.
   | The log slide | Pull the three levers, and the logs roll down over everything | The logging truck: it charges, stalls with its tank open, and tips over when wrecked |
   | The company's offices | Cut the power: three generators | The bulldozer, whose engine at the back is the only weak point |
   | The airstrip | Cut the three fuel lines | The helicopter, out of reach until it lands to unload |
+  | The village, besieged | Put out the four fires, with water from the well | Inyiak Balang, the forest's guardian |
 
   **Each area has its own ground plan**: its own size, and what stands in it for good, so each
   plays differently, not only looks it.
@@ -270,6 +289,7 @@ on: fire and oil, or crewmates who can be downed.
   | The log slide | 26 by 36 m | Long and narrow, down the hill: three chutes under the levers, rocks between them where the logs don't roll |
   | The company's offices | 44 by 28 m | Two rows of cabins either side of a yard, crates |
   | The airstrip | 60 by 24 m | Wide open: the hangar at the far end, a fuel tank, a few crates |
+  | The village, besieged | 37 by 18 m | The village itself: its houses, its props, the forest either side of the path in |
 
   What stands is solid, at its own height. Nothing walks through it: the horde, the dogs, the
   giants and the machines all find their way around it, so it's cover, and a crowd can be split
@@ -281,6 +301,20 @@ on: fire and oil, or crewmates who can be downed.
   the scattered ones (trees, stumps, bushes) from the area's own seed, the same every time, kept
   clear of where he comes in, the goal's things, the boss's way in, and each other.
 - **Endless mode**: the giants never stop coming; factions arrive and start to mix.
+- **The siege** comes once the airstrip is free, chosen at the board like an area: halfway to
+  the gate, Jogiboy smells smoke behind them, and he walks back in through the gate to a village
+  under attack. It's the village as it stands, every house and prop solid, the forest walling the
+  path in. Two roofs are alight at the start and another catches every 20 seconds, four in all;
+  a roof left burning throws out an ember wisp every 6 seconds. Standing at the well fills a
+  bucket in a second; standing at a burning house's door with it puts the fire out in a little
+  over one. Marks at the screen's edge show the burning houses and, with no water carried, the
+  well. Once the last is out, Inyiak Balang comes out of the forest above the smithy.
+- **Cleansing**: once there's peace, Endless is through the shrine, in a grove still sick from
+  the company, laid out fresh from each run's seed: a sick grove in the deep forest, the burned
+  peat, or the riverbank, where nothing walks into the oily river. The restless spirits come in
+  their mix, the saplings and the monkeys in packs, the company's abandoned feller bunchers still
+  working with something else at the controls, and its traps, with cats in them. The best run is
+  still Endless's.
 - **The hub is the cats' village** at the forest's edge. It grows between runs: rescued cats
   join, the smith forges better gear. That growth is the progress that carries over, and it's
   the story moving forward.

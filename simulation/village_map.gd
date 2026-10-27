@@ -77,6 +77,9 @@ const MARKET := Rect2(20.0, 11.4, 2.4, 1.2)
 const HEALER := Rect2(32.8, 4.8, 2.0, 1.3)
 ## His own home: the first house in from the forest.
 const HOME := Rect2(12.6, 4.6, 2.0, 1.3)
+## The shrine Inyiak Balang raises by the gate once there's peace with the forest: the way to the
+## groves still sick from the company. It's never a ruin; until then, it isn't there at all.
+const SHRINE := Rect2(33.4, 14.2, 1.6, 1.2)
 ## The huts, each at its own depth off the road: the weaver's first, by the way in.
 const HUTS: Array[Rect2] = [
 	Rect2(13.8, 12.0, 2.0, 1.4), Rect2(17.2, 14.4, 2.0, 1.4), Rect2(24.0, 12.4, 2.0, 1.4),
@@ -86,8 +89,9 @@ const HUTS: Array[Rect2] = [
 ## what's flat on the ground or overhead: the well in the square and a bench by it, the gardens
 ## behind the houses, the woodpile by the smithy, a washing line, rice drying on its mat, and the
 ## coconut palms.
+const WELL := Rect2(18.9, 5.2, 0.9, 0.7)
 const PROPS: Array[Dictionary] = [
-	{"kind": "well", "footprint": Rect2(18.9, 5.2, 0.9, 0.7)},
+	{"kind": "well", "footprint": WELL},
 	{"kind": "bench", "footprint": Rect2(21.0, 6.2, 1.2, 0.35)},
 	{"kind": "garden", "footprint": Rect2(12.4, 2.2, 2.6, 1.6)},
 	{"kind": "garden", "footprint": Rect2(13.4, 14.8, 2.6, 1.6)},
@@ -159,8 +163,37 @@ static func building_names() -> Array[String]:
 	var names_in_order: Array[String] = ["home", "longhouse", "smithy"]
 	for index in HUTS.size():
 		names_in_order.append("hut_%d" % index)
-	names_in_order.append_array(["watchtower", "market", "healer"])
+	names_in_order.append_array(["watchtower", "market", "healer", "shrine"])
 	return names_in_order
+
+
+## Where each building stands, by name.
+static func footprint_of(building_name: String) -> Rect2:
+	match building_name:
+		"home": return HOME
+		"longhouse": return LONGHOUSE
+		"smithy": return SMITHY
+		"watchtower": return WATCHTOWER
+		"market": return MARKET
+		"healer": return HEALER
+		"shrine": return SHRINE
+	return HUTS[building_name.trim_prefix("hut_").to_int()]
+
+
+## The village as somewhere to fight in: its buildings, its props that aren't flat, and the forest
+## either side of the path in, all standing for good.
+static func standing() -> Array[Obstacle]:
+	var walls: Array[Obstacle] = []
+	for building_name in building_names():
+		if building_name != "shrine":
+			walls.append(Obstacle.from({"kind": "wall", "rect": footprint_of(building_name)}))
+	walls.append(Obstacle.from({"kind": "wall", "rect": BOARD}))
+	for prop: Dictionary in PROPS:
+		if not prop.get("flat", false):
+			walls.append(Obstacle.from({"kind": "wall", "rect": prop.footprint}))
+	walls.append(Obstacle.from({"kind": "wall", "rect": Rect2(-1.0, -1.0, VILLAGE_FROM + 1.0, PATH_TOP + 1.0)}))
+	walls.append(Obstacle.from({"kind": "wall", "rect": Rect2(-1.0, PATH_BOTTOM, VILLAGE_FROM + 1.0, SIZE.y - PATH_BOTTOM + 1.0)}))
+	return walls
 
 
 func _init(rescued: Array = [], restored: Array = [], seed_value := 39) -> void:
@@ -184,6 +217,8 @@ func _init(rescued: Array = [], restored: Array = [], seed_value := 39) -> void:
 	buildings.append({"name": "healer", "kind": "healer", "footprint": HEALER, "paint": 5})
 	for building in buildings:
 		building.restored = building.name in restored
+	if "shrine" in restored:
+		buildings.append({"name": "shrine", "kind": "shrine", "footprint": SHRINE, "restored": true})
 	buildings.append({"name": "board", "kind": "board", "footprint": BOARD, "restored": true})
 	for each: Dictionary in rescued:
 		var villager := Cat.new()

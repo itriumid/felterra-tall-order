@@ -20,10 +20,12 @@ var tall := 0.1
 var restitution := 0.35
 ## How fast sliding along the ground slows it, in meters a second each second.
 var friction := 6.0
+## How high it floats, for what floats (an ember wisp): that's its ground, and it falls back to it.
+var hovers := 0.0
 
 
 func airborne() -> bool:
-	return height > 0.0 or vertical_speed > 0.0
+	return height > hovers or vertical_speed > 0.0
 
 
 ## Lying still on the ground: nothing to simulate until something moves it.
@@ -41,8 +43,8 @@ func step(delta: float) -> void:
 	if airborne():
 		vertical_speed -= GRAVITY * delta
 		height += vertical_speed * delta
-		if height <= 0.0:
-			height = 0.0
+		if height <= hovers:
+			height = hovers
 			if -vertical_speed > SETTLE_SPEED:
 				vertical_speed = -vertical_speed * restitution
 				# Striking the ground scrubs off some of the way along it too.

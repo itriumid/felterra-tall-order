@@ -15,6 +15,8 @@ const ICONS := {
 	"salvage": "..xxx.. .xx.xx. xx...xx .xx.xx. ..xxx.. ...x... ...x...",
 	"cloth": "xxxxxxx x.x.x.x xxxxxxx x.x.x.x xxxxxxx x.x.x.x xxxxxxx",
 	"cats": "x.....x xx...xx xxxxxxx x.xxx.x xxxxxxx .xxxxx. ..xxx..",
+	"fire": "...x... ..xx... .xxx.x. .xxxxx. xxx.xxx xx...xx .xxxxx.",
+	"water": ".xxxxx. x.....x xxxxxxx xxxxxxx .xxxxx. .xxxxx. ..xxx..",
 }
 
 

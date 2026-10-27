@@ -172,18 +172,19 @@ func test_every_line_of_the_story_fits_the_screen() -> void:
 func test_whoever_speaks_is_in_the_village_by_then() -> void:
 	var village := Village.new()
 	for area in Areas.LIST:
-		# Who's home before he leaves for it, and before he's taught what freeing it teaches.
-		var home := ["elder"]
+		# Who's home before he leaves for it, and before he's taught what freeing it teaches. The
+		# Elder and Jogiboy always are.
+		var home := ["elder", "jogiboy"]
 		for cat: Dictionary in village.cats:
 			home.append(cat.name)
 		for line: Variant in area.send_off:
 			if line is Dictionary:
 				check(line.by in home, "%s sees him off to %s before coming home" % [line.by, area.name])
 		village.liberate(area.id)
-		home = ["elder"]
+		home = ["elder", "jogiboy"]
 		for cat: Dictionary in village.cats:
 			home.append(cat.name)
-		for line: Variant in area.teaches.get("lines", []):
+		for line: Variant in area.get("teaches", {}).get("lines", []):
 			if line is Dictionary:
 				check(line.by in home, "%s teaches after %s, but isn't home" % [line.by, area.name])
 
