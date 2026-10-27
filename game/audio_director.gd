@@ -132,6 +132,7 @@ func take_events(events: Array[Dictionary]) -> void:
 				play_at("cage_open", event.position, -4.0)
 				play_at("meow", event.position, -3.0)
 			"pickup": play_at("pickup", event.position, -10.0)
+			"thud": play_at("crack", event.position, -18.0, 1.8)
 			_:
 				if event.get("kind", "") == "machine":
 					play_at("machine_break" if event.killed else "clang", event.position, 2.0 if event.killed else -8.0)

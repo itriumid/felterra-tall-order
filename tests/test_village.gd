@@ -162,3 +162,38 @@ func test_every_door_can_be_reached_from_the_road() -> void:
 		# Below the road, the door faces it: the step is on the road's side.
 		if footprint.position.y > VillageMap.PATH_BOTTOM and building.kind != "board":
 			check(step.y < footprint.position.y, "the %s turns its back on the road" % building.name)
+
+
+func test_villagers_never_get_stuck_going_about_their_day() -> void:
+	var cats: Array = []
+	for index in 9:
+		cats.append({"name": Cage.NAMES[index], "coat": "gray"})
+	var everything := ["home", "longhouse", "smithy", "watchtower", "market", "healer"]
+	for index in VillageMap.HUTS.size():
+		everything.append("hut_%d" % index)
+	for seed_value in 3:
+		var map := VillageMap.new(cats, everything, seed_value)
+		map.cat.body.position = VillageMap.HOME_SPOT
+		var marks: Array[Vector2] = []
+		var going_to: Array[Vector2] = []
+		var still := []
+		for villager in map.villagers:
+			marks.append(villager.body.position)
+			going_to.append(Vector2.INF)
+			still.append(0)
+		# Looked at every two seconds: going the same place, far from it, and hardly moved, twice
+		# running, is stuck.
+		for step in 60 * 180:
+			map.step(1.0 / 60.0)
+			if step % 120 != 119:
+				continue
+			for index in map.villagers.size():
+				var at := map.villagers[index].body.position
+				var far := at.distance_to(map._amble_to[index]) > 0.6
+				if far and at.distance_to(marks[index]) < 0.3 and map._amble_to[index] == going_to[index]:
+					still[index] += 1
+					check(still[index] < 2, "a villager got stuck at %s going to %s" % [at, map._amble_to[index]])
+				else:
+					still[index] = 0
+				marks[index] = at
+				going_to[index] = map._amble_to[index]

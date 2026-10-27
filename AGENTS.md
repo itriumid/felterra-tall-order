@@ -103,8 +103,8 @@ catalog and the code agree.
   machine first. Check its log for `SCRIPT ERROR`, and check the frame itself: a frame that
   looks wrong can be the simulation going wrong, not the drawing.
 - **Measure the horde in its worst case**, crushed around a cat, with
-  `tools/benchmark_horde.gd`. A horde still on its way in costs a fraction of one that has
-  arrived.
+  `tools/benchmark_horde.gd` (add `-- --area=<id>` for a liberation area, with what stands in it).
+  A horde still on its way in costs a fraction of one that has arrived.
 - **Releases come from a signed `v*` tag** matching `config/version` in `project.godot`, and land
   as a draft that's published by hand; see `CONTRIBUTING.md`. Never tag or publish unless asked.
   Every build is made by `tools/export.sh`, locally, in the Export check and in the Release

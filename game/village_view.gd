@@ -53,7 +53,9 @@ func _ready() -> void:
 	random.seed = 23
 	# The forest the path runs through: trees thick on either side of it, all the way up and down.
 	var x := 0.3
-	while x < VillageMap.VILLAGE_FROM + 0.5:
+	# The forest stops where the village starts: its last trees stand back from the village's
+	# edge, so their crowns don't hang out over its open ground.
+	while x < VillageMap.VILLAGE_FROM - 0.8:
 		# Below the path the trunks stand back from it, so their crowns stop short of it.
 		for band: Array in [[0.4, VillageMap.PATH_TOP - 0.5], [VillageMap.PATH_BOTTOM + 3.6, VillageMap.SIZE.y + 0.4]]:
 			var y: float = band[0] + random.randf_range(0.0, 0.8)
@@ -80,7 +82,7 @@ func _ready() -> void:
 		y += random.randf_range(1.2, 2.0)
 	# Leaves overhead: heavy over the forest path, open over the village.
 	for index in 140:
-		var spot := Vector2(random.randf_range(0.0, VillageMap.VILLAGE_FROM + 1.0), random.randf_range(-0.2, VillageMap.SIZE.y + 0.2))
+		var spot := Vector2(random.randf_range(0.0, VillageMap.VILLAGE_FROM - 0.6), random.randf_range(-0.2, VillageMap.SIZE.y + 0.2))
 		if spot.y > VillageMap.PATH_TOP + 0.4 and spot.y < VillageMap.PATH_BOTTOM - 0.4 and random.randf() < 0.7:
 			continue
 		var picture := EnvironmentArt.leaves(random.randi_range(12, 22), random.randi(), random.randf() < 0.6)
@@ -570,8 +572,6 @@ func _draw_palm(footprint: Rect2) -> void:
 		draw_circle((top + Vector2(-3 + nut * 3, 3 + nut % 2)).round(), 2, Palette.MUD)
 
 
-## The map of the forest, carved on a board on two posts: green where it's free, the company's
-## orange marks where it isn't, and the paths between.
 func _draw_board(footprint: Rect2) -> void:
 	var front := footprint.end.y
 	for post_x in [footprint.position.x + 0.05, footprint.end.x - 0.12]:

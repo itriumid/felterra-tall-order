@@ -22,7 +22,10 @@ const STEPS := [
 	["drop_salvage", ""],
 	["pause", "pause"], ["menu_choose", ""],
 	["pause", "pause"], ["move_down", "pause"], ["menu_choose", "settings"], ["move_down", "settings"],
-	["move_right", "settings"], ["pause", "pause"], ["pause", ""],
+	["move_right", "settings"],
+	# Fewer of the fallen left lying, there and then in the run.
+	["move_down", "settings"], ["move_down", "settings"], ["move_left", "settings", {"arena.most_fallen": 100}],
+	["pause", "pause"], ["pause", ""],
 	# Down, then straight back out: walking in again, skipped.
 	["down", "summary"], ["move_down", "summary"], ["menu_choose", "", {"_place": "run", "_entering": true}],
 	["pause", "", {"_entering": false}], ["pick_2", ""],

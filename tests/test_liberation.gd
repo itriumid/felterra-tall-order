@@ -6,7 +6,7 @@ extends TestCase
 func _area(area_id: String) -> Arena:
 	var arena := Arena.new()
 	arena.begin_area(area_id)
-	var cat := arena.add_cat(Arena.SIZE / 2.0)
+	var cat := arena.add_cat(arena.area.start)
 	cat.weapons.clear()
 	cat.health = 1.0e6
 	return arena

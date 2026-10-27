@@ -90,7 +90,8 @@ down, and it stays where it stopped, a wreck to fight around.
 A clearing the company has cut in an Indonesian tropical forest.
 
 - **The ground is open.** The company has cleared it, which is why there's nothing to block
-  movement, and why they're there at all. Mud, burnt earth and log skids vary it: they slow you,
+  movement, and why they're there at all. (That's Endless's clearing; Liberation's areas each
+  have their own ground plan, with things standing in the way.) Mud, burnt earth and log skids vary it: they slow you,
   they never stop you.
 - **The jungle is the wall** around the arena: living, thick, impassable.
 - **The canopy hangs overhead**, drawn above everything, with no collision. It's above your
@@ -256,6 +257,29 @@ on: fire and oil, or crewmates who can be downed.
   | The log slide | Pull the three levers, and the logs roll down over everything | The logging truck: it charges, stalls with its tank open, and tips over when wrecked |
   | The company's offices | Cut the power: three generators | The bulldozer, whose engine at the back is the only weak point |
   | The airstrip | Cut the three fuel lines | The helicopter, out of reach until it lands to unload |
+
+  **Each area has its own ground plan**: its own size, and what stands in it for good, so each
+  plays differently, not only looks it.
+
+  | Area | Size | What stands there |
+  |---|---|---|
+  | The village's edge | 40 by 24 m | A few trees and bushes, two fallen trunks: mostly open |
+  | The deep forest | 44 by 28 m | Thick with trees and undergrowth, trunks lying across the way |
+  | The sawpits | 40 by 24 m | Rows of stacked logs, the saws in the lanes between them |
+  | The logged clearing | 48 by 28 m | Wide, littered with stumps, two log stacks |
+  | The log slide | 26 by 36 m | Long and narrow, down the hill: three chutes under the levers, rocks between them where the logs don't roll |
+  | The company's offices | 44 by 28 m | Two rows of cabins either side of a yard, crates |
+  | The airstrip | 60 by 24 m | Wide open: the hangar at the far end, a fuel tank, a few crates |
+
+  What stands is solid, at its own height. Nothing walks through it: the horde, the dogs, the
+  giants and the machines all find their way around it, so it's cover, and a crowd can be split
+  around it. A round flying lower than its top stops in it, and he shoots only what he can see; a
+  lobbed round goes over. Low things (stumps, fallen trunks) are cleared by a cat in a leap, and
+  stepped or driven over by the giants and the machines. A charging truck or a ramming bulldozer
+  stops dead against anything taller. Something tall enough to hide him lets him show through
+  while he's behind it, and a tree's crown over him thins. The fixed pieces are placed by hand;
+  the scattered ones (trees, stumps, bushes) from the area's own seed, the same every time, kept
+  clear of where he comes in, the goal's things, the boss's way in, and each other.
 - **Endless mode**: the giants never stop coming; factions arrive and start to mix.
 - **The hub is the cats' village** at the forest's edge. It grows between runs: rescued cats
   join, the smith forges better gear. That growth is the progress that carries over, and it's
@@ -328,7 +352,7 @@ Level-ups arrive as **cards**. A card offers a choice of three; you hold it unti
   keeps running, and its panel is see-through so you can see what's coming.
 - Held cards can be read in the pause menu, and are only played in action.
 - **The pause menu**: carry on, settings, start again, leave the game. **Settings**: graphics
-  (full screen, window size, vertical sync), audio (overall, music, effects and interface
+  (full screen, window size, vertical sync, how many of the fallen are left lying), audio (overall, music, effects and interface
   volumes, each its own bus) and gameplay (aim mode, blood), kept for next time. It opens
   on its own when a run ends, ready to start again. Its see-through panel is a checkerboard of
   palette pixels, not a blend.
@@ -479,8 +503,15 @@ follow procedurally, hits and recoil push the sprite, a felled body falls as phy
 
 **Blood** is honest: droplets are particles that arc, fall and stain the ground where they
 land; stains dry darker and in time are gone. A setting turns it off, and the same hits throw up
-dust and fur instead, so a hit still reads. The fallen lie where they fall, up to a few hundred;
-past that the oldest crumble away pixel by pixel rather than vanishing.
+dust and fur instead, so a hit still reads. The fallen lie where they fall, up to 300 by default
+(a setting has none, 100, 300 or all 600, for a slower machine); past that the oldest crumble
+away pixel by pixel rather than vanishing.
+
+**A slow machine plays it too.** The horde, the fallen and the growth are each drawn off one
+sheet, and the jungle's edge and the canopy are put together into one picture when a place is
+painted, so a full fight is a few dozen draw calls, not a thousand. The world steps 60 times a
+second; a frame that runs late catches up at most three steps, so a machine too slow to keep
+up sees the world slow a little rather than stutter.
 
 **Walking** steps with the ground covered, never a clock, so feet don't slide and a body
 thrown through the air doesn't run.

@@ -58,6 +58,8 @@ const INTRO: Array = [
 ]
 ## How far he walks into a run before it starts, in meters.
 const ENTRANCE := 5.0
+## The most steps of the world one frame catches up: 60 a second down to 20 frames a second.
+const CATCH_UP := 3
 ## After a boss falls, how long before the area's free, even with nothing to tell.
 const FREED_PAUSE := 2.5
 
@@ -67,7 +69,7 @@ const THING_TABS: Array[Array] = [["weapon", "Weapons"], ["gear", "Gear"], ["sup
 ## The settings page: each row's section, setting and name, by section.
 const SETTING_ROWS: Array[Array] = [
 	["graphics", "full_screen", "Full screen"], ["graphics", "window_scale", "Window size"],
-	["graphics", "vsync", "Vertical sync"],
+	["graphics", "vsync", "Vertical sync"], ["graphics", "fallen", "Fallen left lying"],
 	["audio", "master", "Volume"], ["audio", "music", "Music"], ["audio", "effects", "Effects"],
 	["audio", "interface", "Interface"],
 	["gameplay", "aim", "Aim"], ["gameplay", "blood", "Blood"], ["gameplay", "story_waits", "Story lines"],
@@ -160,6 +162,8 @@ var _menu_after := -1.0
 var _always_reading := false
 var _menu_choice := 0
 var _start := Arena.SIZE / 2.0
+## Whether a development flag put him somewhere, so an area doesn't move him to its own start.
+var _placed := false
 var _fallen := 0
 var _giants := 0
 var _dogs := 0
@@ -191,6 +195,7 @@ func _ready() -> void:
 		elif argument.begins_with("--at="):
 			var parts := argument.trim_prefix("--at=").split(",")
 			_start = Vector2(parts[0].to_float(), parts[1].to_float())
+			_placed = true
 		elif argument.begins_with("--fallen="):
 			_fallen = argument.trim_prefix("--fallen=").to_int()
 		elif argument.begins_with("--walk="):
@@ -384,6 +389,7 @@ func _begin(horde: int, spawning: bool) -> void:
 	_music.place = "run"
 	arena = Arena.new()
 	arena.spawning = spawning
+	arena.most_fallen = settings.get_value("graphics", "fallen")
 	cat = arena.add_cat(_start)
 	cat.aim_mode = settings.get_value("gameplay", "aim")
 	_dress()
@@ -1004,9 +1010,10 @@ func _process(delta: float) -> void:
 
 
 ## Steps the simulation to catch up with the time passed, and hands its hits to the blood and
-## the sound.
+## the sound. Never more than CATCH_UP steps for one frame: a machine too slow to keep up would
+## only fall further behind, each frame slower than the last, so the world slows a little instead.
 func _step_world(delta: float) -> void:
-	_behind = minf(_behind + delta, Arena.STEP * 5.0)
+	_behind = minf(_behind + delta, Arena.STEP * CATCH_UP)
 	var started := Time.get_ticks_usec()
 	var steps := 0
 	while _behind >= Arena.STEP:
@@ -1089,6 +1096,9 @@ func _set_up_run(run_kind: String) -> void:
 	var area := Areas.named(run_kind)
 	var goal_kept: bool = run_kind in village.goals_done and not run_kind in village.liberated
 	arena.begin_area(run_kind, goal_kept)
+	# He comes in where the area has him stand, unless he's been put somewhere to try something.
+	if not _placed:
+		cat.body.position = area.get("start", arena.size / 2.0)
 	_ground.paint(area.ground, _area_seed(run_kind), run_kind in village.liberated)
 	_entities._freed_areas = village.liberated
 	_overlay.area_name = area.name
@@ -1233,8 +1243,9 @@ func _take_screenshot(delta: float) -> void:
 	if _screenshot_after <= 0.0:
 		if _frames_saved == 0:
 			print("sounds played: ", _audio.played)
-			print("%d frames a second, %.2f ms a step, %d in the horde" % [
-				Engine.get_frames_per_second(), _overlay.step_milliseconds, arena.creatures.size()])
+			print("%d frames a second, %.2f ms a step, %.2f ms drawing the fight, %.2f ms a frame's processing, %d in the horde, %d fallen" % [
+				Engine.get_frames_per_second(), _overlay.step_milliseconds, _entities.draw_milliseconds,
+				Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, arena.creatures.size(), arena.fallen.size()])
 		_frames_saved += 1
 		var path := _screenshot_path if _frames == 1 else _screenshot_path.replace(".png", "_%d.png" % _frames_saved)
 		get_viewport().get_texture().get_image().save_png(path)
@@ -1407,6 +1418,8 @@ func _settings_changed() -> void:
 	if cat != null:
 		cat.aim_mode = settings.get_value("gameplay", "aim")
 	_entities.blood = settings.get_value("gameplay", "blood")
+	if arena != null:
+		arena.most_fallen = settings.get_value("graphics", "fallen")
 	if _keeping_settings:
 		settings.save()
 
@@ -1436,6 +1449,7 @@ func _setting_lines() -> Array[Dictionary]:
 			var value: Variant = settings.get_value(row[0], row[1])
 			match row[1]:
 				"window_scale": line.value = "%d by %d" % [640 * int(value), 360 * int(value)]
+				"fallen": line.value = {0: "None: they crumble away", 100: "A few: 100", 300: "Some: 300", 600: "All of them: 600"}[value]
 				"aim": line.value = {"nearest": "Nearest", "toughest": "Toughest first", "crowd": "Thickest crowd"}[value]
 				"blood": line.value = "On" if value else "Off: dust and fur instead"
 				"story_waits": line.value = "Wait for Enter" if value else "Move on by themselves"

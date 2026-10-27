@@ -35,7 +35,7 @@ func _work(delta: float, arena: Arena) -> void:
 			if prey == null:
 				body.velocity = Vector2.ZERO
 				return
-			var toward := prey.body.position - body.position
+			var toward := arena.way(body.position, prey.body.position, true) * body.position.distance_to(prey.body.position)
 			# Wheels: it turns only as it rolls.
 			var off := _turn_toward(toward.angle(), TURN, delta)
 			body.velocity = facing() * DRIVE_SPEED
@@ -54,7 +54,7 @@ func _work(delta: float, arena: Arena) -> void:
 			body.velocity = facing() * CHARGE_SPEED
 			charged += CHARGE_SPEED * delta
 			var ahead := point(length * 0.5 + 0.5, 0.0)
-			var off_the_edge := ahead.x < 0.5 or ahead.y < 0.5 or ahead.x > Arena.SIZE.x - 0.5 or ahead.y > Arena.SIZE.y - 0.5
+			var off_the_edge := ahead.x < 0.5 or ahead.y < 0.5 or ahead.x > arena.size.x - 0.5 or ahead.y > arena.size.y - 0.5 or arena.solid_at(ahead, 0.0, Arena.STEPS_OVER)
 			if charged >= CHARGE_LENGTH or off_the_edge:
 				state = State.STUCK
 				state_for = STALL_TIME

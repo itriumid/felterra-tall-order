@@ -114,17 +114,19 @@ func step(delta: float, prey: Cat, arena: Arena = null) -> void:
 			if state_for <= 0.0:
 				state = State.RUNNING
 		State.RUNNING:
-			_run(delta, prey)
+			_run(delta, prey, arena)
 	body.step(delta)
 
 
-func _run(delta: float, prey: Cat) -> void:
+func _run(delta: float, prey: Cat, arena: Arena) -> void:
 	if body.airborne():
 		return
 	var wanted := Vector2.ZERO
 	if prey != null and prey.alive():
 		var toward := prey.body.position - body.position
-		wanted = toward.normalized() * float(stat("speed")) * pace()
+		# Around whatever stands between, if anything does.
+		var going: Vector2 = arena.way(body.position, prey.body.position) if arena != null else toward.normalized()
+		wanted = going * float(stat("speed")) * pace()
 		# A dog close enough crouches to lunge, committing to where he is now.
 		if KINDS[kind].has("lunge_reach") and toward.length() < float(stat("lunge_reach")) and bite_ready_in <= 0.0:
 			state = State.CROUCHING

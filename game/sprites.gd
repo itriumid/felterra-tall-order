@@ -2976,6 +2976,47 @@ static func _tompel_marked(view: String, x: int, y: int) -> bool:
 	return false
 
 
+## Several pictures on one texture, each turned every way (flipped across, flipped over), lit
+## like the rest: many drawn one after another from it are drawn together, which is what a horde
+## needs. As {texture, regions}, a picture's region by "index|flipped across|flipped over".
+static func sheet(arts: Array[String]) -> Dictionary:
+	var key := "sheet|%d" % hash(arts)
+	if _cache.has(key):
+		return _cache[key]
+	var pictures: Array[Array] = []
+	var width := 0
+	var height := 0
+	for index in arts.size():
+		for flip_x in [false, true]:
+			for flip_y in [false, true]:
+				var picture := image(arts[index])
+				if flip_x:
+					picture.flip_x()
+				if flip_y:
+					picture.flip_y()
+				pictures.append(["%d|%s|%s" % [index, flip_x, flip_y], picture])
+				width += picture.get_width() + 1
+				height = maxi(height, picture.get_height())
+	var diffuse := Image.create_empty(width, height, false, Image.FORMAT_RGBA8)
+	var normal := Image.create_empty(width, height, false, Image.FORMAT_RGBA8)
+	var regions := {}
+	var x := 0
+	for entry in pictures:
+		var picture: Image = entry[1]
+		picture.convert(Image.FORMAT_RGBA8)
+		var normals := _normals(picture)
+		normals.convert(Image.FORMAT_RGBA8)
+		diffuse.blit_rect(picture, Rect2i(Vector2i.ZERO, picture.get_size()), Vector2i(x, 0))
+		normal.blit_rect(normals, Rect2i(Vector2i.ZERO, picture.get_size()), Vector2i(x, 0))
+		regions[entry[0]] = Rect2(x, 0, picture.get_width(), picture.get_height())
+		x += picture.get_width() + 1
+	var texture := CanvasTexture.new()
+	texture.diffuse_texture = ImageTexture.create_from_image(diffuse)
+	texture.normal_texture = ImageTexture.create_from_image(normal)
+	_cache[key] = {"texture": texture, "regions": regions}
+	return _cache[key]
+
+
 static func lit(art: String, flip_x := false, flip_y := false) -> CanvasTexture:
 	var key := "%s|%s|%s" % [art.hash(), flip_x, flip_y]
 	if _cache.has(key):

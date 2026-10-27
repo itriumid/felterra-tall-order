@@ -71,13 +71,30 @@ const RICOCHET_REACH := 3.0
 const DECOY_REACH := 9.0
 ## With an area's goal done on an earlier run, how long before its boss comes.
 const BOSS_BUILD_UP := 45.0
-## The fallen stay where they lie, up to this many. Past that, the oldest crumble away over
-## FADE_TIME seconds rather than vanishing.
+## The fallen stay where they lie, up to this many (the player can have fewer). Past that, the
+## oldest crumble away over FADE_TIME seconds rather than vanishing.
 const MOST_FALLEN := 600
 const FADE_TIME := 1.5
 ## The cell size of the grid that finds what's near what.
 const CELL := 0.2
+## How wide a walker the ways around obstacles are found for: the horde's, and the giants' and
+## machines'. And how high a cat's eye is, for what he can see over to shoot at.
+const NARROW := 0.1
+const WIDE := 0.6
+## The giants and the machines step or drive over anything this low: stumps, a fallen trunk.
+const STEPS_OVER := 0.5
+const EYE := 0.3
+## When what he'd shoot at is behind something, how many others he looks over before giving up.
+const SIGHTED := 12
 
+## How big this place is, in meters, and what stands in it; with the ways around it, for the
+## horde and for the big ones, once there's something to go around.
+var size := SIZE
+var obstacles: Array[Obstacle] = []
+var _narrow: FlowField
+var _wide: FlowField
+## What stands near each square meter, so a body looks only at what's near it.
+var _standing_near := {}
 var cats: Array[Cat] = []
 var creatures: Array[Creature] = []
 ## The giants: walking, falling, or lying where they fell.
@@ -120,6 +137,7 @@ var liberated := false
 var fleeing := false
 var shots: Array[Shot] = []
 var fallen: Array[Body] = []
+var most_fallen := MOST_FALLEN
 ## The oldest of the fallen crumbling away, as {body, left}: seconds until it's gone.
 var fading: Array[Dictionary] = []
 var random := RandomNumberGenerator.new()
@@ -200,6 +218,7 @@ func step() -> void:
 	time += STEP
 	# Who stands where, as the step begins: everything that looks for a creature uses it.
 	_build_grid()
+	_find_the_ways()
 	for cat in cats:
 		cat.step(STEP, self)
 		_keep_inside(cat.body)
@@ -208,13 +227,17 @@ func step() -> void:
 		_keep_inside(creature.body)
 	for giant in giants:
 		giant.step(STEP, self)
-		_keep_inside(giant.body)
+		_keep_inside(giant.body, false, true)
 	giants = giants.filter(func(giant: Giant) -> bool: return giant.fallen_for < FELLED_LASTS)
 	for machine in machines:
 		machine.step(STEP, self)
-		_keep_inside(machine.body)
+		_keep_inside(machine.body, false, true)
 	_separate()
 	_shoulder_through()
+	# The crowd shoves its own into what stands: out again, before anything sees it there.
+	if not obstacles.is_empty():
+		for creature in creatures:
+			_keep_inside(creature.body)
 	_wander()
 	_bite()
 	_fly_shots()
@@ -240,10 +263,12 @@ func step() -> void:
 
 
 ## What a weapon in reach of a point should go for, by aim mode: a creature or a standing giant,
-## or null.
-func target_for(where: Vector2, reach: float, mode: String) -> Object:
+## or null. Only what can be seen from that height: nothing behind something standing taller,
+## unless what's fired goes over the top (a height of INF).
+func target_for(where: Vector2, reach: float, mode: String, height := EYE) -> Object:
 	var best: Object = null
 	var best_score := -INF
+	var scored: Array = []
 	for target in _targets():
 		var distance: float = where.distance_to(target.body.position) - target.body.radius
 		if distance > reach:
@@ -254,10 +279,19 @@ func target_for(where: Vector2, reach: float, mode: String) -> Object:
 			score = float(target.health) - distance * 0.001
 		elif mode == "crowd":
 			score = _crowding(target.body.position) - distance * 0.001
+		if not obstacles.is_empty() and height < INF:
+			scored.append([score, target])
 		if score > best_score:
 			best_score = score
 			best = target
-	return best
+	if best == null or scored.is_empty() or clear_between(where, best.body.position, height):
+		return best
+	# The best is out of sight: the next best that isn't, looking over only so many.
+	scored.sort_custom(func(a: Array, b: Array) -> bool: return a[0] > b[0])
+	for index in range(1, mini(scored.size(), SIGHTED)):
+		if clear_between(where, scored[index][1].body.position, height):
+			return scored[index][1]
+	return null
 
 
 ## Everything there is to fight: the horde and the giants still on their feet.
@@ -600,27 +634,82 @@ func _build_grid() -> void:
 
 
 ## Creatures on the ground can't stand in each other: overlapping pairs are pushed apart, half
-## each. The grid keeps it to neighbors, so a big horde costs what its crowding costs.
+## each. The grid keeps it to neighbors, so a big horde costs what its crowding costs: each cell
+## against itself and the four after it, so every pair is looked at once. A dog is wider than a
+## cell, so it looks further, on its own.
+const FORWARD: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 1), Vector2i(0, 1), Vector2i(1, 1)]
+## How far each of a pair standing in each other is pushed, as a share of how far they overlap,
+## and how many times a step the crowd is gone over: a packed crowd pushing in on him settles only
+## if it's gone over more than once.
+const PART := 0.5
+const PARTINGS := 2
+
+
 func _separate() -> void:
-	for creature in creatures:
+	for parting in PARTINGS:
+		_part_the_crowd()
+
+
+func _part_the_crowd() -> void:
+	var wide: Array[Creature] = []
+	var half := CELL / 2.0
+	for cell: Vector2i in _grid:
+		var here: Array = _grid[cell]
+		# The cell's own, then the four after it, gathered once: every pair, once. (Written out
+		# in full, not called: this runs for every pair in the crush, every step.)
+		var near: Array = here.duplicate()
+		for step in FORWARD:
+			near.append_array(_grid.get(cell + step, []))
+		var count := here.size()
+		var all := near.size()
+		for index in count:
+			var creature: Creature = here[index]
+			var body := creature.body
+			if body.radius > half:
+				wide.append(creature)
+				continue
+			if body.height > 0.0 or body.vertical_speed > 0.0:
+				continue
+			for other_index in range(index + 1, all):
+				var other_body: Body = near[other_index].body
+				if other_body.radius > half or other_body.height > 0.0 or other_body.vertical_speed > 0.0:
+					continue
+				var apart := body.position - other_body.position
+				var reach := body.radius + other_body.radius
+				var distance_squared := apart.length_squared()
+				if distance_squared >= reach * reach:
+					continue
+				var distance := sqrt(distance_squared)
+				var push := (apart / distance if distance > 0.0001 else Vector2.RIGHT) * (reach - distance) * PART
+				body.position += push
+				other_body.position -= push
+	# The wide ones against everything within two cells, but each other only once.
+	for creature in wide:
 		if creature.body.airborne():
 			continue
 		var cell := _cell_of(creature.body.position)
-		# A dog is wider than a cell: it looks two round, a rat one.
-		var span := 2 if creature.body.radius > CELL / 2.0 else 1
-		for x in range(cell.x - span, cell.x + span + 1):
-			for y in range(cell.y - span, cell.y + span + 1):
+		for x in range(cell.x - 2, cell.x + 3):
+			for y in range(cell.y - 2, cell.y + 3):
 				for other: Creature in _grid.get(Vector2i(x, y), []):
-					if other == creature or other.body.airborne():
+					if other == creature or (other.body.radius > CELL / 2.0 and other.get_instance_id() < creature.get_instance_id()):
 						continue
-					var apart := creature.body.position - other.body.position
-					var reach := creature.body.radius + other.body.radius
-					var distance := apart.length()
-					if distance >= reach:
-						continue
-					var push := (apart / distance if distance > 0.0001 else Vector2.RIGHT) * (reach - distance) * 0.5
-					creature.body.position += push
-					other.body.position -= push
+					_part(creature, other)
+
+
+## Two on the ground standing in each other, pushed apart, half each.
+func _part(creature: Creature, other: Creature) -> void:
+	if other.body.airborne() or other.body.radius > CELL / 2.0 and creature.body.radius <= CELL / 2.0:
+		# A wide one does its own parting.
+		return
+	var apart := creature.body.position - other.body.position
+	var reach := creature.body.radius + other.body.radius
+	var distance_squared := apart.length_squared()
+	if distance_squared >= reach * reach:
+		return
+	var distance := sqrt(distance_squared)
+	var push := (apart / distance if distance > 0.0001 else Vector2.RIGHT) * (reach - distance) * PART
+	creature.body.position += push
+	other.body.position -= push
 
 
 func _bite() -> void:
@@ -665,6 +754,8 @@ func _fly_shots() -> void:
 		shot.position += shot.velocity * STEP
 		shot.height += shot.vertical_speed * STEP
 		shot.life -= STEP
+		# What stands in its way stops it there: it only hits what's this side.
+		var stopped := _stop_short(shot)
 		var hit := _first_hit(shot)
 		# A round that goes through can cross several in one step: each is hit in turn.
 		while hit != null and not shot.spent and shot.pierce_left > 0 and shot.blast <= 0.0:
@@ -684,6 +775,15 @@ func _fly_shots() -> void:
 				_after_hit(shot, hit)
 			if shot.spent:
 				_landed(shot, hit.body.position)
+			elif stopped:
+				_landed(shot, shot.position)
+				shot.spent = true
+		elif stopped:
+			if shot.blast > 0.0:
+				blast(shot.position, shot.blast, shot.damage, shot.weapon.knock, shot.weapon.lift, shot.weapon.name, shot.shooter, shot.weapon)
+			_landed(shot, shot.position)
+			events.append({"position": shot.position, "height": shot.height, "direction": shot.velocity.normalized(), "killed": false, "by": "thud", "giant": false, "kind": "obstacle"})
+			shot.spent = true
 		elif shot.height <= 0.0 or shot.life <= 0.0:
 			if shot.height <= 0.0:
 				if shot.blast > 0.0:
@@ -693,6 +793,21 @@ func _fly_shots() -> void:
 		if not shot.spent:
 			flying.append(shot)
 	shots = flying
+
+
+## Cuts a round's path this step short where it first meets something standing taller than it
+## flies there. Whether it did.
+func _stop_short(shot: Shot) -> bool:
+	var first := INF
+	for obstacle in obstacles:
+		var share := obstacle.crossing(shot.previous, shot.position)
+		if share < first and lerpf(shot.previous_height, shot.height, share) < obstacle.tall:
+			first = share
+	if first > 1.0:
+		return false
+	shot.height = lerpf(shot.previous_height, shot.height, first)
+	shot.position = shot.previous.lerp(shot.position, first)
+	return true
 
 
 ## After a round hits: it goes on through if it pierces, glances off to the next target if it
@@ -1014,7 +1129,7 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 
 
 func _crumble() -> void:
-	while fallen.size() > MOST_FALLEN:
+	while fallen.size() > most_fallen:
 		fading.append({"body": fallen.pop_front(), "left": FADE_TIME})
 	var lasting: Array[Dictionary] = []
 	for remains in fading:
@@ -1032,7 +1147,9 @@ func _pick_locks() -> void:
 			rescued.append(cage.prisoner)
 			events.append({"position": cage.body.position, "height": 0.2, "direction": Vector2.ZERO, "killed": false, "by": "cage_open", "giant": false, "kind": "cage"})
 		cage.throw_at(self)
-		cage.run_home(STEP, SIZE)
+		cage.run_home(STEP, size)
+		if cage.opened and not cage.home:
+			_keep_inside(cage.runner, true)
 	cages = cages.filter(func(cage: Cage) -> bool: return not cage.home)
 
 
@@ -1081,7 +1198,7 @@ func _wander() -> void:
 		for walker: Object in creatures + giants:
 			if not walker.wander_to.is_finite():
 				var at: Vector2 = walker.body.position
-				var edges := [Vector2(at.x, -1.0), Vector2(at.x, SIZE.y + 1.0), Vector2(-1.0, at.y), Vector2(SIZE.x + 1.0, at.y)]
+				var edges := [Vector2(at.x, -1.0), Vector2(at.x, size.y + 1.0), Vector2(-1.0, at.y), Vector2(size.x + 1.0, at.y)]
 				edges.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.distance_to(at) < b.distance_to(at))
 				walker.wander_to = edges[0]
 		creatures = creatures.filter(func(creature: Creature) -> bool: return creature.body.position.distance_to(creature.wander_to) > 1.6)
@@ -1091,19 +1208,95 @@ func _wander() -> void:
 		return
 	for creature in creatures:
 		if not creature.wander_to.is_finite() or creature.body.position.distance_to(creature.wander_to) < 0.4:
-			creature.wander_to = Vector2(random.randf_range(1.0, SIZE.x - 1.0), random.randf_range(1.0, SIZE.y - 1.0))
+			creature.wander_to = Vector2(random.randf_range(1.0, size.x - 1.0), random.randf_range(1.0, size.y - 1.0))
 	for giant in giants:
 		if not giant.wander_to.is_finite() or giant.body.position.distance_to(giant.wander_to) < 1.0:
-			giant.wander_to = Vector2(random.randf_range(3.0, SIZE.x - 3.0), random.randf_range(3.0, SIZE.y - 3.0))
+			giant.wander_to = Vector2(random.randf_range(3.0, size.x - 3.0), random.randf_range(3.0, size.y - 3.0))
 
 
-func _keep_inside(body: Body) -> void:
-	var inside := body.position.clamp(Vector2.ONE * body.radius, SIZE - Vector2.ONE * body.radius)
+func _keep_inside(body: Body, sidestep := false, big := false) -> void:
+	var inside := body.position.clamp(Vector2.ONE * body.radius, size - Vector2.ONE * body.radius)
 	if inside.x != body.position.x:
 		body.velocity.x = 0.0
 	if inside.y != body.position.y:
 		body.velocity.y = 0.0
 	body.position = inside
+	if obstacles.is_empty():
+		return
+	for obstacle: Obstacle in _standing_near.get(Vector2i(body.position.floor()), []):
+		if body.height >= obstacle.tall or (big and obstacle.tall <= STEPS_OVER) or not obstacle.contains(body.position, body.radius):
+			continue
+		var out := obstacle.push_out(body.position, body.radius)
+		var normal := (out - body.position).normalized()
+		# What was going into it stops going into it, and keeps going along it.
+		var into := body.velocity.dot(-normal)
+		if into > 0.0:
+			body.velocity += normal * into
+		if sidestep and into > 0.0:
+			# Head-on into a face, with nowhere else to be: along it, to the nearer end.
+			var along := normal.orthogonal()
+			if along.dot(obstacle.center - out) > 0.0:
+				along = -along
+			out += along * into * STEP
+		body.position = out
+
+
+## Whether anything standing is at a point, within a margin, lower than a height.
+func solid_at(where: Vector2, margin := 0.0, height := 0.0) -> bool:
+	for obstacle in obstacles:
+		if height < obstacle.tall and obstacle.contains(where, margin):
+			return true
+	return false
+
+
+## Whether a straight line over the ground, at a height, is clear of everything standing.
+func clear_between(from: Vector2, to: Vector2, height := EYE) -> bool:
+	for obstacle in obstacles:
+		if height < obstacle.tall and obstacle.crossing(from, to) <= 1.0:
+			return false
+	return true
+
+
+## Which way something at a point goes to reach another: straight in the open, around whatever
+## stands between. A wide walker keeps further off.
+func way(from: Vector2, to: Vector2, wide := false) -> Vector2:
+	var field := _wide if wide else _narrow
+	if field == null or from.distance_to(to) < FlowField.CELL * 2.0:
+		return (to - from).normalized()
+	return field.way(from, to)
+
+
+## The ways to the cats, found again whenever one has moved on to other ground.
+func _find_the_ways() -> void:
+	if obstacles.is_empty():
+		return
+	var points: Array[Vector2] = []
+	for cat in cats:
+		if cat.alive():
+			points.append(cat.body.position)
+	if points.is_empty():
+		return
+	_narrow.toward(points)
+	if _wide != null and giants.any(func(giant: Giant) -> bool: return giant.standing()) or machines.any(func(machine: Machine) -> bool: return machine.standing()):
+		_wide.toward(points)
+
+
+## Lays out the place: how big, and what stands where.
+func lay_out(place_size: Vector2, standing: Array[Obstacle]) -> void:
+	size = place_size
+	obstacles = standing
+	_narrow = FlowField.new(size, obstacles, NARROW) if not obstacles.is_empty() else null
+	var tall_ones: Array[Obstacle] = obstacles.filter(func(obstacle: Obstacle) -> bool: return obstacle.tall > STEPS_OVER)
+	_wide = FlowField.new(size, tall_ones, WIDE) if not tall_ones.is_empty() else null
+	# Near enough to touch the widest body there is, a machine's.
+	_standing_near.clear()
+	for obstacle in obstacles:
+		var reach := obstacle.rect.grow(1.4)
+		for x in range(floori(reach.position.x), floori(reach.end.x) + 1):
+			for y in range(floori(reach.position.y), floori(reach.end.y) + 1):
+				if not _standing_near.has(Vector2i(x, y)):
+					_standing_near[Vector2i(x, y)] = []
+				_standing_near[Vector2i(x, y)].append(obstacle)
 
 
 ## The horde comes out of the jungle all around the clearing, and now and then, a giant: what the
@@ -1126,7 +1319,7 @@ func _spawn() -> void:
 			_since_machine = 0.0
 			# It drives in out of the jungle, facing the clearing.
 			var gate := edge_point()
-			add_machine(gate.clamp(Vector2.ONE * 1.6, SIZE - Vector2.ONE * 1.6), (SIZE / 2.0 - gate).angle(), machines_plan.kind)
+			add_machine(gate.clamp(Vector2.ONE * 1.6, size - Vector2.ONE * 1.6), (size / 2.0 - gate).angle(), machines_plan.kind)
 	var cages_plan: Dictionary = plan.get("cages", {})
 	if not cages_plan.is_empty():
 		_since_cage += STEP
@@ -1144,7 +1337,7 @@ func _spawn() -> void:
 			# A pack comes out of the jungle together.
 			var gate := edge_point()
 			for index in mini(dogs_plan.pack, dogs_plan.most - dogs):
-				add_creature((gate + Vector2(random.randf_range(-0.6, 0.6), random.randf_range(-0.6, 0.6))).clamp(Vector2.ONE * 0.3, SIZE - Vector2.ONE * 0.3), "dog")
+				add_creature((gate + Vector2(random.randf_range(-0.6, 0.6), random.randf_range(-0.6, 0.6))).clamp(Vector2.ONE * 0.3, size - Vector2.ONE * 0.3), "dog")
 	var rats_plan: Dictionary = plan.get("rats", {})
 	if rats_plan.is_empty() or creatures.size() >= MOST_CREATURES:
 		return
@@ -1159,6 +1352,7 @@ func _spawn() -> void:
 func begin_area(area_id: String, goal_kept := false) -> void:
 	area = Areas.named(area_id)
 	plan = area.plan
+	lay_out(area.get("size", SIZE), Areas.obstacles(area))
 	_reset_spawning()
 	if goal_kept:
 		# Done on an earlier run, and it stays done: what was broken stays broken, the caged stay
@@ -1222,7 +1416,7 @@ func _pursue_goal() -> void:
 		var progress := goal_progress()
 		if progress.y > 0.0 and progress.x >= progress.y:
 			goal_done = true
-			events.append({"position": SIZE / 2.0, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "goal_done", "giant": false, "kind": area.id})
+			events.append({"position": size / 2.0, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "goal_done", "giant": false, "kind": area.id})
 			_bring_in_the_boss()
 		return
 	if boss == null and boss_in > 0.0:
@@ -1241,7 +1435,7 @@ func _bring_in_the_boss() -> void:
 	match coming.kind:
 		"creature": boss = add_creature(at, coming.type)
 		"giant": boss = add_giant(at, coming.type)
-		"machine": boss = add_machine(at, (SIZE / 2.0 - at).angle(), coming.type)
+		"machine": boss = add_machine(at, (size / 2.0 - at).angle(), coming.type)
 	events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "boss_arrives", "giant": true, "kind": coming.type})
 
 
@@ -1296,7 +1490,7 @@ func _roll_logs() -> void:
 			if not log.struck.has(cat) and cat.body.height < LOG_RADIUS * 2.0 and crushing.call(cat.body.position, cat.body.radius):
 				if cat.hurt(LOG_HURT, Vector2.DOWN * 3.0):
 					log.struck[cat] = true
-		if log.y < SIZE.y + 1.0:
+		if log.y < size.y + 1.0:
 			rolling.append(log)
 	logs = rolling
 
@@ -1305,21 +1499,32 @@ func _roll_logs() -> void:
 ## getting to it is a choice. INF if a few tries find nowhere.
 func _cage_spot() -> Vector2:
 	for attempt in 12:
-		var spot := Vector2(random.randf_range(3.0, SIZE.x - 3.0), random.randf_range(3.0, SIZE.y - 3.0))
+		var spot := Vector2(random.randf_range(3.0, size.x - 3.0), random.randf_range(3.0, size.y - 3.0))
+		if solid_at(spot, 1.0) or (_narrow != null and _narrow.blocked(spot)):
+			continue
 		if cats.all(func(cat: Cat) -> bool: return cat.body.position.distance_to(spot) >= CAGE_DISTANCE):
 			return spot
 	return Vector2.INF
 
 
-## A random point just inside the jungle's edge.
+## A random point just inside the jungle's edge, and not where something stands.
 func edge_point() -> Vector2:
-	var along := random.randf() * 2.0 * (SIZE.x + SIZE.y)
-	if along < SIZE.x:
+	var point := _edge_point()
+	for attempt in 8:
+		if not solid_at(point, 0.5):
+			break
+		point = _edge_point()
+	return point
+
+
+func _edge_point() -> Vector2:
+	var along := random.randf() * 2.0 * (size.x + size.y)
+	if along < size.x:
 		return Vector2(along, 0.2)
-	along -= SIZE.x
-	if along < SIZE.y:
-		return Vector2(SIZE.x - 0.2, along)
-	along -= SIZE.y
-	if along < SIZE.x:
-		return Vector2(along, SIZE.y - 0.2)
-	return Vector2(0.2, along - SIZE.x)
+	along -= size.x
+	if along < size.y:
+		return Vector2(size.x - 0.2, along)
+	along -= size.y
+	if along < size.x:
+		return Vector2(along, size.y - 0.2)
+	return Vector2(0.2, along - size.x)

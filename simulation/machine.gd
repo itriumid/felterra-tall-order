@@ -263,7 +263,7 @@ func _drive(delta: float, arena: Arena) -> void:
 		body.velocity = Vector2.ZERO
 		turning = 0.0
 		return
-	var toward := prey.body.position - body.position
+	var toward := arena.way(body.position, prey.body.position, true)
 	var off := angle_difference(heading, toward.angle())
 	turning = clampf(off / maxf(delta, 0.0001), -TURN_RATE, TURN_RATE)
 	heading += turning * delta

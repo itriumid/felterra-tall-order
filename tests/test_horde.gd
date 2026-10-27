@@ -81,6 +81,15 @@ func test_a_hit_throws_the_rat_back_and_up() -> void:
 	check(furthest > 5.0, "the rat was never pushed away from the gun")
 
 
+func test_with_none_left_lying_the_fallen_crumble_away_at_once() -> void:
+	var arena := _quiet_arena()
+	arena.most_fallen = 0
+	for index in 5:
+		arena.fallen.append(Body.new())
+	arena.step()
+	check(arena.fallen.is_empty() and arena.fading.size() == 5, "%d fallen still lying with none to be left" % arena.fallen.size())
+
+
 func test_the_oldest_fallen_crumble_away_rather_than_vanish() -> void:
 	var arena := _quiet_arena()
 	var first := Body.new()

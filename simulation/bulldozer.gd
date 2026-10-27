@@ -38,7 +38,7 @@ func _work(delta: float, arena: Arena) -> void:
 			if prey == null:
 				body.velocity = Vector2.ZERO
 				return
-			var toward := prey.body.position - body.position
+			var toward := arena.way(body.position, prey.body.position, true) * body.position.distance_to(prey.body.position)
 			var off := _turn_toward(toward.angle(), TURN, delta)
 			body.velocity = facing() * DRIVE_SPEED if absf(off) < 0.5 else Vector2.ZERO
 			if absf(off) < 0.25 and toward.length() < RAM_FROM and bite_ready_in <= 0.0:
@@ -57,7 +57,8 @@ func _work(delta: float, arena: Arena) -> void:
 			body.velocity = facing() * RAM_SPEED
 			rammed += RAM_SPEED * delta
 			_shove(delta, arena)
-			if rammed >= RAM_LENGTH:
+			# A ram ends where it ends: run its length, or into something that doesn't give.
+			if rammed >= RAM_LENGTH or arena.solid_at(point(length * 0.5 + 0.3, 0.0), 0.0, Arena.STEPS_OVER):
 				state = State.RAISING
 				state_for = SETTLE
 				body.velocity = Vector2.ZERO
