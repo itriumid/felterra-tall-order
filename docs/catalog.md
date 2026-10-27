@@ -82,7 +82,7 @@ Endless is the other mode: a fresh clearing every run, the horde growing until h
 | **The log slide** | Built | Pull the levers and let the logs roll; the logging truck |
 | **The company's offices** | Built | Cut the power; the bulldozer |
 | **The airstrip** | Built | Cut the fuel lines; the helicopter |
-| **The village, besieged** | Built | After the airstrip: the spirits set the roofs alight. Fill a bucket at the well and put each fire out; then Inyiak Balang. Peace after it, and the shrine |
+| **The village, besieged** | Built | After the airstrip, by itself on the walk home: the spirits set the roofs alight. Fill a bucket at the well and put each fire out; then Inyiak Balang. Peace after it, and the shrine |
 | **Endless** | Built | A fresh clearing every run; co-op lives here. Once there's peace with the forest, it's through the shrine, cleansing a sick grove |
 | **A sick grove** | Built | Endless after the truce: deep forest, thick with trees, full of restless spirits and the company's abandoned machines |
 | **The burned peat** | Built | Endless after the truce: scorched and smoldering, stumps everywhere, wide open |
@@ -256,7 +256,7 @@ home with the first cat he rescues, the rest with an area freed. Each opens what
 | **Smithy** | Built | Pak Besi's, back with the village's edge freed. The smith forges weapons, gear and support into the cards |
 | **Huts** | Built | Five, each home to two rescued cats, who weave cloth while he's away. The first is the weaver's, Nenek Pus's, back with the deep forest freed, who sells looks; the rest the rescued cats build themselves, at 3, 5, 7 and 9 of them |
 | **Longhouse** | Built | Rebuilt by Si Belang, the carpenter, back with the sawpits freed. The Elder's: a run can start with any weapon the smith has forged, and the book of stories keeps the story so far |
-| **Map board** | Built | At the gate, never a ruin: the forest carved on a board and drawn as a map, each area wrecked, freed or under mist, where he chooses the next run, or Endless |
+| **Map board** | Built | At the gate, never a ruin: the forest carved on a board and drawn as a war map, its territories banded in their holders' colors with a banner each, mist over what isn't found, and arrows into what can be taken next. Where he chooses the next run, or Endless |
 | **Well** | Idea | Water for the village; a place the cats gather and talk |
 | **Watchtower** | Built | Jingga's, by the gate, back with the logged clearing freed: the map board shows each area's boss, and how to beat it |
 | **Shrine** | Built | Inyiak Balang's, by the gate, raised once there's peace with the forest: Endless is through it, cleansing a sick grove |

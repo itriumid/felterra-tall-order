@@ -148,6 +148,9 @@ var _just_restored: Array[String] = []
 var _news: Array[Dictionary] = []
 ## Whether Jogiboy has something to give him once he's walked in.
 var _found_by_jogiboy := false
+## Whether the spirits have just beaten him back in the siege: they let the village be until he
+## next walks home.
+var _spirits_withdrew := false
 var _force_intro := false
 ## Which of the last run's numbers beat the best.
 var _beaten: Array[String] = []
@@ -525,6 +528,10 @@ func _arrive(from_the_forest: bool) -> void:
 			if after < Areas.ids().size() and not Areas.ids()[after] in village.liberated:
 				_news.append({"title": "On the map: " + (Areas.named(Areas.ids()[after]).name as String).to_lower(), "text": "Choose it at the board by the gate."})
 		lines.append_array(village.restored_lines(_just_restored))
+		# With the last area free, the spirits come as he walks home: the first time, Jogiboy smells
+		# them before anyone sees them.
+		if _siege_coming() and not "send_off:siege" in village.told:
+			lines.append_array(Areas.named("siege").send_off)
 		# Jogiboy, the village's finder, has dug something up while he was gone.
 		village.salvage += Village.JOGIBOY_FINDS
 		_found_by_jogiboy = true
@@ -594,6 +601,28 @@ func _arriving(delta: float) -> void:
 		if not _news.is_empty():
 			_overlay.news = _news.duplicate()
 			_open_page("news")
+		else:
+			_besiege()
+
+
+## Whether the spirits come for the village as he walks home now.
+func _siege_coming() -> bool:
+	return _ran_from_village and village.siege_due() and not _spirits_withdrew
+
+
+## Home with the last area free, and what's new read: the spirits are at the village, and the
+## siege starts where he stands. Beaten back, they let it be until he next walks home.
+func _besiege() -> void:
+	if _spirits_withdrew:
+		_spirits_withdrew = false
+		return
+	if not _siege_coming():
+		return
+	if not "send_off:siege" in village.told:
+		village.told.append("send_off:siege")
+		_keep_village()
+	_note("the spirits come for the village")
+	_start_run("siege")
 
 
 ## In the village: he walks where he's steered, and walking out on the path to the clearing
@@ -752,8 +781,8 @@ func _shop_rows() -> Array[Dictionary]:
 		for area: Dictionary in Areas.LIST:
 			var found := village.found(area.id)
 			var free: bool = area.id in village.liberated
-			# The siege isn't somewhere in the forest: it's on the board only while it's coming.
-			if area.get("in_the_village", false) and (not found or free):
+			# The siege isn't somewhere in the forest: it comes to the village, and isn't on the map.
+			if area.get("in_the_village", false):
 				continue
 			var state: String = "free" if free else ("held by the company: " + area.goal.title.to_lower() if found else "not found yet")
 			# From the watchtower, Jingga tells what's waiting there, and how to beat it.
@@ -1302,6 +1331,7 @@ func _bring_home() -> void:
 ## Home from a run: he walks back into the village on the path from the clearing.
 func _go_home() -> void:
 	_note("home to the village")
+	_spirits_withdrew = _run_kind == "siege" and not arena.liberated
 	_enter_village(Vector2(VillageMap.SIZE.x - 0.5, VillageMap.RETURN_SPOT.y))
 	_arrive(false)
 
@@ -1356,6 +1386,8 @@ func _read_page() -> void:
 			_audio.interface("menu_choose")
 			_overlay.news.clear()
 			_close_page()
+			if _place == "village":
+				_besiege()
 			return
 		_overlay.page = "news"
 		return

@@ -291,8 +291,8 @@ func test_peace_with_the_forest_raises_the_shrine_and_moves_endless_there() -> v
 	for id in Areas.ids():
 		if id != "siege":
 			village.liberate(id)
-	check(village.next_area() == "siege", "after the airstrip, the next run is %s" % village.next_area())
-	check(not village.truce(), "peace before the siege")
+	check(village.siege_due() and not village.truce(), "the spirits aren't coming after the airstrip")
+	check(village.next_area() == "endless", "the siege is somewhere to go: the next run is %s" % village.next_area())
 	village.liberate("siege")
 	village.catch_up()
 	check(village.truce() and village.is_restored("shrine"), "no peace, or no shrine, after the siege")
@@ -308,3 +308,16 @@ func test_the_shrine_can_be_reached() -> void:
 	for step in 60 * 20:
 		map.step(Arena.STEP)
 	check(map.at_door() == "shrine", "he couldn't get to the shrine's door, stuck at %s" % map.cat.body.position)
+
+
+func test_the_siege_is_never_somewhere_to_go() -> void:
+	var village := Village.new()
+	for id in Areas.ids():
+		check(village.next_area() != "siege", "the board sent him to the siege")
+		village.liberate(id)
+	village.next_run = "siege"
+	village.save("user://test_siege_village.cfg")
+	var kept := Village.new()
+	kept.load_from("user://test_siege_village.cfg")
+	DirAccess.remove_absolute("user://test_siege_village.cfg")
+	check(kept.next_run != "siege", "a kept village still goes to the siege")

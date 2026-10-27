@@ -266,12 +266,19 @@ func truce() -> bool:
 	return "siege" in liberated
 
 
-## The first area not yet freed, or Endless once they all are.
+## The first area not yet freed, or Endless once they all are. The siege is never somewhere to
+## go: it comes to the village.
 func next_area() -> String:
 	for id in Areas.ids():
-		if not id in liberated:
+		if not id in liberated and not Areas.named(id).get("in_the_village", false):
 			return id
 	return "endless"
+
+
+## Whether the spirits are coming for the village: the last area is free, and there's no peace
+## with them yet. They come as he walks home.
+func siege_due() -> bool:
+	return "airstrip" in liberated and not truce()
 
 
 ## An area freed for the first time: it's marked free, and brings the village what freeing it
@@ -490,7 +497,7 @@ func load_from(path := PATH) -> void:
 		known_scenes.append("teach:" + id)
 	_names(file, "told", told, known_scenes)
 	var saved_next: Variant = file.get_value("village", "next_run", "edge")
-	next_run = saved_next if saved_next is String and (saved_next == "endless" or saved_next in Areas.ids()) else next_area()
+	next_run = saved_next if saved_next is String and (saved_next == "endless" or (saved_next in Areas.ids() and not Areas.named(saved_next).get("in_the_village", false))) else next_area()
 	tonic_ready = file.get_value("village", "tonic_ready", false) == true
 	_names(file, "goals_done", goals_done, Areas.ids())
 	for id in liberated:

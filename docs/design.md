@@ -249,9 +249,13 @@ on: fire and oil, or crewmates who can be downed.
   growing until he's down; the best run is Endless's. Co-op is for Endless only: Liberation
   moves one village's story, so it's solo, but nothing in it assumes one cat, so a "help a friend"
   co-op Liberation stays possible later.
-- **Liberation** is chosen at the map board by the village's gate, drawn as a map of the forest
-  from above: the river, the village, and the path through every area in the order it's found,
-  each wrecked while it's held, green again once it's free, and under mist until it's found.
+- **Liberation** is chosen at the map board by the village's gate, drawn as a war map of the
+  forest from above, the way a conquest map is in Dynasty Warriors Empires: the forest cut into
+  territories with wandering borders, each banded in its holder's color (the cats' pink, the
+  company's hi-vis orange) and flying its banner, mist over what isn't found, and the river
+  through it. Each place's own picture sits in its territory, wrecked while it's held, green again
+  once it's free. An arrow goes out from the cats' land into each place they can take next, the
+  one chosen marching. The board itself has the same territories carved and painted on it.
   Endless lies off the map's corner, until there's peace with the forest: then it's through the shrine. Each area is a fixed, hand-made place and one run: push in through what holds it, do
   what only that place asks, then its boss comes; beat it and the area is free, and the next one
   opens. Held by the company, an area is wrecked (stumps, felled trunks, ruts, oil, litter,
@@ -301,9 +305,10 @@ on: fire and oil, or crewmates who can be downed.
   the scattered ones (trees, stumps, bushes) from the area's own seed, the same every time, kept
   clear of where he comes in, the goal's things, the boss's way in, and each other.
 - **Endless mode**: the giants never stop coming; factions arrive and start to mix.
-- **The siege** comes once the airstrip is free, chosen at the board like an area: halfway to
-  the gate, Jogiboy smells smoke behind them, and he walks back in through the gate to a village
-  under attack. It's the village as it stands, every house and prop solid, the forest walling the
+- **The siege** comes by itself, never chosen and never on the map: the first time he walks
+  home with the airstrip free, once what's new is read, Jogiboy smells smoke, and the spirits are
+  at the village. He walks in at the gate to it under attack. Beaten back, he's home, and the
+  spirits let the village be until he next walks home. It's the village as it stands, every house and prop solid, the forest walling the
   path in. Two roofs are alight at the start and another catches every 20 seconds, four in all;
   a roof left burning throws out an ember wisp every 6 seconds. Standing at the well fills a
   bucket in a second; standing at a burning house's door with it puts the fire out in a little

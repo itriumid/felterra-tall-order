@@ -42,6 +42,9 @@ var _restoring_for := 0.0
 var _ground: ImageTexture
 var _trees: Array[Dictionary] = []
 var _leaves: Array[Dictionary] = []
+## The map carved on the board, painted for what's been freed so far.
+var _board_map: ImageTexture
+var _board_key := ""
 
 
 func _ready() -> void:
@@ -728,14 +731,17 @@ func _draw_board(footprint: Rect2) -> void:
 	for post_x in [footprint.position.x + 0.05, footprint.end.x - 0.12]:
 		_quad([Vector2(post_x, front), Vector2(post_x + 0.07, front)], 0.0, 1.0, Palette.BARK)
 	_quad([Vector2(footprint.position.x - 0.1, front + 0.02), Vector2(footprint.end.x + 0.1, front + 0.02)], 0.45, 1.05, Palette.BARK_LIGHT)
-	var top_left := World.to_screen(Vector2(footprint.position.x - 0.05, front + 0.02), 1.0)
+	# The map carved into it and painted: the same territories as the board's page, the cats' green,
+	# the company's orange, and bare wood where nobody's been yet.
+	var top_left := World.to_screen(Vector2(footprint.position.x - 0.1, front + 0.02), 1.05)
+	var bottom_right := World.to_screen(Vector2(footprint.end.x + 0.1, front + 0.02), 0.45)
+	var size := Vector2i(bottom_right - top_left) - Vector2i(4, 4)
 	var freed: Array = village_record.liberated if village_record != null else []
-	var ids := Areas.ids()
-	for index in ids.size():
-		var at := top_left + Vector2(4 + index * 7, 4 + (index % 2) * 6)
-		draw_rect(Rect2(at, Vector2(4, 4)), Palette.LEAF if ids[index] in freed else Palette.HI_VIS)
-		if index > 0:
-			draw_line(at + Vector2(-3, 2 - (index % 2) * 6 + 3), at + Vector2(0, 2), Palette.BARK)
+	var key := "%s|%s" % [size, freed]
+	if key != _board_key:
+		_board_key = key
+		_board_map = ImageTexture.create_from_image(ForestMap.board_picture(size, freed))
+	draw_texture(_board_map, (top_left + Vector2(2, 2)).floor())
 
 
 ## The smithy: an open shed, its roof on four posts over the forge and the anvil. Restored, the
