@@ -49,7 +49,8 @@ func _hang() -> void:
 	queue_redraw()
 
 
-## A crown over the fight, not at its edge, thins while a cat is under it, so he's never lost.
+## A crown over the fight, not at its edge, thins while a cat is under it, so he's never lost, or
+## a cage still shut, so the caged are never hidden.
 const THINNED := Color(1.0, 1.0, 1.0, 0.4)
 
 
@@ -69,5 +70,8 @@ func _draw() -> void:
 				var covers := Rect2(crown.at, crown.texture.get_size())
 				for cat in ground.arena.cats:
 					if covers.has_point(World.to_screen(cat.body.position, 0.2)):
+						tint = THINNED
+				for cage in ground.arena.cages:
+					if not cage.opened and covers.has_point(World.to_screen(cage.body.position, 0.25)):
 						tint = THINNED
 			draw_texture(crown.texture, crown.at, tint)
