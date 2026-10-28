@@ -66,7 +66,13 @@ const STEPS := [
 	["pause", ""], ["to_home", ""],
 	# Out to Endless, then giving the run up: back to the village from the pause menu.
 	["leave_village", "", {"_place": "leaving"}], ["pause", "", {"_place": "run", "_run_kind": "endless"}],
-	["pause", "", {"_entering": false}], ["pick_1", ""],
+	["pause", "", {"_entering": false}],
+	# An ally joins on a gamepad of their own and chooses the handgun on its buttons; then he
+	# chooses, and the crew's run starts. Down, he's waiting on a crewmate, not out.
+	["join_pad", "", {"arena.leash": Vector2(13.0, 5.5), "_start_weapon": ""}], ["pick_2:1", ""],
+	["pick_1", "", {"_start_weapon": "nunchaku"}], ["down", "", {"cat.downed": true, "arena.lives": 9}],
+	# Another gamepad drops in to the run under way: out of it while they choose, in once they have.
+	["join_pad_8", "", {"arena.cats.size": 2}], ["pick_2:2", "", {"arena.cats.size": 3}],
 	["pause", "pause"], ["move_down", "pause"], ["move_down", "pause"], ["move_down", "pause"],
 	# Home, with the lessons of the two areas freed meanwhile told on the way in; then what's new.
 	["menu_choose", "", {"_place": "arriving"}], ["pause", "news", {"_place": "village"}], ["menu_choose", ""],
@@ -76,7 +82,11 @@ const STEPS := [
 	["move_down", "shrine"], ["move_down", "shrine"], ["menu_choose", "shrine", {"village.cub_element": "smoke", "village.offerings": 62}], ["pause", ""],
 	# From the village's pause menu, back to the title.
 	["pause", "village_pause"], ["move_down", "village_pause"], ["move_down", "village_pause"],
-	["menu_choose", "title", {"_place": "title"}], ["move_down", "title"], ["menu_choose", "settings"],
+	["menu_choose", "title", {"_place": "title"}],
+	# Playing together online: its page, joining a host by address, and back out of both.
+	["move_down", "title"], ["menu_choose", "together"], ["move_down", "together"], ["menu_choose", "join"],
+	["pause", "title"], ["move_down", "title"], ["menu_choose", "together"], ["pause", "title"],
+	["move_down", "title"], ["move_down", "title"], ["menu_choose", "settings"],
 	# Up from the top wraps to Back, then up again to Reset all progress: asked, then done.
 	["move_up", "settings"], ["move_up", "settings"], ["menu_choose", "settings", {"_reset_state": "asking"}],
 	["menu_choose", "settings", {"_reset_state": "done"}],
@@ -137,6 +147,10 @@ func _process(_delta: float) -> bool:
 				_main.village_map.show_restored(building)
 			_main.village.give_cub()
 			_main.village.offerings = 100
+		elif action == "join_pad":
+			_main._input(_pad_a(true))
+		elif action == "join_pad_8":
+			_main._input(_pad_a(true, 8))
 		elif action == "drop_salvage":
 			_main.arena.drop_salvage(_main.cat.body.position + Vector2(1.5, 0.0), 6)
 		elif action == "free_area":
@@ -152,6 +166,10 @@ func _process(_delta: float) -> bool:
 			_main.village_map.cat.body.position = VillageMap.door_step(footprint) if action != "to_home" else VillageMap.HOME_SPOT
 		else:
 			Input.action_press(action)
+	elif phase == 1 and action == "join_pad":
+		_main._input(_pad_a(false))
+	elif phase == 1 and action == "join_pad_8":
+		_main._input(_pad_a(false, 8))
 	elif phase == 1 and InputMap.has_action(action):
 		Input.action_release(action)
 	elif phase == 5:
@@ -163,11 +181,20 @@ func _process(_delta: float) -> bool:
 			for property: String in expected:
 				var found: Variant = _main
 				for part in property.split("."):
-					found = found.get(part)
+					found = found.size() if part == "size" else found.get(part)
 				if found != expected[property]:
 					_failures.append("step %d (%s): %s is '%s', wanted '%s'" % [_step + 1, action, property, found, expected[property]])
 		_step += 1
 	return false
+
+
+## The A button on a gamepad he isn't using, going down or coming up.
+func _pad_a(pressed: bool, device := 7) -> InputEventJoypadButton:
+	var event := InputEventJoypadButton.new()
+	event.device = device
+	event.button_index = JOY_BUTTON_A
+	event.pressed = pressed
+	return event
 
 
 func _finish() -> void:

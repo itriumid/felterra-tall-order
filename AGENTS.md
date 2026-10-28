@@ -66,7 +66,9 @@ catalog and the code agree.
 - **Before calling a change done**, run the tests:
   `godot --headless --path . --import`, then
   `godot --headless --path . --script tests/run_tests.gd`, and play the menus through:
-  `timeout 120 godot --headless --path . --script tools/check_menus.gd -- --title`. A screenshot
+  `timeout 120 godot --headless --path . --script tools/check_menus.gd -- --title`, and for
+  anything online, play it from both sides:
+  `timeout 120 godot --headless --path . --script tools/check_online.gd -- --title`. A screenshot
   only shows a page; the menu check chooses from them, and fails on any engine error. A new page
   or choice gets a step there. Run long probes and tools under
   `timeout`; a stuck loop pegs a core until killed.
@@ -97,7 +99,7 @@ catalog and the code agree.
   `godot --path . -- --screenshot=<path>.png --screenshot-after=4` (add `--horde=<count>`,
   `--no-spawn`, `--at=<x>,<y>`, `--gear=<0 to 2>`, `--sturdy`, `--fallen=<count>`,
   `--walk=<x>,<y>`, `--dogs=<count>`, `--chainsaw=<count>`, `--mutations=<id>,<id>`, `--dodge-every=<seconds>`,
-  `--offer=<id>,<id>,<id>`, `--support=<id>,<id>`, `--machine`, `--cage=<count>`, `--village`, `--villagers=<count>`, `--restored=<all or names>`, `--salvage=<count>`, `--cloth=<count>`, `--liberated=<ids>`, `--at-door=<building>`, `--shop`, `--intro`, `--area=<id>` (`siege` is the village under attack), `--freed`, `--boss`, `--grove`, `--cub=<element>[:<rank>]` (the spirits' gift, in a grove or with `--village` at the shrine), `--offerings=<count>`, `--horde-kind=<kind>`, `--giant=<count>`, `--giant-from=<x>,<y>`, `--menu`, `--menu-after=<seconds>`, `--settings`, `--sound`, `--title`, `--down-after=<seconds>`, `--start=<nunchaku or handgun>`, `--no-blood`, or `--frames=<count>` for a
+  `--offer=<id>,<id>,<id>`, `--support=<id>,<id>`, `--machine`, `--cage=<count>`, `--village`, `--villagers=<count>`, `--restored=<all or names>`, `--salvage=<count>`, `--cloth=<count>`, `--liberated=<ids>`, `--at-door=<building>`, `--shop`, `--intro`, `--area=<id>` (`siege` is the village under attack), `--freed`, `--boss`, `--grove`, `--crew=<2 to 4>` (allies standing in, nobody steering them), `--host` (an Endless run hosted online, held until a guest is in), `--join=<address>` (a guest of it, starting with `--start`'s weapon), `--cub=<element>[:<rank>]` (the spirits' gift, in a grove or with `--village` at the shrine), `--offerings=<count>`, `--horde-kind=<kind>`, `--giant=<count>`, `--giant-from=<x>,<y>`, `--menu`, `--menu-after=<seconds>`, `--settings`, `--sound`, `--title`, `--down-after=<seconds>`, `--start=<nunchaku or handgun>`, `--no-blood`, or `--frames=<count>` for a
   sequence). It opens a window, saves one
   640 by 360 frame and quits; the window takes keyboard focus, so warn whoever is at the
   machine first. Check its log for `SCRIPT ERROR`, and check the frame itself: a frame that

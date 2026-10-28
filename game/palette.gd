@@ -103,6 +103,10 @@ const ALL: Array[Color] = [
 	OFF_WHITE, PINK,
 ]
 
+## Each player's color when playing together, from player 0: their marker over their cat, and
+## their panel.
+const PLAYERS: Array[Color] = [PINK, LEAF_LIGHT, BRASS_LIGHT, CLOTH_LIGHT]
+
 
 static func has(color: Color) -> bool:
 	for each in ALL:

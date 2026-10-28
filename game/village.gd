@@ -320,11 +320,23 @@ func liberate(area_id: String) -> bool:
 ## What a run brought home: its rescued cats join, its salvage goes on the pile, and the cats
 ## housed in the village weave while he's away.
 func bring_home(arena: Arena) -> void:
-	cats.append_array(arena.rescued)
-	salvage += arena.salvage
+	take_earnings(earnings_of(arena))
+
+
+## What a run earned, as it's shared with every village in the crew: the cats rescued, the salvage
+## picked up, and how long a grove was cleansed for.
+static func earnings_of(arena: Arena) -> Dictionary:
+	return {"rescued": arena.rescued.duplicate(true), "salvage": arena.salvage, "grove": arena.grove, "time": arena.time}
+
+
+## A run's earnings, brought home: the rescued move in, the salvage is stored, the weavers weave,
+## and a grove's offerings go to the shrine.
+func take_earnings(earnings: Dictionary) -> void:
+	cats.append_array(earnings.get("rescued", []))
+	salvage += earnings.get("salvage", 0)
 	cloth += weavers()
-	if arena.grove:
-		offerings += offerings_from(arena.time)
+	if earnings.get("grove", false):
+		offerings += offerings_from(earnings.get("time", 0.0))
 
 
 ## The offerings a grove gives for lasting so long in it.

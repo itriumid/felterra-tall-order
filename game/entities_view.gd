@@ -272,6 +272,32 @@ func _draw_all() -> void:
 			draw_rect(Rect2(World.to_screen(shot.position, shot.height) - Vector2(1, 1), Vector2(2, 2)), Palette.STEEL)
 		else:
 			draw_line(World.to_screen(shot.previous, shot.previous_height), World.to_screen(shot.position, shot.height), Palette.SPARK)
+	if arena.together():
+		for cat in arena.cats:
+			_draw_marker(cat)
+
+
+## How far over a cat's feet its player's marker points down, in pixels: just over its ears.
+const MARKER_ABOVE := 22.0
+
+
+## Playing together, whose cat is whose: a pointer in the player's color over each, and over one
+## who's down, how long until a life is spent on them, and how far a crewmate has got them up.
+func _draw_marker(cat: Cat) -> void:
+	var color: Color = Palette.PLAYERS[cat.player % Palette.PLAYERS.size()]
+	var over := World.to_screen(cat.body.position, cat.body.height) - Vector2(0, MARKER_ABOVE)
+	if cat.alive():
+		# A pointer down at them, outlined: rows of 7, 5, 3 and 1 pixels.
+		for row in 4:
+			draw_rect(Rect2(over + Vector2(-4 + row, row - 5), Vector2(9 - row * 2, 3)), Palette.OUTLINE)
+		for row in 4:
+			draw_rect(Rect2(over + Vector2(-3 + row, row - 4), Vector2(7 - row * 2, 1)), color)
+		return
+	var bar := Rect2(over + Vector2(-9, -4), Vector2(18, 3))
+	draw_rect(bar.grow(1), Palette.OUTLINE)
+	draw_rect(bar, Palette.PANEL_DARK)
+	draw_rect(Rect2(bar.position, Vector2(roundf(bar.size.x * cat.down_for / Arena.DOWN_TIME), 1)), Palette.SCARF_RED)
+	draw_rect(Rect2(bar.position + Vector2(0, 2), Vector2(roundf(bar.size.x * cat.revived / Arena.REVIVE_TIME), 1)), color)
 
 
 ## What a view drawing a fight somewhere else stands up in it, as [depth, {more: thing}], drawn
@@ -498,6 +524,10 @@ func _rat_corner(body: Body, texture: Texture2D, facing_left: bool) -> Vector2:
 func _draw_cat(cat: Cat) -> void:
 	var feet := World.to_screen(cat.body.position, cat.body.height)
 	var top_left := feet - Sprites.CAT_FEET
+	if cat.downed:
+		# Down: on his back, paws in the air, until a crewmate gets him up.
+		draw_texture(Sprites.lit(Sprites.coat(Sprites.cat_body_art("side", 0), cat.coat, "side"), cat.facing.x < 0.0, true), top_left + Vector2(0, 4))
+		return
 	if cat.dodging_for > 0.0:
 		# Tucked into the roll.
 		top_left.y += 3.0
@@ -1245,6 +1275,15 @@ func _bleed(delta: float) -> void:
 					"height": maxf(event.height, 0.05), "rise": randf_range(0.6, 1.8),
 					"velocity": Vector2.from_angle(randf() * TAU) * randf_range(0.2, 0.9),
 					"color": color if index % 3 else (Palette.HI_VIS if color == Palette.SPARK else Palette.SMOKE), "stains": false,
+				})
+			continue
+		if event.by == "up":
+			# Back on their feet: a ring of light thrown up round them.
+			for index in 12:
+				_droplets.append({
+					"position": event.position, "height": 0.1, "rise": randf_range(1.0, 1.8),
+					"velocity": Vector2.from_angle(index * TAU / 12.0) * 0.9,
+					"color": Palette.SPARK if index % 2 else Palette.OFF_WHITE, "stains": false,
 				})
 			continue
 		if event.by.begins_with("cub_"):

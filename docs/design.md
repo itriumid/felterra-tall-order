@@ -483,16 +483,34 @@ One to four players, **online and on one screen**.
 
 - **Shared experience, separate choices.** The crew levels up together from one pool; each cat
   picks their own upgrade. No kill-stealing, no one falling behind.
-- **Nine Lives, shared.** The crew carries nine lives between them. A downed cat is revived by a
-  crewmate standing by them for a few seconds; if nobody comes in time, a life is spent and they
-  respawn. When the ninth is gone, the run ends.
+- **Nine Lives, shared.** The crew carries nine lives between them. A downed cat lies on their
+  back, paws up, and is revived by a crewmate standing by them for three seconds, at full health;
+  if nobody comes in ten, a life is spent and they're up beside the crew. When there's no life
+  left to spend, or the whole crew is down with none, the run ends.
 - **Builds combine across players.** Some upgrades set up what another player's finish: one cat
   spills oil, another throws sparks. Synergy comes from talking, not from one player's build.
 - **Scaling** is less than linear: four players face about two and a half times the enemies,
   not four times.
 - **Camera:** online, each player has their own, kept within a shared arena. On one screen, a
-  shared camera zooms out to fit everyone, up to a leash. No split screen: it halves the
-  readability the genre lives on.
+  shared camera follows the middle of the crew, and nobody can walk out of it: a cat walking off
+  is held at a leash of the others, and the rest aren't dragged along. No zoom, since one pixel is
+  always the same size, and no split screen: it halves the readability the genre lives on.
+- **Joining on one screen:** player one has the keyboard and any gamepad nobody else has taken.
+  A on another gamepad joins as an ally, in a coat nobody's wearing; each ally chooses their coat
+  and what they start with on their own buttons (a weapon forged at the smithy too, as player one
+  can). While Endless's start is chosen, the run waits for all of them.
+- **Dropping in:** an ally can join a run under way, on one screen or online. They choose while it
+  goes on, out of it; then they come in beside a crewmate who's standing, a few seconds out of
+  harm's way, dealt the cards the crew's level-ups have handed out so far, one a level, so nobody
+  joins behind.
+- **The gift, for every ally:** in a grove, every ally wears a jimat of their own, with a cub at
+  their heel: they're allied cats, and the spirits' gift is for the forest's cats.
+- **Cards on one screen:** each ally's cards sit in a small panel down the side of the screen,
+  and holding Back shows them whole.
+- **What a run earns is everyone's:** the cats rescued, the salvage and a grove's offerings go
+  home to every village in the crew, each guest's own as well as the host's.
+- **A crew's best is its own:** a crew's run, with Nine Lives between them, is kept as the crew's
+  best, on one screen or online, apart from one cat's best.
 - **No friendly fire, but the physics is shared.** A crewmate's explosion doesn't hurt you; it
   still throws you.
 
@@ -503,8 +521,26 @@ the game: cooperative play could be *Gotong Royong*, communal work; endless mode
 ### Networking
 
 **The host runs the world; each player predicts their own cat.** The host simulates every
-enemy and sends compressed positions about 20 times a second; each player's own movement runs
-locally so it feels immediate.
+enemy and sends the world about 20 times a second (`simulation/snapshot.gd`): each object once
+whole, then only what's changed, in order and never lost; the horde and the fallen packed to what's
+drawn. A guest never steps the world: between snapshots, everything carries on the way it was
+going, and their own cat walks where they steer it at once, checked against where the host had it
+for the steering it had by then, with only the difference put right.
+
+- **Joining online:** "Play together online" on the title. The host hosts and plays on as ever;
+  a guest joins by the host's address and waits. When the host goes out to Endless, each guest
+  lays out the same clearing or grove from its seed and chooses what they start with from their
+  own smithy; their cat comes in their own coat, with their own cub in a grove. Each guest has
+  their own screen, and their cards are their own. A guest who leaves the crew takes their cat
+  with them.
+- **A dropped connection:** a guest whose connection drops has their cat step out of the fight,
+  kept for them for a minute, off the field, so the crew spends no lives on someone who can't
+  play and the horde is sized to who's here. Their game finds the host again every few seconds;
+  back in time, they pick up the same cat, as it was. Lost from the host for a minute, a guest
+  goes back to the title. Either side notices a dead connection within about ten seconds.
+- **The pieces:** `game/session.gd` makes the connection (Godot's own networking for now, by
+  address; room codes later replace it and only it), and `game/online.gd` carries what host and
+  guests say. `tools/check_online.gd` plays it from both sides in one process.
 
 Not lockstep: lockstep needs every machine to compute identical results, and GDScript can't
 promise identical floating-point math across Windows, macOS and Linux. Online play through

@@ -30,6 +30,15 @@ var show_kit := false
 ## Waiting for the player to choose a weapon to start with, and the forged weapon offered beside
 ## the nunchaku and the handgun once the longhouse is restored ("" if none).
 var choosing := false
+## Playing together on one screen: the allies, as main keeps them ({cat, weapon, coat, reading}),
+## whether another gamepad can join now, and whether he's chosen and waits on them.
+var allies: Array[Dictionary] = []
+## The weapons forged at the smithy an ally can start with, as he can.
+var ally_forged: Array[String] = []
+var joining := false
+## Playing online, how it's going: who's here, or what went wrong. Shown wherever he is.
+var online_status := ""
+var start_chosen := false
 var start_extra := ""
 ## Tab held: the cards' stats are explained. X held: picking banishes.
 var reading := false
@@ -86,7 +95,8 @@ func _process(_delta: float) -> void:
 
 
 func _draw() -> void:
-	if page == "title":
+	_draw_online_status()
+	if page in ["title", "together", "join", "waiting"]:
 		_draw_title()
 		if not setting_rows.is_empty():
 			_draw_settings()
@@ -121,6 +131,7 @@ func _draw() -> void:
 		return
 	_draw_status()
 	_draw_score()
+	_draw_allies()
 	_draw_boss()
 	_draw_cage_markers()
 	_draw_rescue_talk()
@@ -130,7 +141,7 @@ func _draw() -> void:
 		_draw_kit()
 	if not setting_rows.is_empty():
 		_draw_settings()
-	elif page == "summary":
+	elif page in ["summary", "guest_summary"]:
 		_draw_summary()
 	elif not menu.is_empty():
 		_draw_menu()
@@ -138,6 +149,12 @@ func _draw() -> void:
 		_draw_start()
 	elif not cat.offers.is_empty():
 		_draw_cards()
+	if not choosing and page.is_empty():
+		_draw_ally_cards()
+		# The run under way, another gamepad can still drop in.
+		if joining:
+			var keys: Array[String] = ["A", "on another gamepad drops in"]
+			InterfaceArt.key_line(self, Vector2(floorf((screen_size().x - InterfaceArt.key_line_width(keys)) / 2.0), 26), keys)
 
 
 ## Health, level and dodge as bars with their icons, and how his weapons choose.
@@ -591,10 +608,17 @@ func _draw_score() -> void:
 	var screen := get_viewport_rect().size
 	var kills := "%d" % arena.kills
 	var time := "%d:%02d" % [int(arena.time) / 60, int(arena.time) % 60]
-	var width := 10 + PixelFont.width(kills) + 12 + 10 + PixelFont.width(time) + 10
+	# Together, the crew's lives come first.
+	var lives := "%d lives" % arena.lives if arena.together() else ""
+	var lives_width := 10 + PixelFont.width(lives) + 12 if arena.together() else 0
+	var width := lives_width + 10 + PixelFont.width(kills) + 12 + 10 + PixelFont.width(time) + 10
 	var box := Rect2(screen.x - width - 4, 4, width, 18)
 	InterfaceArt.panel(self, box)
 	var x := box.position.x + 5
+	if arena.together():
+		InterfaceArt.icon(self, Vector2(x, box.position.y + 5), "health", Palette.SCARF_RED)
+		PixelFont.draw(self, Vector2(x + 10, box.position.y + 4), lives, Palette.OFF_WHITE)
+		x += lives_width
 	InterfaceArt.icon(self, Vector2(x, box.position.y + 5), "kills", Palette.OFF_WHITE)
 	PixelFont.draw(self, Vector2(x + 10, box.position.y + 4), kills, Palette.OFF_WHITE)
 	x += 10 + PixelFont.width(kills) + 12
@@ -654,12 +678,13 @@ func _draw_card(box: Rect2, key: String, rarity: int, card: Dictionary) -> void:
 	_rarity_frame(box, rarity)
 	# The ribbon: the rarity in words, on its own color.
 	var ribbon := Rect2(box.position + Vector2(2, 2), Vector2(box.size.x - 4, 11))
+	var badge_width := maxi(10, PixelFont.width(key) + 6)
 	draw_rect(ribbon, color)
-	PixelFont.draw(self, ribbon.position + Vector2(14, 1), card.get("ribbon", Upgrades.RARITY_NAMES[rarity]), Palette.GRAPHITE)
+	PixelFont.draw(self, ribbon.position + Vector2(badge_width + 4, 1), card.get("ribbon", Upgrades.RARITY_NAMES[rarity]), Palette.GRAPHITE)
 	for pip in rarity + 1:
 		draw_rect(Rect2(ribbon.end.x - 5 - pip * 4, ribbon.position.y + 4, 2, 3), Palette.GRAPHITE)
 	# The key that plays it, on pink.
-	var badge := Rect2(box.position + Vector2(2, 2), Vector2(10, 11))
+	var badge := Rect2(box.position + Vector2(2, 2), Vector2(badge_width, 11))
 	draw_rect(badge, Palette.PINK)
 	PixelFont.draw(self, badge.position + Vector2(3, 1), key, Palette.GRAPHITE)
 	# The picture, sunk into the card.
@@ -706,9 +731,18 @@ func _draw_explained(lines: Array[String], bottom: float) -> void:
 			PixelFont.draw(self, box.position + Vector2(6 + InterfaceArt.bold_width(parts[0] + ":") + 4, 5 + index * PixelFont.LINE_HEIGHT), parts[1], Palette.OFF_WHITE)
 
 
-## The choice a run starts with, as two cards.
+## The choice a run starts with, as two cards; once he's chosen, the wait for his allies.
 func _draw_start() -> void:
 	var screen := get_viewport_rect().size
+	if joining:
+		var keys: Array[String] = ["A", "on another gamepad joins as an ally"]
+		InterfaceArt.key_line(self, Vector2(floorf((screen.x - InterfaceArt.key_line_width(keys)) / 2.0), screen.y - 20), keys)
+	if start_chosen:
+		var waiting := "Waiting for your allies to choose"
+		var waiting_box := Rect2(floorf((screen.x - InterfaceArt.bold_width(waiting)) / 2.0) - 8, floorf(screen.y / 2.0) - 10, InterfaceArt.bold_width(waiting) + 16, 20)
+		InterfaceArt.panel(self, waiting_box)
+		InterfaceArt.bold(self, waiting_box.position + Vector2(8, 5), waiting, Palette.PINK)
+		return
 	var title := "Choose what you start with"
 	var cards := [
 		{"name": "Nunchaku", "item": "nunchaku", "ribbon": "Melee", "lines": ["Go Chuck Purris", "style"], "unfamiliar": false},
@@ -906,7 +940,8 @@ func _draw_summary() -> void:
 	var box := Rect2(floorf((screen.x - width) / 2.0), floorf((screen.y - height) / 2.0), width, height)
 	InterfaceArt.panel(self, box)
 	var freed: String = summary.get("freed", "")
-	InterfaceArt.bold(self, box.position + Vector2(10, 7), ("Freed: " + freed) if not freed.is_empty() else "He's down", Palette.LEAF_LIGHT if not freed.is_empty() else Palette.PINK)
+	var heading := "The crew's down" if summary.get("crew", false) else "He's down"
+	InterfaceArt.bold(self, box.position + Vector2(10, 7), ("Freed: " + freed) if not freed.is_empty() else heading, Palette.LEAF_LIGHT if not freed.is_empty() else Palette.PINK)
 	var y := box.position.y + 26
 	for row: Array in rows:
 		PixelFont.draw(self, Vector2(box.position.x + 14, y), row[1], Palette.OFF_WHITE)
@@ -932,3 +967,101 @@ func _draw_choices(at: Vector2, width: float) -> void:
 			PixelFont.draw(self, spot + Vector2(14, 0), menu[index], Palette.GRAPHITE)
 		else:
 			PixelFont.draw(self, spot + Vector2(14, 0), menu[index], Palette.OFF_WHITE)
+
+
+## Each ally's own panel, down the sides: their health, and before the run what they choose
+## from, or in it, the cards their oldest offer holds, on their own gamepad's buttons.
+func _draw_allies() -> void:
+	var screen := get_viewport_rect().size
+	# Allies online have screens of their own: only those here on this one get a panel.
+	var here := allies.filter(func(ally: Dictionary) -> bool: return not ally.has("peer"))
+	for index in here.size():
+		var ally: Dictionary = here[index]
+		var ally_cat: Cat = ally.cat
+		var color: Color = Palette.PLAYERS[ally_cat.player]
+		var lines: Array[Array] = []
+		if choosing or ally.weapon.is_empty():
+			if ally.weapon.is_empty():
+				lines.append(["LB", "Nunchaku"])
+				lines.append(["Up", "Handgun"])
+				if not ally_forged.is_empty():
+					lines.append(["RB", Upgrades.WEAPON_NAMES[ally_forged[ally.forged % ally_forged.size()]]])
+					lines.append(["Y", "another forged"])
+				lines.append(["<>", (ally.coat as String).capitalize() + " coat"])
+				lines.append(["B", "leave"])
+			else:
+				lines.append(["", Upgrades.WEAPON_NAMES[ally.weapon] + ", ready"])
+				lines.append(["B", "choose again"])
+		elif not ally_cat.alive():
+			lines.append(["", "Down: %d s" % ceili(ally_cat.down_for)])
+			lines.append(["", "Stand by them!"])
+		elif not ally_cat.offers.is_empty():
+			var offer: Array = ally_cat.offers[0]
+			var buttons := ["LB", "Up", "RB"]
+			for choice_index in offer.size():
+				var card := Upgrades.describe(offer[choice_index])
+				lines.append([buttons[choice_index], card.name, offer[choice_index].rarity])
+			lines.append(["Down", "reroll (%d)" % ally_cat.rerolls])
+			lines.append(["Back", "the whole cards"])
+			if ally_cat.offers.size() > 1:
+				lines.append(["", "%d more held" % (ally_cat.offers.size() - 1)])
+		var width := 128.0
+		var height := 22.0 + lines.size() * 12.0
+		# Down the left under his panel, and down the right under the score.
+		var left := index % 2 == 0
+		var above := 66.0 if left else 26.0
+		for earlier in range(index % 2, index, 2):
+			above += 22.0 + 12.0 * 6
+		var box := Rect2(4.0 if left else screen.x - width - 4.0, above, width, height)
+		InterfaceArt.panel(self, box)
+		var x := box.position.x + 5
+		var y := box.position.y + 5
+		InterfaceArt.bold(self, Vector2(x, y - 1), "Ally %d" % ally_cat.player, color)
+		var sturdy := ally_cat.health > 1000.0
+		InterfaceArt.icon(self, Vector2(x + 40, y), "health", Palette.SCARF_RED)
+		InterfaceArt.bar(self, Rect2(x + 50, y + 1, box.size.x - 60, 5), 1.0 if sturdy else ally_cat.health / ally_cat.max_health, Palette.SCARF_RED)
+		y += 14
+		for line in lines:
+			var text_x := x
+			if not (line[0] as String).is_empty():
+				text_x += InterfaceArt.key_cap(self, Vector2(x, y - 2), line[0]) + 3
+			var text_color: Color = CARD_FRAMES[line[2]] if line.size() > 2 else Palette.OFF_WHITE
+			PixelFont.draw(self, Vector2(text_x, y - 1), line[1], text_color)
+			y += 12
+
+
+## An ally holding Back reads their oldest offer whole: the same three cards as his, across the
+## middle of the screen under their name, keyed to their own gamepad's buttons.
+func _draw_ally_cards() -> void:
+	var screen := get_viewport_rect().size
+	for ally in allies:
+		var ally_cat: Cat = ally.cat
+		if not ally.get("reading", false) or ally_cat.offers.is_empty():
+			continue
+		var offer: Array = ally_cat.offers[0]
+		var gap := 8.0
+		var total := offer.size() * CARD_SIZE.x + (offer.size() - 1) * gap
+		var frame := Rect2(floorf((screen.x - total) / 2.0) - 8, floorf(screen.y / 2.0 - CARD_SIZE.y / 2.0) - 30, total + 16, CARD_SIZE.y + 38)
+		InterfaceArt.panel(self, frame)
+		var title := "Ally %d's cards" % ally_cat.player
+		InterfaceArt.bold(self, Vector2(floorf((screen.x - InterfaceArt.bold_width(title)) / 2.0), frame.position.y + 6), title, Palette.PLAYERS[ally_cat.player])
+		var buttons := ["LB", "Up", "RB"]
+		for index in offer.size():
+			var choice: Dictionary = offer[index]
+			_draw_card(Rect2(frame.position.x + 8 + index * (CARD_SIZE.x + gap), frame.position.y + 22, CARD_SIZE.x, CARD_SIZE.y), buttons[index], choice.rarity, Upgrades.describe(choice))
+		# One ally's cards at a time: whoever holds Back first.
+		return
+
+
+## How playing online is going, in the bottom left, wherever he is.
+func _draw_online_status() -> void:
+	if online_status.is_empty():
+		return
+	var screen := get_viewport_rect().size
+	var box := Rect2(4, screen.y - 22, PixelFont.width(online_status) + 12, 18)
+	InterfaceArt.panel(self, box)
+	PixelFont.draw(self, box.position + Vector2(6, 4), online_status, Palette.OFF_WHITE)
+
+
+func screen_size() -> Vector2:
+	return get_viewport_rect().size

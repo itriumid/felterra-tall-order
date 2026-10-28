@@ -39,7 +39,14 @@ const OUTFITS: Array[Dictionary] = [
 ## The menus, as pages of choices. The title runs a world behind it; the pause menu and the
 ## summary of a run stop it (solo; online, the pause menu opens over a world that keeps running).
 const PAGES := {
-	"title": ["play", "settings", "leave"],
+	"title": ["play", "together", "settings", "leave"],
+	# Playing online: hosting, or joining a host by their address; a guest waiting for the host to
+	# go out, their pause menu in a run, and the end of one.
+	"together": ["host", "join", "back"],
+	"join": ["connect", "back"],
+	"waiting": ["part"],
+	"guest_pause": ["carry_on", "settings", "part", "leave"],
+	"guest_summary": ["stay", "part"],
 	"pause": ["carry_on", "settings", "start_again", "village", "leave"],
 	"village_pause": ["carry_on", "settings", "title", "leave"],
 	"summary": ["home", "go_again", "leave"],
@@ -93,11 +100,41 @@ const SETTING_ROWS: Array[Array] = [
 	["progress", "reset", "Reset all progress"],
 	["", "back", "Back"],
 ]
-## There's no online play yet; when there is, the menu won't stop the world there.
-const ONLINE := false
+## The pages shown over the title's world, not a run's.
+const TITLE_PAGES: Array[String] = ["title", "together", "join", "waiting"]
+## Playing together on one screen: up to this many players, the coats the allies who join come in,
+## and how far apart the crew can be in meters, so nobody walks out of the one view.
+const MOST_PLAYERS := 4
+const ALLY_COATS: Array[String] = ["orange", "gray", "black", "cream"]
+const LEASH := Vector2(13.0, 5.5)
+## The weapons an ally chooses between, by the button that chooses it; the third is whichever
+## weapon forged at the smithy they've turned to, as his is.
+const ALLY_WEAPONS: Array[String] = ["nunchaku", "handgun"]
+## A guest goes on guessing where things are going for at most this long without word from the
+## host, in seconds: past it, a stalled connection freezes the world rather than letting it drift.
+const GUESSED_AHEAD := 0.15
+## A guest stops guessing their own cat ahead after this long without a snapshot, in seconds.
+const HOST_QUIET := 0.5
+## How long a guest whose connection dropped has their cat kept for them, in seconds.
+const AWAY_KEPT := 60.0
 
 var arena: Arena
 var cat: Cat
+## Playing online, as host or guest: what's said between them. Online, the menu doesn't stop the
+## world, which is everyone's.
+var _online: Online
+## The address a guest types to join, and the seed of the run under way, for guests to lay it out.
+var _address := "127.0.0.1"
+## Host: what happened since the guests were last sent the world.
+var _served: Array[Dictionary] = []
+## Guest: where the host last had each thing that moves, and how long since; and their own cat,
+## where it's guessed to be, the steering sent, and each guess by the steering it was made for.
+var _truth := {}
+var _since_world := 0.0
+var _guessed := Vector2.INF
+var _steered := 0
+var _guesses: Array[Array] = []
+var _run_seed := 0
 var _world: Node2D
 var _camera: Camera2D
 var _overlay: Overlay
@@ -109,6 +146,20 @@ var _ground: GroundView
 var _outfit := 0
 ## The weapon he starts with, once chosen: until then the run waits.
 var _start_weapon := ""
+## Allies on one screen, players past the first, each as {device, cat, weapon, coat, forged}: they join
+## on a gamepad of their own while Endless's start is being chosen, and the run waits for each of
+## them to choose too.
+var _allies: Array[Dictionary] = []
+## The device player 0 last used, a gamepad's id or -1 for the keyboard, so their own gamepad
+## never joins as someone else.
+var _last_device := -1
+## For screenshots: allies standing in from the start, with nobody steering them.
+var _dev_crew := 0
+## To try playing online: host an Endless run, held until a guest is in it; or join a host at an
+## address, starting with the weapon --start names.
+var _dev_host := false
+var _dev_join := ""
+var _dev_guest_weapon := ""
 ## Which page is showing ("" while playing), the page the settings return to, and the rows chosen.
 var _page := ""
 var _settings_from := "pause"
@@ -234,6 +285,12 @@ func _ready() -> void:
 			_giant_from = Vector2(parts[0].to_float(), parts[1].to_float())
 		elif argument.begins_with("--chainsaw="):
 			_chainsaws = argument.trim_prefix("--chainsaw=").to_int()
+		elif argument == "--host":
+			_dev_host = true
+		elif argument.begins_with("--join="):
+			_dev_join = argument.trim_prefix("--join=")
+		elif argument.begins_with("--crew="):
+			_dev_crew = clampi(argument.trim_prefix("--crew=").to_int(), 1, MOST_PLAYERS) - 1
 		elif argument.begins_with("--cage="):
 			_cages = argument.trim_prefix("--cage=").to_int()
 		elif argument.begins_with("--villagers="):
@@ -339,8 +396,13 @@ func _ready() -> void:
 	AudioServer.set_bus_mute(0, not _keeping_settings and not "--sound" in OS.get_cmdline_user_args())
 	_build_scene()
 	_entities.blood = settings.get_value("gameplay", "blood")
+	_dev_guest_weapon = _start_weapon if not _start_weapon.is_empty() else "handgun"
 	# A real session opens on the title; a development run goes straight into the fight it set up.
-	if _keeping_settings or _open_title_first:
+	if not _dev_join.is_empty():
+		_show_title()
+		_online.join(_dev_join)
+		_open_page("waiting")
+	elif _keeping_settings or _open_title_first:
 		_show_title()
 	elif _open_village_first:
 		_enter_village(VillageMap.HOME_SPOT)
@@ -368,6 +430,14 @@ func _ready() -> void:
 			if not village.truce():
 				village.liberated.append("siege")
 			_set_up_run("endless")
+		if _dev_host:
+			_online.host()
+			if _run_kind.is_empty():
+				_set_up_run("endless")
+		for index in _dev_crew:
+			_join(-10 - index)
+			_allies[index].weapon = "handgun"
+			_dress_ally(_allies[index])
 		if _open_menu_first or _open_settings_first:
 			_open_page("pause")
 			if _open_settings_first:
@@ -428,11 +498,17 @@ func _build_scene() -> void:
 	var interface := CanvasLayer.new()
 	interface.layer = 10
 	add_child(interface)
+	_online = Online.new()
+	_online.name = "Online"
+	_online.game = self
+	add_child(_online)
 	_overlay = Overlay.new()
+	_overlay.allies = _allies
 	interface.add_child(_overlay)
 
 
 func _begin(horde: int, spawning: bool) -> void:
+	_part_the_crew()
 	_place = "run"
 	_show_layer(false)
 	_music.place = "run"
@@ -503,6 +579,10 @@ func _show_title() -> void:
 
 ## Into the village, with everyone he's brought home in it, and him standing at a spot.
 func _enter_village(spot: Vector2) -> void:
+	# Home, the allies' gamepads are his again, and guests still out with him wait for the next.
+	_part_the_crew()
+	if _online.hosting:
+		_online.run_over({})
 	_village_view.arena = null
 	village_map = VillageMap.new(village.cats, village.restored)
 	village_map.cat.body.position = spot
@@ -1080,9 +1160,17 @@ func _soft_light(size: Vector2i) -> GradientTexture2D:
 
 
 func _process(delta: float) -> void:
+	if _online.guesting and _place == "run":
+		_guest_frame(delta)
+		return
+	_overlay.online_status = _online.status if _online.active() else ""
+	if _online.hosting and _place == "run" and arena != null:
+		_online.host_frame(delta, arena, _served)
+		_served.clear()
+		_keep_the_away(delta)
 	if not _page.is_empty():
 		_read_page()
-		if _page == "title":
+		if _page in TITLE_PAGES:
 			_step_village(delta)
 		_take_screenshot(delta)
 		return
@@ -1112,8 +1200,11 @@ func _process(delta: float) -> void:
 	if _menu_after >= 0.0 and arena.time >= _menu_after:
 		_menu_after = -1.0
 		_open_page("pause")
-	_overlay.choosing = _start_weapon.is_empty()
-	if _start_weapon.is_empty():
+	_overlay.choosing = _choosing()
+	_overlay.joining = _can_join()
+	_overlay.start_chosen = not _start_weapon.is_empty()
+	_overlay.ally_forged = _forged_weapons()
+	if _choosing():
 		_camera.position = _run_camera()
 		_take_screenshot(delta)
 		return
@@ -1127,7 +1218,7 @@ func _process(delta: float) -> void:
 	_muzzle_light.energy = 1.6 * _entities.flash.get(cat, 0.0)
 	if arena.liberated and cat.alive():
 		_begin_freeing()
-	elif not cat.alive():
+	elif arena.over():
 		_end_run()
 	_overlay.goal = arena.goal_progress()
 	_take_screenshot(delta)
@@ -1146,6 +1237,8 @@ func _step_world(delta: float) -> void:
 		steps += 1
 	var events: Array[Dictionary] = arena.events.duplicate()
 	arena.events.clear()
+	if _online.hosting:
+		_served.append_array(events)
 	_entities.take_events(events)
 	if _village_view.arena != null:
 		_village_view.take_events(events)
@@ -1157,10 +1250,10 @@ func _step_world(delta: float) -> void:
 ## He's down: the run's numbers go into the records, and its summary opens.
 func _end_run() -> void:
 	_note("he's down in %s" % (_run_kind if not _run_kind.is_empty() else "a development run"))
-	# The best run is Endless's: a liberation run is the story, not a score.
+	# The best run is Endless's: a liberation run is the story, not a score. A crew's has its own.
 	_beaten.clear()
 	if _run_kind in ["", "endless"]:
-		_beaten = records.record(Records.of(arena))
+		_beaten = records.record(Records.of(arena), arena.together())
 		if _keeping_settings:
 			records.save()
 	_bring_home()
@@ -1170,6 +1263,12 @@ func _end_run() -> void:
 	if arena.grove:
 		_overlay.summary.offerings = Village.offerings_from(arena.time)
 	_overlay.beaten = _beaten
+	_overlay.summary.crew = arena.together()
+	if _online.hosting:
+		# What the run earned is everyone's: each guest takes it home to their own village.
+		var numbers: Dictionary = _overlay.summary.duplicate()
+		numbers.earnings = Village.earnings_of(arena)
+		_online.run_over(numbers)
 	_open_page("summary")
 
 
@@ -1193,6 +1292,8 @@ func _start_run(run_kind: String) -> void:
 	_from_the_village()
 	_set_up_run(run_kind)
 	_enter()
+	if _online.hosting and run_kind == "endless":
+		_online.run_begins(run_setup_for_guests())
 
 
 ## Into the run on foot, the way he came, not set down in the middle of it: the world holds still
@@ -1221,6 +1322,7 @@ func _set_up_run(run_kind: String) -> void:
 	_fight_in_the_village(false)
 	if run_kind == "endless" or run_kind.is_empty():
 		var fresh := randi()
+		_run_seed = fresh
 		arena.random.seed = fresh
 		_overlay.area_name = ""
 		# Once there's peace with the forest, Endless is cleansing a grove still sick from the
@@ -1287,9 +1389,15 @@ func _heel_the_cub() -> void:
 	cat.charm.facing = cat.facing
 
 
-## Where the view looks during a run: at him, but in the village, never past its edges.
+## Where the view looks during a run: at him, or the middle of the crew, but in the village, never
+## past its edges.
 func _run_camera() -> Vector2:
-	var at := World.to_screen(cat.body.position)
+	var lowest := cat.body.position
+	var highest := cat.body.position
+	for each in arena.cats:
+		lowest = lowest.min(each.body.position)
+		highest = highest.max(each.body.position)
+	var at := World.to_screen((lowest + highest) / 2.0)
 	if _village_view.arena == null:
 		return at
 	var screen := get_viewport().get_visible_rect().size
@@ -1450,8 +1558,8 @@ func _open_page(page: String) -> void:
 	_note("page %s, in %s" % [page, _place])
 	_page = page
 	_menu_choice = 0
-	if not ONLINE or page == "summary":
-		get_tree().paused = page != "title"
+	if not _online.active() or page == "summary":
+		get_tree().paused = not page in TITLE_PAGES
 	_overlay.place = "village" if _place != "run" else "run"
 
 
@@ -1500,8 +1608,12 @@ func _read_page() -> void:
 ## A page of choices: up and down choose, Enter or Space takes it, Escape closes the pause menu.
 func _read_choices() -> void:
 	var choices: Array = PAGES[_page]
-	if Input.is_action_just_pressed("pause") and _page in ["pause", "village_pause"]:
+	if Input.is_action_just_pressed("pause") and _page in ["pause", "village_pause", "guest_pause"]:
 		_close_page()
+		return
+	if Input.is_action_just_pressed("pause") and _page in ["together", "join"]:
+		_audio.interface("menu_back")
+		_open_page("title")
 		return
 	if Input.is_action_just_pressed("move_up"):
 		_menu_choice = wrapi(_menu_choice - 1, 0, choices.size())
@@ -1536,8 +1648,10 @@ func _read_choices() -> void:
 			_close_page()
 			_go_home()
 		"village":
-			# Giving up the run: he goes home with what he's carrying.
+			# Giving up the run: he goes home with what he's carrying, and so do his guests.
 			_close_page()
+			if _online.hosting:
+				_online.run_over({"earnings": Village.earnings_of(arena)})
 			_bring_home()
 			_go_home()
 		"title":
@@ -1545,6 +1659,27 @@ func _read_choices() -> void:
 			_show_title()
 		"leave":
 			get_tree().quit()
+		"together":
+			_open_page("together")
+		"back":
+			_open_page("title")
+		"host":
+			if _online.host():
+				_close_page()
+				_arrive(true)
+		"join":
+			_open_page("join")
+		"connect":
+			if _online.join(_address):
+				_open_page("waiting")
+		"part":
+			_online.part()
+			_close_page()
+			_show_title()
+		"stay":
+			_close_page()
+			_show_title()
+			_open_page("waiting")
 
 
 ## The settings page: up and down choose a row, left and right change it, Escape goes back.
@@ -1620,6 +1755,9 @@ func _menu_lines() -> Array[String]:
 			"play": "Play", "carry_on": "Carry on", "settings": "Settings", "start_again": "Start again",
 			"go_again": "Straight back out", "title": "Back to the title", "leave": "Leave the game",
 			"home": "Home to the village", "village": "Back to the village",
+			"together": "Play together online", "host": "Host: allies join you", "join": "Join a host",
+			"back": "Back", "connect": "Join " + _address, "part": "Leave the crew",
+			"stay": "Wait for the next run",
 		}[item])
 	return lines
 
@@ -1651,7 +1789,12 @@ func _setting_lines() -> Array[Dictionary]:
 
 
 func _read_controls() -> void:
-	if _start_weapon.is_empty():
+	for ally in _allies.duplicate():
+		_read_ally(ally)
+	if _choosing():
+		if not _start_weapon.is_empty():
+			# He's chosen; the allies haven't yet.
+			return
 		var forged := _forged_weapons()
 		if not forged.is_empty():
 			if Input.is_action_just_pressed("move_left"):
@@ -1710,5 +1853,525 @@ func _read_controls() -> void:
 	if Input.is_action_just_pressed("toggle_fullscreen"):
 		settings.step("graphics", "full_screen", 1)
 		_settings_changed()
-	if Input.is_action_just_pressed("pause"):
+	if Input.is_action_just_pressed("pause") or _allies.any(func(ally: Dictionary) -> bool: return _has_buttons(ally) and Input.is_action_just_pressed(InputActions.of("pause", ally.cat.player))):
 		_open_page("pause")
+
+
+## Whether the run is still waiting on someone to choose what they start with.
+## Once the run is under way, it never waits again: anyone joining it chooses as it goes on.
+func _choosing() -> bool:
+	if _under_way():
+		return false
+	return _start_weapon.is_empty() or _allies.any(func(ally: Dictionary) -> bool: return ally.weapon.is_empty()) \
+		or _online.waiting_on_guests() or (_dev_host and not _allies.any(func(ally: Dictionary) -> bool: return ally.has("peer")))
+
+
+## Whether the run has started: the world has stepped.
+func _under_way() -> bool:
+	return arena != null and arena.time > 0.0
+
+
+## Allies join Endless only, on one screen: Liberation is one village's story, so it's his alone.
+## They can join as its start is chosen, or drop in once it's under way.
+func _can_join() -> bool:
+	return _place == "run" and _run_kind == "endless" and _page.is_empty() and not _entering and not _briefing \
+		and _allies.size() < MOST_PLAYERS - 1 and not _online.guesting and not arena.over()
+
+
+func _input(event: InputEvent) -> void:
+	# The host's address, typed in: numbers and dots, and Backspace takes one back.
+	if _page == "join" and event is InputEventKey and event.pressed:
+		var typed := char(event.unicode) if event.unicode > 0 else ""
+		if event.keycode == KEY_BACKSPACE:
+			_address = _address.left(-1)
+		elif typed in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "."] and _address.length() < 39:
+			_address += typed
+	var device := -1
+	if event is InputEventJoypadButton or event is InputEventJoypadMotion:
+		if InputActions.claimed.has(event.device):
+			return
+		if event is InputEventJoypadMotion and absf(event.axis_value) < 0.5:
+			return
+		device = event.device
+	elif not (event is InputEventKey or event is InputEventMouseButton):
+		return
+	# A gamepad that isn't his joins with A; his own (the one he last used) never does.
+	if event is InputEventJoypadButton and event.pressed and event.button_index == JOY_BUTTON_A \
+			and device != _last_device and _can_join():
+		_join(device)
+		get_viewport().set_input_as_handled()
+		return
+	if event.is_pressed() or event is InputEventJoypadMotion:
+		_last_device = device
+
+
+## A player joins as an ally: a cat of their own beside him, in the first coat nobody's wearing,
+## steered by their own gamepad.
+func _join(device: int) -> void:
+	var player := _allies.size() + 1
+	if device >= 0:
+		InputActions.claim(device, player)
+	# Before the run they stand in it as they choose; dropping in, they come in once they've chosen.
+	var ally_cat := Cat.new() if _under_way() else arena.add_cat(cat.body.position + Vector2(-0.7 * player, 0.5 * (player % 2)))
+	ally_cat.player = player
+	ally_cat.aim_mode = cat.aim_mode
+	ally_cat.facing = cat.facing
+	var worn: Array[String] = []
+	for ally in _allies:
+		worn.append(ally.coat)
+	var coat := ALLY_COATS[0]
+	for each in ALLY_COATS:
+		if not each in worn:
+			coat = each
+			break
+	ally_cat.coat = coat
+	_allies.append({"device": device, "cat": ally_cat, "weapon": "", "coat": coat, "reading": false, "forged": 0})
+	arena.leash = LEASH
+	_audio.interface("menu_choose")
+
+
+## An ally leaves before the run starts: their cat goes, and those after them move up a place.
+func _leave(ally: Dictionary) -> void:
+	arena.cats.erase(ally.cat)
+	_allies.erase(ally)
+	InputActions.release_all()
+	for index in _allies.size():
+		var staying: Dictionary = _allies[index]
+		staying.cat.player = index + 1
+		if staying.device >= 0:
+			InputActions.claim(staying.device, index + 1)
+	if _allies.is_empty():
+		arena.leash = Vector2.ZERO
+	_audio.interface("menu_back")
+
+
+## Everyone back to one player: a new run starts with him alone, and allies join it afresh.
+func _part_the_crew() -> void:
+	_allies.clear()
+	if not InputActions.claimed.is_empty():
+		InputActions.release_all()
+
+
+func _dress_ally(ally: Dictionary) -> void:
+	var ally_cat: Cat = ally.cat
+	ally_cat.wear({"weapons": [ally.weapon if not ally.weapon.is_empty() else "handgun"]})
+	ally_cat.coat = ally.coat
+	# Allied cats, given the spirits' gift too: a jimat each, and a cub at each one's heel, ranked
+	# and woken as the shrine has the village's.
+	if arena.grove and village.gifted() and ally_cat.charm == null:
+		ally_cat.charm = Companion.new(village.cub_element, village.cub_rank)
+		ally_cat.charm.body.position = ally_cat.body.position + ally_cat.charm.facing_offset(ally_cat)
+		ally_cat.charm.facing = ally_cat.facing
+
+
+## An ally's own controls: before the run, choosing their weapon and coat, or leaving; in it, the
+## same as his, on their own gamepad.
+func _read_ally(ally: Dictionary) -> void:
+	var ally_cat: Cat = ally.cat
+	var player := ally_cat.player
+	if ally.has("peer"):
+		_read_guest(ally)
+		return
+	# Standing in for a screenshot, with nobody steering.
+	if not _has_buttons(ally):
+		return
+	var pressed := func(action: String) -> bool: return Input.is_action_just_pressed(InputActions.of(action, player))
+	if _choosing() or ally.weapon.is_empty():
+		if pressed.call("banish"):
+			if ally.weapon.is_empty():
+				_leave(ally)
+			else:
+				ally.weapon = ""
+				_audio.interface("menu_back")
+			return
+		if not ally.weapon.is_empty():
+			return
+		for way in [-1, 1]:
+			if pressed.call("move_left" if way < 0 else "move_right"):
+				var worn: Array[String] = []
+				for other in _allies:
+					if other != ally:
+						worn.append(other.coat)
+				var at := ALLY_COATS.find(ally.coat)
+				for step in ALLY_COATS.size():
+					at = wrapi(at + way, 0, ALLY_COATS.size())
+					if not ALLY_COATS[at] in worn:
+						break
+				ally.coat = ALLY_COATS[at]
+				ally_cat.coat = ally.coat
+				_audio.interface("menu_move")
+		var forged := _forged_weapons()
+		if not forged.is_empty() and pressed.call("change_gear"):
+			ally.forged = wrapi(ally.forged + 1, 0, forged.size())
+			_audio.interface("menu_move")
+		for index in ALLY_WEAPONS.size():
+			if pressed.call("pick_%d" % (index + 1)):
+				ally.weapon = ALLY_WEAPONS[index]
+		if not forged.is_empty() and pressed.call("pick_3"):
+			ally.weapon = forged[ally.forged % forged.size()]
+		if not ally.weapon.is_empty():
+			_dress_ally(ally)
+			_audio.interface("menu_choose")
+			if _under_way():
+				arena.drop_in(ally_cat)
+		return
+	ally_cat.steering = Input.get_vector(InputActions.of("move_left", player), InputActions.of("move_right", player), InputActions.of("move_up", player), InputActions.of("move_down", player))
+	if pressed.call("dodge"):
+		ally_cat.dodge()
+	for index in 3:
+		if pressed.call("pick_%d" % (index + 1)):
+			if Input.is_action_pressed(InputActions.of("banish", player)):
+				if ally_cat.banish(index, arena.random):
+					_audio.interface("banish")
+			elif ally_cat.play(index):
+				_audio.interface("card")
+	if pressed.call("reroll"):
+		if ally_cat.reroll(arena.random):
+			_audio.interface("reroll")
+	# --reading shows the first ally's whole cards too, for a screenshot.
+	ally.reading = Input.is_action_pressed(InputActions.of("read_cards", player)) or (_always_reading and player == 1)
+
+
+# Hosting online: guests as allies.
+
+## What a guest needs to lay out the run being chosen: its seed and whether it's a grove. Nothing
+## once it's under way, or for a run that isn't Endless.
+func run_setup_for_guests() -> Dictionary:
+	if _place != "run" or _run_kind != "endless" or arena == null or arena.over():
+		return {}
+	return {"seed": _run_seed, "grove": arena.grove}
+
+
+## A guest's cat comes into the run, in what they brought: their coat, what they chose to start
+## with (if it's theirs to choose), and in a grove, their own cub. Returns its id, for them to
+## know it by, or 0 if there's no room.
+func ally_arrives(peer: int, info: Dictionary, weapon: String) -> int:
+	if _allies.size() >= MOST_PLAYERS - 1 or run_setup_for_guests().is_empty():
+		return 0
+	var dropping_in := _under_way()
+	var forged: Array = info.get("forged", [])
+	if not weapon in ALLY_WEAPONS and not weapon in forged:
+		weapon = "handgun"
+	var player := _allies.size() + 1
+	var ally_cat := Cat.new() if dropping_in else arena.add_cat(cat.body.position + Vector2(-0.7 * player, 0.5 * (player % 2)))
+	ally_cat.player = player
+	ally_cat.facing = cat.facing
+	var coat: String = info.get("coat", "orange")
+	ally_cat.wear({"weapons": [weapon]})
+	ally_cat.coat = coat if coat in Sprites.COATS else "orange"
+	var rank: int = info.get("cub_rank", 0)
+	if arena.grove and rank > 0:
+		ally_cat.charm = Companion.new(info.get("cub_element", "ember"), clampi(rank, 1, Companion.MOST_RANK))
+		ally_cat.charm.body.position = ally_cat.body.position + ally_cat.charm.facing_offset(ally_cat)
+	_allies.append({"device": -1, "peer": peer, "token": info.get("token", ""), "cat": ally_cat, "weapon": weapon, "coat": ally_cat.coat, "reading": false, "steering": Vector2.ZERO, "presses": []})
+	_audio.interface("menu_choose")
+	if dropping_in:
+		arena.drop_in(ally_cat)
+	return ally_cat.get_instance_id()
+
+
+## A guest back after their connection dropped, by the token they said hello with: their cat, as
+## it was, back in the run beside the crew. Returns its id, or 0 if there's none waiting for them.
+func ally_returns(peer: int, token: String) -> int:
+	for ally in _allies:
+		if ally.get("away", false) and not token.is_empty() and ally.get("token", "") == token:
+			ally.peer = peer
+			ally.away = false
+			ally.steering = Vector2.ZERO
+			ally.steered_to = 0
+			ally.presses = []
+			arena.drop_in(ally.cat, true)
+			return ally.cat.get_instance_id()
+	return 0
+
+
+func _ally_of(peer: int) -> Dictionary:
+	for ally in _allies:
+		if ally.get("peer", 0) == peer:
+			return ally
+	return {}
+
+
+func ally_steers(peer: int, steering: Vector2, number: int) -> void:
+	var ally := _ally_of(peer)
+	if not ally.is_empty() and number > ally.get("steered_to", 0):
+		ally.steering = steering
+		ally.steered_to = number
+
+
+## The last of a guest's steering their cat has been moved by, for them to check their own
+## guess of where it is against.
+func ally_steered_to(peer: int) -> int:
+	return _ally_of(peer).get("steered_to", 0)
+
+
+func ally_presses(peer: int, action: String, index: int) -> void:
+	var ally := _ally_of(peer)
+	if not ally.is_empty():
+		(ally.presses as Array).append([action, index])
+
+
+## A guest gone, their connection dropped: their cat steps out of the fight, kept for them a while,
+## off the field, so the crew spends no lives on someone who can't play, and the horde is sized
+## to who's here. Back in time, they pick up where they were.
+func ally_gone(peer: int) -> void:
+	var ally := _ally_of(peer)
+	if ally.is_empty():
+		return
+	arena.cats.erase(ally.cat)
+	ally.peer = 0
+	ally.away = true
+	ally.away_for = AWAY_KEPT
+
+
+## A guest leaving the crew on purpose: their cat goes with them, now.
+func ally_leaves(peer: int) -> void:
+	var ally := _ally_of(peer)
+	if ally.is_empty():
+		return
+	arena.cats.erase(ally.cat)
+	_allies.erase(ally)
+
+
+## Each frame, those away a while longer; once their time's up, they're gone for good.
+func _keep_the_away(delta: float) -> void:
+	for ally in _allies.duplicate():
+		if ally.get("away", false):
+			ally.away_for -= delta
+			if ally.away_for <= 0.0:
+				_allies.erase(ally)
+
+
+## Whether an ally on this screen has a gamepad of their own: one standing in has none, and one
+## online plays from their own screen.
+func _has_buttons(ally: Dictionary) -> bool:
+	return InputActions.claimed.has(ally.device) and not ally.has("peer")
+
+
+## A guest's controls, as they sent them, played on their cat.
+func _read_guest(ally: Dictionary) -> void:
+	var ally_cat: Cat = ally.cat
+	if _choosing() or ally.get("away", false):
+		ally.presses.clear()
+		return
+	ally_cat.steering = ally.steering
+	for press: Array in ally.presses:
+		match press[0]:
+			"dodge":
+				ally_cat.dodge()
+			"pick":
+				ally_cat.play(press[1])
+			"banish":
+				ally_cat.banish(press[1], arena.random)
+			"reroll":
+				ally_cat.reroll(arena.random)
+	ally.presses.clear()
+
+
+# A guest online: the host's world on their own screen, and their own cat in it.
+
+## What a guest brings from their own village: their coat, what's forged at their smithy, and
+## the cub, if the spirits have given them one.
+func what_i_bring() -> Dictionary:
+	var forged: Array[String] = []
+	if village.is_restored("longhouse"):
+		for id in village.forged:
+			if id.begins_with("weapon:") and village.packed(id):
+				forged.append(id.trim_prefix("weapon:"))
+	return {"coat": village.coat, "forged": forged, "cub_rank": village.cub_rank if village.gifted() else 0, "cub_element": village.cub_element}
+
+
+## The host has gone out to Endless: the same clearing or grove laid out here, from its seed, and
+## what to start with to choose.
+func guest_run_begins(setup: Dictionary) -> void:
+	_close_page()
+	_part_the_crew()
+	_place = "run"
+	_show_layer(false)
+	_music.place = "run"
+	_fight_in_the_village(false)
+	arena = Arena.new()
+	arena.spawning = false
+	_overlay.area_name = ""
+	if setup.get("grove", false):
+		arena.begin_grove(setup.seed)
+		var grove := Areas.grove(setup.seed)
+		_ground.paint(grove.ground, setup.seed, false)
+		_overlay.area_name = grove.name
+	else:
+		_ground.paint("clearing", setup.seed, false)
+	_truth.clear()
+	_guessed = Vector2.INF
+	_guesses.clear()
+	# Until the host's cat for them arrives, one standing in, out of the world.
+	cat = Cat.new()
+	cat.body.position = arena.size / 2.0
+	_watch(arena, cat)
+	_start_weapon = ""
+	_start_extra = 0
+	_run_kind = "endless"
+	_overlay.place = "run"
+	_overlay.cutscene = false
+	if not _dev_join.is_empty():
+		_start_weapon = _dev_guest_weapon
+		_online.choose(_start_weapon)
+
+
+## Whether a guest is out on a run with the host, for a dropped connection to be tried again.
+func guest_in_run() -> bool:
+	return _place == "run"
+
+
+## The host lost for good, mid-run: back to the title, saying so.
+func guest_lost() -> void:
+	_close_page()
+	_show_title()
+	_open_page("together")
+
+
+func guest_run_over(numbers: Dictionary) -> void:
+	if _place != "run":
+		return
+	# The crew's earnings, home to their own village too; and the crew's best, in their own records.
+	if numbers.has("earnings"):
+		village.take_earnings(numbers.earnings)
+		village.catch_up()
+		if _keeping_settings:
+			village.save()
+	var beaten: Array[String] = []
+	if numbers.has("time"):
+		beaten = records.record(numbers, true)
+		if _keeping_settings:
+			records.save()
+	if not numbers.has("time"):
+		_close_page()
+		_show_title()
+		_open_page("waiting")
+		return
+	_overlay.summary = numbers
+	_overlay.beaten = beaten
+	_open_page("guest_summary")
+
+
+## Every frame of a guest's run: the world as it's come, their own controls out, and the view on
+## their cat.
+##
+## The world comes 20 times a second; between, everything goes on the way it was going, from
+## where the host last had it, so nothing jumps every third frame. Their own cat goes where they
+## steer it at once, not a round trip later: where it's guessed to be is checked against where the
+## host had it, for the steering it had by then, and only the difference is put right.
+func _guest_frame(delta: float) -> void:
+	# Word from the host stopped: say so, and hold the world still rather than guess on.
+	_overlay.online_status = _online.status if _online.reconnecting else ("Waiting for the host..." if _since_world > HOST_QUIET and not _truth.is_empty() else "")
+	var steered_to := -1
+	if not _online.arrived.is_empty():
+		for body: Body in _truth:
+			body.position = _truth[body]
+		for arrival: Array in _online.arrived:
+			var events := _online.receiver.apply(arrival[0], arena)
+			_entities.take_events(events)
+			_audio.take_events(events)
+			steered_to = arrival[1]
+		_online.arrived.clear()
+		_truth.clear()
+		for walker: Object in arena.cats + arena.creatures + arena.giants:
+			_truth[walker.body] = walker.body.position
+		_since_world = 0.0
+	else:
+		_since_world += delta
+	for body: Body in _truth:
+		body.position = _truth[body] + body.velocity * minf(_since_world, GUESSED_AHEAD)
+	var mine: Cat = _online.receiver.objects.get(_online.my_cat_id)
+	if mine != null:
+		_guess_my_cat(mine, steered_to, delta)
+	if mine != null and mine != cat:
+		cat = mine
+		_watch(arena, cat)
+	_overlay.choosing = mine == null
+	_overlay.joining = false
+	_overlay.start_chosen = not _start_weapon.is_empty()
+	if not _page.is_empty():
+		_read_page()
+	elif mine == null:
+		# Back from a dropped connection, their cat is already theirs: nothing to choose.
+		if _start_weapon.is_empty() and _online.my_cat_id == 0:
+			_guest_chooses()
+	else:
+		_guest_controls(mine)
+	_camera.position = World.to_screen(cat.body.position)
+	_take_screenshot(delta)
+
+
+## What a guest starts with: the nunchaku, the handgun, or a weapon forged at their own smithy.
+func _guest_chooses() -> void:
+	var forged: Array = what_i_bring().forged
+	if not forged.is_empty():
+		if Input.is_action_just_pressed("move_left"):
+			_start_extra = wrapi(_start_extra - 1, 0, forged.size())
+		elif Input.is_action_just_pressed("move_right"):
+			_start_extra = wrapi(_start_extra + 1, 0, forged.size())
+	_overlay.start_extra = forged[_start_extra % forged.size()] if not forged.is_empty() else ""
+	if Input.is_action_just_pressed("pick_1"):
+		_start_weapon = "nunchaku"
+	elif Input.is_action_just_pressed("pick_2"):
+		_start_weapon = "handgun"
+	elif Input.is_action_just_pressed("pick_3") and not forged.is_empty():
+		_start_weapon = forged[_start_extra % forged.size()]
+	if not _start_weapon.is_empty():
+		_online.choose(_start_weapon)
+		_audio.interface("menu_choose")
+
+
+## Their own cat, where they're steering it: walking, it's guessed ahead; rolling, flying or down,
+## it's where the host has it.
+func _guess_my_cat(mine: Cat, steered_to: int, delta: float) -> void:
+	var host_has: Vector2 = _truth.get(mine.body, mine.body.position)
+	if steered_to >= 0:
+		# Where it was guessed to be for the steering the host had: the difference put right.
+		while not _guesses.is_empty() and _guesses[0][0] < steered_to:
+			_guesses.pop_front()
+		if not _guesses.is_empty() and _guesses[0][0] == steered_to and _guessed.is_finite():
+			var off: Vector2 = host_has - _guesses[0][1]
+			_guessed += off
+			for guess: Array in _guesses:
+				guess[1] += off
+	var walking := mine.alive() and mine.dodging_for <= 0.0 and not mine.body.airborne() and mine.staggered_for <= 0.0 \
+		and _since_world < HOST_QUIET
+	if not walking or not _guessed.is_finite() or _guessed.distance_to(host_has) > 1.5:
+		_guessed = host_has
+		_guesses.clear()
+	# Always sent, so the host never walks on with steering let go of; nothing while a menu's open.
+	var steering := Input.get_vector("move_left", "move_right", "move_up", "move_down") if _page.is_empty() else Vector2.ZERO
+	_steered += 1
+	_online.send_steering(steering, _steered)
+	if not walking:
+		mine.body.position = _guessed
+		return
+	var guess := Body.new()
+	guess.radius = mine.body.radius
+	guess.position = _guessed + steering.limit_length(1.0) * Cat.SPEED * (1.0 + mine.speed_bonus) * delta
+	arena._keep_inside(guess)
+	_guessed = guess.position
+	_guesses.append([_steered, _guessed])
+	mine.body.position = _guessed
+	_truth.erase(mine.body)
+	_truth[mine.body] = host_has
+	if steering.length_squared() > 0.01:
+		mine.facing = steering.normalized()
+
+
+func _guest_controls(mine: Cat) -> void:
+	if Input.is_action_just_pressed("dodge"):
+		_online.send_press("dodge", 0)
+	for index in 3:
+		if Input.is_action_just_pressed("pick_%d" % (index + 1)):
+			_online.send_press("banish" if Input.is_action_pressed("banish") else "pick", index)
+			_audio.interface("card")
+	if Input.is_action_just_pressed("reroll"):
+		_online.send_press("reroll", 0)
+	_overlay.reading = Input.is_action_pressed("read_cards")
+	_overlay.banishing = Input.is_action_pressed("banish")
+	if Input.is_action_just_pressed("show_kit"):
+		_overlay.show_kit = not _overlay.show_kit
+	if Input.is_action_just_pressed("pause"):
+		_open_page("guest_pause")

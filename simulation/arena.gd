@@ -87,6 +87,20 @@ const EMBER_EVERY := 6.0
 ## The fallen stay where they lie, up to this many (the player can have fewer). Past that, the
 ## oldest crumble away over FADE_TIME seconds rather than vanishing.
 const MOST_FALLEN := 600
+## Playing together: the crew's Nine Lives, how long a cat lies down before one is spent, how long
+## a crewmate stands by them to get them up, how close, and with how much of their health: all of
+## it.
+const LIVES := 9
+const DOWN_TIME := 10.0
+const REVIVE_TIME := 3.0
+const REVIVE_REACH := 0.9
+const REVIVED_HEALTH := 1.0
+## Up again, a moment before anything can hurt them; and dropping in to a run under way, longer.
+const UP_SAFE_TIME := 1.5
+const DROP_IN_SAFE_TIME := 3.0
+## A bigger crew faces more of the horde, but less than a whole crew's worth more: each cat past
+## the first adds half again, so four face two and a half times as many.
+const CREW_SHARE := 0.5
 const FADE_TIME := 1.5
 ## The cell size of the grid that finds what's near what.
 const CELL := 0.2
@@ -172,6 +186,15 @@ var spawning := true
 ## each cat an offer.
 var experience := 0
 var level := 1
+## Playing together, the crew carries LIVES between them. A cat whose health runs out is down,
+## not gone: a crewmate standing by them for REVIVE_TIME gets them up, and if nobody comes in
+## DOWN_TIME, a life is spent and they're up again beside the crew. With none left, the run is
+## lost. Alone, there are no lives: down is the end of it.
+var lives := LIVES
+var lost := false
+## On one screen, how far apart the crew can be, in meters: nobody walks out of the shared view.
+## Zero is no leash (alone, or online, where each player has their own view).
+var leash := Vector2.ZERO
 ## What happened this step that the view shows but the simulation doesn't need: hits, as
 ## {position, height, direction, killed, by}. The view takes them as it draws.
 var events: Array[Dictionary] = []
@@ -243,11 +266,15 @@ func step() -> void:
 	# Who stands where, as the step begins: everything that looks for a creature uses it.
 	_build_grid()
 	_find_the_ways()
+	var was_at := {}
 	for cat in cats:
+		was_at[cat] = cat.body.position
 		cat.step(STEP, self)
 		_keep_inside(cat.body)
 		if cat.charm != null:
 			_keep_inside(cat.charm.body, true)
+	_hold_together(was_at)
+	_tend_the_downed()
 	_send_on_errands()
 	for creature in creatures:
 		creature.step(STEP, _prey_for(creature), self)
@@ -1225,6 +1252,116 @@ func _pick_up() -> void:
 	pickups = lying
 
 
+## A cat joining a run under way: in beside whoever's standing, a moment out of harm's way, and
+## dealt the cards the crew's level-ups have handed out so far, one a level, so nobody joins behind.
+## Back from a dropped connection, the same cat comes back as it was: no cards dealt again.
+func drop_in(cat: Cat, returning := false) -> void:
+	var standing := cats.filter(func(each: Cat) -> bool: return each.alive())
+	if not standing.is_empty():
+		cat.body.position = (standing[0] as Cat).body.position + Vector2(-0.6, 0.3)
+	cat.body.velocity = Vector2.ZERO
+	_keep_inside(cat.body)
+	cat.safe_for = DROP_IN_SAFE_TIME
+	if not returning:
+		for missed in level - 1:
+			var offer := Upgrades.offer(cat, random)
+			if not offer.is_empty():
+				cat.offers.append(offer)
+	if not cat in cats:
+		cats.append(cat)
+	if cat.charm != null:
+		cat.charm.body.position = cat.body.position + cat.charm.facing_offset(cat)
+	events.append({"position": cat.body.position, "height": 0.2, "direction": Vector2.ZERO, "killed": false, "by": "up", "giant": false, "kind": "cat"})
+
+
+## Whether more than one cat is fighting: the crew's rules, lives and getting up, apply.
+func together() -> bool:
+	return cats.size() > 1
+
+
+## How much more of the horde the crew draws than one cat alone.
+func crew_scale() -> float:
+	return 1.0 + CREW_SHARE * maxi(cats.size() - 1, 0)
+
+
+## Whether the run is over: alone, when he's down; together, when the lives are spent.
+func over() -> bool:
+	if not together():
+		return cats.is_empty() or not cats[0].alive()
+	return lost
+
+
+## On one screen, nobody walks out of the view: each cat is held within the leash of the others,
+## but only the way it moved this step, so the one walking off stops, and the rest aren't dragged
+## along.
+func _hold_together(was_at: Dictionary) -> void:
+	if leash == Vector2.ZERO or not together():
+		return
+	for cat in cats:
+		var lowest := Vector2.INF
+		var highest := -Vector2.INF
+		for other in cats:
+			if other != cat:
+				lowest = lowest.min(other.body.position)
+				highest = highest.max(other.body.position)
+		var held := cat.body.position.clamp(highest - leash, lowest + leash)
+		var moved: Vector2 = cat.body.position - was_at.get(cat, cat.body.position)
+		var back := held - cat.body.position
+		for axis in 2:
+			if back[axis] != 0.0 and signf(moved[axis]) == -signf(back[axis]):
+				cat.body.position[axis] = held[axis]
+				cat.body.velocity[axis] = 0.0
+
+
+## Together, a cat down is got up by a crewmate standing by, or by a life once nobody has come.
+func _tend_the_downed() -> void:
+	if not together():
+		return
+	var standing := cats.filter(func(cat: Cat) -> bool: return cat.alive())
+	for cat in cats:
+		if cat.alive():
+			continue
+		if not cat.downed:
+			cat.downed = true
+			cat.down_for = DOWN_TIME
+			cat.revived = 0.0
+			events.append({"position": cat.body.position, "height": 0.2, "direction": Vector2.ZERO, "killed": false, "by": "downed", "giant": false, "kind": "cat"})
+		var helped := standing.any(func(helper: Cat) -> bool: return not helper.body.airborne() and helper.body.position.distance_to(cat.body.position) <= REVIVE_REACH + helper.body.radius + cat.body.radius)
+		if helped:
+			# Getting them up takes a crewmate's time, not a life, and the clock waits while it does.
+			cat.revived += STEP
+			if cat.revived >= REVIVE_TIME:
+				_get_up(cat, REVIVED_HEALTH, cat.body.position)
+			continue
+		cat.revived = maxf(cat.revived - STEP, 0.0)
+		cat.down_for -= STEP
+		if cat.down_for > 0.0:
+			continue
+		if lives <= 0:
+			lost = true
+			continue
+		lives -= 1
+		# Up beside whoever's still standing, or where they lay if nobody is.
+		var beside := cat.body.position
+		if not standing.is_empty():
+			beside = (standing[0] as Cat).body.position + Vector2(0.6, 0.0)
+		_get_up(cat, 1.0, beside)
+	# Everyone down with no life to come back on: nobody is left to get anyone up.
+	if standing.is_empty() and lives <= 0:
+		lost = true
+
+
+func _get_up(cat: Cat, share: float, where: Vector2) -> void:
+	cat.health = cat.max_health * share
+	cat.downed = false
+	cat.revived = 0.0
+	cat.safe_for = UP_SAFE_TIME
+	cat.body.position = where
+	cat.body.velocity = Vector2.ZERO
+	_keep_inside(cat.body)
+	events.append({"position": cat.body.position, "height": 0.2, "direction": Vector2.ZERO, "killed": false, "by": "up", "giant": false, "kind": "cat"})
+
+
 ## Experience needed to go from this level to the next.
 static func experience_needed(at_level: int) -> int:
 	return 4 + at_level * 3
@@ -1405,7 +1542,7 @@ func _spawn() -> void:
 	if rats_plan.is_empty() or creatures.size() >= MOST_CREATURES:
 		return
 	_since_spawn += STEP
-	var interval: float = 1.0 / (rats_plan.rate + rats_plan.growth * time)
+	var interval: float = 1.0 / ((rats_plan.rate + rats_plan.growth * time) * crew_scale())
 	while _since_spawn >= interval and creatures.size() < MOST_CREATURES:
 		_since_spawn -= interval
 		add_creature(edge_point(), _one_of(rats_plan.get("kinds", {"rat": 1})))
