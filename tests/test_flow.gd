@@ -69,3 +69,16 @@ func test_with_no_cat_the_horde_and_giants_wander() -> void:
 		arena.step()
 	check(rat.body.position.distance_to(rat_start) > 0.5, "the rat stood still with no cat to chase")
 	check(giant.body.position.distance_to(giant_start) > 1.0, "the giant stood still with no cat to chase")
+
+
+func test_a_crews_best_is_kept_apart_from_one_cats() -> void:
+	var records := Records.new()
+	records.record({"time": 100.0, "level": 5, "kills": 200, "giants": 1})
+	var beaten := records.record({"time": 900.0, "level": 20, "kills": 3000, "giants": 9}, true)
+	check(beaten.has("time") and records.crew.time == 900.0, "the crew's run didn't set the crew's best")
+	check(records.best.time == 100.0, "the crew's run beat one cat's best: %.0f" % records.best.time)
+	records.save(TEST_PATH)
+	var loaded := Records.new()
+	loaded.load_from(TEST_PATH)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_PATH))
+	check(loaded.crew.kills == 3000 and loaded.best.kills == 200, "came back as %s and %s" % [str(loaded.best), str(loaded.crew)])

@@ -121,6 +121,13 @@ var safe_for := 0.0
 ## Dodges ready, as a stock that refills: one is enough to roll, and More charges holds more.
 var dodge_charges := 1.0
 var staggered_for := 0.0
+## Playing together: down and waiting, how long until a life is spent on them, and how far a
+## crewmate standing by has got them up.
+var downed := false
+var down_for := 0.0
+var revived := 0.0
+## Which player this cat is, from 0: who steers it, and the color it's marked with.
+var player := 0
 ## Hits that have landed on him, and dodges, counted, so the view and the sound know when one
 ## does.
 var hits_taken := 0

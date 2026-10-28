@@ -138,6 +138,8 @@ func take_events(events: Array[Dictionary]) -> void:
 			"swipe": play_at("swing", event.position, -2.0, 0.6)
 			"roof_alight": play_at("ignite", event.position, -2.0)
 			"doused": play_at("splash", event.position, 0.0)
+			"downed": play_at("hurt", event.position, 0.0, 0.7)
+			"up": play_at("meow", event.position, -3.0, 1.2)
 			"bucket": play_at("splash", event.position, -8.0, 1.4)
 			"stolen": play_at("pickup", event.position, -6.0, 0.7)
 			"smoke": play_at("dodge", event.position, -10.0, 0.5)
