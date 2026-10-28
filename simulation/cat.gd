@@ -106,6 +106,9 @@ const HOLDS := 2
 var weapons: Array[Weapon] = [Weapon.handgun()]
 ## What he carries on his back, by slot ("drone", "set_down"): one of each at most.
 var supports := {}
+## The jimat at his collar, with the spirits' gift bound into it, or none: only once there's peace
+## with the forest, and only in a grove.
+var charm: Companion
 ## How his weapons pick a target: "nearest", "toughest" (the most health left) or "crowd" (the
 ## thickest cluster).
 var aim_mode := "nearest"
@@ -348,6 +351,8 @@ func step(delta: float, arena: Arena) -> void:
 		weapon.step(delta, self, arena)
 	for slot: String in supports:
 		(supports[slot] as Support).step(delta, self, arena)
+	if charm != null:
+		charm.step(delta, self, arena)
 
 
 ## A crewmate's slipstream: he runs faster for a while.

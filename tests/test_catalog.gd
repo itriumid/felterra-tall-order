@@ -51,6 +51,10 @@ func _in_the_game() -> Array[String]:
 	for mutation: String in Upgrades.MUTATIONS:
 		names.append(Upgrades.MUTATIONS[mutation].name)
 	names.append("Inyiak Balang")
+	# The spirits' gift, and the elements it fights in.
+	names.append("The cub")
+	for element: String in Companion.ELEMENTS:
+		names.append(Village.ELEMENT_NAMES[element])
 	var kinds := {}
 	for building in VillageMap.new([], ["shrine"]).buildings:
 		kinds[building.kind] = true

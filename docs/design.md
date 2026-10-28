@@ -50,7 +50,9 @@ with water from the well, and then Inyiak Balang comes, the forest's grandfather
 Beaten, it lies down and listens. The Elder shows it the company's cans, stamped MBG, and it
 knows the smell: Makmur Bakar burned the groves. There's peace after that, and Inyiak Balang
 raises a shrine by the gate. Endless goes through it from then on, cleansing groves still sick
-from the company, with the spirits on the cats' side.
+from the company, with the spirits on the cats' side. Home from the first grove, Inyiak Balang
+gives him the spirits' gift: its grandchild, a tiger cub, bound into a jimat at his collar. It
+fights at his heel in the groves, and grows, slowly, on offerings brought home from them.
 
 ## Factions
 
@@ -319,7 +321,12 @@ on: fire and oil, or crewmates who can be downed.
   peat, or the riverbank, where nothing walks into the oily river. The restless spirits come in
   their mix, the saplings and the monkeys in packs, the company's abandoned feller bunchers still
   working with something else at the controls, and its traps, with cats in them. The best run is
-  still Endless's.
+  still Endless's. A grove gives an offering for each minute lasted in it, and the summary says
+  how many.
+- **The spirits' gift is the endgame, and it's slow.** One companion, the cub, worn as a jimat:
+  its rank (1 to 10) and its element (ember, smoke, root, river) are bought at the shrine with
+  offerings, roughly thirty long groves to have it all. In a run, its cards level it like
+  support. The ranks and costs are in [`catalog.md`](catalog.md).
 - **The hub is the cats' village** at the forest's edge. It grows between runs: rescued cats
   join, the smith forges better gear. That growth is the progress that carries over, and it's
   the story moving forward.

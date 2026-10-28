@@ -11,6 +11,19 @@ const FLASH_TIME := 0.05
 const CAT_STRIDE := 0.42
 const RAT_STRIDE := 0.24
 const DOG_STRIDE := 0.6
+## How far the cub runs for each step of its walk; and the colors of each of its elements, for the
+## motes about it and what it throws out landing.
+const CUB_STRIDE := 0.3
+## Where the jimat hangs at his collar in each view he's drawn in, on a cat's drawing so wide; from
+## behind, it's under his chin, out of sight.
+const JIMAT_AT := {"front": Vector2(12, 14), "side": Vector2(15, 15)}
+const CAT_WIDTH := 24
+const ELEMENT_COLORS := {
+	"ember": [Palette.SPARK, Palette.HI_VIS, Palette.BRASS_LIGHT],
+	"smoke": [Palette.SMOKE, Palette.OFF_WHITE],
+	"root": [Palette.LEAF_LIGHT, Palette.MOSS, Palette.BARK_LIGHT],
+	"river": [Palette.PAINT_TEAL, Palette.OFF_WHITE],
+}
 const GIANT_STRIDE := 1.4
 ## The drone's net: how far apart its mesh is, in pixels; how wide it's opened out in flight, by
 ## the time it lands; and how high it starts opening, coming down, in meters.
@@ -147,6 +160,8 @@ func _draw_all() -> void:
 			var support: Support = cat.supports[slot]
 			if support.deployed:
 				standing.append([support.body.position.y, support])
+		if cat.charm != null:
+			standing.append([cat.charm.body.position.y, cat.charm])
 	_more_standing(standing)
 	standing.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	for stain in _stains:
@@ -180,6 +195,8 @@ func _draw_all() -> void:
 				_draw_bucket(thing)
 		elif thing is Support:
 			_draw_support(thing)
+		elif thing is Companion:
+			_draw_cub(thing)
 		elif thing is LogLoader:
 			_draw_loader(thing)
 		elif thing is LoggingTruck:
@@ -501,6 +518,13 @@ func _draw_cat(cat: Cat) -> void:
 		var item: String = cat.gear.get(slot, "")
 		if Sprites.WORN.has(item):
 			draw_texture(Sprites.lit(Sprites.WORN[item][view], flip), top_left)
+	if cat.charm != null and JIMAT_AT.has(view):
+		# The jimat at his collar: a sliver of carved bone, beside where a bell would hang.
+		var spot: Vector2 = JIMAT_AT[view]
+		if flip:
+			spot.x = CAT_WIDTH - 1 - spot.x
+		draw_rect(Rect2(top_left + spot, Vector2(1, 2)), Palette.CREAM)
+		draw_rect(Rect2(top_left + spot + Vector2(0, 2), Vector2.ONE), Palette.OUTLINE)
 	_draw_pack(cat, view, flip, top_left, "over")
 	var hat: String = cat.gear.get("head", "")
 	if Sprites.HATS.has(hat):
@@ -1085,6 +1109,25 @@ func _draw_flames(at: Vector2, height: float, size: int) -> void:
 		draw_rect(Rect2(base + Vector2(x, -flicker - 1), Vector2(1, flicker + 1)), [Palette.SPARK, Palette.BRASS_LIGHT, Palette.HI_VIS, Palette.SCARF_RED][flicker])
 
 
+## The cub, the spirits' gift: walking at his heel, or in the air on its way down onto something,
+## with a few motes of its element about it.
+func _draw_cub(cub: Companion) -> void:
+	var pose := "leap" if cub.body.airborne() else "walk_%d" % (int(cub.ran / CUB_STRIDE) % 2)
+	var left := cub.facing.x < 0.0
+	var texture := Sprites.lit(SpiritArt.CUB[pose], left)
+	var feet := SpiritArt.CUB_FEET
+	if left:
+		feet.x = texture.get_width() - 1 - feet.x
+	var at := World.to_screen(cub.body.position, cub.body.height)
+	draw_texture(texture, (at - feet).round())
+	var colors: Array = ELEMENT_COLORS[cub.element]
+	for mote in 3:
+		# Each mote drifts up off its back and goes out, then starts again lower.
+		var rise := fmod(_clock * 6.0 + mote * 3.7, 9.0)
+		var x := ((mote * 5 + int(cub.ran * 3.0)) % 11) - 5
+		draw_rect(Rect2((at + Vector2(x, -6.0 - rise)).round(), Vector2.ONE), colors[mote % colors.size()])
+
+
 ## Smoke out of the cannon's mouth as it fires.
 func _puff(cannon: Support) -> void:
 	var mouth := cannon.body.position + cannon.weapon.aim * 0.3
@@ -1202,6 +1245,17 @@ func _bleed(delta: float) -> void:
 					"height": maxf(event.height, 0.05), "rise": randf_range(0.6, 1.8),
 					"velocity": Vector2.from_angle(randf() * TAU) * randf_range(0.2, 0.9),
 					"color": color if index % 3 else (Palette.HI_VIS if color == Palette.SPARK else Palette.SMOKE), "stains": false,
+				})
+			continue
+		if event.by.begins_with("cub_"):
+			# The cub coming down: its element thrown out round it, as wide as it reaches.
+			var reach: float = event.get("radius", 0.7)
+			var colors: Array = ELEMENT_COLORS[event.by.trim_prefix("cub_")]
+			for index in int(18 * reach):
+				var angle := TAU * index / int(18 * reach)
+				_droplets.append({
+					"position": event.position + Vector2.from_angle(angle) * 0.15, "height": 0.05, "rise": randf_range(0.3, 1.4),
+					"velocity": Vector2.from_angle(angle) * reach * randf_range(1.2, 2.0), "color": colors[index % colors.size()], "stains": false,
 				})
 			continue
 		if event.by == "thud":

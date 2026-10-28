@@ -15,7 +15,8 @@ extends Node
 ## --village starts in the village instead of a fight; --intro tells the story's opening again;
 ## --area=<id> starts a liberation run in that area, --freed as if it's been freed already, --boss
 ## with its goal done and its boss on the way; --grove starts Endless as cleansing, in a corrupted
-## grove; --horde-kind=<kind> makes the --horde that kind (wisp, tuyul, pocong, sapling, monkey);
+## grove; --cub=<element>[:<rank>] gives the cub, and in a grove it's at his heel (with --village,
+## it's at the shrine); --offerings=<count> gives that many to spend there; --horde-kind=<kind> makes the --horde that kind (wisp, tuyul, pocong, sapling, monkey);
 ## --villagers=<count> puts that many rescued cats in it, for this run only; --restored=<all, or
 ## names> shows those buildings brought back from ruin; --salvage=<count> and --cloth=<count> give
 ## the village that much to spend; --liberated=<ids> has those areas freed already; --at-door=<building>
@@ -43,6 +44,21 @@ const PAGES := {
 	"village_pause": ["carry_on", "settings", "title", "leave"],
 	"summary": ["home", "go_again", "leave"],
 }
+## What each of the cub's elements is, at the shrine.
+const ELEMENT_STORIES := {
+	"ember": "The fire the company set, and the forest took back. It burns only what it's meant to.",
+	"smoke": "The smoke monkeys taught it to hide in a cloud. It still won't share their mangoes.",
+	"root": "The saplings that grew back where the forest burned, and hold on to what walks on them.",
+	"river": "The river that carried the logs away, carrying the horde away now instead.",
+}
+## Home from the first grove: Inyiak Balang gives the spirits' gift, the only magic a cat will
+## ever carry, and it isn't his.
+const GIFT_LINES: Array = [
+	"Inyiak Balang is waiting by the shrine, and something small is tumbling round its paws.",
+	"A cub. Its grandchild, it says, and it wants to see the groves.",
+	"It binds the cub into a jimat, a charm of carved bone, and hangs it at his collar.",
+	"Bring offerings from the groves, it says, and the cub will grow. Slowly. Tigers do.",
+]
 ## The story's opening, told once, as he walks into the village the first time, and the Elder
 ## walks out to meet him. Nobody knows yet what's wrong; finding out is the story.
 const INTRO: Array = [
@@ -128,6 +144,10 @@ var _freeing := false
 var _free_for := 0.0
 var _dev_area := ""
 var _dev_grove := false
+## The cub to try out in a grove, as its element and rank, from --cub; and whether the last run
+## home was a grove's, for the walk in.
+var _dev_cub := ""
+var _cleansed := false
 var _horde_kind := "rat"
 var _dev_freed := false
 var _dev_boss := false
@@ -219,6 +239,8 @@ func _ready() -> void:
 		elif argument.begins_with("--villagers="):
 			for index in argument.trim_prefix("--villagers=").to_int():
 				village.cats.append({"name": Cage.NAMES[index % Cage.NAMES.size()], "coat": Cage.COATS[index % Cage.COATS.size()]})
+		elif argument.begins_with("--offerings="):
+			village.offerings = argument.trim_prefix("--offerings=").to_int()
 		elif argument.begins_with("--salvage="):
 			village.salvage = argument.trim_prefix("--salvage=").to_int()
 		elif argument.begins_with("--cloth="):
@@ -238,6 +260,9 @@ func _ready() -> void:
 		elif argument.begins_with("--area="):
 			_dev_area = argument.trim_prefix("--area=")
 		elif argument == "--grove":
+			_dev_grove = true
+		elif argument.begins_with("--cub="):
+			_dev_cub = argument.trim_prefix("--cub=")
 			_dev_grove = true
 		elif argument.begins_with("--horde-kind="):
 			_horde_kind = argument.trim_prefix("--horde-kind=")
@@ -289,6 +314,16 @@ func _ready() -> void:
 			_screenshot_path = argument.trim_prefix("--screenshot=")
 		elif argument.begins_with("--screenshot-after="):
 			_screenshot_after = argument.trim_prefix("--screenshot-after=").to_float()
+	# The cub given, at a rank and in an element, to try out: in a grove, or at the shrine.
+	if not _dev_cub.is_empty():
+		if not village.truce():
+			village.liberated.append("siege")
+		village.give_cub()
+		village.cub_rank = clampi(_dev_cub.get_slice(":", 1).to_int(), 1, Companion.MOST_RANK) if _dev_cub.contains(":") else 1
+		var element := _dev_cub.get_slice(":", 0)
+		if element in Companion.ELEMENTS and not element in village.elements:
+			village.elements.append(element)
+		village.cub_element = element if element in village.elements else "ember"
 	# A screenshot can't wait for someone to choose, unless it's of the choice itself.
 	if not _screenshot_path.is_empty() and _start_weapon.is_empty() and not "--choose" in OS.get_cmdline_user_args():
 		_start_weapon = "handgun"
@@ -528,6 +563,12 @@ func _arrive(from_the_forest: bool) -> void:
 			if after < Areas.ids().size() and not Areas.ids()[after] in village.liberated:
 				_news.append({"title": "On the map: " + (Areas.named(Areas.ids()[after]).name as String).to_lower(), "text": "Choose it at the board by the gate."})
 		lines.append_array(village.restored_lines(_just_restored))
+		# Home from the first grove, Inyiak Balang is at the shrine, with the spirits' gift.
+		if _cleansed and village.give_cub():
+			lines.append_array(GIFT_LINES)
+			_news.append({"title": "The jimat", "text": "The cub goes with you to the groves, at your heel. At the shrine, offerings from the groves rank it up, and wake its other elements."})
+			_keep_village()
+		_cleansed = false
 		# With the last area free, the spirits come as he walks home: the first time, Jogiboy smells
 		# them before anyone sees them.
 		if _siege_coming() and not "send_off:siege" in village.told:
@@ -707,7 +748,7 @@ func _door_prompt(building: String) -> String:
 		"watchtower": return "Jingga's watchtower: she tells you what's out there, on the board"
 		"market": return "Kopi and Susu's market: trade"
 		"healer": return "Bu Jamu's hut: a tonic for the next run"
-		"shrine": return "Inyiak Balang's shrine: the way to a sick grove"
+		"shrine": return "Inyiak Balang's shrine: the groves, and the cub" if village.gifted() else "Inyiak Balang's shrine: the way to a sick grove"
 	return "%s, home to two" % name.capitalize()
 
 
@@ -756,10 +797,8 @@ func _use(building: String) -> void:
 		"watchtower":
 			_say("Jingga: \"Everything I see, I've put on the board by the gate.\"")
 		"shrine":
-			village.next_run = "endless"
-			_keep_village()
-			_audio.interface("menu_choose")
-			_say("The way to a sick grove is open: out through the gate.")
+			_open_page("shrine")
+			_shop_choice = 0
 
 
 func _say(line: String) -> void:
@@ -816,6 +855,25 @@ func _shop_rows() -> Array[Dictionary]:
 		rows.append({"id": "tonic", "name": "Turmeric tonic", "state": "ready for the next run" if village.tonic_ready else "%d salvage" % Village.TONIC_COST,
 			"can": not village.tonic_ready and village.salvage >= Village.TONIC_COST, "does": "The next run starts with %d more rerolls" % Village.TONIC_REROLLS,
 			"story": "Bu Jamu's own recipe: turmeric, tamarind, and something she won't tell you. Bitter. It works."})
+	elif _page == "shrine":
+		var chosen := village.next_run == "endless"
+		rows.append({"id": "grove", "name": "To a sick grove", "state": "chosen: out through the gate" if chosen else "choose it", "can": not chosen,
+			"does": "Endless: cleanse a grove still sick from the company, a fresh one every run",
+			"story": "Through the shrine, the forest is the way it was before the company came, and sick where they've been."})
+		if not village.gifted():
+			rows.append({"id": "", "name": "Inyiak Balang", "state": "waiting", "can": false, "does": "Cleanse a grove, and come home",
+				"story": "The great tiger lies by the shrine with its eyes half shut. It's waiting for something."})
+		else:
+			var cost := village.next_rank_cost()
+			rows.append({"id": "rank", "name": "The cub, rank %d of %d" % [village.cub_rank, Companion.MOST_RANK], "state": "%d offerings for the next" % cost if cost >= 0 else "fully grown",
+				"can": cost >= 0 and village.offerings >= cost, "does": "Each rank adds %d%% to what its pounce does" % roundi(Companion.RANK_SHARE * 100.0),
+				"story": "Inyiak Balang takes the offerings, and the cub grows a little. Slowly. Tigers do."})
+			for element: String in Companion.ELEMENTS:
+				var woken := element in village.elements
+				var price: int = Village.ELEMENT_COSTS[element]
+				var taken := village.cub_element == element
+				rows.append({"id": "element:" + element, "name": Village.ELEMENT_NAMES[element], "state": "its element now" if taken else ("woken: take it?" if woken else "%d offerings to wake" % price),
+					"can": not taken and (woken or village.offerings >= price), "does": Village.ELEMENT_DOES[element], "story": ELEMENT_STORIES[element]})
 	elif _page == "book":
 		for chapter in _chapters():
 			var told: Array[String] = []
@@ -935,6 +993,16 @@ func _read_shop() -> void:
 			done = village.trade(id)
 		elif _page == "healer":
 			done = village.brew_tonic()
+		elif _page == "shrine":
+			if id == "grove":
+				done = rows[_shop_choice].can
+				if done:
+					village.next_run = "endless"
+					_overlay.shop_note = "The way to a sick grove is open: out through the gate."
+			elif id == "rank":
+				done = village.rank_cub()
+			elif id.begins_with("element:"):
+				done = village.take_element(id.get_slice(":", 1))
 		elif _page == "pack":
 			# Too few of its kind packed: it stays, and the page says why.
 			var why := village.cant_leave_home(id)
@@ -954,7 +1022,7 @@ func _read_shop() -> void:
 	if Input.is_action_just_pressed("move_up") or Input.is_action_just_pressed("move_down") or Input.is_action_just_pressed("move_left") or Input.is_action_just_pressed("move_right"):
 		_overlay.shop_note = ""
 	_overlay.shop_page = _page
-	_overlay.shop_title = {"forge": "The smithy", "pack": "Your pack", "looks": "The weaver's hut", "board": "The map of the forest", "book": "The book of stories", "market": "The market", "healer": "The healer's hut"}[_page]
+	_overlay.shop_title = {"forge": "The smithy", "pack": "Your pack", "looks": "The weaver's hut", "board": "The map of the forest", "book": "The book of stories", "market": "The market", "healer": "The healer's hut", "shrine": "Inyiak Balang's shrine"}[_page]
 	_overlay.shop_tabs.clear()
 	if _page in ["forge", "pack"]:
 		for tab: Array in _tabs():
@@ -1099,6 +1167,8 @@ func _end_run() -> void:
 	_overlay.summary = Records.of(arena)
 	_overlay.summary.rescued = arena.rescued.size()
 	_overlay.summary.salvage = arena.salvage
+	if arena.grove:
+		_overlay.summary.offerings = Village.offerings_from(arena.time)
 	_overlay.beaten = _beaten
 	_open_page("summary")
 
@@ -1135,6 +1205,7 @@ func _enter() -> void:
 	var from: Vector2 = Areas.named(_run_kind).get("enters_from", Vector2.LEFT)
 	cat.body.position = _entering_to + from * ENTRANCE
 	cat.facing = -from
+	_heel_the_cub()
 	if _cutscene == null:
 		_cutscene = Cutscene.new([], settings.get_value("gameplay", "story_waits"))
 	_entering_pace = Cat.SPEED
@@ -1159,6 +1230,10 @@ func _set_up_run(run_kind: String) -> void:
 			var grove := Areas.grove(fresh)
 			if not _placed:
 				cat.body.position = grove.start
+			# The spirits' gift goes with him, at his collar, to the groves.
+			if village.gifted():
+				cat.charm = Companion.new(village.cub_element, village.cub_rank)
+				_heel_the_cub()
 			_ground.paint(grove.ground, fresh, false)
 			_overlay.area_name = grove.name
 			return
@@ -1203,6 +1278,15 @@ func _fight_in_the_village(fighting: bool) -> void:
 	_shade.color = VILLAGE_SHADE
 
 
+## The cub at his heel, where it walks beside him: while he walks in, the world held still, it
+## keeps up.
+func _heel_the_cub() -> void:
+	if cat == null or cat.charm == null:
+		return
+	cat.charm.body.position = cat.body.position + cat.charm.facing_offset(cat)
+	cat.charm.facing = cat.facing
+
+
 ## Where the view looks during a run: at him, but in the village, never past its edges.
 func _run_camera() -> Vector2:
 	var at := World.to_screen(cat.body.position)
@@ -1237,6 +1321,7 @@ func _briefed(delta: float) -> void:
 		else:
 			cat.body.velocity = toward.normalized() * _entering_pace
 			cat.body.position += cat.body.velocity * delta
+		_heel_the_cub()
 	_camera.position = _run_camera()
 	if (_cutscene.done() and arrived) or skip:
 		if _briefing and _run_kind in Areas.ids() and not ("intro:" + _run_kind) in village.told:
@@ -1332,6 +1417,7 @@ func _bring_home() -> void:
 func _go_home() -> void:
 	_note("home to the village")
 	_spirits_withdrew = _run_kind == "siege" and not arena.liberated
+	_cleansed = arena.grove
 	_enter_village(Vector2(VillageMap.SIZE.x - 0.5, VillageMap.RETURN_SPOT.y))
 	_arrive(false)
 
@@ -1391,7 +1477,7 @@ func _read_page() -> void:
 			return
 		_overlay.page = "news"
 		return
-	if _page in ["forge", "pack", "looks", "board", "book", "market", "healer"]:
+	if _page in ["forge", "pack", "looks", "board", "book", "market", "healer", "shrine"]:
 		_read_shop()
 		_overlay.page = _page
 		return

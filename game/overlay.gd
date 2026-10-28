@@ -365,8 +365,8 @@ func _draw_shop() -> void:
 	var box := Rect2(floorf((screen.x - width) / 2.0), floorf((screen.y - height) / 2.0) - 6, width, height)
 	InterfaceArt.panel(self, box)
 	InterfaceArt.bold(self, box.position + Vector2(10, 7), shop_title, Palette.PINK)
-	if village_record != null and shop_page in ["forge", "looks", "market", "healer"]:
-		var have := "%d salvage, %d cloth" % [village_record.salvage, village_record.cloth]
+	if village_record != null and shop_page in ["forge", "looks", "market", "healer", "shrine"]:
+		var have := "%d offerings" % village_record.offerings if shop_page == "shrine" else "%d salvage, %d cloth" % [village_record.salvage, village_record.cloth]
 		PixelFont.draw(self, Vector2(box.end.x - 10 - PixelFont.width(have), box.position.y + 7), have, Palette.SMOKE)
 	var y := box.position.y + 24
 	if not shop_tabs.is_empty():
@@ -893,6 +893,8 @@ func _draw_summary() -> void:
 		["rescued", "Cats rescued", str(summary.get("rescued", 0))],
 		["salvage", "Salvage", str(summary.get("salvage", 0))],
 	]
+	if summary.has("offerings"):
+		rows.append(["offerings", "Offerings", str(summary.offerings)])
 	# What freeing the area taught him, the first time.
 	var learned: Array = summary.get("learned", [])
 	if not learned.is_empty():
