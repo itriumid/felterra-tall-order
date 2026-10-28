@@ -285,6 +285,10 @@ func show_restored(building_name: String) -> void:
 	for building in buildings:
 		if building.name == building_name:
 			building.restored = true
+			return
+	# The shrine isn't a ruin brought back: it's raised where nothing stood.
+	if building_name == "shrine":
+		buildings.insert(buildings.size() - 1, {"name": "shrine", "kind": "shrine", "footprint": SHRINE, "restored": true})
 
 
 ## Walks him to a spot on his own, for a cutscene.

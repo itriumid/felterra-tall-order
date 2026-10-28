@@ -70,6 +70,10 @@ const STEPS := [
 	["pause", "pause"], ["move_down", "pause"], ["move_down", "pause"], ["move_down", "pause"],
 	# Home, with the lessons of the two areas freed meanwhile told on the way in; then what's new.
 	["menu_choose", "", {"_place": "arriving"}], ["pause", "news", {"_place": "village"}], ["menu_choose", ""],
+	# Peace with the forest, and the cub given: at the shrine, a rank for offerings, then smoke woken.
+	["grant_gift", "", {"village.cub_rank": 1}], ["to_shrine", ""], ["menu_choose", "shrine"],
+	["move_down", "shrine"], ["menu_choose", "shrine", {"village.cub_rank": 2}],
+	["move_down", "shrine"], ["move_down", "shrine"], ["menu_choose", "shrine", {"village.cub_element": "smoke", "village.offerings": 62}], ["pause", ""],
 	# From the village's pause menu, back to the title.
 	["pause", "village_pause"], ["move_down", "village_pause"], ["move_down", "village_pause"],
 	["menu_choose", "title", {"_place": "title"}], ["move_down", "title"], ["menu_choose", "settings"],
@@ -127,6 +131,12 @@ func _process(_delta: float) -> bool:
 				_main.village.liberate(area_id)
 			for building in _main.village.catch_up():
 				_main.village_map.show_restored(building)
+		elif action == "grant_gift":
+			_main.village.liberated.append("siege")
+			for building in _main.village.catch_up():
+				_main.village_map.show_restored(building)
+			_main.village.give_cub()
+			_main.village.offerings = 100
 		elif action == "drop_salvage":
 			_main.arena.drop_salvage(_main.cat.body.position + Vector2(1.5, 0.0), 6)
 		elif action == "free_area":
@@ -135,9 +145,9 @@ func _process(_delta: float) -> bool:
 			if _main.arena.boss == null:
 				_main.arena._bring_in_the_boss()
 			_main.arena.strike(_main.arena.boss, 1.0e7, Vector2.ZERO, 0.0, 0.0, "round")
-		elif action in ["to_smithy", "to_weaver", "to_home", "to_board", "to_house", "to_longhouse", "to_market", "to_healer"]:
+		elif action in ["to_smithy", "to_weaver", "to_home", "to_board", "to_house", "to_longhouse", "to_market", "to_healer", "to_shrine"]:
 			# Walked up to a door, or back into the open.
-			var spots := {"to_smithy": VillageMap.SMITHY, "to_weaver": VillageMap.HUTS[0], "to_board": VillageMap.BOARD, "to_house": VillageMap.HOME, "to_longhouse": VillageMap.LONGHOUSE, "to_market": VillageMap.MARKET, "to_healer": VillageMap.HEALER}
+			var spots := {"to_smithy": VillageMap.SMITHY, "to_weaver": VillageMap.HUTS[0], "to_board": VillageMap.BOARD, "to_house": VillageMap.HOME, "to_longhouse": VillageMap.LONGHOUSE, "to_market": VillageMap.MARKET, "to_healer": VillageMap.HEALER, "to_shrine": VillageMap.SHRINE}
 			var footprint: Rect2 = spots.get(action, Rect2(VillageMap.HOME_SPOT, Vector2.ZERO))
 			_main.village_map.cat.body.position = VillageMap.door_step(footprint) if action != "to_home" else VillageMap.HOME_SPOT
 		else:

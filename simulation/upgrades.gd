@@ -210,6 +210,8 @@ static func available(cat: Cat) -> Array[String]:
 			ids.append("support:" + support_name)
 		elif held.name == support_name:
 			ids.append(("support_level:" if held.level < WEAPON_TOP else "support_mastery:") + support_name)
+	if cat.charm != null:
+		ids.append(("charm_level:" if cat.charm.level < WEAPON_TOP else "charm_mastery:") + "cub")
 	for mutation: String in MUTATIONS:
 		if cat.has(mutation):
 			ids.append("mutation_up:" + mutation)
@@ -299,6 +301,11 @@ static func apply(cat: Cat, choice: Dictionary) -> void:
 		support.level += 1
 		support.power += LEVEL_DAMAGE * amount * share
 		support.tempo += LEVEL_TEMPO * amount * share
+	elif id.begins_with("charm_level:") or id.begins_with("charm_mastery:"):
+		var share := MASTERY if id.begins_with("charm_mastery:") else 1.0
+		cat.charm.level += 1
+		cat.charm.power += LEVEL_DAMAGE * amount * share
+		cat.charm.tempo += LEVEL_TEMPO * amount * share
 	elif id.begins_with("mutation"):
 		var mutation := id.get_slice(":", 1)
 		cat.mutations[mutation] = cat.strength(mutation) + amount
@@ -339,6 +346,7 @@ static func _does(card: Dictionary) -> String:
 			return "Worn on his %s: %s" % [GEAR[card.item].slot, ", ".join(gives)]
 		"support": return "%s, %s" % [SUPPORT[card.item].lines[0], (SUPPORT[card.item].lines[1] as String).to_lower()]
 		"mutation": return MUTATIONS[card.item].explain
+		"charm": return "The spirits' gift, a tiger cub at his heel, pouncing"
 	return ""
 
 
@@ -394,6 +402,16 @@ static func _describe(choice: Dictionary) -> Dictionary:
 			card.explain = ["Support levels: each raises its damage and how often it fires"]
 			if mastery:
 				card.explain.append("Mastery: past level %d, there's no limit; each is worth half a level" % WEAPON_TOP)
+	elif id.begins_with("charm"):
+		var mastery := id.begins_with("charm_mastery:")
+		var share := MASTERY if mastery else 1.0
+		card.item = "cub"
+		card.kind = "charm"
+		card.name = "The cub" + (" mastery" if mastery else " up")
+		card.lines = ["+%d%% damage" % roundi(LEVEL_DAMAGE * amount * share * 100.0), "+%d%% pounces" % roundi(LEVEL_TEMPO * amount * share * 100.0)]
+		card.explain = ["The jimat: the spirits' gift, a tiger cub at his heel; its levels raise what its pounce does, and how often"]
+		if mastery:
+			card.explain.append("Mastery: past level %d, there's no limit; each is worth half a level" % WEAPON_TOP)
 	elif id.begins_with("mutation"):
 		var mutation := id.get_slice(":", 1)
 		card.item = mutation

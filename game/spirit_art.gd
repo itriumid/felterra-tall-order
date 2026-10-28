@@ -168,6 +168,54 @@ kkoooFokk.kkllllllwwwwwwwwllllllOOOOOOOOOOOOOOook.
 }
 ## Where the tiger's feet meet the ground in its pictures.
 const TIGER_FEET := Vector2(22, 29)
+## The cub, the spirits' gift: Inyiak Balang's grandchild, small enough to walk at a cat's heel,
+## side-on and facing right, two steps of a walk and the leap.
+const CUB := {
+	"walk_0": """
+.............k..k..
+............kykkyk.
+.kk........kyOOOOk.
+kOFk.kkkkkkOFOgeOk.
+kyk.kyFOFOFOOOOOpk.
+.kkkyOFOFOFOOOwwk..
+..kOOFOFOFOOOwwk...
+..kOOOOOOOOOOOk....
+..kowwwwwwwwwok....
+..kOk.kOk.kOkk.....
+..kOk..kOkkOk......
+..kkk..kkkkkk......
+""",
+	"walk_1": """
+.............k..k..
+............kykkyk.
+..kk.......kyOOOOk.
+.kOFk.kkkkkOFOgeOk.
+.kyk.kyFOFOFOOOOpk.
+..kkkyOFOFOFOOwwk..
+..kOOFOFOFOOOwwk...
+..kOOOOOOOOOOOk....
+..kowwwwwwwwwok....
+...kOkkOk.kOk.kOk..
+...kOkkOk..kOk.kOk.
+...kkkkkk..kkk.kkk.
+""",
+	"leap": """
+...................
+...................
+..............k..k.
+.............kykkyk
+kk..........kyOOOOk
+kOFkkkkkkkkkOFOgeOk
+.kkyFOFOFOFOOOOOOpk
+..kOOFOFOFOOOOwwwk.
+.kOOOOOOOOOOOwwwk..
+kOkowwwwwwwwwwokOk.
+kOk.kkkkkkkkkkk.kk.
+kkk................
+""",
+}
+## Where the cub's feet meet the ground in its pictures.
+const CUB_FEET := Vector2(8, 11)
 ## The horde's spirits, a frame or two each, and where each one's feet are.
 const HORDE := {
 	"wisp": ["""
@@ -301,6 +349,8 @@ static func all_art() -> Dictionary:
 	var art := {}
 	for pose: String in TIGER:
 		art["tiger_" + pose] = TIGER[pose]
+	for pose: String in CUB:
+		art["cub_" + pose] = CUB[pose]
 	for kind: String in HORDE:
 		for index in HORDE[kind].size():
 			art["%s_%d" % [kind, index]] = HORDE[kind][index]

@@ -85,6 +85,20 @@ static func caged_in(area_id: String) -> int:
 	return count + int(area.plan.get("cages", {}).get("most", 0))
 
 
+## The cub's ranks at the shrine, slowly: what each rank past the first costs in offerings, and
+## what each element costs to wake, once; changing back to one woken is free. Offerings come one
+## for every OFFERING_EVERY seconds lasted in a grove.
+const RANK_COSTS: Array[int] = [8, 12, 16, 20, 26, 32, 38, 46, 54]
+const ELEMENT_COSTS := {"ember": 0, "smoke": 30, "root": 30, "river": 40}
+const OFFERING_EVERY := 60.0
+const ELEMENT_NAMES := {"ember": "Ember", "smoke": "Smoke", "root": "Root", "river": "River"}
+const ELEMENT_DOES := {
+	"ember": "What it lands on burns",
+	"smoke": "It lands in a cloud of smoke that slows the horde",
+	"root": "Roots hold what it lands on where it stands",
+	"river": "It lands in a wave that throws the horde off",
+}
+
 ## Cats a restored hut houses, each weaving a cloth a run.
 const CATS_PER_HUT := 2
 ## What's in the cards from the start, things any village has lying about: as many weapons as must
@@ -157,6 +171,12 @@ var left_home: Array[String] = []
 var goals_done: Array[String] = []
 ## A tonic from the healer's hut, brewed and waiting for the next run.
 var tonic_ready := false
+## The spirits' gift: offerings brought home from the groves, the cub's rank at the shrine (none
+## until Inyiak Balang gives it), the element it fights with, and the elements it has woken.
+var offerings := 0
+var cub_rank := 0
+var cub_element := "ember"
+var elements: Array[String] = ["ember"]
 
 
 ## Every card id for a thing he could have, in the order the smithy shows them: weapons, gear,
@@ -303,6 +323,54 @@ func bring_home(arena: Arena) -> void:
 	cats.append_array(arena.rescued)
 	salvage += arena.salvage
 	cloth += weavers()
+	if arena.grove:
+		offerings += offerings_from(arena.time)
+
+
+## The offerings a grove gives for lasting so long in it.
+static func offerings_from(seconds: float) -> int:
+	return floori(seconds / OFFERING_EVERY)
+
+
+## Whether Inyiak Balang has given the cub.
+func gifted() -> bool:
+	return cub_rank > 0
+
+
+## Given at the shrine: the cub, bound into a jimat. Once.
+func give_cub() -> bool:
+	if not truce() or gifted():
+		return false
+	cub_rank = 1
+	return true
+
+
+## What the cub's next rank costs, or -1 at the top.
+func next_rank_cost() -> int:
+	return RANK_COSTS[cub_rank - 1] if gifted() and cub_rank - 1 < RANK_COSTS.size() else -1
+
+
+## A rank for the cub, for offerings.
+func rank_cub() -> bool:
+	var cost := next_rank_cost()
+	if cost < 0 or offerings < cost:
+		return false
+	offerings -= cost
+	cub_rank += 1
+	return true
+
+
+## The cub takes an element: one woken before, free; a new one, woken for its offerings.
+func take_element(element: String) -> bool:
+	if not gifted() or not ELEMENT_COSTS.has(element):
+		return false
+	if not element in elements:
+		if offerings < ELEMENT_COSTS[element]:
+			return false
+		offerings -= ELEMENT_COSTS[element]
+		elements.append(element)
+	cub_element = element
+	return true
 
 
 ## The cats housed in restored huts, who weave: two to a hut, no more than there are cats.
@@ -438,6 +506,10 @@ func clear() -> void:
 	left_home.clear()
 	goals_done.clear()
 	tonic_ready = false
+	offerings = 0
+	cub_rank = 0
+	cub_element = "ember"
+	elements.assign(["ember"])
 
 
 func save(path := PATH) -> bool:
@@ -458,6 +530,10 @@ func save(path := PATH) -> bool:
 	file.set_value("village", "left_home", left_home)
 	file.set_value("village", "goals_done", goals_done)
 	file.set_value("village", "tonic_ready", tonic_ready)
+	file.set_value("village", "offerings", offerings)
+	file.set_value("village", "cub_rank", cub_rank)
+	file.set_value("village", "cub_element", cub_element)
+	file.set_value("village", "elements", elements)
 	return file.save(path) == OK
 
 
@@ -506,6 +582,13 @@ func load_from(path := PATH) -> void:
 	left_home.erase(starting_piece)
 	for always: String in ALWAYS_PACKED:
 		left_home.erase(always)
+	offerings = _count(file, "offerings")
+	cub_rank = mini(_count(file, "cub_rank"), Companion.MOST_RANK) if truce() else 0
+	_names(file, "elements", elements, ELEMENT_COSTS.keys())
+	if not "ember" in elements:
+		elements.insert(0, "ember")
+	var saved_element: Variant = file.get_value("village", "cub_element", "ember")
+	cub_element = saved_element if saved_element is String and saved_element in elements else "ember"
 	var saved_banners: Variant = file.get_value("village", "banners", "festival")
 	banners = saved_banners if saved_banners is String and "banners:" + saved_banners in looks else "festival"
 

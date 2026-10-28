@@ -137,6 +137,8 @@ var decoys: Array[Cat] = []
 ## has been held, its boss once it comes, and whether it's free.
 var plan := ENDLESS
 var area := {}
+## Whether this is a grove being cleansed, once there's peace with the forest.
+var grove := false
 var structures: Array[Structure] = []
 var goal_cages: Array[Cage] = []
 var levers: Array[Dictionary] = []
@@ -244,6 +246,8 @@ func step() -> void:
 	for cat in cats:
 		cat.step(STEP, self)
 		_keep_inside(cat.body)
+		if cat.charm != null:
+			_keep_inside(cat.charm.body, true)
 	_send_on_errands()
 	for creature in creatures:
 		creature.step(STEP, _prey_for(creature), self)
@@ -337,6 +341,11 @@ func _targets() -> Array:
 		if structure.alive():
 			targets.append(structure)
 	return targets
+
+
+## Everything there is to fight within reach of a point, counting how big each is.
+func targets_near(where: Vector2, reach: float) -> Array:
+	return _targets().filter(func(target: Object) -> bool: return where.distance_to(target.body.position) <= reach + target.body.radius)
 
 
 ## How many creatures stand within a few cells of a point.
@@ -1571,6 +1580,7 @@ func begin_area(area_id: String, goal_kept := false) -> void:
 ## its spirits and the company's leftovers coming at him the way the grove plan has it.
 func begin_grove(seed_value: int) -> void:
 	area = {}
+	grove = true
 	plan = Areas.GROVE_PLAN
 	var grove := Areas.grove(seed_value)
 	lay_out(grove.size, Areas.obstacles(grove))

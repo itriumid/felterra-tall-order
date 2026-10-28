@@ -159,6 +159,24 @@ it.
 | **Alarm drum** | Built | Set down when the horde crowds him: the kentongan, beaten six times, each beat throwing what's close back off him, until it splits |
 | **Snare** | Built | Set down: a jerat, a rattan loop that catches the first foot in it. A rat is held down; a giant is held by the boot, and can't walk off |
 
+## The spirits' gift
+
+The only magic a cat ever carries, and it isn't his: a jimat at his collar, with a spirit bound
+into it. Inyiak Balang gives it at the shrine the first time he comes home from a grove, and it
+goes with him only to the groves. In a run its cards level it, as support's do; at the shrine,
+offerings from the groves rank it, 1 to 10, and wake its elements. Offerings come one for each
+minute lasted in a grove. Ranks cost 8, 12, 16, 20, 26, 32, 38, 46 and 54; smoke and root cost 30
+to wake and river 40, and changing back to an element already woken is free: about 350 offerings
+in all, thirty-odd long groves.
+
+| Name | Status | What it does |
+|---|---|---|
+| **The cub** | Built | Inyiak Balang's grandchild, a tiger cub. Walks at his heel, never more than 6 meters off; anything within 4.5 meters of him, it runs at and pounces on, a real leap. A spirit, it can't be hurt. Each rank adds 20% to what its pounce does |
+| **Ember** | Built | Its first element: what it lands on burns |
+| **Smoke** | Built | It lands in a cloud of smoke that slows the horde in it by half |
+| **Root** | Built | Roots hold what it lands on where it stands; a giant is held by the boots, for less |
+| **River** | Built | It lands in a wave that throws the horde off it |
+
 ## Gear
 
 Worn and visible, one item to a slot. Stats come only from gear. What's listed is what a common
@@ -259,7 +277,7 @@ home with the first cat he rescues, the rest with an area freed. Each opens what
 | **Map board** | Built | At the gate, never a ruin: the forest carved on a board and drawn as a war map, its territories banded in their holders' colors with a banner each, mist over what isn't found, and arrows into what can be taken next. Where he chooses the next run, or Endless |
 | **Well** | Idea | Water for the village; a place the cats gather and talk |
 | **Watchtower** | Built | Jingga's, by the gate, back with the logged clearing freed: the map board shows each area's boss, and how to beat it |
-| **Shrine** | Built | Inyiak Balang's, by the gate, raised once there's peace with the forest: Endless is through it, cleansing a sick grove |
+| **Shrine** | Built | Inyiak Balang's, by the gate, raised once there's peace with the forest: Endless is through it, cleansing a sick grove. Home from the first grove, Inyiak Balang gives the cub there, and ranks it and wakes its elements for offerings |
 | **Healer's hut** | Built | Bu Jamu's, back with the offices freed: a tonic for 6 salvage, and the next run starts with two more rerolls |
 | **Market** | Built | Kopi and Susu's stall, back with the log slide freed: trade salvage for cloth, three for one, or cloth for salvage, one for two |
 

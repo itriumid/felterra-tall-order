@@ -141,6 +141,11 @@ func take_events(events: Array[Dictionary]) -> void:
 			"bucket": play_at("splash", event.position, -8.0, 1.4)
 			"stolen": play_at("pickup", event.position, -6.0, 0.7)
 			"smoke": play_at("dodge", event.position, -10.0, 0.5)
+			# The cub coming down, in its element.
+			"cub_ember": play_at("ignite", event.position, -8.0, 1.3)
+			"cub_smoke": play_at("dodge", event.position, -8.0, 0.7)
+			"cub_root": play_at("snare", event.position, -6.0, 0.8)
+			"cub_river": play_at("splash", event.position, -6.0, 1.2)
 			"crouch", "escaped": pass
 			_:
 				if event.get("kind", "") == "machine":
