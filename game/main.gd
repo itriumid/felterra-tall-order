@@ -1171,7 +1171,8 @@ func _process(delta: float) -> void:
 	if _online.guesting and _place == "run":
 		_guest_frame(delta)
 		return
-	_overlay.online_status = _online.status if _online.active() else ""
+	# How it's going, and on the pages for playing online, how it went: why a guest was turned away.
+	_overlay.online_status = _online.status if _online.active() or _page in ["together", "waiting"] else ""
 	if _page == "join":
 		_overlay.online_status = "Type the room's code, or on a home network, the host's address"
 	if _online.hosting and _place == "run" and arena != null:
@@ -2233,11 +2234,12 @@ func guest_in_run() -> bool:
 	return _place == "run"
 
 
-## The host lost for good, mid-run: back to the title, saying so.
+## The host lost for good, or turned us away: back to the title, saying so.
 func guest_lost() -> void:
 	_close_page()
 	_show_title()
 	_open_page("together")
+	_overlay.online_status = _online.status
 
 
 func guest_run_over(numbers: Dictionary) -> void:

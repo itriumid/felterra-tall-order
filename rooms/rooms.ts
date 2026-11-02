@@ -2,6 +2,10 @@
 // them: it passes each one's offer, answer and network candidates to the other, and once they've
 // reached each other over WebRTC, the game goes between them directly, never through here.
 //
+// Everyone in a room plays the same version of the game: the host and its guests send each other
+// the world, and two versions don't read each other's. A guest on another version is turned away
+// before they're introduced, told the host's, so their game can say which of them should update.
+//
 // Each player is a line into the room, numbered: the host is 1, and each guest who comes gets
 // the next number, never one used before in that room, so a guest back after a dropped connection
 // is never mistaken for who they were.
@@ -19,6 +23,8 @@ const PASSED = new Set(['offer', 'answer', 'candidate']);
 /** A player's line into the room. */
 export interface Line {
 	readonly id: number;
+	/** The version of the game they play, as it said when it came in. */
+	readonly version: string;
 	send(message: string): void;
 	close(code: number, reason: string): void;
 }
@@ -52,9 +58,11 @@ export class Room {
 		return this.lines().filter((line) => line.id !== HOST);
 	}
 
-	/** Why a guest can't come in, or null if they can. */
-	refusal(): 'no_room' | 'full' | null {
-		if (!this.host()) return 'no_room';
+	/** Why a guest on this version can't come in, or null if they can. */
+	refusal(version: string): 'no_room' | 'full' | 'version' | null {
+		const host = this.host();
+		if (!host) return 'no_room';
+		if (host.version !== version) return 'version';
 		if (this.guests().length >= MOST_GUESTS) return 'full';
 		return null;
 	}
@@ -71,10 +79,15 @@ export class Room {
 		if (host) say(host, { type: 'peer', id: guest.id });
 	}
 
-	/** A guest turned away, told why. */
+	/**
+	 * A guest turned away, told why; on another version, told the host's. A line closed as it's
+	 * opened can lose what was said on it, so the reason goes in the close too, as `version:0.0.6`.
+	 */
 	refuse(guest: Line, reason: string) {
-		say(guest, { type: 'error', reason });
-		guest.close(1000, reason);
+		const host = this.host();
+		const versioned = reason === 'version' && host !== undefined;
+		say(guest, versioned ? { type: 'error', reason, version: host.version } : { type: 'error', reason });
+		guest.close(1000, versioned ? `version:${host.version}` : reason);
 	}
 
 	/** Something said by one player for another: passed on, marked with who it's from. */
