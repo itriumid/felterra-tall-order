@@ -25,8 +25,12 @@ fi
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 curl --fail --location --silent --show-error --output "$work/webrtc.zip" "$URL"
-# shasum on macOS and Linux runners alike; sha256sum isn't on macOS.
-found="$(shasum -a 256 "$work/webrtc.zip" | cut -d ' ' -f 1)"
+# Whichever the system has: sha256sum on Linux and in Git's Bash on Windows, shasum on macOS.
+if command -v sha256sum > /dev/null; then
+  found="$(sha256sum "$work/webrtc.zip" | cut -d ' ' -f 1)"
+else
+  found="$(shasum -a 256 "$work/webrtc.zip" | cut -d ' ' -f 1)"
+fi
 if [ "$found" != "$SHA256" ]; then
   echo "error: webrtc-native $VERSION has SHA-256 $found, not $SHA256" >&2
   exit 1
