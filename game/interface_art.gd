@@ -43,7 +43,9 @@ static func well(canvas: CanvasItem, box: Rect2) -> void:
 static func bar(canvas: CanvasItem, box: Rect2, share: float, fill: Color) -> void:
 	well(canvas, box)
 	var inner := box.grow(-1)
-	inner.size.x = roundf(inner.size.x * clampf(share, 0.0, 1.0))
+	# Rounded down, so only a full share fills the bar; a sliver left still shows as a pixel.
+	var shown := clampf(share, 0.0, 1.0)
+	inner.size.x = maxf(floorf(inner.size.x * shown), 1.0 if shown > 0.0 else 0.0)
 	if inner.size.x > 0.0:
 		canvas.draw_rect(inner, fill)
 

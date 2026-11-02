@@ -465,9 +465,13 @@ func _draw_map() -> void:
 
 ## His health as whole numbers, out of his most: both rounded up, the same way, so a sliver of
 ## health still shows as one and full health never reads as more than the most (gear gives
-## fractions of a point: 41.4 of 41.4 is 42 of 42, never 42 of 41).
+## fractions of a point: 41.4 of 41.4 is 42 of 42, never 42 of 41). Only full health reads as
+## full, though: 9.1 of 10 is 9 of 10, not 10 of 10 beside a bar that isn't.
 static func health_text(health: float, most: float, between: String) -> String:
-	return "%d%s%d" % [ceili(health), between, ceili(most)]
+	var shown := ceili(health)
+	if health < most:
+		shown = maxi(mini(shown, ceili(most) - 1), 1)
+	return "%d%s%d" % [shown, between, ceili(most)]
 
 
 ## A line with its first letter capitalized, and nothing else touched.
