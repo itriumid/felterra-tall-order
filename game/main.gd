@@ -95,6 +95,7 @@ const THING_TABS: Array[Array] = [["weapon", "Weapons"], ["gear", "Gear"], ["sup
 const SETTING_ROWS: Array[Array] = [
 	["graphics", "full_screen", "Full screen"], ["graphics", "window_scale", "Window size"],
 	["graphics", "vsync", "Vertical sync"], ["graphics", "fallen", "Fallen left lying"],
+	["graphics", "health", "Health shown"],
 	["audio", "master", "Volume"], ["audio", "music", "Music"], ["audio", "effects", "Effects"],
 	["audio", "interface", "Interface"],
 	["gameplay", "aim", "Aim"], ["gameplay", "blood", "Blood"], ["gameplay", "story_waits", "Story lines"],
@@ -411,6 +412,7 @@ func _ready() -> void:
 	AudioServer.set_bus_mute(0, not _keeping_settings and not "--sound" in OS.get_cmdline_user_args())
 	_build_scene()
 	_entities.blood = settings.get_value("gameplay", "blood")
+	_overlay.health_shown = settings.get_value("graphics", "health")
 	_dev_guest_weapon = _start_weapon if not _start_weapon.is_empty() else "handgun"
 	# A real session opens on the title; a development run goes straight into the fight it set up.
 	if not _dev_join.is_empty():
@@ -1781,6 +1783,7 @@ func _settings_changed() -> void:
 	if cat != null:
 		cat.aim_mode = settings.get_value("gameplay", "aim")
 	_entities.blood = settings.get_value("gameplay", "blood")
+	_overlay.health_shown = settings.get_value("graphics", "health")
 	if arena != null:
 		arena.most_fallen = settings.get_value("graphics", "fallen")
 	if _keeping_settings:
@@ -1816,6 +1819,7 @@ func _setting_lines() -> Array[Dictionary]:
 			match row[1]:
 				"window_scale": line.value = "%d by %d" % [640 * int(value), 360 * int(value)]
 				"fallen": line.value = {0: "None: they crumble away", 100: "A few: 100", 300: "Some: 300", 600: "All of them: 600"}[value]
+				"health": line.value = {"both": "Bar and number", "bar": "Bar only", "number": "Number only"}[value]
 				"aim": line.value = {"nearest": "Nearest", "toughest": "Toughest first", "crowd": "Thickest crowd"}[value]
 				"blood": line.value = "On" if value else "Off: dust and fur instead"
 				"story_waits": line.value = "Wait for Enter" if value else "Move on by themselves"

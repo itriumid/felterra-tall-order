@@ -6,6 +6,8 @@ extends Node2D
 
 ## Muzzle flashes last this long, in seconds.
 const FLASH_TIME := 0.05
+## A cat hurt flickers red this long, in seconds: on, off, on.
+const HURT_TIME := 0.2
 ## Ground covered by one full walk cycle, in meters: the frames step with the feet, so they
 ## never slide, and a body knocked through the air doesn't run.
 const CAT_STRIDE := 0.42
@@ -36,6 +38,9 @@ var arena: Arena
 var blood := true
 ## How bright each cat's muzzle is right now, 0 to 1, and the rounds counted at the last frame.
 var flash := {}
+## Each cat's hurt flicker, the time left of it, and the hits he'd taken when last looked.
+var _hurt := {}
+var _hits_seen := {}
 var _rounds_seen := {}
 ## Droplets in the air, and the stains they leave: real particles, landing where they fall.
 var _droplets: Array[Dictionary] = []
@@ -83,6 +88,10 @@ func _process(delta: float) -> void:
 			flash[cat] = 1.0
 		_rounds_seen[cat] = fired
 		flash[cat] = maxf(flash.get(cat, 0.0) - delta / FLASH_TIME, 0.0)
+		if cat.hits_taken != _hits_seen.get(cat, cat.hits_taken):
+			_hurt[cat] = HURT_TIME
+		_hits_seen[cat] = cat.hits_taken
+		_hurt[cat] = maxf(_hurt.get(cat, 0.0) - delta, 0.0)
 		if cat.dodging_for > 0.0 and not cat.body.airborne():
 			_kick_dust(cat.body)
 		var cannon: Support = cat.supports.get("set_down")
@@ -540,7 +549,8 @@ func _draw_cat(cat: Cat) -> void:
 		if hold.behind:
 			_draw_hold(hold)
 	_draw_pack(cat, view, flip, top_left, "behind")
-	draw_texture(Sprites.lit(Sprites.coat(Sprites.cat_body_art(view, frame, Sprites.FEET.get(cat.gear.get("feet", ""), ""), Sprites.PAWS.get(cat.gear.get("paws", ""), "")), cat.coat, view), flip), top_left)
+	var body_art := Sprites.coat(Sprites.cat_body_art(view, frame, Sprites.FEET.get(cat.gear.get("feet", ""), ""), Sprites.PAWS.get(cat.gear.get("paws", ""), "")), cat.coat, view)
+	draw_texture(Sprites.lit(body_art, flip), top_left)
 	var worn_on_body: String = cat.gear.get("body", "")
 	if Sprites.BODIES.has(worn_on_body):
 		draw_texture(Sprites.lit(Sprites.BODIES[worn_on_body][view], flip), top_left)
@@ -562,6 +572,10 @@ func _draw_cat(cat: Cat) -> void:
 	for hold in holds:
 		if not hold.behind:
 			_draw_hold(hold)
+	# Hurt: his body flickers red over everything he wears, on, off, on.
+	var hurt: float = _hurt.get(cat, 0.0)
+	if hurt > 0.0 and int(hurt / (HURT_TIME / 3.0)) % 2 == 0:
+		draw_texture(Sprites.lit(Sprites.hurt(body_art), flip), top_left)
 
 
 ## The machine's shadow, its footprint on the ground; and while the boom swings out to bite, the

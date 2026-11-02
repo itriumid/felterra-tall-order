@@ -2937,6 +2937,19 @@ static func swapped(art: String, mapping: Dictionary) -> String:
 	return result
 
 
+## Art in the red of a hit: every pixel of it red but its outline, flashed over him when he's
+## hurt so it's plain even in a crowd.
+static func hurt(art: String) -> String:
+	var key := "hurt|%d" % art.hash()
+	if _cache.has(key):
+		return _cache[key]
+	var red := ""
+	for letter in art:
+		red += "c" if LEGEND.has(letter) and letter != "k" else letter
+	_cache[key] = red
+	return red
+
+
 ## Art of a cat in another coat: its fur's letters swapped for that coat's.
 static func coat(art: String, coat_name: String, view := "") -> String:
 	var letters: String = COATS.get(coat_name, COATS.orange)

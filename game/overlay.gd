@@ -70,6 +70,15 @@ var news: Array[Dictionary] = []
 ## In the village: what's kept there (for its counts), what Enter does at the door he's at, a
 ## line the village has just said, and a shop's page while one is open.
 var village_record: Village
+## How health shows, from the settings: "both", "bar" or "number".
+var health_shown := "both"
+## When his health row last flashed for a hit, in milliseconds, and the hits he'd taken by then.
+var _hurt_at := -1000
+var _hits_seen := -1
+## How long the health row flashes for a hit, and below what share of his health the heart
+## beats, in warning.
+const HURT_FLASH_MS := 200
+const LOW_HEALTH := 0.3
 var door := ""
 var message := ""
 var shop_page := ""
@@ -164,9 +173,20 @@ func _draw_status() -> void:
 	var x := box.position.x + 5
 	var y := box.position.y + 5
 	var sturdy := cat.health > 1000.0
-	InterfaceArt.icon(self, Vector2(x, y), "health", Palette.SCARF_RED)
-	InterfaceArt.bar(self, Rect2(x + 10, y + 1, 92, 5), 1.0 if sturdy else cat.health / cat.max_health, Palette.SCARF_RED)
-	PixelFont.draw(self, Vector2(x + 106, y - 1), "Sturdy" if sturdy else health_text(cat.health, cat.max_health, "/"), Palette.OFF_WHITE)
+	var now := Time.get_ticks_msec()
+	if _hits_seen >= 0 and cat.hits_taken > _hits_seen:
+		_hurt_at = now
+	_hits_seen = cat.hits_taken
+	var hit := now - _hurt_at < HURT_FLASH_MS
+	# Low, the heart beats: pink and red, twice a second.
+	var low := not sturdy and cat.alive() and cat.health < cat.max_health * LOW_HEALTH
+	var heart := Palette.PINK if hit or (low and now % 500 < 250) else Palette.SCARF_RED
+	InterfaceArt.icon(self, Vector2(x, y), "health", heart)
+	var health := "Sturdy" if sturdy else health_text(cat.health, cat.max_health, "/")
+	if health_shown != "number":
+		InterfaceArt.bar(self, Rect2(x + 10, y + 1, 92, 5), 1.0 if sturdy else cat.health / cat.max_health, Palette.PINK if hit else Palette.SCARF_RED)
+	if health_shown != "bar":
+		PixelFont.draw(self, Vector2(x + (10 if health_shown == "number" else 106), y - 1), health, Palette.PINK if hit else Palette.OFF_WHITE)
 	y += 11
 	InterfaceArt.icon(self, Vector2(x, y), "level", Palette.BRASS_LIGHT)
 	InterfaceArt.bar(self, Rect2(x + 10, y + 1, 92, 5), float(arena.experience) / Arena.experience_needed(arena.level), Palette.BRASS_LIGHT)
@@ -1023,7 +1043,10 @@ func _draw_allies() -> void:
 		InterfaceArt.bold(self, Vector2(x, y - 1), "Ally %d" % ally_cat.player, color)
 		var sturdy := ally_cat.health > 1000.0
 		InterfaceArt.icon(self, Vector2(x + 40, y), "health", Palette.SCARF_RED)
-		InterfaceArt.bar(self, Rect2(x + 50, y + 1, box.size.x - 60, 5), 1.0 if sturdy else ally_cat.health / ally_cat.max_health, Palette.SCARF_RED)
+		if health_shown == "number":
+			PixelFont.draw(self, Vector2(x + 50, y - 1), "Sturdy" if sturdy else health_text(ally_cat.health, ally_cat.max_health, "/"), Palette.OFF_WHITE)
+		else:
+			InterfaceArt.bar(self, Rect2(x + 50, y + 1, box.size.x - 60, 5), 1.0 if sturdy else ally_cat.health / ally_cat.max_health, Palette.SCARF_RED)
 		y += 14
 		for line in lines:
 			var text_x := x
