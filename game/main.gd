@@ -247,6 +247,8 @@ func _starters() -> Array[String]:
 	return ["nunchaku", "handgun"]
 
 
+## Whether he last went out west, down the forest path, not through the gate: he comes home that way.
+var _went_west := false
 ## Whether closing the news goes on to the siege: only the news set out on the walk in does.
 var _besiege_after_news := false
 ## Whether the spirits have just beaten him back in the siege: they let the village be until he
@@ -684,7 +686,7 @@ func _show_layer(village_showing: bool) -> void:
 func _arrive(from_the_forest: bool) -> void:
 	_place = "arriving"
 	var telling := from_the_forest and (not village.intro_seen or _force_intro)
-	var spot := VillageMap.HOME_SPOT if from_the_forest else VillageMap.RETURN_SPOT
+	var spot := VillageMap.HOME_SPOT if from_the_forest else (VillageMap.RETURN_WEST if _went_west else VillageMap.RETURN_SPOT)
 	if telling:
 		# The Elder comes out to meet him where he walks into the village.
 		spot = VillageMap.MEETING_SPOT
@@ -693,7 +695,7 @@ func _arrive(from_the_forest: bool) -> void:
 	if telling:
 		lines = INTRO.duplicate()
 		_news.append({"title": "The village", "text": "Walk with W A S D. At a door, Enter uses what's inside; a ruin's door says what brings it back."})
-		_news.append({"title": "The gate", "text": "Walk out through the gate, on the right, to set out. The board beside it chooses where."})
+		_news.append({"title": "The gate", "text": "Walk out through the gate, on the right, or back down the forest path, on the left, to set out. The board by the gate chooses where."})
 	elif not from_the_forest:
 		for area_id in _lessons_due():
 			var teaches: Dictionary = Areas.named(area_id).teaches
@@ -886,10 +888,12 @@ func _send_off() -> void:
 		lines = (Areas.named(village.next_run).get("send_off", []) as Array).duplicate()
 	_cutscene = Cutscene.new(lines, settings.get_value("gameplay", "story_waits"))
 	var speakers := lines.filter(func(line: Variant) -> bool: return line is Dictionary).map(func(line: Dictionary) -> String: return line.by)
-	village_map.see_off(speakers)
+	# Out through the gate, or back down the forest path: he comes home the way he went.
+	_went_west = village_map.leaving_west()
+	village_map.see_off(speakers, _went_west)
 	village_map.stroll_speed = VillageMap.WALK_IN_SPEED
 	if not lines.is_empty():
-		village_map.stroll_speed = minf(VillageMap.WALK_IN_SPEED, village_map.cat.body.position.distance_to(VillageMap.OFF_INTO_THE_FOREST) / _cutscene.length())
+		village_map.stroll_speed = minf(VillageMap.WALK_IN_SPEED, village_map.cat.body.position.distance_to(village_map.walking_to) / _cutscene.length())
 	_overlay.cutscene = true
 
 
@@ -1678,7 +1682,7 @@ func _go_home() -> void:
 	_note("home to the village")
 	_spirits_withdrew = _run_kind == "siege" and not arena.liberated
 	_cleansed = arena.grove
-	_enter_village(Vector2(VillageMap.SIZE.x - 0.5, VillageMap.RETURN_SPOT.y))
+	_enter_village(Vector2(0.5, VillageMap.RETURN_WEST.y) if _went_west else Vector2(VillageMap.SIZE.x - 0.5, VillageMap.RETURN_SPOT.y))
 	_arrive(false)
 
 

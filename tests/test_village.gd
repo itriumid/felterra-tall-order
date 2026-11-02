@@ -198,3 +198,18 @@ func test_villagers_never_get_stuck_going_about_their_day() -> void:
 					still[index] = 0
 				marks[index] = at
 				going_to[index] = map._amble_to[index]
+
+
+func test_he_can_set_out_down_the_forest_path_too() -> void:
+	var map := VillageMap.new()
+	map.cat.body.position = Vector2(VillageMap.EXIT_WEST - 0.2, 9.0)
+	check(map.leaving() and map.leaving_west(), "walking off down the forest path didn't set him out")
+	map.cat.body.position = Vector2(VillageMap.EXIT_WEST - 0.2, VillageMap.PATH_TOP - 0.5)
+	check(not map.leaving(), "he set out through the trees beside the path")
+	map.cat.body.position = Vector2(VillageMap.EXIT_WEST - 0.2, 9.0)
+	map.see_off([], true)
+	var time := 0.0
+	while map.walking() and time < 10.0:
+		map.step(Arena.STEP)
+		time += Arena.STEP
+	check(not map.walking() and map.cat.body.position.x < 0.0, "seen off west, he didn't walk on out of sight: at %s" % map.cat.body.position)

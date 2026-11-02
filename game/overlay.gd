@@ -266,7 +266,8 @@ func _draw_village() -> void:
 		var villager := village_map.villagers[index]
 		if villager.body.position.distance_to(tompel) <= 1.6:
 			_name_over(villager.body.position, Sprites.CAT_FEET.y - 3, village_map.names[index])
-	if door.is_empty() and tompel.x > VillageMap.EXIT_FROM - 3.5 and tompel.y > VillageMap.PATH_TOP - 1.0 and tompel.y < VillageMap.PATH_BOTTOM + 1.0:
+	var on_the_path := tompel.y > VillageMap.PATH_TOP - 1.0 and tompel.y < VillageMap.PATH_BOTTOM + 1.0
+	if door.is_empty() and on_the_path and (tompel.x > VillageMap.EXIT_FROM - 3.5 or tompel.x < VillageMap.EXIT_WEST + 3.5):
 		var hint := "On along the path: to " + leads_to
 		var at := Vector2(floorf((screen.x - PixelFont.width(hint)) / 2.0), screen.y - 24)
 		PixelFont.draw(self, at + Vector2(1, 1), hint, Palette.GRAPHITE)
@@ -620,25 +621,50 @@ static func goal_marks(on: Arena) -> Array[Vector2]:
 	return marks
 
 
-## Out of sight, the way to each: an arrow at the edge of the screen pointing to what the goal
-## still asks, and a cage's icon by the way to any cage.
+## Out of sight, the way to each: at the edge of the screen, an arrow pointing to it, a badge
+## saying what it is, and how far, in meters. Cages are pink; what the area's goal asks besides,
+## brass.
 func _draw_cage_markers() -> void:
 	var screen := get_viewport_rect()
 	var to_screen := get_viewport().get_canvas_transform()
-	var inside := Rect2(Vector2(12, 60), screen.size - Vector2(24, 72))
-	for mark in goal_marks(arena):
-		var at: Vector2 = to_screen * mark
-		if not screen.grow(-4).has_point(at):
-			InterfaceArt.pointer(self, at.clamp(inside.position, inside.end).floor(), at - screen.get_center(), Palette.BRASS_LIGHT)
+	var targets: Array[Dictionary] = []
 	for cage in arena.cages:
-		if cage.opened:
-			continue
-		var at: Vector2 = to_screen * World.to_screen(cage.body.position, 0.25)
+		if not cage.opened:
+			targets.append({"at": cage.body.position, "icon": "cage", "color": Palette.PINK})
+	if not arena.goal_done and not arena.area.is_empty():
+		if arena.area.goal.kind == "structures":
+			for structure in arena.structures:
+				if structure.alive():
+					targets.append({"at": structure.body.position, "icon": "", "color": Palette.BRASS_LIGHT})
+		for lever in arena.levers:
+			if not lever.pulled:
+				targets.append({"at": lever.position, "icon": "", "color": Palette.BRASS_LIGHT})
+	var inside := Rect2(Vector2(14, 62), screen.size - Vector2(28, 76))
+	var from: Vector2 = cat.body.position if cat != null else arena.size / 2.0
+	for target in targets:
+		var at: Vector2 = to_screen * World.to_screen(target.at, 0.25)
 		if screen.grow(-4).has_point(at):
 			continue
-		# Inside the arrow, if it has one: the icon says what's that way.
-		var edge := at.clamp(inside.position, inside.end) - (at - screen.get_center()).normalized() * 12.0
-		InterfaceArt.icon(self, (edge - Vector2(3, 3)).floor(), "cage", Palette.PINK)
+		var way := (at - screen.get_center()).normalized()
+		var tip := at.clamp(inside.position, inside.end).floor()
+		InterfaceArt.pointer(self, tip, way, target.color)
+		# The badge, a step back from the arrow toward the middle: what's there, and how far.
+		var badge_center := (tip - way * 20.0).floor()
+		var badge := Rect2(badge_center - Vector2(6, 6), Vector2(13, 13))
+		draw_rect(badge.grow(1), Palette.OUTLINE)
+		draw_rect(badge, Palette.PANEL_DARK)
+		draw_rect(badge, target.color, false, 1.0)
+		if not (target.icon as String).is_empty():
+			InterfaceArt.icon(self, badge.position + Vector2(3, 3), target.icon, target.color)
+		else:
+			draw_rect(Rect2(badge.position + Vector2(5, 3), Vector2(3, 5)), target.color)
+			draw_rect(Rect2(badge.position + Vector2(5, 9), Vector2(3, 1)), target.color)
+		var meters := "%d m" % roundi(from.distance_to(target.at))
+		# Under the badge, or over it when the arrow points down, on the side away from the edge.
+		var label_y := badge.position.y - PixelFont.LINE_HEIGHT - 1 if way.y > 0.4 else badge.end.y + 2
+		var label_at := Vector2(floorf(badge.get_center().x - PixelFont.width(meters) / 2.0), label_y)
+		PixelFont.draw(self, label_at + Vector2(1, 1), meters, Palette.GRAPHITE)
+		PixelFont.draw(self, label_at, meters, Palette.OFF_WHITE)
 	# The siege: each burning house, and with no water carried, the well.
 	var burning := false
 	for roof in arena.roofs:
