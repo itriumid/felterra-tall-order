@@ -49,6 +49,9 @@ var _address := ""
 var _retry_for := 0.0
 var _retry_in := 0.0
 var _parting_in := 0.0
+## The game's version: the host and every guest play the same, or the world they send each other
+## doesn't read. A guest on another is turned away, told which of them should update.
+var version: String = ProjectSettings.get_setting("application/config/version", "")
 ## Playing by room code: the rooms service's side of it, and where that service is.
 var rooms: Rooms
 var service := Rooms.SERVICE
@@ -122,6 +125,7 @@ func _rooms() -> Rooms:
 		rooms.queue_free()
 	rooms = Rooms.new()
 	rooms.service = service
+	rooms.version = version
 	rooms.hosted.connect(_on_room_made)
 	rooms.joined.connect(_on_room_joined)
 	rooms.failed.connect(_on_room_failed)
@@ -216,6 +220,7 @@ func _on_connected() -> void:
 	reconnecting = false
 	var info: Dictionary = game.what_i_bring()
 	info.token = token
+	info.version = version
 	hello.rpc_id(1, info)
 	changed.emit()
 
@@ -345,6 +350,13 @@ func hello(info: Dictionary) -> void:
 	var peer := multiplayer.get_remote_sender_id()
 	if not hosting or not guests.has(peer):
 		return
+	# Another version than the host's: told so, and let go.
+	if str(info.get("version", "")) != version:
+		told_other_version.rpc_id(peer, version)
+		guests.erase(peer)
+		_host_status()
+		changed.emit()
+		return
 	guests[peer].info = info
 	var setup: Dictionary = game.run_setup_for_guests()
 	if setup.is_empty():
@@ -398,6 +410,36 @@ func told_of_run(setup: Dictionary) -> void:
 	arrived.clear()
 	my_cat_id = 0
 	game.guest_run_begins(setup)
+
+
+## The host on another version: whichever of us is behind should update.
+@rpc("authority", "reliable")
+func told_other_version(host_version: String) -> void:
+	leave()
+	status = other_version(host_version, version)
+	game.guest_lost()
+	changed.emit()
+
+
+## What a guest is told when the host plays another version: who should update, by which is older.
+static func other_version(host_version: String, mine: String) -> String:
+	if host_version.is_empty():
+		return "The host is on another version: you both need the same to play together"
+	if _older(mine, host_version):
+		return "The host is on %s and you're on %s: update to play together" % [host_version, mine]
+	return "The host is on %s and you're on %s: they need to update to play together" % [host_version, mine]
+
+
+## Whether one version comes before another, number by number.
+static func _older(one: String, other: String) -> bool:
+	var a := one.split(".")
+	var b := other.split(".")
+	for index in maxi(a.size(), b.size()):
+		var x := a[index].to_int() if index < a.size() else 0
+		var y := b[index].to_int() if index < b.size() else 0
+		if x != y:
+			return x < y
+	return false
 
 
 ## Nothing under way to join: wait for the next.

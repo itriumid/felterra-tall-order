@@ -3,14 +3,19 @@
 // between messages, so an open room nobody's talking in costs nothing. The rules are in
 // `rooms.ts`; this is only how they meet Cloudflare.
 //
-//   wss://api.tall-order.felterra.games.itrium.id/host          a new room, its code sent back
-//   wss://api.tall-order.felterra.games.itrium.id/join/<code>   into that room, as a guest
+//   wss://api.tall-order.felterra.games.itrium.id/host?version=<v>          a new room, its code
+//   wss://api.tall-order.felterra.games.itrium.id/join/<code>?version=<v>   into that room
+//
+// The version is the game's, as `0.0.5`: a guest on another version than the host's is turned
+// away. One that doesn't say comes in as version "", which matches no host.
 
 import { DurableObject } from 'cloudflare:workers';
 import { code, CODE, HOST, type Line, Room } from './rooms';
 
 /** Codes tried before giving up on making a room: with 887 million of them, one is plenty. */
 const TRIES = 5;
+/** What a version looks like, kept short: anything else is taken as none. */
+const VERSION = /^[0-9a-z.-]{1,20}$/;
 
 export class RoomObject extends DurableObject<Env> {
 	private lines(leaving?: WebSocket): Line[] {
@@ -21,8 +26,10 @@ export class RoomObject extends DurableObject<Env> {
 	}
 
 	private line(socket: WebSocket): Line {
+		const kept = socket.deserializeAttachment() as { id: number; version: string };
 		return {
-			id: (socket.deserializeAttachment() as { id: number }).id,
+			id: kept.id,
+			version: kept.version,
 			send: (message) => socket.send(message),
 			close: (status, reason) => socket.close(status, reason)
 		};
@@ -39,14 +46,16 @@ export class RoomObject extends DurableObject<Env> {
 		const next = (await this.ctx.storage.get<number>('next')) ?? HOST + 1;
 		const id = hosting ? HOST : next;
 		if (!hosting) await this.ctx.storage.put('next', next + 1);
-		server.serializeAttachment({ id });
+		const asked = new URL(request.url).searchParams.get('version') ?? '';
+		const version = VERSION.test(asked) ? asked : '';
+		server.serializeAttachment({ id, version });
 		this.ctx.acceptWebSocket(server);
 		const line = this.line(server);
 		if (hosting) {
 			room.opened(line, request.headers.get('x-room-code') ?? '');
 		} else {
 			// Asked before this one was counted in.
-			const refusal = new Room(() => this.lines().filter((each) => each.id !== id)).refusal();
+			const refusal = new Room(() => this.lines().filter((each) => each.id !== id)).refusal(version);
 			if (refusal) room.refuse(line, refusal);
 			else room.came(line);
 		}

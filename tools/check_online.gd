@@ -18,6 +18,8 @@ const STEPS := [
 	# dealt the cards the crew's level-ups have handed out.
 	"guest_parts", "guest_gone", "guest_drops_in", "guest_chooses_late",
 	"crew_down", "guest_summary",
+	# Someone on another version: turned away, told which of them should update.
+	"guest_parts_again", "other_version",
 ]
 const STEP_TIME := 6.0
 
@@ -92,6 +94,7 @@ func _process(delta: float) -> bool:
 		_done = false
 	elif _waited > STEP_TIME:
 		print("FAIL  step %d (%s) didn't happen in %.0f seconds" % [_step + 1, step, STEP_TIME])
+		print("      the guest: guesting %s, status \"%s\"" % [_guest._online.guesting, _guest._online.status])
 		_finish(false)
 		return true
 	return false
@@ -141,6 +144,14 @@ func _do(step: String) -> void:
 		"guest_drops_in":
 			_host.arena.level = 4
 			_guest._online.token = "someone new"
+			_guest._online.join(_where())
+		"guest_parts_again":
+			_guest._online.part()
+			_guest._close_page()
+			_guest._show_title()
+		"other_version":
+			_guest._online.version = "0.0.1"
+			_guest._online.token = "someone old"
 			_guest._online.join(_where())
 		"guest_chooses_late":
 			_guest._start_weapon = "handgun"
@@ -194,6 +205,11 @@ func _holds(step: String) -> bool:
 			return _host._online.guests.is_empty() and _host._allies.is_empty() and _host.arena.cats.size() == 1
 		"guest_drops_in":
 			return _guest._place == "run" and _guest._online.guesting
+		"guest_parts_again":
+			return not _guest._online.guesting and _host._online.guests.is_empty()
+		"other_version":
+			return not _guest._online.guesting and _guest._online.status.contains("you're on 0.0.1: update") \
+				and _host._online.guests.is_empty() and _host._allies.is_empty()
 		"guest_chooses_late":
 			if _host._allies.is_empty():
 				return false

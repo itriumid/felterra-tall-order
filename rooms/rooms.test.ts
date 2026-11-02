@@ -2,11 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { code, CODE, HOST, LARGEST, type Line, MOST_GUESTS, Room } from './rooms';
 
 /** A player's line that keeps what it's sent, and whether it's been closed. */
-function line(id: number) {
+function line(id: number, version = '0.0.5') {
 	const heard: Record<string, unknown>[] = [];
 	let closed = '';
 	const it: Line = {
 		id,
+		version,
 		send: (message) => void heard.push(JSON.parse(message)),
 		close: (_status, reason) => void (closed = reason)
 	};
@@ -39,13 +40,24 @@ describe('a room', () => {
 	});
 
 	it('has no room for a guest without a host', () => {
-		expect(room().room.refusal()).toBe('no_room');
+		expect(room().room.refusal('0.0.5')).toBe('no_room');
 	});
 
 	it('takes three guests, and turns the fourth away', () => {
 		const lines = [line(HOST), ...Array.from({ length: MOST_GUESTS }, (_, index) => line(index + 2))];
-		expect(room(...lines.map((each) => each.line)).room.refusal()).toBe('full');
-		expect(room(...lines.slice(0, MOST_GUESTS).map((each) => each.line)).room.refusal()).toBeNull();
+		expect(room(...lines.map((each) => each.line)).room.refusal('0.0.5')).toBe('full');
+		expect(room(...lines.slice(0, MOST_GUESTS).map((each) => each.line)).room.refusal('0.0.5')).toBeNull();
+	});
+
+	it("turns away a guest on another version, telling them the host's", () => {
+		const host = line(HOST, '0.0.6');
+		const guest = line(2, '0.0.5');
+		const { room: it } = room(host.line);
+		expect(it.refusal('0.0.5')).toBe('version');
+		expect(it.refusal('')).toBe('version');
+		it.refuse(guest.line, 'version');
+		expect(guest.heard).toEqual([{ type: 'error', reason: 'version', version: '0.0.6' }]);
+		expect(guest.closed()).toBe('version:0.0.6');
 	});
 
 	it('tells a guest their number, and the host of them', () => {

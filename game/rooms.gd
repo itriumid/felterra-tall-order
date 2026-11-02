@@ -29,6 +29,8 @@ var peer := WebRTCMultiplayerPeer.new()
 var code := ""
 ## Where the service is: the game's own, or a local one to try things out (--rooms=<address>).
 var service := SERVICE
+## The game's version, told to the service: a guest on another than the host's is turned away.
+var version := ""
 var _socket := WebSocketPeer.new()
 var _id := 0
 var _was_open := false
@@ -52,13 +54,13 @@ static func tidy(typed: String) -> String:
 
 func host() -> void:
 	_hosting = true
-	_open(service + "/host")
+	_open(service + "/host?version=" + version.uri_encode())
 
 
 func join(room: String) -> void:
 	_hosting = false
 	code = tidy(room)
-	_open(service + "/join/" + code)
+	_open(service + "/join/" + code + "?version=" + version.uri_encode())
 
 
 func close() -> void:
@@ -75,16 +77,23 @@ func _open(url: String) -> void:
 func _process(_delta: float) -> void:
 	_socket.poll()
 	var state := _socket.get_ready_state()
+	# Read even once it's closed: turned away, the service says why and closes in one breath.
+	while _socket.get_available_packet_count() > 0:
+		_was_open = true
+		var message: Variant = JSON.parse_string(_socket.get_packet().get_string_from_utf8())
+		if message is Dictionary:
+			_heard(message)
 	if state == WebSocketPeer.STATE_OPEN:
 		_was_open = true
-		while _socket.get_available_packet_count() > 0:
-			var message: Variant = JSON.parse_string(_socket.get_packet().get_string_from_utf8())
-			if message is Dictionary:
-				_heard(message)
 	elif state == WebSocketPeer.STATE_CLOSED and not _was_open and _id == 0:
-		# Never got through to the service at all.
+		# Turned away as it opened, the reason is in the close, the message lost: "full", or
+		# "version:0.0.6". With no reason at all, it never got through to the service.
 		_was_open = true
-		failed.emit(REASONS.unreachable)
+		var reason := _socket.get_close_reason()
+		if reason.begins_with("version:"):
+			failed.emit(Online.other_version(reason.trim_prefix("version:"), version))
+		else:
+			failed.emit(REASONS.get(reason, REASONS.unreachable))
 
 
 func _heard(message: Dictionary) -> void:
@@ -116,6 +125,9 @@ func _heard(message: Dictionary) -> void:
 			if peer.has_peer(from):
 				(peer.get_peer(from).connection as WebRTCPeerConnection).add_ice_candidate(message.mid, int(message.index), message.sdp)
 		"error":
+			if message.get("reason", "") == "version":
+				failed.emit(Online.other_version(str(message.get("version", "")), version))
+				return
 			failed.emit(REASONS.get(message.get("reason", ""), "The rooms service said no"))
 
 
