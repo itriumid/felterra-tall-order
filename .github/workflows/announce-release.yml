@@ -1,0 +1,60 @@
+name: Announce release
+
+# Publishing a release posts it in #releases on Itrium's Discord server, notifying the
+# Playtester role: the notes, and a download link for each platform. The message is built by
+# tools/announce_release.py.
+#
+# Run it manually (Actions → Announce release → Run workflow) to post an earlier release again.
+# It doesn't notify anyone unless "ping" is ticked.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag of the release to post, such as v0.0.5
+        required: true
+      ping:
+        description: Notify the Playtester role
+        type: boolean
+        default: false
+
+# Any `permissions:` block replaces the default token scopes, so grant per job.
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  # The Playtester role on Itrium's Discord server. Not a secret: role IDs are visible to members.
+  PLAYTESTER_ROLE: '1566746922293923981'
+
+jobs:
+  announce:
+    name: Announce on Discord
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Get the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          if [ "$EVENT" = release ]; then
+            jq .release "$GITHUB_EVENT_PATH" > "$RUNNER_TEMP/release.json"
+          else
+            gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" > "$RUNNER_TEMP/release.json"
+          fi
+      - name: Post it on Discord
+        env:
+          DISCORD_RELEASES_WEBHOOK: ${{ secrets.DISCORD_RELEASES_WEBHOOK }}
+          PING: ${{ github.event_name == 'release' || inputs.ping }}
+        run: |
+          ping=()
+          if [ "$PING" = true ]; then ping=(--ping-role "$PLAYTESTER_ROLE"); fi
+          python3 tools/announce_release.py "$RUNNER_TEMP/release.json" "${ping[@]}"
