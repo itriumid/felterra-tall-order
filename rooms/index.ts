@@ -5,11 +5,13 @@
 //
 //   wss://api.tall-order.felterra.games.itrium.id/host?version=<v>          a new room, its code
 //   wss://api.tall-order.felterra.games.itrium.id/join/<code>?version=<v>   into that room
+//   https://api.tall-order.felterra.games.itrium.id/latest                  the newest version
 //
 // The version is the game's, as `0.0.5`: a guest on another version than the host's is turned
 // away. One that doesn't say comes in as version "", which matches no host.
 
 import { DurableObject } from 'cloudflare:workers';
+import { latest } from './latest';
 import { code, CODE, HOST, type Line, Room } from './rooms';
 
 /** Codes tried before giving up on making a room: with 887 million of them, one is plenty. */
@@ -75,8 +77,17 @@ export class RoomObject extends DurableObject<Env> {
 }
 
 export default {
-	async fetch(request, env) {
+	async fetch(request, env, context) {
 		const path = new URL(request.url).pathname;
+		if (path === '/latest' && request.method === 'GET') {
+			// Kept in Cloudflare's cache for the hour the answer says, so GitHub is asked rarely.
+			const cache = caches.default;
+			const kept = await cache.match(request);
+			if (kept) return kept;
+			const answer = await latest((url) => fetch(url, { redirect: 'manual' }));
+			if (answer.ok) context.waitUntil(cache.put(request, answer.clone()));
+			return answer;
+		}
 		if (path === '/host') {
 			for (let tried = 0; tried < TRIES; tried += 1) {
 				const room = code();

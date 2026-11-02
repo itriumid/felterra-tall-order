@@ -98,6 +98,7 @@ const SETTING_ROWS: Array[Array] = [
 	["audio", "master", "Volume"], ["audio", "music", "Music"], ["audio", "effects", "Effects"],
 	["audio", "interface", "Interface"],
 	["gameplay", "aim", "Aim"], ["gameplay", "blood", "Blood"], ["gameplay", "story_waits", "Story lines"],
+	["online", "updates", "Check for updates"],
 	["progress", "reset", "Reset all progress"],
 	["", "back", "Back"],
 ]
@@ -164,6 +165,12 @@ var _dev_join := ""
 var _dev_guest_weapon := ""
 ## A rooms service of one's own to try room codes against (wrangler dev, say), not the game's.
 var _dev_rooms := ""
+## A newer version than this one, and where to get it, once the title has asked; and, to try the
+## asking out, a service of one's own to ask (--updates=<address>).
+var _newer := ""
+var _newer_page := ""
+var _updates: Updates
+var _dev_updates := ""
 ## Which page is showing ("" while playing), the page the settings return to, and the rows chosen.
 var _page := ""
 var _settings_from := "pause"
@@ -291,6 +298,8 @@ func _ready() -> void:
 			_chainsaws = argument.trim_prefix("--chainsaw=").to_int()
 		elif argument == "--host":
 			_dev_host = true
+		elif argument.begins_with("--updates="):
+			_dev_updates = argument.trim_prefix("--updates=")
 		elif argument.begins_with("--rooms="):
 			_dev_rooms = argument.trim_prefix("--rooms=")
 		elif argument.begins_with("--join="):
@@ -504,6 +513,11 @@ func _build_scene() -> void:
 	var interface := CanvasLayer.new()
 	interface.layer = 10
 	add_child(interface)
+	_updates = Updates.new()
+	_updates.found.connect(func(version: String, page: String) -> void:
+		_newer = version
+		_newer_page = page)
+	add_child(_updates)
 	_online = Online.new()
 	_online.name = "Online"
 	_online.game = self
@@ -583,6 +597,12 @@ func _show_title() -> void:
 	_place = "title"
 	_music.place = "intro"
 	_open_page("title")
+	# Whether there's a newer version: once a launch, only in a real session, and only if the
+	# player hasn't turned it off. A development run asks only a service it's given.
+	if not _dev_updates.is_empty():
+		_updates.check(Updates.web(_dev_updates))
+	elif _keeping_settings and settings.get_value("online", "updates"):
+		_updates.check()
 
 
 ## Into the village, with everyone he's brought home in it, and him standing at a spot.
@@ -1618,7 +1638,7 @@ func _read_page() -> void:
 
 ## A page of choices: up and down choose, Enter or Space takes it, Escape closes the pause menu.
 func _read_choices() -> void:
-	var choices: Array = PAGES[_page]
+	var choices: Array = _choices(_page)
 	if Input.is_action_just_pressed("pause") and _page in ["pause", "village_pause", "guest_pause"]:
 		_close_page()
 		return
@@ -1672,6 +1692,8 @@ func _read_choices() -> void:
 			get_tree().quit()
 		"together":
 			_open_page("together")
+		"update":
+			OS.shell_open(_newer_page)
 		"back":
 			_open_page("title")
 		"host":
@@ -1761,14 +1783,14 @@ func _settings_changed() -> void:
 func _menu_lines() -> Array[String]:
 	var lines: Array[String] = []
 	var page := _page if _page != "settings" else _settings_from
-	for item: String in PAGES[page]:
+	for item: String in _choices(page):
 		lines.append({
 			"play": "Play", "carry_on": "Carry on", "settings": "Settings", "start_again": "Start again",
 			"go_again": "Straight back out", "title": "Back to the title", "leave": "Leave the game",
 			"home": "Home to the village", "village": "Back to the village",
 			"together": "Play together online", "host": "Host: allies join you", "join": "Join a host",
 			"back": "Back", "connect": ("Join " + _address) if not _address.is_empty() else "Type the code", "part": "Leave the crew",
-			"stay": "Wait for the next run",
+			"stay": "Wait for the next run", "update": "Get version %s" % _newer,
 		}[item])
 	return lines
 
@@ -2388,3 +2410,11 @@ func _guest_controls(mine: Cat) -> void:
 		_overlay.show_kit = not _overlay.show_kit
 	if Input.is_action_just_pressed("pause"):
 		_open_page("guest_pause")
+
+
+## A page's choices: the title's offers a newer version, once there's one to get, just after Play,
+## so Enter pressed out of habit still plays.
+func _choices(page: String) -> Array:
+	if page == "title" and not _newer.is_empty():
+		return [PAGES.title[0], "update"] + PAGES.title.slice(1)
+	return PAGES[page]
