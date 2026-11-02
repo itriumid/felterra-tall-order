@@ -37,13 +37,13 @@ if [ "$found" != "$SHA256" ]; then
 fi
 
 # Only what we ship: Windows x86-64, macOS universal, Linux x86-64 and ARM, debug (the editor and
-# the tests) and release (the exports).
-unzip -q "$work/webrtc.zip" -d "$work/extracted" \
-  "addons/webrtc_native/webrtc_native.gdextension" "addons/webrtc_native/LICENSE.*" \
-  "addons/webrtc_native/lib/*windows*x86_64*" "addons/webrtc_native/lib/*macos*" \
-  "addons/webrtc_native/lib/*linux*x86_64*" "addons/webrtc_native/lib/*linux*arm64*"
+# the tests) and release (the exports). Picked out after unzipping, with the shell's own globs: each
+# system's unzip reads wildcards its own way.
+unzip -q "$work/webrtc.zip" -d "$work/extracted"
+from="$work/extracted/addons/webrtc_native"
 rm -rf "$addon"
-mkdir -p "$here/addons"
-mv "$work/extracted/addons/webrtc_native" "$addon"
+mkdir -p "$addon/lib"
+cp "$from/webrtc_native.gdextension" "$from"/LICENSE.* "$addon/"
+cp -R "$from"/lib/*windows*x86_64* "$from"/lib/*macos* "$from"/lib/*linux*x86_64* "$from"/lib/*linux*arm64* "$addon/lib/"
 echo "$VERSION" > "$addon/.version"
 echo "webrtc-native $VERSION fetched into addons/webrtc_native"

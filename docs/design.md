@@ -539,8 +539,8 @@ for the steering it had by then, with only the difference put right.
   play and the horde is sized to who's here. Their game finds the host again every few seconds;
   back in time, they pick up the same cat, as it was. Lost from the host for a minute, a guest
   goes back to the title. Either side notices a dead connection within about ten seconds.
-- **Room codes:** Itrium's rooms service (`rooms/`, a Cloudflare Worker at rooms.itrium.id)
-  hands the host a six-letter code and introduces each guest who gives it: it passes their WebRTC
+- **Room codes:** the game's rooms service (`rooms/`, a Cloudflare Worker at
+  api.tall-order.felterra.games.itrium.id) hands the host a six-letter code and introduces each guest who gives it: it passes their WebRTC
   offers, answers and network candidates between them, and nothing else. Then they play directly,
   over WebRTC; the service never carries the game, and keeps no logs. Each machine finds its own
   address on the internet through Cloudflare's STUN server. A network strict enough that two

@@ -3,8 +3,8 @@
 // between messages, so an open room nobody's talking in costs nothing. The rules are in
 // `rooms.ts`; this is only how they meet Cloudflare.
 //
-//   wss://rooms.itrium.id/host          a new room, its code sent back
-//   wss://rooms.itrium.id/join/<code>   into that room, as a guest
+//   wss://api.tall-order.felterra.games.itrium.id/host          a new room, its code sent back
+//   wss://api.tall-order.felterra.games.itrium.id/join/<code>   into that room, as a guest
 
 import { DurableObject } from 'cloudflare:workers';
 import { code, CODE, HOST, type Line, Room } from './rooms';

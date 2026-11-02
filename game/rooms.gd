@@ -1,9 +1,9 @@
 class_name Rooms
 extends Node
-## Playing online by room code: the host asks Itrium's rooms service (rooms/, at rooms.itrium.id)
-## for a room, and is given a short code; a guest gives the code, and the service introduces the
-## two, passing what each needs to reach the other straight. Then they talk directly, over WebRTC,
-## and the service carries nothing of the game. Each machine finds its own address on the internet
+## Playing online by room code: the host asks the game's rooms service (rooms/, at
+## api.tall-order.felterra.games.itrium.id) for a room, and is given a short code; a guest gives
+## the code, and the service introduces the two, passing what each needs to reach the other
+## straight. Then they talk directly, over WebRTC, and the service carries nothing of the game. Each machine finds its own address on the internet
 ## through Cloudflare's STUN server.
 ##
 ## The host keeps its line to the service open, so guests can join, or come back after a dropped
@@ -13,7 +13,7 @@ signal hosted(code: String)
 signal joined
 signal failed(reason: String)
 
-const SERVICE := "wss://rooms.itrium.id"
+const SERVICE := "wss://api.tall-order.felterra.games.itrium.id"
 const ICE := {"iceServers": [{"urls": ["stun:stun.cloudflare.com:3478"]}]}
 ## Each code's letters: none that read as another (no I, L or O, no 0 or 1).
 const LETTERS := "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
@@ -27,7 +27,7 @@ const REASONS := {
 ## The connection the game plays over, once the service has said who's who.
 var peer := WebRTCMultiplayerPeer.new()
 var code := ""
-## Where the service is: rooms.itrium.id, or a local one to try things out (--rooms=<address>).
+## Where the service is: the game's own, or a local one to try things out (--rooms=<address>).
 var service := SERVICE
 var _socket := WebSocketPeer.new()
 var _id := 0

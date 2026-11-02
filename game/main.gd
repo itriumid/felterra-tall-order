@@ -162,7 +162,7 @@ var _dev_crew := 0
 var _dev_host := false
 var _dev_join := ""
 var _dev_guest_weapon := ""
-## A rooms service of one's own to try room codes against (wrangler dev, say), not rooms.itrium.id.
+## A rooms service of one's own to try room codes against (wrangler dev, say), not the game's.
 var _dev_rooms := ""
 ## Which page is showing ("" while playing), the page the settings return to, and the rows chosen.
 var _page := ""
