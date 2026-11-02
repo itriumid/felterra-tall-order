@@ -1493,6 +1493,13 @@ func _begin_freeing() -> void:
 
 func _freeing_step(delta: float) -> void:
 	_free_for = maxf(_free_for - delta, 0.0)
+	# He's still the player's to walk about the freed area, or to leave standing: never left
+	# running on in whatever way he was going when it fell. Any ally stands still.
+	for each in arena.cats:
+		each.steering = Vector2.ZERO
+	cat.steering = Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	if _walk != Vector2.ZERO:
+		cat.steering = _walk
 	var skip := Input.is_action_just_pressed("pause")
 	_cutscene.step(delta, Input.is_action_just_pressed("menu_choose"), skip)
 	_overlay.intro = _cutscene.written()
