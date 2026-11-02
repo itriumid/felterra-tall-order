@@ -215,6 +215,7 @@ func _draw_all() -> void:
 				draw_texture(Sprites.lit(art), World.to_screen(mine.body.position) - Vector2(4, 3))
 	_draw_underfoot()
 	_draw_ground_hazards()
+	_draw_reaches()
 	for remains in arena.fading:
 		_draw_remains(remains)
 	for body: Body in lying:
@@ -314,6 +315,41 @@ func _draw_all() -> void:
 			_draw_marker(cat)
 	if _level_up > 0.0:
 		_draw_level_up()
+	_draw_goals()
+
+
+## On the ground round each cage still shut and each lever still up: how close he has to stand, a
+## ring of dashes, filling in solid as the lock's picked or the lever's pulled.
+func _draw_reaches() -> void:
+	for cage in arena.cages:
+		if not cage.opened:
+			_draw_reach(cage.body.position, Cage.PICK_REACH + cage.body.radius, cage.picked)
+	for lever in arena.levers:
+		if not lever.pulled:
+			_draw_reach(lever.position, Arena.LEVER_REACH, lever.picked)
+
+
+func _draw_reach(center: Vector2, reach: float, done: float) -> void:
+	var middle := World.to_screen(center)
+	var radius := reach * World.PIXELS_PER_METER
+	var count := int(TAU * radius / 2.0)
+	for index in count:
+		var share := float(index) / count
+		var filled := share < done
+		if not filled and index % 3 == 2:
+			continue
+		var point := (middle + Vector2.from_angle(share * TAU - PI / 2.0) * radius).floor()
+		draw_rect(Rect2(point - Vector2.ONE, Vector2(2, 2)), Palette.LEAF_LIGHT if filled else Palette.BRASS_LIGHT)
+
+
+## What the area's goal still asks of him, marked: a pointer bobbing over each in sight. The
+## overlay points the way to those out of sight.
+func _draw_goals() -> void:
+	if arena.goal_done or arena.area.is_empty():
+		return
+	var bob := Vector2(0, -1) if fmod(_clock, 0.8) < 0.4 else Vector2.ZERO
+	for mark in Overlay.goal_marks(arena):
+		InterfaceArt.pointer(self, mark + bob, Vector2.DOWN, Palette.BRASS_LIGHT)
 
 
 ## How far over a cat's feet its player's marker points down, in pixels: just over its ears.

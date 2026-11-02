@@ -1484,6 +1484,10 @@ func _set_up_run(run_kind: String) -> void:
 		return
 	var area := Areas.named(run_kind)
 	var goal_kept: bool = run_kind in village.goals_done and not run_kind in village.liberated
+	# Each run there its own: where the caged are left, and the rest of its chances. A development
+	# run keeps the same, so a screenshot shows the same thing twice.
+	if _keeping_settings:
+		arena.random.seed = randi()
 	arena.begin_area(run_kind, goal_kept)
 	# He comes in where the area has him stand, unless he's been put somewhere to try something.
 	if not _placed:

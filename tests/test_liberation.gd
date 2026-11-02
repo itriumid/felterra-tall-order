@@ -197,3 +197,19 @@ func test_the_village_keeps_a_goal_done_until_the_area_is_free() -> void:
 	check(loaded.goals_done == ["deep"], "the goal done came back as %s" % str(loaded.goals_done))
 	loaded.liberate("deep")
 	check(loaded.goals_done.is_empty(), "a freed area still counted its goal as done")
+
+
+func test_the_caged_are_left_somewhere_new_each_run() -> void:
+	var spots := {}
+	for run in 4:
+		var arena := Arena.new()
+		arena.random.seed = 1000 + run
+		arena.begin_area("deep")
+		var here: Array = []
+		for cage in arena.goal_cages:
+			check(not arena.solid_at(cage.body.position, 1.0), "a cage was left inside something, at %s" % cage.body.position)
+			here.append(cage.body.position)
+			for other in arena.goal_cages:
+				check(other == cage or other.body.position.distance_to(cage.body.position) >= Arena.GOAL_CAGES_APART, "two cages were left side by side")
+		spots[str(here)] = true
+	check(spots.size() > 1, "the cages were left in the same spots every run")

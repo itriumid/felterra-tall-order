@@ -1696,8 +1696,10 @@ func begin_area(area_id: String, goal_kept := false) -> void:
 				structure.body.position = spot
 				structures.append(structure)
 		"cages":
+			# Each where the company left it this time: somewhere near its corner, never the same
+			# spot twice running, so the way to them is learned fresh.
 			for spot: Vector2 in goal.at:
-				goal_cages.append(add_cage(spot))
+				goal_cages.append(add_cage(_goal_cage_spot(spot)))
 		"levers":
 			for spot: Vector2 in goal.at:
 				levers.append({"position": spot, "picked": 0.0, "pulled": false})
@@ -1856,6 +1858,28 @@ func _roll_logs() -> void:
 
 ## Somewhere in the clearing for a cage: away from the edge, and far enough from every cat that
 ## getting to it is a choice. INF if a few tries find nowhere.
+## How far from its corner a goal cage may be left, either way, in meters, and how far apart any
+## two must stay.
+const GOAL_CAGE_WANDER := Vector2(6.0, 5.0)
+const GOAL_CAGES_APART := 8.0
+
+
+## A spot for a goal's cage near where the area keeps it: open ground, inside the clearing, away
+## from the others. Failing that, the area's own spot.
+func _goal_cage_spot(near: Vector2) -> Vector2:
+	for attempt in 16:
+		var spot := near + Vector2(random.randf_range(-1.0, 1.0) * GOAL_CAGE_WANDER.x, random.randf_range(-1.0, 1.0) * GOAL_CAGE_WANDER.y)
+		# Out in the clearing, not pressed against the jungle at its edge.
+		if not Rect2(Vector2(3.5, 3.5), size - Vector2(7.0, 7.0)).has_point(spot):
+			continue
+		if solid_at(spot, 1.0) or (_narrow != null and _narrow.blocked(spot)):
+			continue
+		if goal_cages.any(func(cage: Cage) -> bool: return cage.body.position.distance_to(spot) < GOAL_CAGES_APART):
+			continue
+		return spot
+	return near
+
+
 func _cage_spot() -> Vector2:
 	for attempt in 12:
 		var spot := Vector2(random.randf_range(3.0, size.x - 3.0), random.randf_range(3.0, size.y - 3.0))

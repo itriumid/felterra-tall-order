@@ -332,12 +332,15 @@ on: fire and oil, or crewmates who can be downed.
   the story moving forward.
   - **A run brings home rescued cats and salvage.** To the company, cats are pests, and its
     traps turn up in the clearing from 40 seconds in, one every 75 seconds, never close to him.
-    Standing by a cage picks its lock over three seconds; leaving lets the pick slip back. The
+    Standing by a cage, within the ring of dashes round it on the ground, picks its lock over
+    three seconds, the ring filling in as it goes; leaving lets the pick slip back. The
     cat inside, with its own name and coat, has its say in a bubble, each its own way, then runs
     for the jungle, home: a grateful one a quick thanks; a chatty one going on until he cuts in
     and tells it to go; a fighter throwing a firecracker at the horde (a real one, lobbed, that
-    pops like any) on its way out. A mark at the screen's edge
-    shows the way to a cage out of sight. What he breaks throws out salvage (a worker 2 pieces,
+    pops like any) on its way out. A cage's icon at the screen's edge
+    shows the way to one out of sight. What an area's goal still asks (its cages, what's to break,
+    its levers) has a pointer bobbing over it, and out of sight, an arrow at the screen's edge;
+    an area's cages are left somewhere new near their corners every run. What he breaks throws out salvage (a worker 2 pieces,
     a chainsaw worker 4, a machine 12), which flies, lands and slides, and walking over it takes
     it. Both are counted on the summary and kept in the village between runs.
   - **The village is walked**: a forest path in, the village itself, two screens tall, with the
