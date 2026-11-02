@@ -528,7 +528,8 @@ going, and their own cat walks where they steer it at once, checked against wher
 for the steering it had by then, with only the difference put right.
 
 - **Joining online:** "Play together online" on the title. The host hosts and plays on as ever;
-  a guest joins by the host's address and waits. When the host goes out to Endless, each guest
+  the host is given a room's code to read out, and a guest types it in and waits. On a home
+  network, a guest can type the host's address instead. When the host goes out to Endless, each guest
   lays out the same clearing or grove from its seed and chooses what they start with from their
   own smithy; their cat comes in their own coat, with their own cub in a grove. Each guest has
   their own screen, and their cards are their own. A guest who leaves the crew takes their cat
@@ -538,13 +539,26 @@ for the steering it had by then, with only the difference put right.
   play and the horde is sized to who's here. Their game finds the host again every few seconds;
   back in time, they pick up the same cat, as it was. Lost from the host for a minute, a guest
   goes back to the title. Either side notices a dead connection within about ten seconds.
-- **The pieces:** `game/session.gd` makes the connection (Godot's own networking for now, by
-  address; room codes later replace it and only it), and `game/online.gd` carries what host and
-  guests say. `tools/check_online.gd` plays it from both sides in one process.
+- **Room codes:** the game's rooms service (`rooms/`, a Cloudflare Worker at
+  api.tall-order.felterra.games.itrium.id) hands the host a six-letter code and introduces each guest who gives it: it passes their WebRTC
+  offers, answers and network candidates between them, and nothing else. Then they play directly,
+  over WebRTC; the service never carries the game, and keeps no logs. Each machine finds its own
+  address on the internet through Cloudflare's STUN server. A network strict enough that two
+  machines can't reach each other directly would need a relay (TURN), which isn't built: those
+  players join by address on a home network, or not at all, for now.
+- **The pieces:** `game/rooms.gd` plays by room code over WebRTC, `game/session.gd` by address over
+  Godot's own networking (on a home network, or a build without WebRTC); a store's lobbies would
+  replace those two and nothing else. `game/online.gd` carries what host and guests say.
+  `tools/check_online.gd` plays it from both sides in one process, by address or, against a rooms
+  service run locally, by room code.
 
 Not lockstep: lockstep needs every machine to compute identical results, and GDScript can't
 promise identical floating-point math across Windows, macOS and Linux. Online play through
 Steam would mean adding GodotSteam later, which is a new dependency and gets decided then.
+
+WebRTC comes from Godot's own extension, webrtc-native, fetched at a pinned version and checksum
+by `tools/fetch_webrtc.sh` rather than kept in git; the builds carry its library and, in a
+`licenses` folder, the licenses of what it's built on.
 
 ## Art
 

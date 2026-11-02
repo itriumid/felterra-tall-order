@@ -11,7 +11,8 @@ extends Node
 ## times a second. When the crew is down, each guest is sent the run's numbers, and waits for the
 ## next.
 ##
-## How the packets travel is Session's business, not this.
+## How the packets travel is someone else's business: Rooms's, by room code over WebRTC, or
+## Session's, by address on a home network (or where this build has no WebRTC).
 
 ## Sent to the guests this often, in seconds.
 const SNAPSHOT_EVERY := 0.05
@@ -48,6 +49,9 @@ var _address := ""
 var _retry_for := 0.0
 var _retry_in := 0.0
 var _parting_in := 0.0
+## Playing by room code: the rooms service's side of it, and where that service is.
+var rooms: Rooms
+var service := Rooms.SERVICE
 
 
 func _ready() -> void:
@@ -64,8 +68,18 @@ func active() -> bool:
 	return hosting or guesting
 
 
-## Starts listening for guests. Returns false, with a status saying why, if it can't.
+## Starts hosting: a room, with a code for guests to give, or where there's no WebRTC, listening
+## by address. Returns false, with a status saying why, if it can't.
 func host() -> bool:
+	if Rooms.available():
+		hosting = true
+		status = "Making a room..."
+		_rooms().host()
+		return true
+	return _host_by_address()
+
+
+func _host_by_address() -> bool:
 	var peer := Session.host()
 	if peer == null:
 		status = "Couldn't listen for allies on port %d: is another game hosting?" % Session.PORT
@@ -76,16 +90,68 @@ func host() -> bool:
 	return true
 
 
-func join(address: String) -> bool:
+## Joins a host by their room's code, or on a home network, by their address (it has dots).
+func join(code_or_address: String) -> bool:
+	_address = code_or_address
+	if not code_or_address.contains("."):
+		if not Rooms.available():
+			status = "This build can't play by room code: join by address"
+			return false
+		guesting = true
+		status = "Finding room %s..." % Rooms.tidy(code_or_address)
+		_rooms().join(code_or_address)
+		return true
+	return _join_by_address(code_or_address)
+
+
+func _join_by_address(address: String) -> bool:
 	var peer := Session.join(address)
 	if peer == null:
 		status = "Couldn't set out for %s" % address
 		return false
 	multiplayer.multiplayer_peer = peer
 	guesting = true
-	_address = address
 	status = "Finding the host at %s..." % address
 	return true
+
+
+## The rooms service's side, made fresh for each room hosted or joined.
+func _rooms() -> Rooms:
+	if rooms != null:
+		rooms.close()
+		rooms.queue_free()
+	rooms = Rooms.new()
+	rooms.service = service
+	rooms.hosted.connect(_on_room_made)
+	rooms.joined.connect(_on_room_joined)
+	rooms.failed.connect(_on_room_failed)
+	add_child(rooms)
+	return rooms
+
+
+func _on_room_made(_code: String) -> void:
+	multiplayer.multiplayer_peer = rooms.peer
+	_host_status()
+	changed.emit()
+
+
+func _on_room_joined() -> void:
+	multiplayer.multiplayer_peer = rooms.peer
+
+
+## The rooms service turned us away, or couldn't be reached. Hosting, there's still the home
+## network; finding a host again, it's only one try.
+func _on_room_failed(reason: String) -> void:
+	if reconnecting:
+		return
+	if hosting and multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
+		var fallen_back := _host_by_address()
+		status = "%s. %s" % [reason, status if fallen_back else "Couldn't host at all"]
+		changed.emit()
+		return
+	leave()
+	status = reason
+	changed.emit()
 
 
 ## Guest: leaving the crew on purpose, said to the host first, so their cat goes at once rather
@@ -100,6 +166,10 @@ func part() -> void:
 
 func leave() -> void:
 	_parting_in = 0.0
+	if rooms != null:
+		rooms.close()
+		rooms.queue_free()
+		rooms = null
 	if multiplayer.multiplayer_peer != null:
 		multiplayer.multiplayer_peer.close()
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
@@ -114,6 +184,10 @@ func leave() -> void:
 
 
 func _host_status() -> void:
+	var allies := "%d %s" % [guests.size(), "ally" if guests.size() == 1 else "allies"]
+	if rooms != null and not rooms.code.is_empty():
+		status = "Room %s: %s" % [rooms.code, allies]
+		return
 	var where := Session.addresses()
 	var at := ("at %s" % where[0]) if not where.is_empty() else "on this machine"
 	status = "Hosting %s: %d %s" % [at, guests.size(), "ally" if guests.size() == 1 else "allies"]
@@ -136,6 +210,8 @@ func _on_peer_disconnected(peer: int) -> void:
 
 func _on_connected() -> void:
 	Session.notice_drops(multiplayer.multiplayer_peer, 1)
+	if rooms != null:
+		rooms.through()
 	status = "With the host: waiting for them to go out to Endless"
 	reconnecting = false
 	var info: Dictionary = game.what_i_bring()
@@ -189,6 +265,9 @@ func _process(delta: float) -> void:
 	if _retry_in > 0.0:
 		return
 	_retry_in = RETRY_EVERY
+	if not _address.contains("."):
+		_rooms().join(_address)
+		return
 	var peer := Session.join(_address)
 	if peer != null:
 		multiplayer.multiplayer_peer = peer

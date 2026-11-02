@@ -78,6 +78,9 @@ jobs:
             "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_${{ matrix.archive }}.zip"
           unzip -q godot.zip -d "$RUNNER_TEMP/godot"
           echo "GODOT=$RUNNER_TEMP/godot/${{ matrix.binary }}" >> "$GITHUB_ENV"
+      # WebRTC, which room codes play over: fetched at its pinned version and checked.
+      - name: Fetch WebRTC
+        run: tools/fetch_webrtc.sh
       # Importing builds the class name cache the scripts need; it can report errors about
       # the editor that don't matter here, so only the test run decides the result.
       - name: Import the project
@@ -88,3 +91,32 @@ jobs:
       # lands on the wrong page or on any error the engine reports along the way.
       - name: Check the menus
         run: '"$GODOT" --headless --path . --script tools/check_menus.gd -- --title'
+      # Online played from both sides at once, by address on this machine: hosting, joining, the
+      # world arriving, a dropped connection coming back, someone dropping in.
+      - name: Check playing online
+        run: '"$GODOT" --headless --path . --script tools/check_online.gd -- --title'
+
+  rooms:
+    name: Rooms
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: rooms
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The pnpm version comes from rooms/package.json's packageManager field.
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: rooms/package.json
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: rooms/.node-version
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Type-check
+        run: pnpm check
+      - name: Test
+        run: pnpm test
