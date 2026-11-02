@@ -50,6 +50,24 @@ static func bar(canvas: CanvasItem, box: Rect2, share: float, fill: Color) -> vo
 		canvas.draw_rect(inner, fill)
 
 
+## A pointer, outlined, its tip at a spot, pointing the way of the eight nearest to the way given:
+## rows 1, 3, 5, 7 and 9 pixels wide, from the tip back.
+static func pointer(canvas: CanvasItem, tip: Vector2, way: Vector2, color: Color) -> void:
+	var angle := snappedf(way.angle(), PI / 4.0) if way.length() > 0.0 else PI / 2.0
+	var turned := Vector2(roundf(cos(angle)), roundf(sin(angle)))
+	var back := -turned
+	var side := Vector2(-turned.y, turned.x)
+	for outline in [true, false]:
+		for row in 5:
+			var center := tip + back * (row + (0 if outline else 1))
+			for across in range(-row, row + 1):
+				var spot := (center + side * across).floor()
+				if outline:
+					canvas.draw_rect(Rect2(spot - Vector2.ONE, Vector2(3, 3)), Palette.OUTLINE)
+				else:
+					canvas.draw_rect(Rect2(spot, Vector2.ONE), color)
+
+
 ## Text drawn twice, a pixel apart: bold without a second font.
 static func bold(canvas: CanvasItem, at: Vector2, text: String, color: Color) -> void:
 	PixelFont.draw(canvas, at, text, color)

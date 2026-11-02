@@ -601,18 +601,44 @@ static func wrapped(text: String, width: float) -> Array[String]:
 	return lines
 
 
-## Cages out of sight: a mark at the edge of the screen, the way to each.
+## Where in the world what the area's goal still asks of him is, in pixels, at the height a
+## pointer over it goes: the cages still shut, the things still to break, the levers still up.
+static func goal_marks(on: Arena) -> Array[Vector2]:
+	var marks: Array[Vector2] = []
+	if on.goal_done or on.area.is_empty():
+		return marks
+	for cage in on.goal_cages:
+		if not cage.opened:
+			marks.append(World.to_screen(cage.body.position) - Vector2(0, 26))
+	if on.area.goal.kind == "structures":
+		for structure in on.structures:
+			if structure.alive():
+				marks.append(World.to_screen(structure.body.position, structure.body.tall) - Vector2(0, 12))
+	for lever in on.levers:
+		if not lever.pulled:
+			marks.append(World.to_screen(lever.position) - Vector2(0, 20))
+	return marks
+
+
+## Out of sight, the way to each: an arrow at the edge of the screen pointing to what the goal
+## still asks, and a cage's icon by the way to any cage.
 func _draw_cage_markers() -> void:
 	var screen := get_viewport_rect()
 	var to_screen := get_viewport().get_canvas_transform()
+	var inside := Rect2(Vector2(12, 60), screen.size - Vector2(24, 72))
+	for mark in goal_marks(arena):
+		var at: Vector2 = to_screen * mark
+		if not screen.grow(-4).has_point(at):
+			InterfaceArt.pointer(self, at.clamp(inside.position, inside.end).floor(), at - screen.get_center(), Palette.BRASS_LIGHT)
 	for cage in arena.cages:
 		if cage.opened:
 			continue
 		var at: Vector2 = to_screen * World.to_screen(cage.body.position, 0.25)
 		if screen.grow(-4).has_point(at):
 			continue
-		var edge := at.clamp(Vector2(6, 54), screen.size - Vector2(13, 13))
-		InterfaceArt.icon(self, edge.floor(), "cage", Palette.PINK)
+		# Inside the arrow, if it has one: the icon says what's that way.
+		var edge := at.clamp(inside.position, inside.end) - (at - screen.get_center()).normalized() * 12.0
+		InterfaceArt.icon(self, (edge - Vector2(3, 3)).floor(), "cage", Palette.PINK)
 	# The siege: each burning house, and with no water carried, the well.
 	var burning := false
 	for roof in arena.roofs:

@@ -6,7 +6,7 @@ extends RefCounted
 
 ## How close he has to stand, how long the lock takes, and how fast the pick slips back while
 ## nobody's at it, as a share of the lock a second.
-const PICK_REACH := 0.6
+const PICK_REACH := 0.9
 const PICK_TIME := 3.0
 const SLIP_RATE := 0.25
 ## How fast a freed cat runs for home.
