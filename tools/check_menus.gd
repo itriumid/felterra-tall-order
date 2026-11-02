@@ -73,8 +73,9 @@ const STEPS := [
 	["to_board", ""], ["menu_choose", "news"], ["menu_choose", ""], ["menu_choose", "board", {"village.next_run": "airstrip"}], ["move_up", "board"], ["move_right", "board"],
 	["move_down", "board"], ["menu_choose", "board", {"village.next_run": "endless"}],
 	["pause", ""], ["to_home", ""],
-	# Out to Endless, then giving the run up: back to the village from the pause menu.
-	["leave_village", "", {"_place": "leaving"}], ["pause", "", {"_place": "run", "_run_kind": "endless"}],
+	# Out to Endless, back down the forest path this time, then giving the run up: back to the
+	# village from the pause menu, the way he went.
+	["leave_village_west", "", {"_place": "leaving", "_went_west": true}], ["pause", "", {"_place": "run", "_run_kind": "endless"}],
 	["pause", "", {"_entering": false}],
 	# An ally joins on a gamepad of their own and chooses the handgun on its buttons; then he
 	# chooses, and the crew's run starts. Down, he's waiting on a crewmate, not out.
@@ -84,7 +85,7 @@ const STEPS := [
 	["join_pad_8", "", {"arena.cats.size": 2}], ["pick_2:2", "", {"arena.cats.size": 3}],
 	["pause", "pause"], ["move_down", "pause"], ["move_down", "pause"], ["move_down", "pause"],
 	# Home, with the lessons of the two areas freed meanwhile told on the way in; what's new waits.
-	["menu_choose", "", {"_place": "arriving"}], ["pause", "", {"_place": "village"}],
+	["menu_choose", "", {"_place": "arriving", "village_map.walking_to": VillageMap.RETURN_WEST}], ["pause", "", {"_place": "village"}],
 	# Peace with the forest, and the cub given: at the shrine, a rank for offerings, then smoke woken.
 	["grant_gift", "", {"village.cub_rank": 1}], ["to_shrine", ""], ["menu_choose", "shrine"],
 	["move_down", "shrine"], ["menu_choose", "shrine", {"village.cub_rank": 2}],
@@ -140,6 +141,9 @@ func _process(_delta: float) -> bool:
 		elif action == "leave_village":
 			# Walked to the end of the path out.
 			_main.village_map.cat.body.position = Vector2(VillageMap.SIZE.x - 0.1, VillageMap.RETURN_SPOT.y)
+		elif action == "leave_village_west":
+			# Walked back down the forest path, to its end.
+			_main.village_map.cat.body.position = Vector2(VillageMap.EXIT_WEST - 0.3, VillageMap.RETURN_WEST.y)
 		elif action == "grant_salvage":
 			_main.village.salvage = 200
 			_main.village.cloth = 50

@@ -35,10 +35,13 @@ static var _cache := {}
 ## chosen is framed, and the one the next run goes to is pinned.
 static func draw(canvas: CanvasItem, box: Rect2, rows: Array[Dictionary], choice: int, next_run: String) -> void:
 	var holders := _holders(rows)
-	canvas.draw_rect(box, Palette.JUNGLE_DARK)
-	_canopy(canvas, box)
-	_river(canvas, box)
-	canvas.draw_texture(_territories(Vector2i(box.size), holders), box.position)
+	# What doesn't move, painted once into one picture and kept: drawn a crown and a pixel of mist at
+	# a time, every frame, it cost a slow machine more than the rest of the page together.
+	var misty: Array[Vector2] = []
+	for row in rows:
+		if row.id != "endless" and not row.found:
+			misty.append(_at(box, row.id) - box.position)
+	canvas.draw_texture(_backdrop(Vector2i(box.size), holders, misty), box.position)
 	# Arrows out of the cats' land into each place found and still the company's: from the place
 	# before it, the way it was found.
 	var marching := fmod(Time.get_ticks_msec() / 120.0, 6.0)
@@ -56,7 +59,8 @@ static func draw(canvas: CanvasItem, box: Rect2, rows: Array[Dictionary], choice
 		if row.id == "endless":
 			_endless(canvas, patch)
 		elif not row.found:
-			_mist(canvas, patch)
+			# Its mist is in the backdrop; only the question is drawn over it.
+			PixelFont.draw(canvas, (patch.get_center() - Vector2(PixelFont.width("?") / 2.0, PixelFont.ASCENT / 2.0 + 1)).floor(), "?", Palette.GRAPHITE)
 		else:
 			_area(canvas, patch, row.id, row.free)
 			_banner(canvas, patch.position + Vector2(2, -12), holders.get(row.id, "mist"))
@@ -150,50 +154,140 @@ static func _owners(size: Vector2i, every: int) -> PackedInt32Array:
 	return owners
 
 
+## The forest under the map, the canopy, the river, the territories over them and the mist over
+## each place not found, as one picture: painted once for each way the territories are held.
+static func _backdrop(size: Vector2i, holders: Dictionary, misty: Array[Vector2]) -> ImageTexture:
+	var key := "backdrop|%s|%s|%s" % [size, holders, misty]
+	if _cache.has(key):
+		return _cache[key]
+	var picture := Image.create_empty(size.x, size.y, false, Image.FORMAT_RGBA8)
+	picture.fill(Palette.JUNGLE_DARK)
+	# The canopy from above: crowns of trees, dark below and lit from the top left, the same every
+	# time.
+	var random := RandomNumberGenerator.new()
+	random.seed = 39
+	for crown in int(size.x * size.y / 90.0):
+		var at := Vector2i(random.randi_range(1, size.x - 6), random.randi_range(1, size.y - 6))
+		var crown_size := random.randi_range(3, 5)
+		picture.fill_rect(Rect2i(at + Vector2i.ONE, Vector2i(crown_size, crown_size)), Palette.JUNGLE_DEEP)
+		picture.fill_rect(Rect2i(at, Vector2i(crown_size, crown_size)), Palette.JUNGLE)
+		picture.set_pixelv(at, Palette.LEAF)
+	for index in RIVER.size() - 1:
+		var from := Vector2(size) * RIVER[index]
+		var to := Vector2(size) * RIVER[index + 1]
+		var steps := int(from.distance_to(to))
+		for step in steps:
+			var at := Vector2i(from.lerp(to, float(step) / steps).floor())
+			picture.fill_rect(Rect2i(at - Vector2i(2, 0), Vector2i(5, 1)).intersection(Rect2i(Vector2i.ZERO, size)), Palette.CLOTH)
+			if Rect2i(Vector2i.ZERO, size).has_point(at - Vector2i(1, 0)):
+				picture.set_pixelv(at - Vector2i(1, 0), Palette.CLOTH_LIGHT)
+	picture.blend_rect(_territories(size, holders), Rect2i(Vector2i.ZERO, size), Vector2i.ZERO)
+	# Somewhere not found yet: mist over the trees, in a checker of smoke.
+	for center in misty:
+		var patch := Rect2i(Vector2i((center - PATCH / 2.0).floor()), Vector2i(PATCH))
+		for y in range(maxi(patch.position.y, 0), mini(patch.end.y, size.y)):
+			for x in range(maxi(patch.position.x, 0), mini(patch.end.x, size.x)):
+				if (x - patch.position.x + y - patch.position.y) % 2 == 0:
+					picture.set_pixel(x, y, Palette.SMOKE)
+	var texture := ImageTexture.create_from_image(picture)
+	_cache[key] = texture
+	return texture
+
+
 ## The territories over the forest, as one picture: each marked in its holder's color, a band
 ## along its borders, so the canopy shows through inside. Between two holders, a dark border with
 ## the band either side; between two of the same holder, a faint one. Mist over what isn't found.
-static func _territories(size: Vector2i, holders: Dictionary) -> ImageTexture:
+## Worked out in a few passes over plain numbers, row by row and column by column: asked pixel by
+## pixel, it took a slow machine seconds.
+static func _territories(size: Vector2i, holders: Dictionary) -> Image:
 	var key := "territories|%s|%s" % [size, holders]
 	if _cache.has(key):
 		return _cache[key]
 	var owners := _owners(size, 2)
-	var picture := Image.create_empty(size.x, size.y, false, Image.FORMAT_RGBA8)
-	var holder_of := func(index: int) -> String: return holders[TERRITORIES[index]]
+	var kinds: Array = COLORS.keys()
+	var count := size.x * size.y
+	# Each pixel's holder, by its place in COLORS.
+	var held := PackedByteArray()
+	held.resize(count)
+	var holder_index := PackedByteArray()
+	for id in TERRITORIES:
+		holder_index.append(kinds.find(holders[id]))
+	for index in count:
+		held[index] = holder_index[owners[index]]
+	# How far each pixel is from the nearest of another holder straight along its row or column,
+	# up to 6: the band inside a border reaches 5.
+	var near := PackedByteArray()
+	near.resize(count)
+	near.fill(6)
+	for y in size.y:
+		_runs(held, near, y * size.x, 1, size.x)
+	for x in size.x:
+		_runs(held, near, x, size.x, size.y)
+	var data := PackedByteArray()
+	data.resize(count * 4)
+	var colors: Array[Color] = []
+	var darker: Array[Color] = []
+	for kind: String in kinds:
+		colors.append(COLORS[kind])
+		darker.append((COLORS[kind] as Color).darkened(0.3))
+	var mist := kinds.find("mist")
 	for y in size.y:
 		for x in size.x:
-			var owner: int = owners[y * size.x + x]
-			var holder: String = holder_of.call(owner)
-			var color: Color = COLORS[holder]
+			var index := y * size.x + x
+			var owner := owners[index]
+			var holder := held[index]
+			var color := Color(0, 0, 0, 0)
+			# On a border: the next pixel over belongs to another territory.
 			var other := -1
-			for offset: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
-				var next := Vector2i(x, y) + offset
-				if next.x >= 0 and next.y >= 0 and next.x < size.x and next.y < size.y and owners[next.y * size.x + next.x] != owner:
-					other = owners[next.y * size.x + next.x]
+			if x + 1 < size.x and owners[index + 1] != owner:
+				other = index + 1
+			if x > 0 and owners[index - 1] != owner:
+				other = index - 1
+			if y + 1 < size.y and owners[index + size.x] != owner:
+				other = index + size.x
+			if y > 0 and owners[index - size.x] != owner:
+				other = index - size.x
 			if other >= 0:
-				if holder_of.call(other) != holder:
-					picture.set_pixel(x, y, Palette.OUTLINE)
+				if held[other] != holder:
+					color = Palette.OUTLINE
 				elif (x + y) % 2 == 0:
-					picture.set_pixel(x, y, color.darkened(0.3))
-				continue
-			# Just inside a border with someone else, a band of the holder's own color, solid, then
-			# thinning out.
-			var inside := 0
-			for reach in range(1, 6):
-				for offset: Vector2i in [Vector2i(reach, 0), Vector2i(-reach, 0), Vector2i(0, reach), Vector2i(0, -reach)]:
-					var next := Vector2i(x, y) + offset
-					if inside == 0 and next.x >= 0 and next.y >= 0 and next.x < size.x and next.y < size.y and holder_of.call(owners[next.y * size.x + next.x]) != holder:
-						inside = reach
-			if inside > 0 and inside <= 2:
-				picture.set_pixel(x, y, color)
-			elif inside > 0 and (x + y) % 2 == 0:
-				picture.set_pixel(x, y, color)
-			elif holder == "mist" and (x + y) % 2 == 0 and y % 2 == 0:
-				# Mist over what isn't found; inside a held territory, the forest shows through.
-				picture.set_pixel(x, y, color)
-	var texture := ImageTexture.create_from_image(picture)
-	_cache[key] = texture
-	return texture
+					color = darker[holder]
+			else:
+				var inside := near[index]
+				if inside <= 2 or (inside <= 5 and (x + y) % 2 == 0):
+					color = colors[holder]
+				elif holder == mist and (x + y) % 2 == 0 and y % 2 == 0:
+					color = colors[holder]
+			if color.a > 0.0:
+				data[index * 4] = color.r8
+				data[index * 4 + 1] = color.g8
+				data[index * 4 + 2] = color.b8
+				data[index * 4 + 3] = 255
+	var picture := Image.create_from_data(size.x, size.y, false, Image.FORMAT_RGBA8, data)
+	_cache[key] = picture
+	return picture
+
+
+## Along one line of pixels (a row or a column: from `first`, `step` apart, `length` of them), how
+## far each is from the nearest pixel of another holder on that line, kept if nearer than `near`
+## has it already.
+static func _runs(held: PackedByteArray, near: PackedByteArray, first: int, step: int, length: int) -> void:
+	var start := 0
+	while start < length:
+		var holder := held[first + start * step]
+		var end := start
+		while end + 1 < length and held[first + (end + 1) * step] == holder:
+			end += 1
+		for at in range(start, end + 1):
+			var reach := 6
+			if start > 0:
+				reach = mini(reach, at - start + 1)
+			if end < length - 1:
+				reach = mini(reach, end - at + 1)
+			var index := first + at * step
+			if reach < near[index]:
+				near[index] = reach
+		start = end + 1
 
 
 ## An arrow from one place to another, stopping short of both pictures: a thick shaft and a head,
@@ -255,30 +349,6 @@ static func _legend(canvas: CanvasItem, box: Rect2) -> void:
 
 static func _at(box: Rect2, id: String) -> Vector2:
 	return (box.position + box.size * (SPOTS[id] as Vector2)).floor()
-
-
-## The canopy from above: crowns of trees, dark below and lit from the top left, the same every
-## time.
-static func _canopy(canvas: CanvasItem, box: Rect2) -> void:
-	var random := RandomNumberGenerator.new()
-	random.seed = 39
-	for crown in int(box.size.x * box.size.y / 90.0):
-		var at := box.position + Vector2(random.randi_range(1, int(box.size.x) - 6), random.randi_range(1, int(box.size.y) - 6))
-		var size := random.randi_range(3, 5)
-		canvas.draw_rect(Rect2(at + Vector2(1, 1), Vector2(size, size)), Palette.JUNGLE_DEEP)
-		canvas.draw_rect(Rect2(at, Vector2(size, size)), Palette.JUNGLE)
-		canvas.draw_rect(Rect2(at, Vector2(1, 1)), Palette.LEAF)
-
-
-static func _river(canvas: CanvasItem, box: Rect2) -> void:
-	for index in RIVER.size() - 1:
-		var from := box.position + box.size * RIVER[index]
-		var to := box.position + box.size * RIVER[index + 1]
-		var steps := int(from.distance_to(to))
-		for step in steps:
-			var at := from.lerp(to, float(step) / steps).floor()
-			canvas.draw_rect(Rect2(at - Vector2(2, 0), Vector2(5, 1)), Palette.CLOTH)
-			canvas.draw_rect(Rect2(at - Vector2(1, 0), Vector2(1, 1)), Palette.CLOTH_LIGHT)
 
 
 static func _dotted(canvas: CanvasItem, from: Vector2, to: Vector2, color: Color) -> void:
@@ -373,15 +443,6 @@ static func _area(canvas: CanvasItem, patch: Rect2, id: String, free: bool) -> v
 		canvas.draw_rect(Rect2(patch.position + Vector2(patch.size.x - 6, 0), Vector2(2, 1)), Palette.SMOKE)
 		canvas.draw_rect(Rect2(patch.position + Vector2(3, patch.size.y - 5), Vector2(2, 3)), Palette.HI_VIS)
 	canvas.draw_rect(patch, Palette.OUTLINE, false, 1.0)
-
-
-## Somewhere not found yet: mist over the trees, and a question.
-static func _mist(canvas: CanvasItem, patch: Rect2) -> void:
-	for y in int(patch.size.y):
-		for x in int(patch.size.x):
-			if (x + y) % 2 == 0:
-				canvas.draw_rect(Rect2(patch.position + Vector2(x, y), Vector2(1, 1)), Palette.SMOKE)
-	PixelFont.draw(canvas, (patch.get_center() - Vector2(PixelFont.width("?") / 2.0, PixelFont.ASCENT / 2.0 + 1)).floor(), "?", Palette.GRAPHITE)
 
 
 ## Endless: off the map, a fresh clearing every time, past where the paths go.

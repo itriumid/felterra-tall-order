@@ -192,8 +192,9 @@ on: fire and oil, or crewmates who can be downed.
   Play, Settings and Leave. Play makes the menu fall away, and he walks into the village, a
   cutscene; the first time, the Elder walks out to meet him where the village starts, and the
   story's opening is told over the walk, the Elder's part in his own words (what's wrong, what
-  needs doing). From the village, he walks out through the gate and on into the forest; the village
-  goes on with its day. The first time he leaves for an area, someone has a word for him on the
+  needs doing). From the village, he walks out through the gate and on into the forest, or back
+  down the forest path he first came in by, at the other end, and he comes home the way he went;
+  the village goes on with its day. The first time he leaves for an area, someone has a word for him on the
   way, and comes to the gate to say it; any other time he just goes, at his own pace. He walks into every run the same way, from the way
   he came, the world held still until he's in: slowly enough for the area's story to be told
   on the way the first time, at his own pace after. Then he chooses what he starts with,

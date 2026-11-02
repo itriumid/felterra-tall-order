@@ -30,6 +30,14 @@ const RETURN_SPOT := Vector2(33.5, 9.0)
 ## word trots over.
 const OFF_INTO_THE_FOREST := Vector2(38.6, 9.0)
 const SEE_OFF_SPOT := Vector2(33.0, 11.0)
+## The other way out: back down the forest path he first came in by, off the village's left edge.
+## Where it starts, where he walks on to, where whoever sees him off stands on the path, and where
+## he walks back in to, coming home that way.
+const EXIT_WEST := 1.0
+const OFF_TO_THE_WEST := Vector2(-1.6, 9.0)
+const SEE_OFF_WEST := Vector2(4.6, 10.0)
+const ELDER_AT_THE_WEST := Vector2(3.6, 8.0)
+const RETURN_WEST := Vector2(6.5, 9.0)
 const TROT_SPEED := 1.8
 ## How close to a door he has to be to use it, past a share of the building's width.
 const DOOR_REACH := 0.7
@@ -140,6 +148,8 @@ var stroll_speed := STROLL_SPEED
 ## Whether he's being seen off, walking out of the village: whoever has a word for him on the way
 ## comes to the gate, and stays there, watching him go.
 var seeing_off := false
+## Seen off down the forest path, west, not out through the gate.
+var going_west := false
 var _amble_to: Array[Vector2] = []
 ## The villagers called over to say something, by index: they stay put until let go.
 var _staying := {}
@@ -302,18 +312,19 @@ func walking() -> bool:
 
 ## He walks on out of the village. Whoever has a word for him on the way, by who they are (see
 ## speaker_named), comes to the gate to say it; everyone else goes on with their day.
-func see_off(speakers: Array = []) -> void:
+func see_off(speakers: Array = [], west := false) -> void:
 	seeing_off = true
+	going_west = west
 	if "elder" in speakers:
-		elder_to = ELDER_AT_THE_GATE
+		elder_to = ELDER_AT_THE_WEST if west else ELDER_AT_THE_GATE
 	var others := 0
 	for who in speakers:
 		var index := names.find(who)
 		if index >= 0:
-			_amble_to[index] = SEE_OFF_SPOT + Vector2(-0.8 * others, 0.3 * (others % 2))
+			_amble_to[index] = (SEE_OFF_WEST + Vector2(0.8 * others, -0.3 * (others % 2))) if west else (SEE_OFF_SPOT + Vector2(-0.8 * others, 0.3 * (others % 2)))
 			_staying[index] = true
 			others += 1
-	walk_to(OFF_INTO_THE_FOREST)
+	walk_to(OFF_TO_THE_WEST if west else OFF_INTO_THE_FOREST)
 
 
 ## The Elder walks out to meet him where he's going, stopping a step short of it and facing him.
@@ -361,7 +372,13 @@ func gone() -> bool:
 ## Whether he's walked out through the gate onto the path to the forest: he's seen off.
 func leaving() -> bool:
 	var at := cat.body.position
-	return at.x >= EXIT_FROM and at.y > PATH_TOP and at.y < PATH_BOTTOM
+	return (at.x >= EXIT_FROM or leaving_west()) and at.y > PATH_TOP and at.y < PATH_BOTTOM
+
+
+## Whether he's walked off down the forest path the other way, west: that's a way out too.
+func leaving_west() -> bool:
+	var at := cat.body.position
+	return at.x <= EXIT_WEST and at.y > PATH_TOP and at.y < PATH_BOTTOM
 
 
 func step(delta: float) -> void:
@@ -435,7 +452,7 @@ func _step_elder(delta: float) -> void:
 func _step_jogi(delta: float) -> void:
 	var goal := cat.body.position - cat.facing * JOGI_HEEL + cat.facing.orthogonal() * 0.35
 	if seeing_off:
-		goal = Vector2(EXIT_FROM - 0.6, PATH_BOTTOM - 0.4)
+		goal = Vector2(EXIT_WEST + 1.4, PATH_BOTTOM - 0.4) if going_west else Vector2(EXIT_FROM - 0.6, PATH_BOTTOM - 0.4)
 	var toward := goal - jogi.body.position
 	var walking := cat.body.velocity.length() > 0.2 and not seeing_off
 	if walking or seeing_off:
@@ -544,9 +561,12 @@ func _move(walker: Cat, velocity: Vector2, delta: float) -> void:
 	# Off the right edge only along the path: that's the way out. Seen off, he walks on out of
 	# sight.
 	var right := SIZE.x if next.y > PATH_TOP and next.y < PATH_BOTTOM else SIZE.x - 0.4
+	var left := 0.4
 	if walker == cat and seeing_off:
 		right = OFF_INTO_THE_FOREST.x
-	walker.body.position = Vector2(clampf(next.x, 0.4, right), clampf(next.y, top, bottom))
+		if going_west:
+			left = OFF_TO_THE_WEST.x
+	walker.body.position = Vector2(clampf(next.x, left, right), clampf(next.y, top, bottom))
 
 
 ## The way to a spot from anywhere in the village, around the buildings, the props, and the forest

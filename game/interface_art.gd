@@ -62,10 +62,14 @@ static func pointer(canvas: CanvasItem, tip: Vector2, way: Vector2, color: Color
 			var center := tip + back * (row + (0 if outline else 1))
 			for across in range(-row, row + 1):
 				var spot := (center + side * across).floor()
+				# On a diagonal, the rows step two ways at once and leave a checker of gaps: each
+				# pixel fills the one beside it, back from the tip, as well.
+				var size := Vector2(2, 1) if turned.x != 0.0 and turned.y != 0.0 else Vector2.ONE
+				var at := spot + (Vector2(minf(back.x, 0.0), 0.0) if size.x > 1.0 else Vector2.ZERO)
 				if outline:
-					canvas.draw_rect(Rect2(spot - Vector2.ONE, Vector2(3, 3)), Palette.OUTLINE)
+					canvas.draw_rect(Rect2(at - Vector2.ONE, size + Vector2(2, 2)), Palette.OUTLINE)
 				else:
-					canvas.draw_rect(Rect2(spot, Vector2.ONE), color)
+					canvas.draw_rect(Rect2(at, size), color)
 
 
 ## Text drawn twice, a pixel apart: bold without a second font.
