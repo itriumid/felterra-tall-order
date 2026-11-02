@@ -4,6 +4,9 @@ extends SceneTree
 ## out to Endless; the guest joins, chooses, and plays their cat in the host's world; then the
 ## crew goes down. Fails if any step doesn't happen, or an error is raised. Run with:
 ## timeout 120 godot --headless --path . --script tools/check_online.gd -- --title
+##
+## That plays by address. To play by room code, give it a rooms service, run locally from rooms/
+## with `pnpm dev`: add --rooms=ws://127.0.0.1:8787.
 
 ## Each step: what to do, then what has to hold before the next, within a few seconds.
 const STEPS := [
@@ -21,7 +24,12 @@ const STEP_TIME := 6.0
 class ErrorCounter extends Logger:
 	var errors: Array[String] = []
 
-	func _log_error(function: String, file: String, line: int, code: String, rationale: String, _editor_notify: bool, _error_type: int, _script_backtraces: Array[ScriptBacktrace]) -> void:
+	func _log_error(function: String, file: String, line: int, code: String, rationale: String, _editor_notify: bool, error_type: int, _script_backtraces: Array[ScriptBacktrace]) -> void:
+		# WebRTC tries every address this machine has, and the system refuses to send from some
+		# (a VPN's, say): warned of, then it connects over the rest. Only those warnings pass.
+		var said := rationale if not rationale.is_empty() else code
+		if error_type == ERROR_TYPE_WARNING and file.contains("WebRTCLibPeerConnection") and (said.contains("juice: Send failed") or said.contains("juice: STUN message send failed")):
+			return
 		errors.append("%s:%d in %s: %s" % [file, line, function, rationale if not rationale.is_empty() else code])
 
 
@@ -35,10 +43,20 @@ var _frames := 0
 var _guest_started_at := Vector2.ZERO
 var _guest_salvage := 0
 var _dropped_cat := 0
+## The rooms service to play by code through, or "" to play by address.
+var _rooms := ""
+
+
+## The guest joins by the host's room's code, or on this machine, by address.
+func _where() -> String:
+	return _host._online.rooms.code if not _rooms.is_empty() else "127.0.0.1"
 
 
 func _init() -> void:
 	OS.add_logger(_errors)
+	for argument in OS.get_cmdline_user_args():
+		if argument.begins_with("--rooms="):
+			_rooms = argument.trim_prefix("--rooms=")
 
 
 ## A copy of the game under its own root, with its own multiplayer.
@@ -82,9 +100,14 @@ func _process(delta: float) -> bool:
 func _do(step: String) -> void:
 	match step:
 		"host":
-			_host._online.host()
+			if _rooms.is_empty():
+				_host._online._host_by_address()
+			else:
+				_host._online.service = _rooms
+				_guest._online.service = _rooms
+				_host._online.host()
 		"join":
-			_guest._online.join("127.0.0.1")
+			_guest._online.join(_where())
 		"go_out":
 			# Out to Endless as the board would send him, walked in already.
 			_host._close_page()
@@ -118,7 +141,7 @@ func _do(step: String) -> void:
 		"guest_drops_in":
 			_host.arena.level = 4
 			_guest._online.token = "someone new"
-			_guest._online.join("127.0.0.1")
+			_guest._online.join(_where())
 		"guest_chooses_late":
 			_guest._start_weapon = "handgun"
 			_guest._online.choose("handgun")
@@ -127,7 +150,7 @@ func _do(step: String) -> void:
 func _holds(step: String) -> bool:
 	match step:
 		"host":
-			return _host._online.hosting
+			return _host._online.hosting and (_rooms.is_empty() or not _host._online.rooms.code.is_empty())
 		"join":
 			return _guest._online.guesting
 		"hello_heard":

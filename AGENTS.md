@@ -90,6 +90,15 @@ catalog and the code agree.
 - **Art from outside goes in only if it passes the style rules and is CC0 or CC-BY.** Record
   where it came from and its license in `CREDITS.md`. A pack that doesn't match gets redrawn,
   not used as it is.
+- **WebRTC is fetched, not kept in git**: `tools/fetch_webrtc.sh` puts Godot's webrtc-native
+  extension in `addons/webrtc_native` at a pinned version and SHA-256, and the tests, the export
+  and the release run it first. Updating it means changing both in the script. Without it, online
+  play is by address only.
+- **Room codes come from `rooms/`**, a Cloudflare Worker (TypeScript, pnpm) at rooms.itrium.id:
+  `pnpm install`, `pnpm check` and `pnpm test` there. Its rules are in `rooms.ts`; `index.ts` only
+  meets Cloudflare. Run it locally with `pnpm dev`, and play by room code against it with
+  `tools/check_online.gd -- --title --rooms=ws://127.0.0.1:8787`, or the game with
+  `--rooms=ws://127.0.0.1:8787`. It's deployed by hand (`pnpm run deploy`), never without asking.
 - **The font is a submodule**: Itrium Pixel, at `addons/itrium_pixel_font`, from
   itriumid/pixel-font. Never edit it here; a glyph this game needs is added there, then the
   submodule is updated to that commit.
@@ -99,7 +108,7 @@ catalog and the code agree.
   `godot --path . -- --screenshot=<path>.png --screenshot-after=4` (add `--horde=<count>`,
   `--no-spawn`, `--at=<x>,<y>`, `--gear=<0 to 2>`, `--sturdy`, `--fallen=<count>`,
   `--walk=<x>,<y>`, `--dogs=<count>`, `--chainsaw=<count>`, `--mutations=<id>,<id>`, `--dodge-every=<seconds>`,
-  `--offer=<id>,<id>,<id>`, `--support=<id>,<id>`, `--machine`, `--cage=<count>`, `--village`, `--villagers=<count>`, `--restored=<all or names>`, `--salvage=<count>`, `--cloth=<count>`, `--liberated=<ids>`, `--at-door=<building>`, `--shop`, `--intro`, `--area=<id>` (`siege` is the village under attack), `--freed`, `--boss`, `--grove`, `--crew=<2 to 4>` (allies standing in, nobody steering them), `--host` (an Endless run hosted online, held until a guest is in), `--join=<address>` (a guest of it, starting with `--start`'s weapon), `--cub=<element>[:<rank>]` (the spirits' gift, in a grove or with `--village` at the shrine), `--offerings=<count>`, `--horde-kind=<kind>`, `--giant=<count>`, `--giant-from=<x>,<y>`, `--menu`, `--menu-after=<seconds>`, `--settings`, `--sound`, `--title`, `--down-after=<seconds>`, `--start=<nunchaku or handgun>`, `--no-blood`, or `--frames=<count>` for a
+  `--offer=<id>,<id>,<id>`, `--support=<id>,<id>`, `--machine`, `--cage=<count>`, `--village`, `--villagers=<count>`, `--restored=<all or names>`, `--salvage=<count>`, `--cloth=<count>`, `--liberated=<ids>`, `--at-door=<building>`, `--shop`, `--intro`, `--area=<id>` (`siege` is the village under attack), `--freed`, `--boss`, `--grove`, `--crew=<2 to 4>` (allies standing in, nobody steering them), `--host` (an Endless run hosted online, held until a guest is in), `--join=<code or address>` (a guest of it, starting with `--start`'s weapon), `--rooms=<address>` (a rooms service of one's own, not rooms.itrium.id), `--cub=<element>[:<rank>]` (the spirits' gift, in a grove or with `--village` at the shrine), `--offerings=<count>`, `--horde-kind=<kind>`, `--giant=<count>`, `--giant-from=<x>,<y>`, `--menu`, `--menu-after=<seconds>`, `--settings`, `--sound`, `--title`, `--down-after=<seconds>`, `--start=<nunchaku or handgun>`, `--no-blood`, or `--frames=<count>` for a
   sequence). It opens a window, saves one
   640 by 360 frame and quits; the window takes keyboard focus, so warn whoever is at the
   machine first. Check its log for `SCRIPT ERROR`, and check the frame itself: a frame that

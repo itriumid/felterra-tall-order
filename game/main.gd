@@ -40,10 +40,11 @@ const OUTFITS: Array[Dictionary] = [
 ## summary of a run stop it (solo; online, the pause menu opens over a world that keeps running).
 const PAGES := {
 	"title": ["play", "together", "settings", "leave"],
-	# Playing online: hosting, or joining a host by their address; a guest waiting for the host to
-	# go out, their pause menu in a run, and the end of one.
+	# Playing online: hosting, or joining a host by their room's code (or address); a guest waiting
+	# for the host to go out, their pause menu in a run, and the end of one. The code is typed, so
+	# joining has one choice and Escape goes back: W and S are letters there.
 	"together": ["host", "join", "back"],
-	"join": ["connect", "back"],
+	"join": ["connect"],
 	"waiting": ["part"],
 	"guest_pause": ["carry_on", "settings", "part", "leave"],
 	"guest_summary": ["stay", "part"],
@@ -123,8 +124,9 @@ var cat: Cat
 ## Playing online, as host or guest: what's said between them. Online, the menu doesn't stop the
 ## world, which is everyone's.
 var _online: Online
-## The address a guest types to join, and the seed of the run under way, for guests to lay it out.
-var _address := "127.0.0.1"
+## The room's code (or a host's address) a guest types to join, and the seed of the run under way,
+## for guests to lay it out.
+var _address := ""
 ## Host: what happened since the guests were last sent the world.
 var _served: Array[Dictionary] = []
 ## Guest: where the host last had each thing that moves, and how long since; and their own cat,
@@ -160,6 +162,8 @@ var _dev_crew := 0
 var _dev_host := false
 var _dev_join := ""
 var _dev_guest_weapon := ""
+## A rooms service of one's own to try room codes against (wrangler dev, say), not rooms.itrium.id.
+var _dev_rooms := ""
 ## Which page is showing ("" while playing), the page the settings return to, and the rows chosen.
 var _page := ""
 var _settings_from := "pause"
@@ -287,6 +291,8 @@ func _ready() -> void:
 			_chainsaws = argument.trim_prefix("--chainsaw=").to_int()
 		elif argument == "--host":
 			_dev_host = true
+		elif argument.begins_with("--rooms="):
+			_dev_rooms = argument.trim_prefix("--rooms=")
 		elif argument.begins_with("--join="):
 			_dev_join = argument.trim_prefix("--join=")
 		elif argument.begins_with("--crew="):
@@ -501,6 +507,8 @@ func _build_scene() -> void:
 	_online = Online.new()
 	_online.name = "Online"
 	_online.game = self
+	if not _dev_rooms.is_empty():
+		_online.service = _dev_rooms
 	add_child(_online)
 	_overlay = Overlay.new()
 	_overlay.allies = _allies
@@ -1164,6 +1172,8 @@ func _process(delta: float) -> void:
 		_guest_frame(delta)
 		return
 	_overlay.online_status = _online.status if _online.active() else ""
+	if _page == "join":
+		_overlay.online_status = "Type the room's code, or on a home network, the host's address"
 	if _online.hosting and _place == "run" and arena != null:
 		_online.host_frame(delta, arena, _served)
 		_served.clear()
@@ -1670,7 +1680,7 @@ func _read_choices() -> void:
 		"join":
 			_open_page("join")
 		"connect":
-			if _online.join(_address):
+			if not _address.is_empty() and _online.join(_address):
 				_open_page("waiting")
 		"part":
 			_online.part()
@@ -1756,7 +1766,7 @@ func _menu_lines() -> Array[String]:
 			"go_again": "Straight back out", "title": "Back to the title", "leave": "Leave the game",
 			"home": "Home to the village", "village": "Back to the village",
 			"together": "Play together online", "host": "Host: allies join you", "join": "Join a host",
-			"back": "Back", "connect": "Join " + _address, "part": "Leave the crew",
+			"back": "Back", "connect": ("Join " + _address) if not _address.is_empty() else "Type the code", "part": "Leave the crew",
 			"stay": "Wait for the next run",
 		}[item])
 	return lines
@@ -1879,12 +1889,13 @@ func _can_join() -> bool:
 
 
 func _input(event: InputEvent) -> void:
-	# The host's address, typed in: numbers and dots, and Backspace takes one back.
+	# The room's code typed in, in capitals, or a host's address with its dots; Backspace takes one
+	# back.
 	if _page == "join" and event is InputEventKey and event.pressed:
-		var typed := char(event.unicode) if event.unicode > 0 else ""
+		var typed := (char(event.unicode) if event.unicode > 0 else "").to_upper()
 		if event.keycode == KEY_BACKSPACE:
 			_address = _address.left(-1)
-		elif typed in ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "."] and _address.length() < 39:
+		elif typed.length() == 1 and (typed in Rooms.LETTERS or typed in "0123456789.") and _address.length() < 39:
 			_address += typed
 	var device := -1
 	if event is InputEventJoypadButton or event is InputEventJoypadMotion:

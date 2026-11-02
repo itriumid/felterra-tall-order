@@ -81,7 +81,10 @@ The cat's weapons choose a target and strike on their own; you move and dodge.
 ## Built with
 
 [Godot](https://godotengine.org) 4.7, in GDScript, with the Compatibility renderer, for Windows,
-macOS and Linux.
+macOS and Linux. Playing together online goes over WebRTC, through Godot's
+[webrtc-native](https://github.com/godotengine/webrtc-native) extension; each build carries the
+licenses of it and the libraries it's built on in its `licenses` folder. Room codes are handed out
+by a small Cloudflare Worker, in [`rooms/`](rooms/).
 
 ## Development
 
@@ -89,7 +92,13 @@ The font, Itrium Pixel, comes from [its own repository](https://github.com/itriu
 as a git submodule, so clone with `--recurse-submodules`, or run `git submodule update --init`
 after cloning.
 
+WebRTC, which room codes play over, isn't kept in git: fetch it once, at the version and checksum
+the script pins. Without it, the game still runs, and plays online by address only.
+
 ```sh
+# Fetch WebRTC
+tools/fetch_webrtc.sh
+
 # Run the tests (import once first on a fresh checkout)
 godot --headless --path . --import
 godot --headless --path . --script tests/run_tests.gd

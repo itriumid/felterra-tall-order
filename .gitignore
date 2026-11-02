@@ -5,3 +5,6 @@
 
 # Exported builds.
 /build/
+
+# Godot's WebRTC extension, fetched by tools/fetch_webrtc.sh at a pinned version and checksum.
+/addons/webrtc_native/
