@@ -110,6 +110,13 @@ GODOT=/path/to/godot tools/export.sh
 timeout 300 godot --headless --path . --script tools/benchmark_horde.gd
 ```
 
+## Privacy
+
+The game asks one thing of the internet on its own: on the title, once a launch, whether there's a
+newer version, from its own service (`api.tall-order.felterra.games.itrium.id`, which keeps no
+logs). Settings, Check for updates, turns it off. Playing together online goes through the same
+service only to find each other; the game itself goes between the players directly.
+
 ## License
 
 The code is free software under the [GNU General Public License, version 3](LICENSE). The name

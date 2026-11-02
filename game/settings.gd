@@ -17,6 +17,8 @@ const DEFAULTS := {
 	"graphics": {"full_screen": false, "window_scale": 2, "vsync": true, "fallen": 300},
 	"audio": {"master": 8, "music": 7, "effects": 8, "interface": 6},
 	"gameplay": {"aim": "nearest", "blood": true, "story_waits": false},
+	# Whether the title asks if there's a newer version: it sends nothing but the asking.
+	"online": {"updates": true},
 }
 
 var values := {}

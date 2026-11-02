@@ -425,13 +425,13 @@ func told_other_version(host_version: String) -> void:
 static func other_version(host_version: String, mine: String) -> String:
 	if host_version.is_empty():
 		return "The host is on another version: you both need the same to play together"
-	if _older(mine, host_version):
+	if older(mine, host_version):
 		return "The host is on %s and you're on %s: update to play together" % [host_version, mine]
 	return "The host is on %s and you're on %s: they need to update to play together" % [host_version, mine]
 
 
 ## Whether one version comes before another, number by number.
-static func _older(one: String, other: String) -> bool:
+static func older(one: String, other: String) -> bool:
 	var a := one.split(".")
 	var b := other.split(".")
 	for index in maxi(a.size(), b.size()):

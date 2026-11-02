@@ -556,6 +556,13 @@ Not lockstep: lockstep needs every machine to compute identical results, and GDS
 promise identical floating-point math across Windows, macOS and Linux. Online play through
 Steam would mean adding GodotSteam later, which is a new dependency and gets decided then.
 
+**Updates are told, never installed.** On the title, once a launch, the game asks its service
+(`/latest`, read from GitHub's latest release and kept for an hour) whether there's a newer
+version, and if there is, offers "Get version 0.0.6" after Play, opening the game's page. A
+setting, Check for updates, turns it off; a development run never asks. Installing an update
+itself would make the update source a way to run code on every player's machine, which needs
+signed updates first; a store's own updating comes with the game when it goes to one.
+
 WebRTC comes from Godot's own extension, webrtc-native, fetched at a pinned version and checksum
 by `tools/fetch_webrtc.sh` rather than kept in git; the builds carry its library and, in a
 `licenses` folder, the licenses of what it's built on.
