@@ -14,6 +14,8 @@ const BOSS_NAMES := {
 ## How many of a shop's rows show at once, and how many lines its chosen thing's story gets.
 const SHOP_ROWS_SHOWN := 13
 const STORY_LINES := 5
+## The smithy's and the pack's pages show the chosen thing's picture beside the list, this wide.
+const PREVIEW_WIDTH := 150.0
 const BOOK_LINES := 8
 ## How wide a speech bubble's lines run, and what each speaker is called over their words.
 const BUBBLE_WIDTH := 170.0
@@ -389,7 +391,8 @@ func _draw_village_counts() -> void:
 func _draw_shop() -> void:
 	var screen := get_viewport_rect().size
 	var row := PixelFont.LINE_HEIGHT + 3
-	var width := 320.0
+	var previewing := shop_rows.size() > 0 and shop_rows[0].has("item")
+	var width := 320.0 + (PREVIEW_WIDTH if previewing else 0.0)
 	var shown := mini(shop_rows.size(), SHOP_ROWS_SHOWN)
 	var tabs_height := 16 if not shop_tabs.is_empty() else 0
 	var has_stories := shop_rows.any(func(entry: Dictionary) -> bool: return not (entry.get("story", "") as String).is_empty())
@@ -416,6 +419,10 @@ func _draw_shop() -> void:
 			PixelFont.draw(self, tab.position + Vector2(4, 2), label, Palette.GRAPHITE if index == shop_tab else Palette.SMOKE)
 			x += tab.size.x + 4
 		y += tabs_height
+	# The list on the left; with a picture beside it, the list ends where the picture begins.
+	var list_end := box.end.x - (PREVIEW_WIDTH if previewing else 0.0)
+	if previewing:
+		_draw_thing(Rect2(list_end, y - 2, PREVIEW_WIDTH - 6, window * row + 2), shop_rows[shop_choice])
 	# The window of rows keeps the chosen one in it.
 	var first := clampi(shop_choice - shown / 2, 0, shop_rows.size() - shown)
 	for index in range(first, first + shown):
@@ -423,12 +430,12 @@ func _draw_shop() -> void:
 		var at := Vector2(box.position.x + 6, y + 2 + (index - first) * row)
 		var chosen := index == shop_choice
 		if chosen:
-			draw_rect(Rect2(at - Vector2(0, 2), Vector2(box.size.x - 12, row)), Palette.PINK)
+			draw_rect(Rect2(at - Vector2(0, 2), Vector2(list_end - box.position.x - 12, row)), Palette.PINK)
 		var ink := Palette.GRAPHITE if chosen else (Palette.OFF_WHITE if entry.can or entry.state in ["packed", "worn from the start"] else Palette.SMOKE)
 		PixelFont.draw(self, at + Vector2(10, 0), entry.name, ink)
-		PixelFont.draw(self, Vector2(box.end.x - 16 - PixelFont.width(entry.state), at.y), entry.state, ink)
+		PixelFont.draw(self, Vector2(list_end - 16 - PixelFont.width(entry.state), at.y), entry.state, ink)
 	# More above or below, marked by an arrow in the middle of the window's edge.
-	var middle := floorf(box.get_center().x)
+	var middle := floorf((box.position.x + list_end) / 2.0)
 	if first > 0:
 		_arrow(Vector2(middle, y - 2), -1)
 	if first + shown < shop_rows.size():
@@ -437,7 +444,10 @@ func _draw_shop() -> void:
 		var story_top := y + window * row + 6
 		draw_rect(Rect2(box.position.x + 6, story_top - 3, box.size.x - 12, 1), Palette.PANEL_LIGHT)
 		# What it does, then where it came from.
-		var does := wrapped(shop_rows[shop_choice].get("does", ""), box.size.x - 24)
+		# With a picture, what it does is under the picture: here, only its story.
+		var does: Array[String] = []
+		if not previewing:
+			does = wrapped(shop_rows[shop_choice].get("does", ""), box.size.x - 24)
 		var lines := wrapped(shop_rows[shop_choice].get("story", ""), box.size.x - 24)
 		for index in mini(does.size() + lines.size(), story_lines):
 			var line: String = does[index] if index < does.size() else lines[index - does.size()]
@@ -451,6 +461,78 @@ func _draw_shop() -> void:
 		keys = ["W S", "choose", "Esc", "back"]
 	var keys_width := InterfaceArt.key_line_width(keys)
 	InterfaceArt.key_line(self, Vector2(floorf((screen.x - keys_width) / 2.0), box.end.y + 6), keys)
+
+
+## The chosen thing, beside the list: its picture, as it's seen on the cards, its name, what kind
+## of thing it is, and what it does.
+func _draw_thing(box: Rect2, entry: Dictionary) -> void:
+	InterfaceArt.well(self, box)
+	var item: String = entry.get("item", "")
+	var x := box.position.x + 6
+	var y := box.position.y + 6
+	if Sprites.held_art().has(item):
+		y = _draw_weapon_pictures(Rect2(x, y, box.size.x - 12, 0), item)
+	else:
+		var picture := Rect2(Vector2(floorf(box.get_center().x - 22), y), Vector2(44, 34))
+		InterfaceArt.panel(self, picture)
+		if not item.is_empty():
+			var texture := Sprites.preview(item)
+			draw_texture(texture, (picture.position + (picture.size - texture.get_size()) / 2.0).floor())
+		y = picture.end.y
+	y += 6
+	for line in wrapped(entry.name, box.size.x - 12):
+		InterfaceArt.bold(self, Vector2(x, y), line, Palette.OFF_WHITE)
+		y += PixelFont.LINE_HEIGHT
+	PixelFont.draw(self, Vector2(x, y), entry.get("kind", ""), Palette.SMOKE)
+	y += PixelFont.LINE_HEIGHT + 4
+	for line in wrapped(entry.get("does", ""), box.size.x - 12):
+		if y + PixelFont.LINE_HEIGHT > box.end.y:
+			break
+		PixelFont.draw(self, Vector2(x, y), line, Palette.LEAF_LIGHT)
+		y += PixelFont.LINE_HEIGHT
+
+
+## A weapon, the whole of it on its own, large; and below, on him: in his mouth, and on his tail.
+## Returns how far down the pictures reach.
+func _draw_weapon_pictures(area: Rect2, item: String) -> float:
+	var alone := Rect2(area.position, Vector2(area.size.x, 44))
+	InterfaceArt.panel(self, alone)
+	var texture := Sprites.weapon_alone(item)
+	# As large as fits, in whole pixels, so its pixels stay square.
+	var times := clampi(mini(int((alone.size.x - 8) / texture.get_width()), int((alone.size.y - 8) / texture.get_height())), 1, 4)
+	var size := texture.get_size() * times
+	draw_texture_rect(texture, Rect2((alone.position + (alone.size - size) / 2.0).floor(), size), false)
+	var half := floorf((area.size.x - 4) / 2.0)
+	var mouth := Rect2(alone.position + Vector2(0, alone.size.y + 4), Vector2(half, 30))
+	var tail := Rect2(mouth.position + Vector2(half + 4, 0), mouth.size)
+	InterfaceArt.panel(self, mouth)
+	InterfaceArt.panel(self, tail)
+	var held := Sprites.preview(item)
+	draw_texture(held, (mouth.position + (mouth.size - held.get_size()) / 2.0).floor())
+	# On his tail: the tail up and back from its base, then out ahead to what it holds, as he's
+	# drawn in the fight.
+	var body := Sprites.tompel_side()
+	var top_left := (tail.position + (tail.size - body.get_size()) / 2.0 + Vector2(-2, 2)).floor()
+	draw_texture(body, top_left)
+	var base := top_left + Sprites.hold("side", false, "tail")
+	var curl := base + Vector2(-2, -4)
+	var tip := (curl + Vector2.RIGHT * Sprites.TAIL_REACH).round()
+	var points: Array[Vector2] = []
+	for limb: Array in [[base, curl], [curl, tip]]:
+		var steps := maxi(int((limb[0] as Vector2).distance_to(limb[1])), 1)
+		for step in steps + 1:
+			points.append((limb[0] as Vector2).lerp(limb[1], float(step) / steps).round())
+	for point in points:
+		draw_rect(Rect2(point - Vector2.ONE, Vector2(3, 3)), Palette.OUTLINE)
+	for point in points:
+		draw_rect(Rect2(point, Vector2.ONE), Palette.BLACK_FUR)
+	var drawing := Sprites.gun_toward(item, Vector2.RIGHT)
+	draw_texture(drawing.texture, tip - drawing.grip)
+	for pair: Array in [[mouth, "in his mouth"], [tail, "on his tail"]]:
+		var label: String = pair[1]
+		var frame: Rect2 = pair[0]
+		PixelFont.draw(self, Vector2(floorf(frame.get_center().x - PixelFont.width(label) / 2.0), frame.end.y + 2), label, Palette.SMOKE)
+	return mouth.end.y + 2 + PixelFont.LINE_HEIGHT
 
 
 ## A small pink arrow, pointing up (-1) or down (1), its point at a spot.

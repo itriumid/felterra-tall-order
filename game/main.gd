@@ -143,6 +143,11 @@ var _world: Node2D
 var _camera: Camera2D
 var _overlay: Overlay
 var _muzzle_light: PointLight2D
+## Up a level, a glow from him that fades: how much of it is left, and the level last seen.
+var _level_light: PointLight2D
+var _level_glow := 0.0
+var _glow_level := -1
+const LEVEL_GLOW_TIME := 0.9
 var _entities: EntitiesView
 var _audio: AudioDirector
 var _music: MusicDirector
@@ -504,6 +509,12 @@ func _build_scene() -> void:
 	_muzzle_light.height = 12.0
 	_muzzle_light.energy = 0.0
 	_arena_layer.add_child(_muzzle_light)
+	_level_light = PointLight2D.new()
+	_level_light.texture = _soft_light(Vector2i(160, 160))
+	_level_light.color = Palette.SPARK
+	_level_light.height = 20.0
+	_level_light.energy = 0.0
+	_arena_layer.add_child(_level_light)
 	_camera = Camera2D.new()
 	_world.add_child(_camera)
 	_audio = AudioDirector.new()
@@ -1000,10 +1011,21 @@ func _shop_rows() -> Array[Dictionary]:
 	return rows
 
 
+## What kind of thing it is, in words, under its picture: gear says where it's worn.
+func _kind_of(id: String, card: Dictionary) -> String:
+	match card.kind:
+		"weapon": return "Weapon"
+		"support": return "Support"
+		"gear":
+			var piece := id.trim_prefix("gear:")
+			return "Gear, worn on the %s" % Upgrades.GEAR[piece].slot if Upgrades.GEAR.has(piece) else "Gear"
+	return "Dodge mutation" if id.begins_with("mutation:") else (card.kind as String).capitalize()
+
+
 ## A thing at the smithy: forged already, or what forging it costs.
 func _forge_row(id: String) -> Dictionary:
 	var card := Upgrades.describe({"id": id, "rarity": Upgrades.Rarity.COMMON})
-	var row := {"id": id, "name": card.name, "can": false, "story": card.story, "does": card.does}
+	var row := {"id": id, "name": card.name, "can": false, "story": card.story, "does": card.does, "item": card.item, "kind": _kind_of(id, card)}
 	if id in Village.STARTING:
 		row.state = "carried from the start"
 	elif id in village.forged:
@@ -1018,7 +1040,8 @@ func _forge_row(id: String) -> Dictionary:
 ## a dodge mutation not taught yet, and where it will be.
 func _pack_row(id: String) -> Dictionary:
 	var card := Upgrades.describe({"id": id, "rarity": Upgrades.Rarity.COMMON})
-	var row := {"id": id, "name": card.name, "can": village.has(id) and not id in Village.ALWAYS_PACKED, "story": card.story, "does": card.does}
+	var row := {"id": id, "name": card.name, "can": village.has(id) and not id in Village.ALWAYS_PACKED, "story": card.story, "does": card.does,
+		"item": card.item, "kind": _kind_of(id, card)}
 	if id in Village.ALWAYS_PACKED:
 		row.state = "always packed"
 	elif village.has(id):
@@ -1249,12 +1272,23 @@ func _process(delta: float) -> void:
 	_camera.position = _run_camera()
 	_muzzle_light.position = World.to_screen(cat.body.position, Cat.GUN_HEIGHT) + cat.aim * 10.0
 	_muzzle_light.energy = 1.6 * _entities.flash.get(cat, 0.0)
+	_glow_on_level_up(delta)
 	if arena.liberated and cat.alive():
 		_begin_freeing()
 	elif arena.over():
 		_end_run()
 	_overlay.goal = arena.goal_progress()
 	_take_screenshot(delta)
+
+
+## Up a level: a glow from him, bright at once and fading.
+func _glow_on_level_up(delta: float) -> void:
+	if _glow_level >= 0 and arena.level > _glow_level:
+		_level_glow = 1.0
+	_glow_level = arena.level
+	_level_glow = maxf(_level_glow - delta / LEVEL_GLOW_TIME, 0.0)
+	_level_light.position = World.to_screen(cat.body.position, 0.4)
+	_level_light.energy = 2.4 * _level_glow * _level_glow
 
 
 ## Steps the simulation to catch up with the time passed, and hands its hits to the blood and

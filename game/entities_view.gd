@@ -8,6 +8,16 @@ extends Node2D
 const FLASH_TIME := 0.05
 ## A cat hurt flickers red this long, in seconds: on, off, on.
 const HURT_TIME := 0.2
+## A weapon just taken or strengthened: a glint runs along it, this long, in seconds.
+const GLINT_TIME := 0.5
+## "Level up!" rises over each cat, this long, in seconds, this many pixels.
+const LEVEL_UP_TIME := 1.2
+const LEVEL_UP_RISE := 14.0
+## The colors a card taken throws up round him, by what kind of card it was.
+const TAKEN_COLORS := {
+	"gear": [Palette.BRASS_LIGHT, Palette.OFF_WHITE], "support": [Palette.LEAF_LIGHT, Palette.OFF_WHITE],
+	"mutation": [Palette.PINK, Palette.OFF_WHITE],
+}
 ## Ground covered by one full walk cycle, in meters: the frames step with the feet, so they
 ## never slide, and a body knocked through the air doesn't run.
 const CAT_STRIDE := 0.42
@@ -41,6 +51,12 @@ var flash := {}
 ## Each cat's hurt flicker, the time left of it, and the hits he'd taken when last looked.
 var _hurt := {}
 var _hits_seen := {}
+## Each cat's glint along his weapon, the time left of it, and the cards he'd taken when last
+## looked; and the level-up word over the crew, the time left of it, and the level last seen.
+var _glint := {}
+var _taken_seen := {}
+var _level_up := 0.0
+var _level_seen := -1
 var _rounds_seen := {}
 ## Droplets in the air, and the stains they leave: real particles, landing where they fall.
 var _droplets: Array[Dictionary] = []
@@ -92,6 +108,10 @@ func _process(delta: float) -> void:
 			_hurt[cat] = HURT_TIME
 		_hits_seen[cat] = cat.hits_taken
 		_hurt[cat] = maxf(_hurt.get(cat, 0.0) - delta, 0.0)
+		if cat.taken != _taken_seen.get(cat, cat.taken):
+			_took(cat)
+		_taken_seen[cat] = cat.taken
+		_glint[cat] = maxf(_glint.get(cat, 0.0) - delta, 0.0)
 		if cat.dodging_for > 0.0 and not cat.body.airborne():
 			_kick_dust(cat.body)
 		var cannon: Support = cat.supports.get("set_down")
@@ -99,6 +119,14 @@ func _process(delta: float) -> void:
 			if cannon.weapon.rounds_fired != _support_rounds.get(cannon, cannon.weapon.rounds_fired):
 				_puff(cannon)
 			_support_rounds[cannon] = cannon.weapon.rounds_fired
+	# Up a level: the word over every cat, and light thrown up round each.
+	if _level_seen >= 0 and arena.level > _level_seen:
+		_level_up = LEVEL_UP_TIME
+		for cat in arena.cats:
+			if cat.alive():
+				_burst(cat, [Palette.SPARK, Palette.OFF_WHITE, Palette.BRASS_LIGHT], 24, 1.4)
+	_level_seen = arena.level
+	_level_up = maxf(_level_up - delta, 0.0)
 	for machine in arena.machines:
 		_exhaust(machine, delta)
 	_clock += delta
@@ -284,10 +312,52 @@ func _draw_all() -> void:
 	if arena.together():
 		for cat in arena.cats:
 			_draw_marker(cat)
+	if _level_up > 0.0:
+		_draw_level_up()
 
 
 ## How far over a cat's feet its player's marker points down, in pixels: just over its ears.
 const MARKER_ABOVE := 22.0
+
+
+## A card he's just taken, shown on him: a weapon glints along its length; anything else throws
+## up a ring of its colors round him, rising.
+func _took(cat: Cat) -> void:
+	if not cat.alive() or cat.last_taken.is_empty():
+		return
+	var kind: String = Upgrades.describe({"id": cat.last_taken, "rarity": Upgrades.Rarity.COMMON}).kind
+	if kind == "weapon":
+		_glint[cat] = GLINT_TIME
+		_burst(cat, [Palette.OFF_WHITE, Palette.SPARK], 8, 0.6)
+	else:
+		_burst(cat, TAKEN_COLORS.get(kind, [Palette.PINK, Palette.OFF_WHITE]), 16, 1.0)
+
+
+## Specks of light thrown up and out round a cat's feet, a ring of them, in turn of these colors.
+func _burst(cat: Cat, colors: Array, count: int, strength: float) -> void:
+	for index in count:
+		_droplets.append({
+			"position": cat.body.position, "height": 0.1, "rise": randf_range(1.2, 2.2) * strength,
+			"velocity": Vector2.from_angle(index * TAU / count) * 0.8 * strength,
+			"color": colors[index % colors.size()], "stains": false,
+		})
+
+
+## "Level up!" over each cat standing, rising, blinking out at the end.
+func _draw_level_up() -> void:
+	var gone := 1.0 - _level_up / LEVEL_UP_TIME
+	if _level_up < 0.3 and int(_level_up / 0.075) % 2 == 1:
+		return
+	var word := "Level up!"
+	var width := InterfaceArt.bold_width(word)
+	for cat in arena.cats:
+		if not cat.alive():
+			continue
+		var over := World.to_screen(cat.body.position, cat.body.height) - Vector2(0, MARKER_ABOVE + 8.0 + roundf(LEVEL_UP_RISE * gone))
+		var at := (over - Vector2(width / 2.0, 0)).floor()
+		for step: Vector2 in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1), Vector2(2, 0)]:
+			InterfaceArt.bold(self, at + step, word, Palette.OUTLINE)
+		InterfaceArt.bold(self, at, word, Palette.BRASS_LIGHT)
 
 
 ## Playing together, whose cat is whose: a pointer in the player's color over each, and over one
@@ -576,6 +646,19 @@ func _draw_cat(cat: Cat) -> void:
 	var hurt: float = _hurt.get(cat, 0.0)
 	if hurt > 0.0 and int(hurt / (HURT_TIME / 3.0)) % 2 == 0:
 		draw_texture(Sprites.lit(Sprites.hurt(body_art), flip), top_left)
+	# A weapon just taken: a glint, a little cross of light, runs along it from grip to tip.
+	var glint: float = _glint.get(cat, 0.0)
+	if glint > 0.0:
+		for hold in holds:
+			if hold.weapon == null or (hold.drawing as Dictionary).is_empty():
+				continue
+			var drawing: Dictionary = hold.drawing
+			var size: Vector2 = (drawing.texture as Texture2D).get_size()
+			var along := 1.0 - glint / GLINT_TIME
+			var spot: Vector2 = (hold.at - drawing.grip + Vector2(size.x * along, size.y / 2.0)).floor()
+			draw_rect(Rect2(spot - Vector2(2, 0), Vector2(5, 1)), Palette.OFF_WHITE)
+			draw_rect(Rect2(spot - Vector2(0, 2), Vector2(1, 5)), Palette.OFF_WHITE)
+			draw_rect(Rect2(spot, Vector2.ONE), Palette.SPARK)
 
 
 ## The machine's shadow, its footprint on the ground; and while the boom swings out to bite, the
