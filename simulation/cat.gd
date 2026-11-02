@@ -132,6 +132,9 @@ var player := 0
 ## does.
 var hits_taken := 0
 var dodges := 0
+## Cards played, counted, and the last one's id, so the view can show what he took.
+var taken := 0
+var last_taken := ""
 ## His dodge mutations, by id, each as its strength: the amounts of every card taken for it added
 ## up, so a card for one he has strengthens it without taking another. And how many cards each.
 var mutations := {}
@@ -268,6 +271,8 @@ func play(index: int) -> bool:
 		return false
 	var offer: Array = offers.pop_front()
 	Upgrades.apply(self, offer[index])
+	taken += 1
+	last_taken = offer[index].id
 	return true
 
 

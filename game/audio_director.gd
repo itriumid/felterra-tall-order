@@ -191,7 +191,7 @@ func _process(_delta: float) -> void:
 		if _counted(cat, "dodges", cat.dodges):
 			play_at("dodge", cat.body.position, -8.0)
 		if _counted(cat, "hurt", cat.hits_taken):
-			play_at("hurt", cat.body.position, -6.0)
+			play_at("hurt", cat.body.position, -2.0)
 	if _counted(arena, "level", arena.level) and arena.level > 1:
 		interface("level_up")
 	for cage in arena.cages:

@@ -2800,6 +2800,22 @@ static func lean(_view: String, _frame: int) -> int:
 
 ## A card's picture of an item: Tompel wearing it, seen from the side it shows best on, framed on
 ## where it's worn. Weapons are shown in his mouth, dodge mutations as their signs.
+## A weapon on its own, as it's drawn pointing right: the whole of it, for a page to show large.
+static func weapon_alone(item: String) -> Texture2D:
+	var key := "alone|" + item
+	if not _cache.has(key):
+		_cache[key] = ImageTexture.create_from_image(image(held_art()[item].east.art))
+	return _cache[key]
+
+
+## Tompel side-on, no weapon in his mouth, for a page to put one on his tail.
+static func tompel_side() -> Texture2D:
+	var key := "tompel_side"
+	if not _cache.has(key):
+		_cache[key] = ImageTexture.create_from_image(image(coat(cat_body_art("side", 0), "tompel", "side")))
+	return _cache[key]
+
+
 static func preview(item: String) -> Texture2D:
 	var key := "preview|" + item
 	if _cache.has(key):
@@ -2935,6 +2951,19 @@ static func swapped(art: String, mapping: Dictionary) -> String:
 		result += mapping.get(character, character)
 	_cache[key] = result
 	return result
+
+
+## Art in the red of a hit: every pixel of it red but its outline, flashed over him when he's
+## hurt so it's plain even in a crowd.
+static func hurt(art: String) -> String:
+	var key := "hurt|%d" % art.hash()
+	if _cache.has(key):
+		return _cache[key]
+	var red := ""
+	for letter in art:
+		red += "c" if LEGEND.has(letter) and letter != "k" else letter
+	_cache[key] = red
+	return red
 
 
 ## Art of a cat in another coat: its fur's letters swapped for that coat's.

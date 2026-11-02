@@ -110,6 +110,11 @@ const STARTING: Array[String] = [
 	"gear:caping", "gear:scarf", "gear:boots", "gear:sarong", "gear:gloves",
 ]
 const ALWAYS_PACKED: Array[String] = ["weapon:nunchaku", "weapon:handgun"]
+## Once Pak Besi has shown him how, he chooses the two weapons a run starts with: one he swings and
+## one he shoots, so every start can both hold the horde off and reach it. Until then, and whenever
+## one he chose is left home, it's these.
+const DEFAULT_STARTERS: Array[String] = ["weapon:nunchaku", "weapon:handgun"]
+const STARTERS_TAUGHT := "teach:starters"
 ## How many of each kind must stay packed, for every place a run has for one: leaving things home
 ## narrows the cards, but never so far that they stop being a draw.
 const KEEP_PACKED_PER_PLACE := 3
@@ -155,6 +160,13 @@ var restored: Array[String] = []
 ## What the smith has forged, by card id, and the piece of gear worn from a run's start ("" none).
 var forged: Array[String] = []
 var starting_piece := ""
+## The two weapons a run starts with, to choose between: the one he swings, then the one he shoots.
+var starters: Array[String] = DEFAULT_STARTERS.duplicate()
+## What's new and waiting to be told, each where it's told: {"at": a building's name, "elder" or
+## "jogiboy", "title", "text"}. A "!" marks where, until he goes and hears it.
+var tidings: Array[Dictionary] = []
+## Salvage Jogiboy has dug up and is keeping for him, until he goes and gets it.
+var jogiboy_found := 0
 ## The looks bought, by id, and the ones worn: his coat, and the banners' colors.
 var looks: Array[String] = ["coat:tompel", "coat:orange", "banners:festival"]
 var coat := "tompel"
@@ -218,6 +230,8 @@ func packed(id: String) -> bool:
 ## home that would leave fewer of its kind packed than keep_packed() (gear worn from the start goes
 ## back to the pack instead). Returns false if it can't change.
 func repack(id: String) -> bool:
+	if id.begins_with("weapon:") and starters_taught():
+		return _repack_weapon(id)
 	if not has(id) or id in ALWAYS_PACKED:
 		return false
 	if id in left_home:
@@ -235,8 +249,82 @@ func repack(id: String) -> bool:
 	return true
 
 
+## Once he chooses his starters, a weapon goes round three ways: taken along, then a starter (in
+## place of the one of its sort, which is taken along instead), then left home (and its sort's
+## starter goes back to the village's own). The village's own two are never left home.
+func _repack_weapon(id: String) -> bool:
+	if not has(id):
+		return false
+	var slot := starter_slot(id)
+	if id in left_home:
+		left_home.erase(id)
+	elif starters[slot] != id:
+		starters[slot] = id
+	elif id in ALWAYS_PACKED:
+		return false
+	else:
+		starters[slot] = DEFAULT_STARTERS[slot]
+		if cant_leave_home(id).is_empty():
+			left_home.append(id)
+	return true
+
+
+## Which of the two starters a weapon would be: 0 for one he swings, 1 for one he shoots.
+static func starter_slot(id: String) -> int:
+	return 0 if Weapon.named(id.trim_prefix("weapon:")).kind == Weapon.Kind.MELEE else 1
+
+
+## Whether Pak Besi has shown him how to choose the weapons a run starts with.
+func starters_taught() -> bool:
+	return STARTERS_TAUGHT in told
+
+
+## The two weapons a run starts with, by name: "nunchaku", not "weapon:nunchaku".
+func starter_names() -> Array[String]:
+	var names: Array[String] = []
+	for id in starters:
+		names.append(id.trim_prefix("weapon:"))
+	return names
+
+
+## Tells of something new, where it's told; the same news isn't told twice over. What it teaches,
+## if anything, is taught once it's heard.
+func tell(at: String, title: String, text: String, teaches := "") -> void:
+	for tiding in tidings:
+		if tiding.at == at and tiding.title == title:
+			return
+	var tiding := {"at": at, "title": title, "text": text}
+	if not teaches.is_empty():
+		tiding.teaches = teaches
+	tidings.append(tiding)
+
+
+## Whether there's something new waiting to be heard there.
+func has_tidings(at: String) -> bool:
+	return (at == "jogiboy" and jogiboy_found > 0) or tidings.any(func(tiding: Dictionary) -> bool: return tiding.at == at)
+
+
+## Hears what's waiting there, and it's no longer waiting: Jogiboy hands over what he's found.
+## Returns each as {title, text}.
+func hear(at: String) -> Array[Dictionary]:
+	var heard: Array[Dictionary] = []
+	if at == "jogiboy" and jogiboy_found > 0:
+		heard.append({"title": "Jogiboy", "text": "\"Dug these up while you were out: %d salvage. Yours.\" He drops them at your paws." % jogiboy_found})
+		salvage += jogiboy_found
+		jogiboy_found = 0
+	for tiding in tidings.duplicate():
+		if tiding.at == at:
+			heard.append({"title": tiding.title, "text": tiding.text})
+			tidings.erase(tiding)
+			if tiding.get("teaches", "") != "" and not tiding.teaches in told:
+				told.append(tiding.teaches)
+	return heard
+
+
 ## Why a thing can't be left home ("" if it can): always packed, or too few of its kind packed.
 func cant_leave_home(id: String) -> String:
+	if id in starters:
+		return "it starts the run"
 	if id in ALWAYS_PACKED:
 		return "it's what a run starts with"
 	var kind := id.get_slice(":", 0)
@@ -509,6 +597,9 @@ func clear() -> void:
 	restored.clear()
 	forged.clear()
 	starting_piece = ""
+	starters.assign(DEFAULT_STARTERS)
+	tidings.clear()
+	jogiboy_found = 0
 	looks.assign(["coat:tompel", "coat:orange", "banners:festival"])
 	coat = "tompel"
 	banners = "festival"
@@ -533,6 +624,9 @@ func save(path := PATH) -> bool:
 	file.set_value("village", "restored", restored)
 	file.set_value("village", "forged", forged)
 	file.set_value("village", "starting_piece", starting_piece)
+	file.set_value("village", "starters", starters)
+	file.set_value("village", "tidings", tidings)
+	file.set_value("village", "jogiboy_found", jogiboy_found)
 	file.set_value("village", "looks", looks)
 	file.set_value("village", "coat", coat)
 	file.set_value("village", "banners", banners)
@@ -583,6 +677,7 @@ func load_from(path := PATH) -> void:
 		known_scenes.append("outro:" + id)
 		known_scenes.append("send_off:" + id)
 		known_scenes.append("teach:" + id)
+	known_scenes.append(STARTERS_TAUGHT)
 	_names(file, "told", told, known_scenes)
 	var saved_next: Variant = file.get_value("village", "next_run", "edge")
 	next_run = saved_next if saved_next is String and (saved_next == "endless" or (saved_next in Areas.ids() and not Areas.named(saved_next).get("in_the_village", false))) else next_area()
@@ -592,6 +687,26 @@ func load_from(path := PATH) -> void:
 		goals_done.erase(id)
 	_names(file, "left_home", left_home, everything())
 	left_home.erase(starting_piece)
+	# Each starter a weapon he has, of its sort, and packed; or the village's own.
+	var saved_starters: Variant = file.get_value("village", "starters", DEFAULT_STARTERS)
+	starters.assign(DEFAULT_STARTERS)
+	if saved_starters is Array and saved_starters.size() == 2:
+		for slot in 2:
+			var id: Variant = saved_starters[slot]
+			if id is String and (id as String).begins_with("weapon:") and (id as String).trim_prefix("weapon:") in Upgrades.WEAPONS \
+					and has(id) and starter_slot(id) == slot and starters_taught():
+				starters[slot] = id
+				left_home.erase(id)
+	jogiboy_found = _count(file, "jogiboy_found")
+	tidings.clear()
+	var saved_tidings: Variant = file.get_value("village", "tidings", [])
+	if saved_tidings is Array:
+		for each: Variant in saved_tidings:
+			if each is Dictionary and each.get("at") is String and each.get("title") is String and each.get("text") is String:
+				var tiding: Dictionary = {"at": each.at, "title": each.title, "text": each.text}
+				if each.get("teaches") is String and each.teaches in known_scenes:
+					tiding.teaches = each.teaches
+				tidings.append(tiding)
 	for always: String in ALWAYS_PACKED:
 		left_home.erase(always)
 	offerings = _count(file, "offerings")

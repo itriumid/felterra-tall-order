@@ -196,6 +196,31 @@ func _draw() -> void:
 		draw_rect(Rect2(World.to_screen(speck.position, speck.height), Vector2.ONE), Palette.SMOKE)
 	for cluster in _leaves:
 		draw_texture(cluster.texture, cluster.at)
+	_draw_tidings()
+
+
+## A "!" over each building and villager with something new for him, bobbing, until he hears it.
+func _draw_tidings() -> void:
+	if village_record == null:
+		return
+	var bob := Vector2(0, -1) if fmod(_clock, 0.8) < 0.4 else Vector2.ZERO
+	for building in village.buildings:
+		if village_record.has_tidings(building.name) and (building.restored or building.name == "board"):
+			var footprint: Rect2 = building.footprint
+			_draw_mark(World.to_screen(Vector2(footprint.get_center().x, footprint.end.y), FLOOR + WALL + ROOF * 1.6 + 0.3) + bob)
+	for pair: Array in [["jogiboy", village.jogi], ["elder", village.elder]]:
+		if village_record.has_tidings(pair[0]):
+			var who: Cat = pair[1]
+			_draw_mark(World.to_screen(who.body.position, who.body.height) - Vector2(0, MARKER_ABOVE) + bob)
+
+
+## A "!", outlined, its foot at a spot.
+func _draw_mark(foot: Vector2) -> void:
+	var at := foot.floor() - Vector2(1, 9)
+	draw_rect(Rect2(at - Vector2.ONE, Vector2(4, 7)), Palette.OUTLINE)
+	draw_rect(Rect2(at + Vector2(-1, 6), Vector2(4, 4)), Palette.OUTLINE)
+	draw_rect(Rect2(at, Vector2(2, 5)), Palette.BRASS_LIGHT)
+	draw_rect(Rect2(at + Vector2(0, 7), Vector2(2, 2)), Palette.BRASS_LIGHT)
 
 
 ## The village's own things, stood up in the fight: its trees, buildings, props and flags.

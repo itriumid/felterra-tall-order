@@ -54,6 +54,21 @@ func test_steps_stay_within_their_limits() -> void:
 		settings.step("graphics", "fallen", 1)
 	check(settings.get_value("graphics", "fallen") == Arena.MOST_FALLEN, "more of the fallen were left lying than there can be")
 
+	for step in Settings.HEALTH_SHOWN.size():
+		check(settings.get_value("graphics", "health") == Settings.HEALTH_SHOWN[step], "health shown went %s, out of turn" % settings.get_value("graphics", "health"))
+		settings.step("graphics", "health", 1)
+	check(settings.get_value("graphics", "health") == "both", "health shown didn't come round")
+
+
+func test_a_way_of_showing_health_off_the_list_goes_back_to_its_default() -> void:
+	var file := ConfigFile.new()
+	file.set_value("graphics", "health", "hearts")
+	file.save(TEST_PATH)
+	var settings := Settings.new()
+	settings.load_from(TEST_PATH)
+	check(settings.get_value("graphics", "health") == "both", "health shown loaded as %s" % settings.get_value("graphics", "health"))
+	DirAccess.remove_absolute(TEST_PATH)
+
 
 func test_a_count_of_the_fallen_off_the_list_goes_back_to_its_default() -> void:
 	var file := ConfigFile.new()

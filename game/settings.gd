@@ -11,10 +11,13 @@ const WINDOW_SCALES: Array[int] = [1, 2, 3, 4]
 ## How many of the fallen are left lying before the oldest crumble away: fewer is lighter work
 ## for a slower machine.
 const FALLEN: Array[int] = [0, 100, 300, 600]
+## How his health shows: as a bar with its number beside it, the bar alone, or the number alone,
+## for those who'd rather have less on screen.
+const HEALTH_SHOWN: Array[String] = ["both", "bar", "number"]
 
 ## Every setting, its section, and its default. Volumes are 0 to 10.
 const DEFAULTS := {
-	"graphics": {"full_screen": false, "window_scale": 2, "vsync": true, "fallen": 300},
+	"graphics": {"full_screen": false, "window_scale": 2, "vsync": true, "fallen": 300, "health": "both"},
 	"audio": {"master": 8, "music": 7, "effects": 8, "interface": 6},
 	"gameplay": {"aim": "nearest", "blood": true, "story_waits": false},
 	# Whether the title asks if there's a newer version: it sends nothing but the asking.
@@ -46,6 +49,8 @@ func step(section: String, key: String, direction: int) -> void:
 		values[section][key] = AIM_MODES[wrapi(AIM_MODES.find(value) + direction, 0, AIM_MODES.size())]
 	elif key == "window_scale":
 		values[section][key] = WINDOW_SCALES[clampi(WINDOW_SCALES.find(value) + direction, 0, WINDOW_SCALES.size() - 1)]
+	elif key == "health":
+		values[section][key] = HEALTH_SHOWN[wrapi(HEALTH_SHOWN.find(value) + direction, 0, HEALTH_SHOWN.size())]
 	elif key == "fallen":
 		values[section][key] = FALLEN[clampi(FALLEN.find(value) + direction, 0, FALLEN.size() - 1)]
 	else:
@@ -79,6 +84,8 @@ func load_from(path := PATH) -> void:
 		# A count off the list (hand-edited, say) goes back to its default.
 		if section == "graphics" and not values.graphics.fallen in FALLEN:
 			values.graphics.fallen = DEFAULTS.graphics.fallen
+		if section == "graphics" and not values.graphics.health in HEALTH_SHOWN:
+			values.graphics.health = DEFAULTS.graphics.health
 
 
 ## Puts the graphics and audio settings into effect. The gameplay ones are read by the run.

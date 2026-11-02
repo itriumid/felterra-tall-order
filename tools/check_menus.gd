@@ -37,9 +37,13 @@ const STEPS := [
 	["leave_village", "", {"_place": "leaving"}], ["pause", "", {"_place": "run", "_briefing": false, "_entering": true}],
 	["pause", "", {"_entering": false}], ["pick_1", ""],
 	["free_area", "", {"_freeing": true}], ["pause", "summary", {"village.liberated": ["edge"]}],
-	# Home: the Elder's lesson and the smithy told on the way in, skipped; then what's new.
-	["menu_choose", "", {"_place": "arriving"}], ["pause", "news", {"_place": "village", "village.restored": ["home", "smithy"]}],
-	["menu_choose", "", {"village.told": ["send_off:edge", "intro:edge", "outro:edge", "teach:edge"]}],
+	# Home: the Elder's lesson and the smithy told on the way in, skipped. What's new waits where
+	# it's told: at the smithy, what it does and Pak Besi's word on starting weapons, which teaches
+	# choosing them; and with Jogiboy, the salvage he dug up, handed over.
+	["menu_choose", "", {"_place": "arriving"}],
+	["pause", "", {"_place": "village", "village.restored": ["home", "smithy"], "village.told": ["send_off:edge", "intro:edge", "outro:edge", "teach:edge"]}],
+	["to_smithy", ""], ["menu_choose", "news"], ["menu_choose", "", {"village.told": ["send_off:edge", "intro:edge", "outro:edge", "teach:edge", "teach:starters"]}],
+	["to_jogiboy", ""], ["menu_choose", "news", {"village.jogiboy_found": 0}], ["menu_choose", ""],
 	# Cats rescued, and the next areas freed, as the story would: the weaver's hut, the longhouse,
 	# the watchtower, the market and the healer's hut come back, and the rescued build their huts.
 	["catch_up", "", {"village.restored": ["home", "smithy", "longhouse", "hut_0", "hut_1", "hut_2", "hut_3", "hut_4", "watchtower", "market", "healer"]}],
@@ -48,10 +52,15 @@ const STEPS := [
 	["menu_choose", "forge", {"village.forged": ["gear:vest"]}], ["pause", ""],
 	# His pack at home: the vest worn from the start, then not left home but back in the pack, with
 	# too little gear packed to leave any home; a weapon not left home either.
-	["to_house", ""], ["menu_choose", "pack"], ["move_right", "pack"],
+	# Home first tells what it's for, the first time; then it's his pack.
+	["to_house", ""], ["menu_choose", "news"], ["menu_choose", ""], ["menu_choose", "pack"], ["move_right", "pack"],
 	["menu_choose", "pack", {"village.starting_piece": "gear:vest"}],
 	["menu_choose", "pack", {"village.left_home": [], "village.starting_piece": ""}],
-	["move_left", "pack"], ["move_down", "pack"], ["move_down", "pack"], ["menu_choose", "pack", {"village.left_home": []}], ["pause", ""],
+	["move_left", "pack"], ["move_down", "pack"], ["move_down", "pack"], ["menu_choose", "pack", {"village.left_home": []}],
+	# The knife chosen to start with, as the one he swings; then taken along, not started with, as
+	# too few weapons are packed to leave it home.
+	["move_up", "pack"], ["menu_choose", "pack", {"village.starters": ["weapon:knife", "weapon:handgun"]}],
+	["menu_choose", "pack", {"village.starters": ["weapon:nunchaku", "weapon:handgun"], "village.left_home": []}], ["pause", ""],
 	# The weaver's hut: buy a gray coat, and wear it.
 	["to_weaver", ""], ["menu_choose", "looks"], ["move_down", "looks"], ["move_down", "looks"], ["menu_choose", "looks", {"village.coat": "gray"}], ["pause", ""],
 	# The market: salvage traded for cloth. The healer's hut: a tonic brewed for the next run.
@@ -61,7 +70,7 @@ const STEPS := [
 	["to_longhouse", ""], ["menu_choose", "book"], ["move_down", "book"], ["pause", ""],
 	# The map board: it opens on the next area, the airstrip; up and back down to it, then on to
 	# Endless.
-	["to_board", ""], ["menu_choose", "board", {"village.next_run": "airstrip"}], ["move_up", "board"], ["move_right", "board"],
+	["to_board", ""], ["menu_choose", "news"], ["menu_choose", ""], ["menu_choose", "board", {"village.next_run": "airstrip"}], ["move_up", "board"], ["move_right", "board"],
 	["move_down", "board"], ["menu_choose", "board", {"village.next_run": "endless"}],
 	["pause", ""], ["to_home", ""],
 	# Out to Endless, then giving the run up: back to the village from the pause menu.
@@ -74,8 +83,8 @@ const STEPS := [
 	# Another gamepad drops in to the run under way: out of it while they choose, in once they have.
 	["join_pad_8", "", {"arena.cats.size": 2}], ["pick_2:2", "", {"arena.cats.size": 3}],
 	["pause", "pause"], ["move_down", "pause"], ["move_down", "pause"], ["move_down", "pause"],
-	# Home, with the lessons of the two areas freed meanwhile told on the way in; then what's new.
-	["menu_choose", "", {"_place": "arriving"}], ["pause", "news", {"_place": "village"}], ["menu_choose", ""],
+	# Home, with the lessons of the two areas freed meanwhile told on the way in; what's new waits.
+	["menu_choose", "", {"_place": "arriving"}], ["pause", "", {"_place": "village"}],
 	# Peace with the forest, and the cub given: at the shrine, a rank for offerings, then smoke woken.
 	["grant_gift", "", {"village.cub_rank": 1}], ["to_shrine", ""], ["menu_choose", "shrine"],
 	["move_down", "shrine"], ["menu_choose", "shrine", {"village.cub_rank": 2}],
@@ -159,6 +168,8 @@ func _process(_delta: float) -> bool:
 			if _main.arena.boss == null:
 				_main.arena._bring_in_the_boss()
 			_main.arena.strike(_main.arena.boss, 1.0e7, Vector2.ZERO, 0.0, 0.0, "round")
+		elif action == "to_jogiboy":
+			_main.village_map.cat.body.position = _main.village_map.jogi.body.position + Vector2(0.3, 0.0)
 		elif action in ["to_smithy", "to_weaver", "to_home", "to_board", "to_house", "to_longhouse", "to_market", "to_healer", "to_shrine"]:
 			# Walked up to a door, or back into the open.
 			var spots := {"to_smithy": VillageMap.SMITHY, "to_weaver": VillageMap.HUTS[0], "to_board": VillageMap.BOARD, "to_house": VillageMap.HOME, "to_longhouse": VillageMap.LONGHOUSE, "to_market": VillageMap.MARKET, "to_healer": VillageMap.HEALER, "to_shrine": VillageMap.SHRINE}

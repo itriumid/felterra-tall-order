@@ -95,6 +95,7 @@ const THING_TABS: Array[Array] = [["weapon", "Weapons"], ["gear", "Gear"], ["sup
 const SETTING_ROWS: Array[Array] = [
 	["graphics", "full_screen", "Full screen"], ["graphics", "window_scale", "Window size"],
 	["graphics", "vsync", "Vertical sync"], ["graphics", "fallen", "Fallen left lying"],
+	["graphics", "health", "Health shown"],
 	["audio", "master", "Volume"], ["audio", "music", "Music"], ["audio", "effects", "Effects"],
 	["audio", "interface", "Interface"],
 	["gameplay", "aim", "Aim"], ["gameplay", "blood", "Blood"], ["gameplay", "story_waits", "Story lines"],
@@ -109,9 +110,10 @@ const TITLE_PAGES: Array[String] = ["title", "together", "join", "waiting"]
 const MOST_PLAYERS := 4
 const ALLY_COATS: Array[String] = ["orange", "gray", "black", "cream"]
 const LEASH := Vector2(13.0, 5.5)
+## How close he has to be to a villager to hear what they have for him, in meters.
+const TALK_REACH := 1.0
 ## The weapons an ally chooses between, by the button that chooses it; the third is whichever
 ## weapon forged at the smithy they've turned to, as his is.
-const ALLY_WEAPONS: Array[String] = ["nunchaku", "handgun"]
 ## A guest goes on guessing where things are going for at most this long without word from the
 ## host, in seconds: past it, a stalled connection freezes the world rather than letting it drift.
 const GUESSED_AHEAD := 0.15
@@ -142,6 +144,11 @@ var _world: Node2D
 var _camera: Camera2D
 var _overlay: Overlay
 var _muzzle_light: PointLight2D
+## Up a level, a glow from him that fades: how much of it is left, and the level last seen.
+var _level_light: PointLight2D
+var _level_glow := 0.0
+var _glow_level := -1
+const LEVEL_GLOW_TIME := 0.9
 var _entities: EntitiesView
 var _audio: AudioDirector
 var _music: MusicDirector
@@ -217,6 +224,9 @@ var _at_door := ""
 ## Which forged weapon the start choice's third card shows.
 var _start_extra := 0
 var _open_shop_first := false
+## --tidings: news waiting in the village, under its "!"s: at the smithy, at the board, with the
+## Elder, and Jogiboy's find.
+var _dev_tidings := false
 ## A line the village says (what was restored, or why not), and for how long more; and the row
 ## chosen in a shop.
 var _village_message := ""
@@ -229,7 +239,16 @@ var _just_restored: Array[String] = []
 ## What's new since he last walked in, as {title, text}: set out once the walk in is done.
 var _news: Array[Dictionary] = []
 ## Whether Jogiboy has something to give him once he's walked in.
-var _found_by_jogiboy := false
+## The two weapons a run starts with to choose between, by name: the village's chosen ones on a run
+## from it, the village's own on any other.
+func _starters() -> Array[String]:
+	if _ran_from_village or _place == "village":
+		return village.starter_names()
+	return ["nunchaku", "handgun"]
+
+
+## Whether closing the news goes on to the siege: only the news set out on the walk in does.
+var _besiege_after_news := false
 ## Whether the spirits have just beaten him back in the siege: they let the village be until he
 ## next walks home.
 var _spirits_withdrew := false
@@ -321,6 +340,8 @@ func _ready() -> void:
 			_at_door = argument.trim_prefix("--at-door=")
 		elif argument == "--shop":
 			_open_shop_first = true
+		elif argument == "--tidings":
+			_dev_tidings = true
 		elif argument.begins_with("--restored="):
 			var names := argument.trim_prefix("--restored=")
 			village.restored.assign(VillageMap.building_names() if names == "all" else Array(names.split(",", false)))
@@ -411,6 +432,7 @@ func _ready() -> void:
 	AudioServer.set_bus_mute(0, not _keeping_settings and not "--sound" in OS.get_cmdline_user_args())
 	_build_scene()
 	_entities.blood = settings.get_value("gameplay", "blood")
+	_overlay.health_shown = settings.get_value("graphics", "health")
 	_dev_guest_weapon = _start_weapon if not _start_weapon.is_empty() else "handgun"
 	# A real session opens on the title; a development run goes straight into the fight it set up.
 	if not _dev_join.is_empty():
@@ -422,6 +444,11 @@ func _ready() -> void:
 	elif _open_village_first:
 		_enter_village(VillageMap.HOME_SPOT)
 		_place = "village"
+		if _dev_tidings:
+			village.tell("board", "On the map: the deep forest", "Choose it here, at the board by the gate.")
+			village.tell("elder", "Ankle cutter", "A dodge mutation, on your cards from now on.")
+			village.jogiboy_found = Village.JOGIBOY_FINDS
+			_teach_starters_when_due()
 		for building in village_map.buildings:
 			if building.name == _at_door:
 				var footprint: Rect2 = building.footprint
@@ -502,6 +529,12 @@ func _build_scene() -> void:
 	_muzzle_light.height = 12.0
 	_muzzle_light.energy = 0.0
 	_arena_layer.add_child(_muzzle_light)
+	_level_light = PointLight2D.new()
+	_level_light.texture = _soft_light(Vector2i(160, 160))
+	_level_light.color = Palette.SPARK
+	_level_light.height = 20.0
+	_level_light.energy = 0.0
+	_arena_layer.add_child(_level_light)
 	_camera = Camera2D.new()
 	_world.add_child(_camera)
 	_audio = AudioDirector.new()
@@ -666,26 +699,27 @@ func _arrive(from_the_forest: bool) -> void:
 			var teaches: Dictionary = Areas.named(area_id).teaches
 			lines.append_array(teaches.lines)
 			for mutation: String in teaches.mutations:
-				_news.append({"title": Upgrades.MUTATIONS[mutation].name, "text": "A dodge mutation, on your cards from now on. " + Upgrades.MUTATIONS[mutation].explain + "."})
+				village.tell("elder", Upgrades.MUTATIONS[mutation].name, "A dodge mutation, on your cards from now on. " + Upgrades.MUTATIONS[mutation].explain + ".")
 			var after := Areas.ids().find(area_id) + 1
 			if after < Areas.ids().size() and not Areas.ids()[after] in village.liberated:
-				_news.append({"title": "On the map: " + (Areas.named(Areas.ids()[after]).name as String).to_lower(), "text": "Choose it at the board by the gate."})
+				village.tell("board", "On the map: " + (Areas.named(Areas.ids()[after]).name as String).to_lower(), "Choose it here, at the board by the gate.")
 		lines.append_array(village.restored_lines(_just_restored))
 		# Home from the first grove, Inyiak Balang is at the shrine, with the spirits' gift.
 		if _cleansed and village.give_cub():
 			lines.append_array(GIFT_LINES)
-			_news.append({"title": "The jimat", "text": "The cub goes with you to the groves, at your heel. At the shrine, offerings from the groves rank it up, and wake its other elements."})
+			village.tell("shrine", "The jimat", "The cub goes with you to the groves, at your heel. Here at the shrine, offerings from the groves rank it up, and wake its other elements.")
 			_keep_village()
 		_cleansed = false
 		# With the last area free, the spirits come as he walks home: the first time, Jogiboy smells
 		# them before anyone sees them.
 		if _siege_coming() and not "send_off:siege" in village.told:
 			lines.append_array(Areas.named("siege").send_off)
-		# Jogiboy, the village's finder, has dug something up while he was gone.
-		village.salvage += Village.JOGIBOY_FINDS
-		_found_by_jogiboy = true
+		# Jogiboy, the village's finder, has dug something up while he was gone: he keeps it for him.
+		village.jogiboy_found += Village.JOGIBOY_FINDS
 		for building in _just_restored:
-			_news.append({"title": _building_name(building).capitalize(), "text": Village.EXPLAINS[building]})
+			village.tell(building, _building_name(building).capitalize(), Village.EXPLAINS[building])
+	if not telling:
+		_teach_starters_when_due()
 	_cutscene = Cutscene.new(lines, settings.get_value("gameplay", "story_waits"))
 	for building in _just_restored:
 		_village_view.restoring(building)
@@ -703,6 +737,37 @@ func _arrive(from_the_forest: bool) -> void:
 		# Slow enough that he reaches the spot as the last line ends, if it's left to run.
 		village_map.stroll_speed = minf(village_map.walking_to.distance_to(village_map.cat.body.position) / _cutscene.length(), VillageMap.WALK_IN_SPEED)
 	_overlay.cutscene = true
+
+
+## Home with the smithy standing, Pak Besi has a word for him, once: how to choose the two weapons
+## a run starts with. Heard at the smithy, it's taught.
+func _teach_starters_when_due() -> void:
+	if village.is_restored("smithy") and not village.starters_taught():
+		village.tell("smithy", "Pak Besi, at the smithy",
+			"\"Every cat goes out with two: one to swing and one to shoot. The nunchaku and the handgun are the village's, but anything I forge you can start with instead. At home, in your pack: Enter on a weapon makes it the one you start with, of its sort.\"",
+			Village.STARTERS_TAUGHT)
+
+
+## Hears what's new there, set out on a page; the village keeps that it's been heard.
+func _hear(at: String) -> void:
+	var heard := village.hear(at)
+	if heard.is_empty():
+		return
+	_keep_village()
+	_overlay.news = heard
+	_audio.interface("menu_choose")
+	_open_page("news")
+
+
+## Who he's close enough to talk to, of those who can have something for him: "jogiboy" or
+## "elder", or "".
+func _beside() -> String:
+	var at := village_map.cat.body.position
+	if village_map.jogi.body.position.distance_to(at) <= TALK_REACH:
+		return "jogiboy"
+	if village_map.elder.body.position.distance_to(at) <= TALK_REACH:
+		return "elder"
+	return ""
 
 
 ## The areas freed whose lessons haven't been taught yet: they're taught at home, the first time
@@ -744,11 +809,13 @@ func _arriving(delta: float) -> void:
 		_overlay.cutscene = false
 		village_map.elder_home()
 		village_map.let_go()
-		if _found_by_jogiboy:
-			_found_by_jogiboy = false
-			_say("Jogiboy dug up %d salvage for you while you were out." % Village.JOGIBOY_FINDS)
+		# What's new waits where it's told, marked with a "!": only the first walk in, with how to
+		# walk at all, is set out at once.
+		if not village.tidings.is_empty() or village.jogiboy_found > 0:
+			_say("Something's new in the village: look for the !")
 		if not _news.is_empty():
 			_overlay.news = _news.duplicate()
+			_besiege_after_news = true
 			_open_page("news")
 		else:
 			_besiege()
@@ -782,7 +849,16 @@ func _in_village(delta: float) -> void:
 		return
 	_village_message_for = maxf(_village_message_for - delta, 0.0)
 	var door := village_map.at_door()
+	var beside := _beside()
 	_overlay.door = _door_prompt(door)
+	if village.has_tidings(beside):
+		_overlay.door = "%s has something for you: Enter to hear it" % ("Jogiboy" if beside == "jogiboy" else "The Elder")
+	if Input.is_action_just_pressed("menu_choose") and village.has_tidings(beside):
+		_hear(beside)
+		return
+	if Input.is_action_just_pressed("menu_choose") and village.has_tidings(door) and (door == "board" or village.is_restored(door)):
+		_hear(door)
+		return
 	_overlay.leads_to = Areas.named(village.next_run).get("name", "Endless").to_lower() if village.next_run != "endless" else ("a sick grove" if village.truce() else "Endless")
 	_overlay.message = _village_message if _village_message_for > 0.0 else ""
 	_overlay.village_record = village
@@ -847,6 +923,8 @@ func _door_prompt(building: String) -> String:
 	var name := _building_name(building)
 	if building != "board" and not village.is_restored(building):
 		return "%s, in ruins: %s" % [name.capitalize(), Village.restored_when(building)]
+	if village.has_tidings(building):
+		return "%s: something new, Enter to hear it" % name.capitalize()
 	match building:
 		"board": return "The map of the forest: choose where to go"
 		"home": return "Your home: pack what you take"
@@ -998,10 +1076,21 @@ func _shop_rows() -> Array[Dictionary]:
 	return rows
 
 
+## What kind of thing it is, in words, under its picture: gear says where it's worn.
+func _kind_of(id: String, card: Dictionary) -> String:
+	match card.kind:
+		"weapon": return "Weapon"
+		"support": return "Support"
+		"gear":
+			var piece := id.trim_prefix("gear:")
+			return "Gear, worn on the %s" % Upgrades.GEAR[piece].slot if Upgrades.GEAR.has(piece) else "Gear"
+	return "Dodge mutation" if id.begins_with("mutation:") else (card.kind as String).capitalize()
+
+
 ## A thing at the smithy: forged already, or what forging it costs.
 func _forge_row(id: String) -> Dictionary:
 	var card := Upgrades.describe({"id": id, "rarity": Upgrades.Rarity.COMMON})
-	var row := {"id": id, "name": card.name, "can": false, "story": card.story, "does": card.does}
+	var row := {"id": id, "name": card.name, "can": false, "story": card.story, "does": card.does, "item": card.item, "kind": _kind_of(id, card)}
 	if id in Village.STARTING:
 		row.state = "carried from the start"
 	elif id in village.forged:
@@ -1016,11 +1105,15 @@ func _forge_row(id: String) -> Dictionary:
 ## a dodge mutation not taught yet, and where it will be.
 func _pack_row(id: String) -> Dictionary:
 	var card := Upgrades.describe({"id": id, "rarity": Upgrades.Rarity.COMMON})
-	var row := {"id": id, "name": card.name, "can": village.has(id) and not id in Village.ALWAYS_PACKED, "story": card.story, "does": card.does}
-	if id in Village.ALWAYS_PACKED:
-		row.state = "always packed"
+	var choosing := id.begins_with("weapon:") and village.starters_taught()
+	var row := {"id": id, "name": card.name, "story": card.story, "does": card.does, "item": card.item, "kind": _kind_of(id, card),
+		"can": village.has(id) and (not id in Village.ALWAYS_PACKED or (choosing and not id in village.starters))}
+	if choosing and id in village.starters:
+		row.state = "starts a run"
+	elif id in Village.ALWAYS_PACKED:
+		row.state = "always with you"
 	elif village.has(id):
-		row.state = "worn from the start" if village.starting_piece == id else ("left home" if id in village.left_home else "packed")
+		row.state = "worn from the start" if village.starting_piece == id else ("left home" if id in village.left_home else "taking it")
 	else:
 		row.state = "not learned yet"
 		for area: Dictionary in Areas.LIST:
@@ -1115,8 +1208,13 @@ func _read_shop() -> void:
 			# Too few of its kind packed: it stays, and the page says why.
 			var why := village.cant_leave_home(id)
 			var was_worn := village.starting_piece == id
+			var was_starting := id in village.starters
 			done = village.repack(id)
-			if not done and village.has(id):
+			if id in village.starters and not was_starting:
+				_overlay.shop_note = "Starts a run now, as the one you %s" % ("swing" if Village.starter_slot(id) == 0 else "shoot")
+			elif was_starting and done:
+				_overlay.shop_note = "The village's own starts a run again" if id in village.left_home else "Taking it, not starting with it"
+			elif not done and village.has(id):
 				_overlay.shop_note = "Not left home: " + why
 			elif done and was_worn and not id in village.left_home:
 				_overlay.shop_note = "Back in the pack: " + why
@@ -1233,6 +1331,7 @@ func _process(delta: float) -> void:
 		_open_page("pause")
 	_overlay.choosing = _choosing()
 	_overlay.joining = _can_join()
+	_overlay.starters = _starters()
 	_overlay.start_chosen = not _start_weapon.is_empty()
 	_overlay.ally_forged = _forged_weapons()
 	if _choosing():
@@ -1247,12 +1346,23 @@ func _process(delta: float) -> void:
 	_camera.position = _run_camera()
 	_muzzle_light.position = World.to_screen(cat.body.position, Cat.GUN_HEIGHT) + cat.aim * 10.0
 	_muzzle_light.energy = 1.6 * _entities.flash.get(cat, 0.0)
+	_glow_on_level_up(delta)
 	if arena.liberated and cat.alive():
 		_begin_freeing()
 	elif arena.over():
 		_end_run()
 	_overlay.goal = arena.goal_progress()
 	_take_screenshot(delta)
+
+
+## Up a level: a glow from him, bright at once and fading.
+func _glow_on_level_up(delta: float) -> void:
+	if _glow_level >= 0 and arena.level > _glow_level:
+		_level_glow = 1.0
+	_glow_level = arena.level
+	_level_glow = maxf(_level_glow - delta / LEVEL_GLOW_TIME, 0.0)
+	_level_light.position = World.to_screen(cat.body.position, 0.4)
+	_level_light.energy = 2.4 * _level_glow * _level_glow
 
 
 ## Steps the simulation to catch up with the time passed, and hands its hits to the blood and
@@ -1493,6 +1603,13 @@ func _begin_freeing() -> void:
 
 func _freeing_step(delta: float) -> void:
 	_free_for = maxf(_free_for - delta, 0.0)
+	# He's still the player's to walk about the freed area, or to leave standing: never left
+	# running on in whatever way he was going when it fell. Any ally stands still.
+	for each in arena.cats:
+		each.steering = Vector2.ZERO
+	cat.steering = Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	if _walk != Vector2.ZERO:
+		cat.steering = _walk
 	var skip := Input.is_action_just_pressed("pause")
 	_cutscene.step(delta, Input.is_action_just_pressed("menu_choose"), skip)
 	_overlay.intro = _cutscene.written()
@@ -1611,7 +1728,8 @@ func _read_page() -> void:
 			_audio.interface("menu_choose")
 			_overlay.news.clear()
 			_close_page()
-			if _place == "village":
+			if _place == "village" and _besiege_after_news:
+				_besiege_after_news = false
 				_besiege()
 			return
 		_overlay.page = "news"
@@ -1774,6 +1892,7 @@ func _settings_changed() -> void:
 	if cat != null:
 		cat.aim_mode = settings.get_value("gameplay", "aim")
 	_entities.blood = settings.get_value("gameplay", "blood")
+	_overlay.health_shown = settings.get_value("graphics", "health")
 	if arena != null:
 		arena.most_fallen = settings.get_value("graphics", "fallen")
 	if _keeping_settings:
@@ -1809,6 +1928,7 @@ func _setting_lines() -> Array[Dictionary]:
 			match row[1]:
 				"window_scale": line.value = "%d by %d" % [640 * int(value), 360 * int(value)]
 				"fallen": line.value = {0: "None: they crumble away", 100: "A few: 100", 300: "Some: 300", 600: "All of them: 600"}[value]
+				"health": line.value = {"both": "Bar and number", "bar": "Bar only", "number": "Number only"}[value]
 				"aim": line.value = {"nearest": "Nearest", "toughest": "Toughest first", "crowd": "Thickest crowd"}[value]
 				"blood": line.value = "On" if value else "Off: dust and fur instead"
 				"story_waits": line.value = "Wait for Enter" if value else "Move on by themselves"
@@ -1838,9 +1958,9 @@ func _read_controls() -> void:
 				_audio.interface("menu_move")
 		_overlay.start_extra = forged[_start_extra % forged.size()] if not forged.is_empty() else ""
 		if Input.is_action_just_pressed("pick_1"):
-			_start_weapon = "nunchaku"
+			_start_weapon = _starters()[0]
 		elif Input.is_action_just_pressed("pick_2"):
-			_start_weapon = "handgun"
+			_start_weapon = _starters()[1]
 		elif Input.is_action_just_pressed("pick_3") and not forged.is_empty():
 			_start_weapon = forged[_start_extra % forged.size()]
 		if not _start_weapon.is_empty():
@@ -2038,9 +2158,10 @@ func _read_ally(ally: Dictionary) -> void:
 		if not forged.is_empty() and pressed.call("change_gear"):
 			ally.forged = wrapi(ally.forged + 1, 0, forged.size())
 			_audio.interface("menu_move")
-		for index in ALLY_WEAPONS.size():
+		var starters := _starters()
+		for index in starters.size():
 			if pressed.call("pick_%d" % (index + 1)):
-				ally.weapon = ALLY_WEAPONS[index]
+				ally.weapon = starters[index]
 		if not forged.is_empty() and pressed.call("pick_3"):
 			ally.weapon = forged[ally.forged % forged.size()]
 		if not ally.weapon.is_empty():
@@ -2084,7 +2205,10 @@ func ally_arrives(peer: int, info: Dictionary, weapon: String) -> int:
 		return 0
 	var dropping_in := _under_way()
 	var forged: Array = info.get("forged", [])
-	if not weapon in ALLY_WEAPONS and not weapon in forged:
+	# What they start with is one of theirs: their village's own two, one of the two they chose, or
+	# one they forged; anything else, the handgun.
+	var theirs: Array = ["nunchaku", "handgun"] + forged + (info.get("starters", []) as Array)
+	if not weapon in theirs or not weapon in Upgrades.WEAPONS:
 		weapon = "handgun"
 	var player := _allies.size() + 1
 	var ally_cat := Cat.new() if dropping_in else arena.add_cat(cat.body.position + Vector2(-0.7 * player, 0.5 * (player % 2)))
@@ -2212,7 +2336,7 @@ func what_i_bring() -> Dictionary:
 		for id in village.forged:
 			if id.begins_with("weapon:") and village.packed(id):
 				forged.append(id.trim_prefix("weapon:"))
-	return {"coat": village.coat, "forged": forged, "cub_rank": village.cub_rank if village.gifted() else 0, "cub_element": village.cub_element}
+	return {"coat": village.coat, "forged": forged, "starters": village.starter_names(), "cub_rank": village.cub_rank if village.gifted() else 0, "cub_element": village.cub_element}
 
 
 ## The host has gone out to Endless: the same clearing or grove laid out here, from its seed, and
@@ -2324,6 +2448,7 @@ func _guest_frame(delta: float) -> void:
 		_watch(arena, cat)
 	_overlay.choosing = mine == null
 	_overlay.joining = false
+	_overlay.starters = village.starter_names()
 	_overlay.start_chosen = not _start_weapon.is_empty()
 	if not _page.is_empty():
 		_read_page()
@@ -2347,9 +2472,9 @@ func _guest_chooses() -> void:
 			_start_extra = wrapi(_start_extra + 1, 0, forged.size())
 	_overlay.start_extra = forged[_start_extra % forged.size()] if not forged.is_empty() else ""
 	if Input.is_action_just_pressed("pick_1"):
-		_start_weapon = "nunchaku"
+		_start_weapon = village.starter_names()[0]
 	elif Input.is_action_just_pressed("pick_2"):
-		_start_weapon = "handgun"
+		_start_weapon = village.starter_names()[1]
 	elif Input.is_action_just_pressed("pick_3") and not forged.is_empty():
 		_start_weapon = forged[_start_extra % forged.size()]
 	if not _start_weapon.is_empty():

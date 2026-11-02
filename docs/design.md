@@ -376,8 +376,18 @@ on: fire and oil, or crewmates who can be downed.
     things home narrows the cards but never past a draw: three of each kind stay packed for every
     place a run has for one (his mouth and his tail, so six weapons; seven slots, so twenty-one pieces of gear;
     a drone and a set-down, so six support; one mutation, so three).
+  - **The two weapons a run starts with** are the nunchaku and the handgun until Pak Besi, home
+    with the smithy standing, tells him he can choose: then any weapon he has can start a run in
+    his pack, one he swings and one he shoots, so every start can both hold the horde off and
+    reach it. Left home, a chosen one gives its place back to the village's own.
   - **Everything has its story**, read on a card with Tab and at the smithy and the pack: where
-    it came from, as the cats tell it.
+    it came from, as the cats tell it. The smithy and the pack show the chosen thing's picture
+    beside the list: a weapon on its own, large, and on him, in his mouth and on his tail.
+  - **What's new waits where it's told**, under a "!": a building restored at its door, a dodge
+    mutation with the Elder, the next area at the board, the cub at the shrine, and what Jogiboy
+    dug up with him, kept until he goes and asks. Walking up and pressing Enter hears it. Only
+    the first walk in, with how to walk at all, is set out at once: news set out at the end of a
+    run is too easily skipped.
   - **Housed cats weave cloth**: each restored hut houses two rescued cats, and every run brings
     in a cloth for each. The first hut is the weaver's, who sells looks for cloth (his coat, the
     umbul-umbul's colors), its own currency so a look never competes with forging. The full
