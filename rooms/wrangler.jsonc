@@ -8,7 +8,7 @@
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "itrium-game-felterra-tall-order-backend",
+	"name": "itrium-backend-felterra-tall-order",
 	"main": "index.ts",
 	"compatibility_date": "2026-10-26",
 	"workers_dev": false,
