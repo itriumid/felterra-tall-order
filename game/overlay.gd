@@ -74,6 +74,8 @@ var news: Array[Dictionary] = []
 var village_record: Village
 ## How health shows, from the settings: "both", "bar" or "number".
 var health_shown := "both"
+## The two weapons a run starts with to choose between, by name: one swung, one shot.
+var starters: Array[String] = ["nunchaku", "handgun"]
 ## When his health row last flashed for a hit, in milliseconds, and the hits he'd taken by then.
 var _hurt_at := -1000
 var _hits_seen := -1
@@ -456,7 +458,7 @@ func _draw_shop() -> void:
 		InterfaceArt.bold(self, Vector2(box.end.x - 10 - InterfaceArt.bold_width(shop_note), box.position.y + 7), shop_note, Palette.PINK)
 	var keys: Array[String] = ["W S", "choose", "Enter", "take", "Esc", "back"]
 	if not shop_tabs.is_empty():
-		keys = ["A D", "tab", "W S", "choose", "Enter", "forge" if shop_page == "forge" else "pack or leave home", "Esc", "back"]
+		keys = ["A D", "tab", "W S", "choose", "Enter", "forge" if shop_page == "forge" else "take, start with, or leave home", "Esc", "back"]
 	elif shop_page == "book":
 		keys = ["W S", "choose", "Esc", "back"]
 	var keys_width := InterfaceArt.key_line_width(keys)
@@ -571,7 +573,9 @@ func _draw_map() -> void:
 ## full, though: 9.1 of 10 is 9 of 10, not 10 of 10 beside a bar that isn't.
 static func health_text(health: float, most: float, between: String) -> String:
 	var shown := ceili(health)
-	if health < most:
+	if health <= 0.0:
+		shown = 0
+	elif health < most:
 		shown = maxi(mini(shown, ceili(most) - 1), 1)
 	return "%d%s%d" % [shown, between, ceili(most)]
 
@@ -850,10 +854,13 @@ func _draw_start() -> void:
 		InterfaceArt.bold(self, waiting_box.position + Vector2(8, 5), waiting, Palette.PINK)
 		return
 	var title := "Choose what you start with"
-	var cards := [
-		{"name": "Nunchaku", "item": "nunchaku", "ribbon": "Melee", "lines": ["Go Chuck Purris", "style"], "unfamiliar": false},
-		{"name": "Handgun", "item": "handgun", "ribbon": "Ranged", "lines": ["Go John Whisker", "style"], "unfamiliar": false},
-	]
+	# The village's own two have their lines; any other chosen to start with says it was.
+	var village_lines := {"nunchaku": ["Go Chuck Purris", "style"], "handgun": ["Go John Whisker", "style"]}
+	var cards := []
+	for index in starters.size():
+		var name := starters[index]
+		cards.append({"name": Upgrades.WEAPON_NAMES[name], "item": name, "ribbon": "Melee" if index == 0 else "Ranged",
+			"lines": village_lines.get(name, ["Chosen in your", "pack at home"]), "unfamiliar": false})
 	if not start_extra.is_empty():
 		cards.append({"name": Upgrades.WEAPON_NAMES[start_extra], "item": start_extra, "ribbon": "Forged", "lines": ["From the smithy", "A or D: another"], "unfamiliar": false})
 	var gap := 10.0
@@ -1024,31 +1031,50 @@ static func version_text() -> String:
 ## How the run went, what beat the best, and where to go from here.
 func _draw_summary() -> void:
 	var screen := get_viewport_rect().size
-	var rows := [
+	# What he brings home, first, apart from how the run went.
+	var brought := [
+		["rescued", "Cats rescued", str(summary.get("rescued", 0))],
+		["salvage", "Salvage", str(summary.get("salvage", 0))],
+	]
+	if summary.has("offerings"):
+		brought.append(["offerings", "Offerings", str(summary.offerings)])
+	# What freeing the area taught him, the first time.
+	var learned: Array = summary.get("learned", [])
+	if not learned.is_empty():
+		brought.append(["learned", "Learned", ", ".join(learned)])
+	var went := [
 		["time", "Survived", "%d:%02d" % [int(summary.get("time", 0.0)) / 60, int(summary.get("time", 0.0)) % 60]],
 		["level", "Level reached", str(summary.get("level", 1))],
 		["kills", "Kills", str(summary.get("kills", 0))],
 		["giants", "Giants felled", str(summary.get("giants", 0))],
 		["machines", "Machines broken", str(summary.get("machines", 0))],
-		["rescued", "Cats rescued", str(summary.get("rescued", 0))],
-		["salvage", "Salvage", str(summary.get("salvage", 0))],
 	]
-	if summary.has("offerings"):
-		rows.append(["offerings", "Offerings", str(summary.offerings)])
-	# What freeing the area taught him, the first time.
-	var learned: Array = summary.get("learned", [])
-	if not learned.is_empty():
-		rows.append(["learned", "Learned", ", ".join(learned)])
+	var sections := [["Brought home", brought], ["How it went", went]]
 	var row_height := PixelFont.LINE_HEIGHT + 2
 	var width := 260.0 if not learned.is_empty() else 220.0
-	# The heading, the numbers, a gap, the choices, and the margin below.
-	var height := 26 + rows.size() * row_height + 8 + menu.size() * (PixelFont.LINE_HEIGHT + 3) + 2
+	# The heading, each section's heading and rows and a gap, the choices, and the margin below.
+	var height := 26 + (brought.size() + went.size() + 2) * row_height + 6 + 8 + menu.size() * (PixelFont.LINE_HEIGHT + 3) + 2
 	var box := Rect2(floorf((screen.x - width) / 2.0), floorf((screen.y - height) / 2.0), width, height)
 	InterfaceArt.panel(self, box)
 	var freed: String = summary.get("freed", "")
 	var heading := "The crew's down" if summary.get("crew", false) else "He's down"
 	InterfaceArt.bold(self, box.position + Vector2(10, 7), ("Freed: " + freed) if not freed.is_empty() else heading, Palette.LEAF_LIGHT if not freed.is_empty() else Palette.PINK)
 	var y := box.position.y + 26
+	var rows: Array = []
+	for section: Array in sections:
+		if not rows.is_empty():
+			y += 6
+		InterfaceArt.bold(self, Vector2(box.position.x + 10, y), section[0], Palette.BRASS_LIGHT)
+		y += row_height
+		rows = section[1]
+		y = _draw_summary_rows(rows, box, y, row_height)
+	_draw_choices(Vector2(box.position.x + 6, y + 8), box.size.x - 12)
+
+
+## A section of the summary's rows, each a name and its number, a new best marked; returns where
+## the next goes.
+func _draw_summary_rows(rows: Array, box: Rect2, top: float, row_height: float) -> float:
+	var y := top
 	for row: Array in rows:
 		PixelFont.draw(self, Vector2(box.position.x + 14, y), row[1], Palette.OFF_WHITE)
 		var value: String = row[2]
@@ -1059,7 +1085,7 @@ func _draw_summary() -> void:
 			PixelFont.draw(self, Vector2(right - PixelFont.width(value) - PixelFont.width(mark) - 8, y), mark, Palette.PINK)
 		InterfaceArt.bold(self, Vector2(right - InterfaceArt.bold_width(value), y), value, Palette.LEAF_LIGHT if row[0] in beaten else Palette.OFF_WHITE)
 		y += row_height
-	_draw_choices(Vector2(box.position.x + 6, y + 8), box.size.x - 12)
+	return y
 
 
 ## A page's choices, the chosen one on pink with graphite text.
@@ -1088,8 +1114,8 @@ func _draw_allies() -> void:
 		var lines: Array[Array] = []
 		if choosing or ally.weapon.is_empty():
 			if ally.weapon.is_empty():
-				lines.append(["LB", "Nunchaku"])
-				lines.append(["Up", "Handgun"])
+				lines.append(["LB", Upgrades.WEAPON_NAMES[starters[0]]])
+				lines.append(["Up", Upgrades.WEAPON_NAMES[starters[1]]])
 				if not ally_forged.is_empty():
 					lines.append(["RB", Upgrades.WEAPON_NAMES[ally_forged[ally.forged % ally_forged.size()]]])
 					lines.append(["Y", "another forged"])

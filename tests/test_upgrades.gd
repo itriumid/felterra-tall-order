@@ -222,6 +222,7 @@ func test_full_health_never_reads_as_more_than_the_most() -> void:
 	# And only full health reads as full: a little short of it reads one short.
 	check(Overlay.health_text(9.1, 10.0, "/") == "9/10", "9.1 of 10 reads as %s" % Overlay.health_text(9.1, 10.0, "/"))
 	check(Overlay.health_text(9.99, 10.0, "/") == "9/10", "9.99 of 10 reads as %s" % Overlay.health_text(9.99, 10.0, "/"))
+	check(Overlay.health_text(0.0, 10.0, "/") == "0/10", "no health left reads as %s" % Overlay.health_text(0.0, 10.0, "/"))
 	check(Overlay.health_text(10.0, 10.0, "/") == "10/10", "full health reads as %s" % Overlay.health_text(10.0, 10.0, "/"))
 	check(Overlay.health_text(41.2, 41.4, "/") == "41/42", "41.2 of 41.4 reads as %s" % Overlay.health_text(41.2, 41.4, "/"))
 	# And healing never goes past the most: adrenaline and regeneration heal the same way.
