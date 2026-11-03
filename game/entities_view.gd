@@ -288,8 +288,7 @@ func _draw_all() -> void:
 			_draw_guardian(thing)
 		elif thing is Giant:
 			_draw_giant(thing)
-			if thing.afflictions.has("burn"):
-				_draw_flames(thing.body.position, 0.4, 6)
+			_draw_afflictions(thing, 0.4, false, 6)
 		elif thing is Creature:
 			# Tripped, it's down on its side, drawn as the fallen are until it's up.
 			if thing.kind == "rat_baron":
@@ -304,10 +303,7 @@ func _draw_all() -> void:
 				_draw_spirit(thing)
 			else:
 				_draw_rat(thing.body, _frame(thing, RAT_STRIDE), thing.tripped())
-			if thing.afflictions.has("burn"):
-				_draw_flames(thing.body.position, thing.body.height + thing.body.tall, 3)
-			elif thing.afflictions.has("poison"):
-				draw_rect(Rect2(World.to_screen(thing.body.position, thing.body.tall + 0.12), Vector2(1, 1)), Palette.LEAF_LIGHT)
+			_draw_afflictions(thing, thing.body.height + thing.body.tall, thing.tripped(), 3)
 		elif thing is Body:
 			_draw_lying(thing)
 		else:
@@ -1379,6 +1375,33 @@ func _draw_ground_hazards() -> void:
 
 
 ## Flames, flickering: a few palette pixels of fire rising off something burning.
+## What's ailing something, shown on it while it lasts: burning, flames; poisoned, green bubbles
+## rising; bleeding, drips falling; dazed (down and senseless), stars going round over it;
+## slowed, a smear left behind it. Each a few pixels, drawn only while it ails it.
+func _draw_afflictions(thing: Object, height: float, dazed: bool, size: int) -> void:
+	var afflictions: Dictionary = thing.afflictions
+	var at: Vector2 = thing.body.position
+	var over := World.to_screen(at, height)
+	var beat := int(_clock * 8.0 + at.x * 5.0)
+	if afflictions.has("burn"):
+		_draw_flames(at, height, size)
+	if afflictions.has("poison"):
+		for bubble in 2:
+			var rise := (beat + bubble * 3) % 6
+			draw_rect(Rect2(over + Vector2(-1 + bubble * 3, -2 - rise), Vector2.ONE), Palette.LEAF_LIGHT if rise < 4 else Palette.MOSS)
+	if afflictions.has("bleed"):
+		var fall := (beat * 2) % 7
+		draw_rect(Rect2(World.to_screen(at, height * 0.5) + Vector2(1, fall), Vector2(1, 2)), Palette.BLOOD if blood else Palette.SMOKE)
+	if afflictions.has("slow"):
+		var behind: Vector2 = -(thing.body.velocity as Vector2).normalized() if (thing.body.velocity as Vector2).length() > 0.05 else Vector2.LEFT
+		for smear in 3:
+			draw_rect(Rect2(World.to_screen(at + behind * (0.12 + smear * 0.08), 0.05).floor(), Vector2.ONE), Palette.SMOKE)
+	if dazed and thing.alive():
+		for star in 2:
+			var turn := _clock * 6.0 + star * PI
+			draw_rect(Rect2((over + Vector2(cos(turn) * 4.0, -3.0 + sin(turn) * 1.5)).floor(), Vector2.ONE), Palette.BRASS_LIGHT)
+
+
 func _draw_flames(at: Vector2, height: float, size: int) -> void:
 	var base := World.to_screen(at, height)
 	for flame in size:
@@ -1469,6 +1492,12 @@ func _draw_hold(hold: Dictionary) -> void:
 	var drawing: Dictionary = hold.drawing
 	var at: Vector2 = hold.at - drawing.grip
 	draw_texture(drawing.texture, at)
+	# Evolved, it shows: a brass band at the grip for its first evolution, and a pink one beside it
+	# for its second.
+	if weapon.evolved >= 1:
+		draw_rect(Rect2(hold.at.floor(), Vector2.ONE), Palette.BRASS_LIGHT)
+	if weapon.evolved >= 2:
+		draw_rect(Rect2(hold.at.floor() + Vector2(1, 0), Vector2.ONE), Palette.PINK)
 	if weapon.swinging():
 		_draw_smear(weapon, hold.at)
 	elif weapon.kind == Weapon.Kind.RANGED and flash.get(arena.cats[0], 0.0) > 0.0:
@@ -1534,6 +1563,7 @@ func _feel_hits(delta: float) -> void:
 			"round": specks = [Palette.SPARK, Palette.STEEL_LIGHT]
 			"fire": specks = [Palette.HI_VIS, Palette.SPARK]
 			"poison": specks = [Palette.LEAF_LIGHT, Palette.MOSS]
+			"bleed": specks = [Palette.BLOOD if blood else Palette.SMOKE]
 		for color: Color in specks:
 			_droplets.append({
 				"position": event.position, "height": maxf(event.height, 0.05), "rise": randf_range(0.6, 1.4),

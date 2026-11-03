@@ -964,6 +964,8 @@ func afflict(target: Object, weapon: Weapon, attacker: Cat) -> void:
 	var share := 1.0 + weapon.power + (attacker.damage_bonus if attacker != null else 0.0)
 	if weapon.poison > 0.0:
 		target.afflictions.poison = {"dps": weapon.poison * share, "left": Weapon.AFFLICTION_TIME, "by": attacker, "tick": 0.0, "source": weapon.name}
+	if weapon.bleed > 0.0:
+		target.afflictions.bleed = {"dps": weapon.bleed * share, "left": Weapon.AFFLICTION_TIME, "by": attacker, "tick": 0.0, "source": weapon.name}
 	if weapon.burn > 0.0 and weapon.fire_patch <= 0.0:
 		target.afflictions.burn = {"dps": weapon.burn * share, "left": Weapon.AFFLICTION_TIME, "by": attacker, "tick": 0.0, "source": weapon.name}
 	if weapon.slow > 0.0 and target is Creature:
@@ -989,7 +991,11 @@ func _afflict_all() -> void:
 				affliction.tick += STEP
 				if affliction.tick >= TICK:
 					affliction.tick -= TICK
-					strike(target, affliction.dps * TICK, Vector2.ZERO, 0.0, 0.0, "poison" if kind == "poison" else "fire", affliction.by, affliction.get("source", ""))
+					# Bleeding is worse on the move: half of it standing still.
+					var bleeding := kind == "bleed"
+					var moving: bool = (target.body.velocity as Vector2).length() > 0.3
+					var dealt: float = affliction.dps * TICK * (0.5 if bleeding and not moving else 1.0)
+					strike(target, dealt, Vector2.ZERO, 0.0, 0.0, {"poison": "poison", "bleed": "bleed"}.get(kind, "fire"), affliction.by, affliction.get("source", ""))
 			if affliction.left <= 0.0:
 				afflictions.erase(kind)
 
@@ -1156,11 +1162,11 @@ func _first_hit(shot: Shot) -> Object:
 
 
 func _strike(creature: Object, shot: Shot) -> void:
-	strike(creature, shot.damage, shot.velocity.normalized(), shot.weapon.knock, shot.weapon.lift, "round", shot.shooter, shot.weapon.name)
+	strike(creature, shot.damage, shot.velocity.normalized(), shot.weapon.knock, shot.weapon.lift, "round", shot.shooter, shot.weapon.name, shot.weapon.crit)
 
 
 ## A hit on a creature, from a round or a blade: it's hurt, thrown, and falls if it's done for.
-func strike(target: Object, damage: float, direction: Vector2, knock: float, lift: float, by: String, attacker: Cat = null, source := "") -> void:
+func strike(target: Object, damage: float, direction: Vector2, knock: float, lift: float, by: String, attacker: Cat = null, source := "", extra_critical := 0.0) -> void:
 	if not target.alive():
 		return
 	# What it's credited to, on his tally: the weapon, the mutation, the support, what's burning.
@@ -1170,7 +1176,7 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 	# one more.
 	var tier := 0
 	if attacker != null:
-		tier = critical_tier(attacker.critical)
+		tier = critical_tier(attacker.critical + extra_critical)
 		damage *= 1.0 + tier
 		knock *= 1.0 + attacker.knockback_bonus
 	if target is Structure:

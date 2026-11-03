@@ -159,6 +159,88 @@ const WHEN_LONG := {
 	"end": "As the roll ends", "knocked": "When he's knocked off his feet", "roll": "It is the roll: the whole of it a leap",
 	"always": "Always, not just in a roll",
 }
+## Every weapon evolves twice: the card for it after level 4 evolves it to level 5, after level 9
+## to level 10, and each time he chooses one of three bonuses for it. A weapon with a family grows
+## into the next of it as it does (a knife into a kris, a kris into a karambit).
+const EVOLVE_AFTER: Array[int] = [4, 9]
+## The bonuses, each with what it says and the nicknames it earns: the first evolution's is said
+## first, as a word for it ("Hasty"); the second's after it, as a creature of the islands
+## ("Hornbill"): a golok "Hasty Hornbill".
+const BONUSES := {
+	"damage": {"name": "Heavier", "line": "+30% damage", "first": "Heavy", "second": "Water buffalo"},
+	"speed": {"name": "Quicker", "line": "+25% attack speed", "first": "Hasty", "second": "Mousedeer"},
+	"reach": {"name": "Longer", "line": "+20% reach", "first": "Long", "second": "Hornbill"},
+	"arc": {"name": "Wider", "line": "+30% wider", "first": "Wide", "second": "Pangolin"},
+	"knockback": {"name": "Harder", "line": "+50% knockback", "first": "Stubborn", "second": "Rhino"},
+	"crit": {"name": "Sharper", "line": "+10% critical", "first": "Sly", "second": "Gecko"},
+	"pierce": {"name": "Keener", "line": "Pierces one more", "first": "Keen", "second": "Kingfisher"},
+	"more": {"name": "One more", "line": "One more each time", "first": "Twin", "second": "Weaver bird"},
+	"burn": {"name": "Burning", "line": "Sets it alight", "first": "Smoldering", "second": "Firefly"},
+	"poison": {"name": "Poisoned", "line": "Poisons it", "first": "Bitter", "second": "Komodo"},
+	"bleed": {"name": "Serrated", "line": "Bleeds, worse moving", "first": "Jagged", "second": "Shark"},
+	"daze": {"name": "Dazing", "line": "Dazes it", "first": "Thunderous", "second": "Gong"},
+	"slow": {"name": "Sticky", "line": "Slows it", "first": "Sticky", "second": "Slow loris"},
+}
+## What each way of fighting can be given; "element" is one of the elements it hasn't already got.
+const BONUS_POOLS := {
+	"swung": ["damage", "speed", "arc", "knockback", "crit", "element"],
+	"thrust": ["damage", "speed", "reach", "knockback", "crit", "element"],
+	"shot": ["damage", "speed", "reach", "pierce", "more", "element"],
+	"lobbed": ["damage", "speed", "reach", "arc", "more", "element"],
+}
+const ELEMENTS: Array[String] = ["burn", "poison", "bleed", "daze", "slow"]
+
+
+## How a weapon fights: swung (a blade or a staff round him), thrust (a narrow stab in a line),
+## shot, or lobbed.
+static func form_of(weapon: Weapon) -> String:
+	if weapon.lobbed:
+		return "lobbed"
+	if weapon.kind == Weapon.Kind.MELEE:
+		return "thrust" if weapon.arc <= deg_to_rad(30.0) else "swung"
+	return "shot"
+
+
+## The elements a weapon has already, born with or chosen.
+static func elements_of(weapon: Weapon) -> Array[String]:
+	var have: Array[String] = []
+	for element in ELEMENTS:
+		if element in weapon.bonuses:
+			have.append(element)
+	if weapon.burn > 0.0 and not "burn" in have:
+		have.append("burn")
+	if weapon.poison > 0.0 and not "poison" in have:
+		have.append("poison")
+	if weapon.slow > 0.0 and not "slow" in have:
+		have.append("slow")
+	if weapon.trips > 0.0 and not "daze" in have:
+		have.append("daze")
+	return have
+
+
+## Three bonuses an evolution offers a weapon: from its way of fighting's pool, none it's had, an
+## element one it hasn't got.
+static func bonus_choices(weapon: Weapon, random: RandomNumberGenerator) -> Array[String]:
+	var pool: Array = (BONUS_POOLS[form_of(weapon)] as Array).filter(func(bonus: String) -> bool: return not bonus in weapon.bonuses)
+	var have := elements_of(weapon)
+	var open := ELEMENTS.filter(func(element: String) -> bool: return not element in have)
+	var chosen: Array[String] = []
+	while chosen.size() < CHOICES and not pool.is_empty():
+		var bonus: String = pool.pop_at(random.randi_range(0, pool.size() - 1))
+		if bonus == "element":
+			if open.is_empty():
+				continue
+			bonus = open[random.randi_range(0, open.size() - 1)]
+		chosen.append(bonus)
+	return chosen
+
+
+## A weapon as it's called once it's earned nicknames: a golok "Hasty Hornbill".
+static func title_of(weapon: Weapon) -> String:
+	var nickname := ("%s %s" % [weapon.nickname_first, weapon.nickname_second]).strip_edges()
+	return WEAPON_NAMES[weapon.name] + ((' "%s"' % nickname) if not nickname.is_empty() else "")
+
+
 ## Dodge mutations: each changes what the dodge does. A cat takes up to Cat.MOST_MUTATIONS a run,
 ## and a card for one he has strengthens it. What each is called, and what it does in one line.
 const MUTATIONS := {
@@ -213,12 +295,17 @@ static func available(cat: Cat) -> Array[String]:
 	var holds_used := 0
 	for weapon in cat.weapons:
 		holds_used += weapon.hands
-		if weapon.level < WEAPON_TOP:
+		var evolving := EVOLVE_AFTER.find(weapon.level)
+		if evolving >= 0 and weapon.evolved == evolving:
+			# Its evolution, in place of its next level. A family grows into its next as it does,
+			# and can branch: a card for each way.
+			if EVOLVES.has(weapon.name):
+				for grown: String in EVOLVES[weapon.name]:
+					ids.append("evolve:" + weapon.name + ("" if grown == EVOLVES[weapon.name][0] else ">" + grown))
+			else:
+				ids.append("evolve:" + weapon.name)
+		elif weapon.level < WEAPON_TOP:
 			ids.append("level:" + weapon.name)
-		elif EVOLVES.has(weapon.name):
-			# A family can branch: a card for each way it can grow.
-			for grown: String in EVOLVES[weapon.name]:
-				ids.append("evolve:" + weapon.name + ("" if grown == EVOLVES[weapon.name][0] else ">" + grown))
 		else:
 			ids.append("mastery:" + weapon.name)
 	for support_name: String in SUPPORT:
@@ -255,7 +342,7 @@ static func evolves_into(id: String) -> String:
 	var from := id.get_slice(":", 1)
 	if from.contains(">"):
 		return from.get_slice(">", 1)
-	return EVOLVES[from][0]
+	return EVOLVES[from][0] if EVOLVES.has(from) else from
 
 
 static func evolves_from(id: String) -> String:
@@ -270,7 +357,13 @@ static func offer(cat: Cat, random: RandomNumberGenerator, leaving_out: Array[St
 	var choices: Array[Dictionary] = []
 	while choices.size() < CHOICES and not pool.is_empty():
 		var id: String = pool.pop_at(random.randi_range(0, pool.size() - 1))
-		choices.append({"id": id, "rarity": roll_rarity(random, cat.luck)})
+		var choice := {"id": id, "rarity": roll_rarity(random, cat.luck)}
+		# An evolution's three bonuses are drawn now, with the hand, so playing it is no new draw.
+		if id.begins_with("evolve:"):
+			for weapon in cat.weapons:
+				if weapon.name == evolves_from(id):
+					choice.bonuses = bonus_choices(weapon, random)
+		choices.append(choice)
 	return choices
 
 
@@ -318,11 +411,36 @@ static func apply(cat: Cat, choice: Dictionary) -> void:
 			var old: Weapon = cat.weapons[index]
 			if old.name != evolves_from(id):
 				continue
-			# It keeps everything its levels gave it, and rarity adds a little more.
-			var grown := Weapon.named(evolves_into(id))
-			grown.power = old.power + LEVEL_DAMAGE * (amount - 1.0)
-			grown.tempo = old.tempo + LEVEL_TEMPO * (amount - 1.0)
-			cat.weapons[index] = grown
+			# A level up, as any card is; and a family grows into its next, keeping everything its
+			# levels and its bonuses gave it.
+			var grown := old
+			if evolves_into(id) != old.name:
+				grown = Weapon.named(evolves_into(id))
+				for bonus in old.bonuses:
+					grown.take_bonus(bonus, false)
+				grown.nickname_first = old.nickname_first
+				grown.nickname_second = old.nickname_second
+				grown.power = old.power
+				grown.tempo = old.tempo
+				cat.weapons[index] = grown
+			grown.level = old.level + 1
+			grown.power += LEVEL_DAMAGE * amount
+			grown.tempo += LEVEL_TEMPO * amount
+			grown.evolved = old.evolved + 1
+			# Its bonus, chosen next, from the three drawn with it.
+			var bonuses: Array = choice.get("bonuses", [])
+			if bonuses.is_empty():
+				bonuses = (BONUS_POOLS[form_of(grown)] as Array).filter(func(bonus: String) -> bool: return bonus != "element" and not bonus in grown.bonuses).slice(0, CHOICES)
+			var hand: Array[Dictionary] = []
+			for bonus: String in bonuses:
+				hand.append({"id": "bonus:%s:%s:%d" % [grown.name, bonus, grown.evolved], "rarity": choice.rarity})
+			cat.offers.push_front(hand)
+			break
+	elif id.begins_with("bonus:"):
+		for weapon in cat.weapons:
+			if weapon.name == id.get_slice(":", 1):
+				weapon.take_bonus(id.get_slice(":", 2))
+				break
 	elif id.begins_with("support:"):
 		var support := Support.named(id.trim_prefix("support:"))
 		# A rarer find comes better made, as a weapon does.
@@ -410,9 +528,20 @@ static func _describe(choice: Dictionary) -> Dictionary:
 		var from := evolves_from(id)
 		card.item = evolves_into(id)
 		card.kind = "weapon"
-		card.name = WEAPON_NAMES[card.item]
-		card.lines = ["The %s evolves" % WEAPON_NAMES[from].to_lower(), "Keeps all its levels"]
-		card.explain = ["%s: %s" % [card.name, WEAPON_DOES[card.item]], "Evolving: at level %d a weapon can grow into the next of its family" % WEAPON_TOP]
+		card.name = ("Evolve: " + WEAPON_NAMES[from]) if card.item == from else WEAPON_NAMES[card.item]
+		card.lines = ["Then choose its bonus" if card.item == from else "The %s grows into it" % WEAPON_NAMES[from].to_lower(), "Keeps all its levels"]
+		card.explain = ["%s: %s" % [WEAPON_NAMES[card.item], WEAPON_DOES[card.item]],
+			"Evolving: at levels 5 and 10 every weapon evolves, and he chooses one of three bonuses for it, which earns it a nickname"]
+	elif id.begins_with("bonus:"):
+		var bonus := id.get_slice(":", 2)
+		card.item = id.get_slice(":", 1)
+		card.kind = "weapon"
+		card.name = BONUSES[bonus].name
+		# Which evolution it's for says which nickname it earns: a word at the first, a creature at
+		# the second.
+		var second := id.get_slice(":", 3) == "2"
+		card.lines = [BONUSES[bonus].line, 'Earns "%s"' % (BONUSES[bonus].second if second else BONUSES[bonus].first)]
+		card.explain = ["%s: the bonus its evolution gives the %s, and the nickname it earns it" % [BONUSES[bonus].name, WEAPON_NAMES[card.item].to_lower()]]
 	elif id.begins_with("level:") or id.begins_with("mastery:"):
 		var mastery := id.begins_with("mastery:")
 		var share := MASTERY if mastery else 1.0

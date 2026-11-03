@@ -28,6 +28,15 @@ var ready_in := 0.0
 var level := 1
 var power := 0.0
 var tempo := 0.0
+## Its evolutions so far (none, one at level 5, two at level 10), the bonus chosen at each, and the
+## nicknames they earned it: "Hasty" at the first, "Hornbill" at the second.
+var evolved := 0
+var bonuses: Array[String] = []
+var nickname_first := ""
+var nickname_second := ""
+## A share of a hit's critical chance it adds, from an evolution; and bleeding, from one.
+var crit := 0.0
+var bleed := 0.0
 
 # Ranged: muzzle speed in meters a second, spread either side in radians.
 var muzzle_speed := 100.0
@@ -207,6 +216,42 @@ func swinging() -> bool:
 
 
 ## What it does in this cat's paw, with his stats and its own levels.
+## A bonus an evolution gives it, taken: what it changes, and the nickname it earns.
+func take_bonus(bonus: String, nickname := true) -> void:
+	bonuses.append(bonus)
+	match bonus:
+		"damage": power += 0.3
+		"speed": tempo += 0.25
+		"reach": reach *= 1.2
+		"arc":
+			if kind == Kind.MELEE:
+				arc *= 1.3
+			else:
+				blast *= 1.3
+				fire_patch *= 1.3
+		"knockback": knock *= 1.5
+		"crit": crit += 0.1
+		"pierce": pierce += 1
+		"more":
+			# One more of what it throws: a pop, a bounce, or a round.
+			if pops > 0:
+				pops += 1
+			elif ricochet > 0:
+				ricochet += 1
+			else:
+				pellets += 1
+		"burn": burn += 1.5
+		"poison": poison += 1.0
+		"bleed": bleed += 1.5
+		"daze": trips = maxf(trips, 0.5)
+		"slow": slow = maxf(slow, 0.4)
+	if nickname:
+		if evolved <= 1:
+			nickname_first = Upgrades.BONUSES[bonus].first
+		else:
+			nickname_second = Upgrades.BONUSES[bonus].second
+
+
 func hit_for(cat: Cat) -> float:
 	return damage * (1.0 + power + cat.damage_bonus)
 
@@ -299,7 +344,7 @@ func _swing(delta: float, cat: Cat, arena: Arena) -> void:
 		var along_blade := outward.orthogonal() * swing_direction
 		# A hooked blade pulls what it catches in, toward him.
 		var pushed := -outward if hooks else (outward + along_blade * 0.6).normalized()
-		arena.strike(creature, hit_for(cat), pushed, knock, lift, "blade", cat, name)
+		arena.strike(creature, hit_for(cat), pushed, knock, lift, "blade", cat, name, crit)
 		arena.afflict(creature, self, cat)
 		if breaks > 0:
 			hits_left -= 1

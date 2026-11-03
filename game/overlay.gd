@@ -39,7 +39,7 @@ var history_choice := 0
 ## What each source of damage is called, past the weapons, which go by their own names.
 const SOURCE_NAMES := {
 	"slash": "Rolling slash", "ankles": "Ankle cutter", "pounce": "Pounce", "riposte": "Riposte",
-	"cub": "The cub", "fire": "Burning", "poison": "Poison", "nail": "Nail gun", "caltrop": "Caltrops",
+	"cub": "The cub", "fire": "Burning", "poison": "Poison", "bleed": "Bleeding", "nail": "Nail gun", "caltrop": "Caltrops",
 	"spikes": "Bamboo spikes", "string": "Fighting kite", "sting": "Bee swarm", "snare": "Snare",
 	"alarm_drum": "Alarm drum", "mines": "Mines", "petasan": "Firecrackers", "blade": "Blade", "round": "Rounds",
 }
@@ -794,7 +794,7 @@ func _draw_kit() -> void:
 	var screen := get_viewport_rect().size
 	var kit: Array[Array] = [["Weapons", ""]]
 	for weapon in cat.weapons:
-		kit.append([Upgrades.WEAPON_NAMES.get(weapon.name, weapon.name), "Level %d" % weapon.level])
+		kit.append([Upgrades.title_of(weapon) if Upgrades.WEAPON_NAMES.has(weapon.name) else weapon.name, "Level %d" % weapon.level])
 	kit.append(["Gear", ""])
 	for slot: String in Upgrades.SLOTS:
 		var piece: String = cat.gear.get(slot, "")
@@ -1218,8 +1218,12 @@ static func source_name(key: String) -> String:
 
 
 ## His damage this run, by what did it, the most first: {name, damage, share of all of it, damage
-## a second over the run, kills}.
+## a second over the run, kills}. A weapon he holds goes by the nickname it's earned.
 static func damage_rows(of: Cat, seconds: float) -> Array[Dictionary]:
+	var titles := {}
+	for weapon in of.weapons:
+		if Upgrades.WEAPON_NAMES.has(weapon.name):
+			titles[weapon.name] = Upgrades.title_of(weapon)
 	var total := 0.0
 	for key: String in of.dealt:
 		total += of.dealt[key]
@@ -1228,7 +1232,7 @@ static func damage_rows(of: Cat, seconds: float) -> Array[Dictionary]:
 	var rows: Array[Dictionary] = []
 	for key: String in keys:
 		var damage: float = of.dealt[key]
-		rows.append({"name": source_name(key), "damage": damage, "share": damage / total if total > 0.0 else 0.0,
+		rows.append({"name": titles.get(key, source_name(key)), "damage": damage, "share": damage / total if total > 0.0 else 0.0,
 			"per_second": damage / maxf(seconds, 1.0), "kills": of.finished.get(key, 0)})
 	return rows
 
@@ -1313,7 +1317,8 @@ func _draw_history() -> void:
 	var run: Dictionary = history[history_choice]
 	y = box.position.y + 24 + 10 * row + 6
 	draw_rect(Rect2(box.position.x + 6, y - 3, box.size.x - 12, 1), Palette.PANEL_LIGHT)
-	var weapons: Array = (run.get("weapons", []) as Array).map(func(name: String) -> String: return source_name(name))
+	# Kept as they were called: an older run's by id, a newer one's with its nicknames.
+	var weapons: Array = (run.get("weapons", []) as Array).map(func(name: String) -> String: return source_name(name) if Upgrades.WEAPON_NAMES.has(name) else name)
 	var gear: Array = (run.get("gear", []) as Array).map(func(id: String) -> String: return Upgrades.GEAR[id].name if Upgrades.GEAR.has(id) else id)
 	var x := box.position.x + 12
 	for line: String in wrapped("Took: " + ", ".join(weapons) + (("; wore " + ", ".join(gear)) if not gear.is_empty() else ""), box.size.x - 24).slice(0, 2):
