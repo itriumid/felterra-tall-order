@@ -24,43 +24,37 @@ func test_jogiboy_keeps_what_he_finds_until_asked() -> void:
 	check(not village.has_tidings("jogiboy"), "Jogiboy still had something once he'd handed it over")
 
 
-func test_starting_weapons_are_chosen_only_once_taught() -> void:
+func test_the_pack_is_the_first_draw() -> void:
 	var village := Village.new()
-	check(not village.repack("weapon:knife") or village.starters == Village.DEFAULT_STARTERS, "the knife started a run before Pak Besi taught it")
-	village.left_home.clear()
-	village.tell("smithy", "Pak Besi", "Choose them.", Village.STARTERS_TAUGHT)
+	# Every weapon in the pack can be left home, the nunchaku and the handgun too, as long as enough
+	# stay packed to draw from.
+	village.forged.append("weapon:machete")
+	check(village.repack("weapon:nunchaku") and not village.packed("weapon:nunchaku"), "the nunchaku couldn't be left home")
+	check(not village.repack("weapon:handgun"), "the handgun was left home with too few weapons packed")
+	var pool := village.packed_weapons()
+	check(not "nunchaku" in pool and "machete" in pool and pool.size() == 6, "the pack dealt from %s" % [pool])
+	# Pak Besi says so, once, at the smithy.
+	village.tell("smithy", "Pak Besi", "Pack what you'd draw.", Village.PACK_TAUGHT)
 	village.hear("smithy")
-	check(village.starters_taught(), "hearing Pak Besi didn't teach choosing")
-	check(village.repack("weapon:knife") and village.starters == ["weapon:knife", "weapon:handgun"], "the knife didn't start a run: %s" % [village.starters])
-	check(village.repack("weapon:ketapel") and village.starters == ["weapon:knife", "weapon:ketapel"], "the slingshot didn't start as the one he shoots: %s" % [village.starters])
-	# One he swings and one he shoots: a blade never takes the gun's place.
-	check(village.repack("weapon:golok") and village.starters == ["weapon:golok", "weapon:ketapel"], "the golok took the wrong place: %s" % [village.starters])
-	check(village.cant_leave_home("weapon:golok") != "", "a starter could be left home")
-	# Again: the village's own starts instead, and with too few packed to leave it, it's taken along.
-	check(village.repack("weapon:golok") and village.starters == ["weapon:nunchaku", "weapon:ketapel"], "the golok stayed a starter: %s" % [village.starters])
-	check(village.packed("weapon:golok"), "the golok was left home with too few weapons packed")
-	# The village's own two are never left home.
-	village.repack("weapon:handgun")
-	check(not village.repack("weapon:handgun") and village.packed("weapon:handgun"), "the handgun was left home")
+	check(Village.PACK_TAUGHT in village.told, "hearing Pak Besi didn't teach packing")
 
 
-func test_starters_and_news_come_back_as_they_were_kept() -> void:
+func test_news_comes_back_as_it_was_kept() -> void:
 	var path := "user://test_village_tidings.cfg"
 	var village := Village.new()
-	village.told.append(Village.STARTERS_TAUGHT)
-	village.repack("weapon:knife")
 	village.tell("board", "On the map", "Choose it.")
 	village.jogiboy_found = 4
 	check(village.save(path), "couldn't save")
 	var back := Village.new()
 	back.load_from(path)
-	check(back.starters == ["weapon:knife", "weapon:handgun"], "the starters came back as %s" % [back.starters])
 	check(back.has_tidings("board") and back.jogiboy_found == 4, "the news or Jogiboy's find didn't come back")
-	# Kept by hand: a starter not his, or of the wrong sort, goes back to the village's own.
+	# A village kept when a run started with chosen weapons still loads: what was chosen is simply
+	# in the pack.
 	var file := ConfigFile.new()
 	file.load(path)
-	file.set_value("village", "starters", ["weapon:handgun", "weapon:rifle"])
+	file.set_value("village", "starters", ["weapon:knife", "weapon:handgun"])
+	file.set_value("village", "told", ["teach:starters"])
 	file.save(path)
 	back.load_from(path)
-	check(back.starters == Village.DEFAULT_STARTERS, "starters off the rules came back as %s" % [back.starters])
+	check(back.packed("weapon:knife") and not "teach:starters" in back.told, "an older village loaded wrong")
 	DirAccess.remove_absolute(path)

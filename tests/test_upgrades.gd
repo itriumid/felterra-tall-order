@@ -181,32 +181,66 @@ func test_power_keeps_growing_past_every_top_level() -> void:
 	check(damage_at_160.reduce(func(a: float, b: float) -> float: return a + b) > damage_at_80.reduce(func(a: float, b: float) -> float: return a + b), "eighty more levels made him no stronger")
 
 
-func test_a_knife_evolves_only_at_the_top_level_and_keeps_its_levels() -> void:
+## Plays every card a weapon's offered in turn, choosing the first bonus whenever it evolves:
+## up to a level. Returns the ids played.
+func _grow(cat: Cat, weapon_name: String, to_level: int) -> Array[String]:
+	var played: Array[String] = []
+	var random := RandomNumberGenerator.new()
+	while cat.weapons[0].level < to_level:
+		var mine := Upgrades.available(cat).filter(func(id: String) -> bool: return not id.begins_with("weapon:") and id.get_slice(":", 1).get_slice(">", 0) == cat.weapons[0].name)
+		var id: String = mine[0]
+		var choice := {"id": id, "rarity": Upgrades.Rarity.COMMON}
+		if id.begins_with("evolve:"):
+			choice.bonuses = Upgrades.bonus_choices(cat.weapons[0], random)
+		Upgrades.apply(cat, choice)
+		played.append(id)
+		# An evolution deals its bonus hand first: the first of it is chosen.
+		while not cat.offers.is_empty() and (cat.offers[0][0].id as String).begins_with("bonus:"):
+			var bonus: Dictionary = cat.offers.pop_front()[0]
+			Upgrades.apply(cat, bonus)
+			played.append(bonus.id)
+	return played
+
+
+func test_every_weapon_evolves_at_five_and_ten_choosing_a_bonus_each_time() -> void:
+	for weapon_name: String in Upgrades.WEAPONS:
+		var cat := Cat.new()
+		cat.wear({"weapons": [weapon_name]})
+		var played := _grow(cat, weapon_name, 12)
+		var evolutions := played.filter(func(id: String) -> bool: return id.begins_with("evolve:"))
+		var bonuses := played.filter(func(id: String) -> bool: return id.begins_with("bonus:"))
+		var weapon := cat.weapons[0]
+		check(evolutions.size() == 2 and bonuses.size() == 2 and weapon.evolved == 2, "the %s evolved %d times with %d bonuses" % [weapon_name, evolutions.size(), bonuses.size()])
+		check(weapon.bonuses.size() == 2 and weapon.bonuses[0] != weapon.bonuses[1], "the %s took bonuses %s" % [weapon_name, weapon.bonuses])
+		check(not weapon.nickname_first.is_empty() and not weapon.nickname_second.is_empty(), "the %s earned no nicknames: %s" % [weapon_name, Upgrades.title_of(weapon)])
+		check(Upgrades.title_of(weapon).contains('"'), "the %s is called %s" % [weapon_name, Upgrades.title_of(weapon)])
+		# Past level 10, mastery, without limit.
+		check(("mastery:" + weapon.name) in Upgrades.available(cat), "the %s wasn't offered mastery at level %d" % [weapon.name, weapon.level])
+
+
+func test_a_knife_grows_into_a_kris_then_a_karambit_keeping_all_it_had() -> void:
 	var cat := Cat.new()
 	cat.wear({"weapons": ["knife"]})
-	for level in Upgrades.WEAPON_TOP - 1:
-		Upgrades.apply(cat, {"id": "level:knife", "rarity": Upgrades.Rarity.COMMON})
-	check("evolve:knife" in Upgrades.available(cat), "a top-level knife wasn't offered its evolution")
-	var young := Cat.new()
-	young.wear({"weapons": ["knife"]})
-	for level in 4:
-		Upgrades.apply(young, {"id": "level:knife", "rarity": Upgrades.Rarity.COMMON})
-	check(not "evolve:knife" in Upgrades.available(young), "a level 5 knife could already evolve")
-	var power := cat.weapons[0].power
-	Upgrades.apply(cat, {"id": "evolve:knife", "rarity": Upgrades.Rarity.COMMON})
-	check(cat.weapons[0].name == "keris", "the knife became %s" % cat.weapons[0].name)
-	check(cat.weapons[0].power >= power, "evolving lost the knife's levels")
-	check(not "weapon:knife" in Upgrades.available(cat), "a knife was offered beside his keris")
+	_grow(cat, "knife", 5)
+	check(cat.weapons[0].name == "keris" and cat.weapons[0].level == 5, "at level 5 the knife was a %s at level %d" % [cat.weapons[0].name, cat.weapons[0].level])
+	var taken := cat.weapons[0].bonuses.duplicate()
+	var nickname := cat.weapons[0].nickname_first
+	_grow(cat, "keris", 10)
+	check(cat.weapons[0].name == "kerambit" and cat.weapons[0].bonuses.size() == 2 and cat.weapons[0].bonuses[0] == taken[0], "the karambit kept %s" % [cat.weapons[0].bonuses])
+	check(cat.weapons[0].nickname_first == nickname, "the karambit lost its nickname")
+	check(not "weapon:knife" in Upgrades.available(cat), "a knife was offered beside his karambit")
 
 
-func test_the_last_of_a_family_takes_mastery_without_limit() -> void:
-	var cat := Cat.new()
-	cat.wear({"weapons": ["kerambit"]})
-	for level in Upgrades.WEAPON_TOP + 10:
-		var id := "level:kerambit" if cat.weapons[0].level < Upgrades.WEAPON_TOP else "mastery:kerambit"
-		check(id in Upgrades.available(cat), "%s wasn't offered at level %d" % [id, cat.weapons[0].level])
-		Upgrades.apply(cat, {"id": id, "rarity": Upgrades.Rarity.COMMON})
-	check(cat.weapons[0].level == Upgrades.WEAPON_TOP + 11, "the kerambit stopped at level %d" % cat.weapons[0].level)
+func test_an_evolution_offers_only_what_suits_how_it_fights() -> void:
+	var random := RandomNumberGenerator.new()
+	for weapon_name: String in Upgrades.WEAPONS:
+		var weapon := Weapon.named(weapon_name)
+		for draw in 20:
+			var offered := Upgrades.bonus_choices(weapon, random)
+			check(offered.size() == 3, "the %s was offered %s" % [weapon_name, offered])
+			for bonus in offered:
+				var fits: bool = bonus in Upgrades.BONUS_POOLS[Upgrades.form_of(weapon)] or (bonus in Upgrades.ELEMENTS and not bonus in Upgrades.elements_of(weapon))
+				check(fits, "the %s (%s) was offered %s" % [weapon_name, Upgrades.form_of(weapon), bonus])
 
 
 func test_full_health_never_reads_as_more_than_the_most() -> void:

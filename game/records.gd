@@ -26,7 +26,7 @@ static func entry_of(arena: Arena, cat: Cat, where: String, freed := false) -> D
 		damage[key] = snappedf(cat.dealt[key], 0.1)
 	var weapons: Array[String] = []
 	for weapon in cat.weapons:
-		weapons.append(weapon.name)
+		weapons.append(Upgrades.title_of(weapon) if Upgrades.WEAPON_NAMES.has(weapon.name) else weapon.name)
 	var gear: Array[String] = []
 	for slot: String in cat.gear:
 		gear.append(cat.gear[slot])

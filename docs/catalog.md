@@ -94,9 +94,11 @@ Endless is the other mode: a fresh clearing every run, the horde growing until h
 Held in his mouth and his tail: two one-handed, or one two-handed, in his mouth and braced with
 his tail. Modern weapons anyone could find, plus what
 a country has uniquely, Indonesia first. A run from the village starts with six weapons in the cards
-(the nunchaku, the handgun, the knife, the ketapel, the golok and the rattan staff); every other
+(the nunchaku, the handgun, the knife, the ketapel, the golok and the rattan staff), and none in
+his mouth: his first level deals him three of what's packed. Every other
 weapon is forged at the smithy first, and what a weapon grows
-into needs no forging. Every weapon, piece of gear, support and mutation has a story, in
+into needs no forging. Every weapon evolves at level 5 and level 10, with a bonus chosen each time
+(see the design). Every weapon, piece of gear, support and mutation has a story, in
 `simulation/lore.gd`.
 
 ### Modern
@@ -273,7 +275,7 @@ home with the first cat he rescues, the rest with an area freed. Each opens what
 | **Home** | Built | His, the first house in from the forest. Fixed up by the first cat he rescues, as a thank-you. His pack: what the cards can offer, what's left home, and the piece worn from the start |
 | **Smithy** | Built | Pak Besi's, back with the village's edge freed. The smith forges weapons, gear and support into the cards |
 | **Huts** | Built | Five, each home to two rescued cats, who weave cloth while he's away. The first is the weaver's, Nenek Pus's, back with the deep forest freed, who sells looks; the rest the rescued cats build themselves, at 3, 5, 7 and 9 of them |
-| **Longhouse** | Built | Rebuilt by Si Belang, the carpenter, back with the sawpits freed. The Elder's: a run can start with any weapon the smith has forged, and the book of stories keeps the story so far |
+| **Longhouse** | Built | Rebuilt by Si Belang, the carpenter, back with the sawpits freed. The Elder's: the book of stories keeps the story so far |
 | **Map board** | Built | At the gate, never a ruin: the forest carved on a board and drawn as a war map, its territories banded in their holders' colors with a banner each, mist over what isn't found, and arrows into what can be taken next. Where he chooses the next run, or Endless |
 | **Well** | Idea | Water for the village; a place the cats gather and talk |
 | **Watchtower** | Built | Jingga's, by the gate, back with the logged clearing freed: the map board shows each area's boss, and how to beat it |

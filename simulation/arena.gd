@@ -186,6 +186,12 @@ var spawning := true
 ## each cat an offer.
 var experience := 0
 var level := 1
+## A run starts with no weapon: experience trickles in from the start, filling the bar to the first
+## level in this long, so the first hand (the first draw) comes the way every hand does, by
+## leveling up, before the horde's close.
+var head_start := false
+const HEAD_START_TIME := 2.0
+var _head_start_for := 0.0
 ## Playing together, the crew carries LIVES between them. A cat whose health runs out is down,
 ## not gone: a crewmate standing by them for REVIVE_TIME gets them up, and if nobody comes in
 ## DOWN_TIME, a life is spent and they're up again beside the crew. With none left, the run is
@@ -263,6 +269,13 @@ func add_creature(where: Vector2, kind := "rat") -> Creature:
 
 func step() -> void:
 	time += STEP
+	if head_start:
+		_head_start_for += STEP
+		var due := experience_needed(1) * minf(_head_start_for / HEAD_START_TIME, 1.0)
+		if level == 1 and experience < floori(due):
+			_gain_experience(floori(due) - experience)
+		if level > 1 or _head_start_for >= HEAD_START_TIME:
+			head_start = false
 	# Who stands where, as the step begins: everything that looks for a creature uses it.
 	_build_grid()
 	_find_the_ways()
@@ -876,7 +889,7 @@ func _fly_shots() -> void:
 			if shot.blast > 0.0:
 				blast(shot.position, shot.blast, shot.damage, shot.weapon.knock, shot.weapon.lift, shot.weapon.name, shot.shooter, shot.weapon)
 			_landed(shot, shot.position)
-			events.append({"position": shot.position, "height": shot.height, "direction": shot.velocity.normalized(), "killed": false, "by": "thud", "giant": false, "kind": "obstacle"})
+			events.append({"position": shot.position, "height": shot.height, "direction": shot.velocity.normalized(), "killed": false, "by": "thud", "giant": false, "kind": "obstacle", "source": shot.weapon.name if shot.weapon != null else ""})
 			shot.spent = true
 		elif shot.height <= 0.0 or shot.life <= 0.0:
 			if shot.height <= 0.0:
@@ -951,6 +964,8 @@ func afflict(target: Object, weapon: Weapon, attacker: Cat) -> void:
 	var share := 1.0 + weapon.power + (attacker.damage_bonus if attacker != null else 0.0)
 	if weapon.poison > 0.0:
 		target.afflictions.poison = {"dps": weapon.poison * share, "left": Weapon.AFFLICTION_TIME, "by": attacker, "tick": 0.0, "source": weapon.name}
+	if weapon.bleed > 0.0:
+		target.afflictions.bleed = {"dps": weapon.bleed * share, "left": Weapon.AFFLICTION_TIME, "by": attacker, "tick": 0.0, "source": weapon.name}
 	if weapon.burn > 0.0 and weapon.fire_patch <= 0.0:
 		target.afflictions.burn = {"dps": weapon.burn * share, "left": Weapon.AFFLICTION_TIME, "by": attacker, "tick": 0.0, "source": weapon.name}
 	if weapon.slow > 0.0 and target is Creature:
@@ -976,7 +991,11 @@ func _afflict_all() -> void:
 				affliction.tick += STEP
 				if affliction.tick >= TICK:
 					affliction.tick -= TICK
-					strike(target, affliction.dps * TICK, Vector2.ZERO, 0.0, 0.0, "poison" if kind == "poison" else "fire", affliction.by, affliction.get("source", ""))
+					# Bleeding is worse on the move: half of it standing still.
+					var bleeding := kind == "bleed"
+					var moving: bool = (target.body.velocity as Vector2).length() > 0.3
+					var dealt: float = affliction.dps * TICK * (0.5 if bleeding and not moving else 1.0)
+					strike(target, dealt, Vector2.ZERO, 0.0, 0.0, {"poison": "poison", "bleed": "bleed"}.get(kind, "fire"), affliction.by, affliction.get("source", ""))
 			if affliction.left <= 0.0:
 				afflictions.erase(kind)
 
@@ -1143,11 +1162,11 @@ func _first_hit(shot: Shot) -> Object:
 
 
 func _strike(creature: Object, shot: Shot) -> void:
-	strike(creature, shot.damage, shot.velocity.normalized(), shot.weapon.knock, shot.weapon.lift, "round", shot.shooter, shot.weapon.name)
+	strike(creature, shot.damage, shot.velocity.normalized(), shot.weapon.knock, shot.weapon.lift, "round", shot.shooter, shot.weapon.name, shot.weapon.crit)
 
 
 ## A hit on a creature, from a round or a blade: it's hurt, thrown, and falls if it's done for.
-func strike(target: Object, damage: float, direction: Vector2, knock: float, lift: float, by: String, attacker: Cat = null, source := "") -> void:
+func strike(target: Object, damage: float, direction: Vector2, knock: float, lift: float, by: String, attacker: Cat = null, source := "", extra_critical := 0.0) -> void:
 	if not target.alive():
 		return
 	# What it's credited to, on his tally: the weapon, the mutation, the support, what's burning.
@@ -1157,7 +1176,7 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 	# one more.
 	var tier := 0
 	if attacker != null:
-		tier = critical_tier(attacker.critical)
+		tier = critical_tier(attacker.critical + extra_critical)
 		damage *= 1.0 + tier
 		knock *= 1.0 + attacker.knockback_bonus
 	if target is Structure:
@@ -1165,7 +1184,7 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 		var broke := minf(damage, structure.health)
 		structure.health -= damage
 		_tally(attacker, credit, broke, false)
-		events.append({"position": structure.body.position, "height": structure.body.tall * 0.6, "direction": direction, "killed": not structure.alive(), "by": by, "giant": true, "kind": "structure", "damage": broke, "tier": tier, "ours": attacker != null})
+		events.append({"position": structure.body.position, "height": structure.body.tall * 0.6, "direction": direction, "killed": not structure.alive(), "by": by, "giant": true, "kind": "structure", "damage": broke, "tier": tier, "ours": attacker != null, "source": credit})
 		if not structure.alive():
 			structure.broken(self)
 			drop_salvage(structure.body.position, 2)
@@ -1178,7 +1197,7 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 		if attacker != null:
 			attacker.heal(through * attacker.adrenaline)
 		_tally(attacker, credit, through, not machine.alive())
-		events.append({"position": target.body.position, "height": minf(0.6, target.body.height + 0.2), "direction": direction, "killed": not machine.alive(), "by": by, "giant": true, "kind": "joint" if on_joint else "machine", "damage": through, "tier": tier, "ours": attacker != null})
+		events.append({"position": target.body.position, "height": minf(0.6, target.body.height + 0.2), "direction": direction, "killed": not machine.alive(), "by": by, "giant": true, "kind": "joint" if on_joint else "machine", "damage": through, "tier": tier, "ours": attacker != null, "source": credit})
 		if not machine.alive():
 			kills += 1
 			machines_broken += 1
@@ -1196,7 +1215,7 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 		# A push is shared over his mass: a round that throws a rat barely moves him.
 		giant.body.velocity += direction * knock / Giant.HEFT
 		_tally(attacker, credit, dealt, not giant.alive())
-		events.append({"position": giant.body.position, "height": minf(0.3, Giant.TALL), "direction": direction, "killed": not giant.alive(), "by": by, "giant": true, "damage": dealt, "tier": tier, "ours": attacker != null})
+		events.append({"position": giant.body.position, "height": minf(0.3, Giant.TALL), "direction": direction, "killed": not giant.alive(), "by": by, "giant": true, "damage": dealt, "tier": tier, "ours": attacker != null, "source": credit})
 		if not giant.alive():
 			kills += 1
 			giants_felled += 1
@@ -1220,7 +1239,7 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 	events.append({
 		"position": creature.body.position, "height": creature.body.height + creature.body.tall * 0.5,
 		"direction": direction, "killed": not creature.alive(), "by": by, "giant": false, "kind": creature.kind,
-		"damage": dealt, "tier": tier, "ours": attacker != null,
+		"damage": dealt, "tier": tier, "ours": attacker != null, "source": credit,
 	})
 	if creature.alive():
 		return

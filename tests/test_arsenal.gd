@@ -181,7 +181,7 @@ func test_a_bamboo_spear_breaks_and_is_sharpened_again() -> void:
 func test_a_rifle_grows_two_ways() -> void:
 	var cat := Cat.new()
 	cat.wear({"weapons": ["rifle"]})
-	cat.weapons[0].level = Upgrades.WEAPON_TOP
+	cat.weapons[0].level = Upgrades.EVOLVE_AFTER[0]
 	var offered := Upgrades.available(cat)
 	check("evolve:rifle" in offered and "evolve:rifle>sniper_rifle" in offered, "the rifle was offered %s" % str(offered.filter(func(id: String) -> bool: return id.begins_with("evolve"))))
 	Upgrades.apply(cat, {"id": "evolve:rifle>sniper_rifle", "rarity": Upgrades.Rarity.COMMON})

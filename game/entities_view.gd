@@ -67,6 +67,24 @@ var _glint := {}
 ## {at (pixels), across (the way the stroke runs), age}.
 var _hit_spots := {}
 var _slashes: Array[Dictionary] = []
+## Rings going out where a mutation acted, so it's plain when it did: where a roll that does
+## something as it starts set off, where a pounce came down, where a riposte answered. Each as
+## {at (pixels), color, age}.
+var _rings: Array[Dictionary] = []
+const RING_TIME := 0.3
+const RING_RADIUS := 10.0
+## What a fight leaves lying a while, apart from blood: spent cases from the guns, scorch where
+## something burst, and arrows, bolts and nails stuck where they struck. Each as {position, height,
+## kind, way, age, life}.
+var _marks: Array[Dictionary] = []
+const MOST_MARKS := 300
+## Guns that throw out a spent case each round; what sticks where it strikes; and how each blade
+## lands, by weapon: blunt ones thump, the rest cut or stab as they're swung or thrust.
+const CASED: Array[String] = ["handgun", "submachine_gun", "rifle", "automatic_rifle", "assault_rifle", "sniper_rifle", "shotgun"]
+const STICKS: Array[String] = ["crossbow", "panah", "nail_gun", "sumpit"]
+const BLUNT: Array[String] = ["nunchaku", "rattan_staff"]
+var _cases_seen := {}
+var _forms := {}
 var _taken_seen := {}
 var _level_up := 0.0
 var _level_seen := -1
@@ -116,6 +134,13 @@ func _process(delta: float) -> void:
 		if fired != _rounds_seen.get(cat, 0):
 			flash[cat] = 1.0
 		_rounds_seen[cat] = fired
+		# A gun throws out its spent case, off to the side, to lie where it lands.
+		for weapon in cat.weapons:
+			if weapon.name in CASED and weapon.rounds_fired != _cases_seen.get(weapon, weapon.rounds_fired) and _droplets.size() < 400:
+				var side := Vector2(-cat.aim.y, cat.aim.x) * (1.0 if randf() < 0.5 else -1.0)
+				_droplets.append({"position": cat.body.position, "height": Cat.GUN_HEIGHT, "rise": randf_range(0.8, 1.4),
+					"velocity": side * randf_range(0.6, 1.2), "color": Palette.BRASS_LIGHT, "stains": false, "mark": "case"})
+			_cases_seen[weapon] = weapon.rounds_fired
 		flash[cat] = maxf(flash.get(cat, 0.0) - delta / FLASH_TIME, 0.0)
 		if cat.hits_taken != _hits_seen.get(cat, cat.hits_taken):
 			_hurt[cat] = HURT_TIME
@@ -216,6 +241,7 @@ func _draw_all() -> void:
 	standing.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	for stain in _stains:
 		draw_rect(Rect2(World.to_screen(stain.position), Vector2.ONE), Palette.BLOOD if stain.age < STAIN_DRIES else Palette.BLOOD_DRY)
+	_draw_marks()
 	for piece in arena.pickups:
 		standing.append([piece.body.position.y, piece])
 	for cage in arena.cages:
@@ -282,8 +308,7 @@ func _draw_all() -> void:
 			_draw_guardian(thing)
 		elif thing is Giant:
 			_draw_giant(thing)
-			if thing.afflictions.has("burn"):
-				_draw_flames(thing.body.position, 0.4, 6)
+			_draw_afflictions(thing, 0.4, false, 6)
 		elif thing is Creature:
 			# Tripped, it's down on its side, drawn as the fallen are until it's up.
 			if thing.kind == "rat_baron":
@@ -298,10 +323,7 @@ func _draw_all() -> void:
 				_draw_spirit(thing)
 			else:
 				_draw_rat(thing.body, _frame(thing, RAT_STRIDE), thing.tripped())
-			if thing.afflictions.has("burn"):
-				_draw_flames(thing.body.position, thing.body.height + thing.body.tall, 3)
-			elif thing.afflictions.has("poison"):
-				draw_rect(Rect2(World.to_screen(thing.body.position, thing.body.tall + 0.12), Vector2(1, 1)), Palette.LEAF_LIGHT)
+			_draw_afflictions(thing, thing.body.height + thing.body.tall, thing.tripped(), 3)
 		elif thing is Body:
 			_draw_lying(thing)
 		else:
@@ -321,6 +343,9 @@ func _draw_all() -> void:
 			_draw_net(World.to_screen(shot.position, shot.height), size, false)
 			continue
 		_draw_shot(shot)
+	for ring in _rings:
+		var share: float = ring.age / RING_TIME
+		draw_arc(ring.at, 2.0 + RING_RADIUS * share, 0.0, TAU, 16, ring.color, 1.0)
 	for slash in _slashes:
 		# A bright stroke across, thinning as it goes.
 		var length: float = 5.0 * (1.0 - slash.age / SLASH_TIME) + 2.0
@@ -1370,6 +1395,33 @@ func _draw_ground_hazards() -> void:
 
 
 ## Flames, flickering: a few palette pixels of fire rising off something burning.
+## What's ailing something, shown on it while it lasts: burning, flames; poisoned, green bubbles
+## rising; bleeding, drips falling; dazed (down and senseless), stars going round over it;
+## slowed, a smear left behind it. Each a few pixels, drawn only while it ails it.
+func _draw_afflictions(thing: Object, height: float, dazed: bool, size: int) -> void:
+	var afflictions: Dictionary = thing.afflictions
+	var at: Vector2 = thing.body.position
+	var over := World.to_screen(at, height)
+	var beat := int(_clock * 8.0 + at.x * 5.0)
+	if afflictions.has("burn"):
+		_draw_flames(at, height, size)
+	if afflictions.has("poison"):
+		for bubble in 2:
+			var rise := (beat + bubble * 3) % 6
+			draw_rect(Rect2(over + Vector2(-1 + bubble * 3, -2 - rise), Vector2.ONE), Palette.LEAF_LIGHT if rise < 4 else Palette.MOSS)
+	if afflictions.has("bleed"):
+		var fall := (beat * 2) % 7
+		draw_rect(Rect2(World.to_screen(at, height * 0.5) + Vector2(1, fall), Vector2(1, 2)), Palette.BLOOD if blood else Palette.SMOKE)
+	if afflictions.has("slow"):
+		var behind: Vector2 = -(thing.body.velocity as Vector2).normalized() if (thing.body.velocity as Vector2).length() > 0.05 else Vector2.LEFT
+		for smear in 3:
+			draw_rect(Rect2(World.to_screen(at + behind * (0.12 + smear * 0.08), 0.05).floor(), Vector2.ONE), Palette.SMOKE)
+	if dazed and thing.alive():
+		for star in 2:
+			var turn := _clock * 6.0 + star * PI
+			draw_rect(Rect2((over + Vector2(cos(turn) * 4.0, -3.0 + sin(turn) * 1.5)).floor(), Vector2.ONE), Palette.BRASS_LIGHT)
+
+
 func _draw_flames(at: Vector2, height: float, size: int) -> void:
 	var base := World.to_screen(at, height)
 	for flame in size:
@@ -1460,6 +1512,12 @@ func _draw_hold(hold: Dictionary) -> void:
 	var drawing: Dictionary = hold.drawing
 	var at: Vector2 = hold.at - drawing.grip
 	draw_texture(drawing.texture, at)
+	# Evolved, it shows: a brass band at the grip for its first evolution, and a pink one beside it
+	# for its second.
+	if weapon.evolved >= 1:
+		draw_rect(Rect2(hold.at.floor(), Vector2.ONE), Palette.BRASS_LIGHT)
+	if weapon.evolved >= 2:
+		draw_rect(Rect2(hold.at.floor() + Vector2(1, 0), Vector2.ONE), Palette.PINK)
 	if weapon.swinging():
 		_draw_smear(weapon, hold.at)
 	elif weapon.kind == Weapon.Kind.RANGED and flash.get(arena.cats[0], 0.0) > 0.0:
@@ -1500,24 +1558,91 @@ func _feel_hits(delta: float) -> void:
 	for slash in _slashes:
 		slash.age += delta
 	_slashes = _slashes.filter(func(slash: Dictionary) -> bool: return slash.age < SLASH_TIME)
+	for ring in _rings:
+		ring.age += delta
+	_rings = _rings.filter(func(ring: Dictionary) -> bool: return ring.age < RING_TIME)
+	for event in _pending:
+		var ring_color: Variant = {"roll_start": Palette.STEEL_LIGHT, "landing": Palette.PINK, "strike_back": Palette.SPARK}.get(event.by)
+		if ring_color != null and _rings.size() < 24:
+			_rings.append({"at": World.to_screen(event.position, event.height), "color": ring_color, "age": 0.0})
+	# A mutation that acts all through the roll leaves a streak along it while it does.
+	for cat in arena.cats:
+		if cat.dodging_for > 0.0 and cat.mutations.keys().any(func(mutation: String) -> bool: return Upgrades.MUTATION_WHEN.get(mutation, "") == "through"):
+			_droplets.append({"position": cat.body.position, "height": cat.body.height + 0.1, "rise": 0.0,
+				"velocity": Vector2.ZERO, "color": Palette.PINK, "stains": false})
 	for event in _pending:
 		if event.get("damage", 0.0) <= 0.0:
 			continue
 		_hit_spots[_spot_of(event.position)] = _clock
 		var by: String = event.by
+		var source: String = event.get("source", "")
 		var direction: Vector2 = event.direction if event.direction != Vector2.ZERO else Vector2.RIGHT
-		if by in SLASHING and _slashes.size() < 60:
-			_slashes.append({"at": World.to_screen(event.position, event.height), "across": direction.orthogonal().rotated(randf_range(-0.5, 0.5)), "age": 0.0})
+		if by == "blade" and source in BLUNT:
+			# A blunt blow thumps: a ring of dust off what it hit, no cut.
+			if _rings.size() < 24:
+				_rings.append({"at": World.to_screen(event.position, event.height), "color": Palette.DRY_GRASS, "age": 0.0})
+		elif by == "blade" and _form(source) == "thrust" and _slashes.size() < 60:
+			# A thrust stabs straight through, along the way it went in.
+			_slashes.append({"at": World.to_screen(event.position, event.height), "across": direction, "age": 0.0, "thrust": true})
+		elif by in SLASHING and _slashes.size() < 60:
+			# A cut runs across the way the blade swept.
+			_slashes.append({"at": World.to_screen(event.position, event.height), "across": direction.orthogonal(), "age": 0.0})
+		if source in STICKS and by == "round":
+			_mark(event.position, event.height, "stuck:" + source, direction, 0.5)
 		var specks: Array = []
 		match by:
 			"round": specks = [Palette.SPARK, Palette.STEEL_LIGHT]
 			"fire": specks = [Palette.HI_VIS, Palette.SPARK]
 			"poison": specks = [Palette.LEAF_LIGHT, Palette.MOSS]
+			"bleed": specks = [Palette.BLOOD if blood else Palette.SMOKE]
 		for color: Color in specks:
 			_droplets.append({
 				"position": event.position, "height": maxf(event.height, 0.05), "rise": randf_range(0.6, 1.4),
 				"velocity": (-direction).rotated(randf_range(-1.0, 1.0)) * randf_range(0.3, 0.9), "color": color, "stains": false,
 			})
+
+
+## How a weapon fights, by name, worked out once.
+func _form(weapon_name: String) -> String:
+	if weapon_name.is_empty() or not Upgrades.WEAPON_NAMES.has(weapon_name):
+		return ""
+	if not _forms.has(weapon_name):
+		_forms[weapon_name] = Upgrades.form_of(Weapon.named(weapon_name))
+	return _forms[weapon_name]
+
+
+## Something left lying a while, or sticking out of where it struck.
+func _mark(position: Vector2, height: float, kind: String, way: Vector2, life: float) -> void:
+	_marks.append({"position": position, "height": height, "kind": kind, "way": way, "age": 0.0, "life": life})
+	if _marks.size() > MOST_MARKS:
+		_marks.pop_front()
+
+
+## What's lying about from the fight: spent cases glinting, scorch fading from black to earth, and
+## arrows, bolts, nails and darts stuck where they struck, their ends out.
+func _draw_marks() -> void:
+	for mark in _marks:
+		var kind: String = mark.kind
+		var at := World.to_screen(mark.position, mark.height)
+		if kind == "case":
+			draw_rect(Rect2(at, Vector2.ONE), Palette.BRASS_LIGHT if mark.age < 1.0 else Palette.BRASS)
+		elif kind.begins_with("scorch"):
+			var radius: float = mark.way.x * World.PIXELS_PER_METER
+			var color := Palette.BURNT if mark.age < mark.life * 0.6 else Palette.MUD_DARK
+			var count := int(TAU * radius / 2.0)
+			for index in count:
+				var angle: float = TAU * index / count + mark.position.x
+				var reach: float = radius * (0.4 + 0.6 * fmod(index * 0.618, 1.0))
+				draw_rect(Rect2((at + Vector2.from_angle(angle) * reach).floor(), Vector2.ONE), color)
+		elif kind.begins_with("stuck:"):
+			# Its end sticking out back the way it came.
+			var back: Vector2 = -mark.way
+			var length: int = 4 if kind == "stuck:nail_gun" else (3 if kind == "stuck:sumpit" else 6)
+			var shaft: Color = Palette.STEEL if kind == "stuck:nail_gun" else (Palette.CREAM if kind == "stuck:sumpit" else Palette.BARK_LIGHT)
+			for step in length:
+				draw_rect(Rect2((at + back * step).floor(), Vector2.ONE), shaft)
+			if kind == "stuck:panah":
+				draw_rect(Rect2((at + back * (length - 1) + Vector2(-back.y, back.x)).floor(), Vector2.ONE), Palette.CLOTH_LIGHT)
 
 
 ## The spot a place falls in, for the hits just landed there.
@@ -1577,6 +1702,9 @@ func _bleed(delta: float) -> void:
 				})
 			continue
 		if event.by == "thud":
+			# An arrow, a bolt or a nail into something standing stays in it a while.
+			if event.get("source", "") in STICKS:
+				_mark(event.position, event.height, "stuck:" + event.source, event.direction, 3.0)
 			# A round into something standing: a few chips off it.
 			for index in 3:
 				_droplets.append({
@@ -1640,6 +1768,8 @@ func _bleed(delta: float) -> void:
 				})
 			continue
 		if event.by == "blast":
+			# Scorched where it burst, black, fading to earth.
+			_mark(event.position, 0.0, "scorch", Vector2(event.get("radius", 0.5) * 0.8, 0.0), 20.0)
 			# Earth and smoke thrown up, and a flash, as wide as the blast; no blood of its own.
 			var radius: float = event.get("radius", 1.0)
 			for index in int(16 * radius) + 6:
@@ -1736,7 +1866,12 @@ func _bleed(delta: float) -> void:
 			flying.append(droplet)
 		elif droplet.stains:
 			_stains.append({"position": droplet.position, "age": 0.0})
+		elif droplet.has("mark") and droplet.height <= 0.0:
+			_mark(droplet.position, 0.0, droplet.mark, Vector2.RIGHT, 6.0)
 	_droplets = flying
+	for mark in _marks:
+		mark.age += delta
+	_marks = _marks.filter(func(mark: Dictionary) -> bool: return mark.age < mark.life)
 	var lasting: Array[Dictionary] = []
 	for stain in _stains:
 		stain.age += delta

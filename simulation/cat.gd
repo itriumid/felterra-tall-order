@@ -91,6 +91,10 @@ var knockback_bonus := 0.0
 ## Offers from level-ups, held until played, oldest first; each is a list of choices.
 var offers: Array = []
 var rerolls := 2
+## A run starts with no weapon: his first level-up hand is weapons only, dealt from these (by
+## name; none, from whatever he could have), and it comes with a free redraw of its own.
+var first_pool: Array[String] = []
+var first_redraws := 1
 ## Choices banished for the rest of the run, by id.
 var banished := {}
 ## Cards he can't be offered yet, by id: what the village's smith hasn't forged. Empty, anything
@@ -286,9 +290,15 @@ func play(index: int) -> bool:
 
 ## Swaps the oldest offer for a fresh one, if a reroll is left.
 func reroll(random: RandomNumberGenerator) -> bool:
-	if offers.is_empty() or rerolls <= 0:
+	if offers.is_empty():
 		return false
-	rerolls -= 1
+	# The first draw has its own redraw, before the run's are touched.
+	if weapons.is_empty() and first_redraws > 0:
+		first_redraws -= 1
+	elif rerolls > 0:
+		rerolls -= 1
+	else:
+		return false
 	offers[0] = Upgrades.offer(self, random)
 	return true
 
@@ -410,6 +420,9 @@ func _fade_scents(delta: float, arena: Arena) -> void:
 func _start_roll(arena: Arena) -> void:
 	_fresh_roll = false
 	var from := body.position
+	# A mutation that acts as the roll starts marks where it did.
+	if mutations.keys().any(func(mutation: String) -> bool: return Upgrades.MUTATION_WHEN.get(mutation, "") == "start"):
+		arena.events.append({"position": from, "height": 0.0, "direction": _dodge_direction, "killed": false, "by": "roll_start", "giant": false, "kind": "cat"})
 	if has("lick_your_wounds") and _licked < LICK_MOST:
 		var licked := minf(LICK_HEAL * strength("lick_your_wounds"), LICK_MOST - _licked)
 		if _licked <= 0.0:

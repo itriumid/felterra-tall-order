@@ -134,12 +134,40 @@ reaches out to grip what it holds. Every cat in the village walks the same way.
 
 ### Starting out
 
-A run starts with a choice of one weapon, and nothing else: armor and accessories are upgrades.
-The two cards wink at the films: a cat parody each.
+A run starts with nothing in his mouth, and nothing else: armor and accessories are upgrades.
+Experience trickles in from the start, so the first level comes about two seconds in, before
+the horde's close, and its hand is the **first draw**: three common weapons dealt at random from
+his pack, with one free redraw of its own. Luck, nothing more: what he packs is what he can
+draw, a weapon he swings or one he shoots. Each ally draws their own the same way, and a guest
+from their own pack. Two of the village's weapons wink at the films on their cards: the
+nunchaku, "Go Chuck Purris style", and the handgun, "Go John Whisker style".
 
-- **Nunchaku**, "Go Chuck Purris style", for close work: two sticks on a chain, swung most of the
-  way round him, blunt, and it never runs out.
-- **Handgun**, "Go John Whisker style", for range: slow, but it reaches.
+### Every weapon evolves
+
+After level 4 and after level 9, a weapon's next card evolves it (to level 5, then 10), and he
+chooses one of three bonuses for it, from what suits how it fights:
+
+| How it fights | What an evolution can give it |
+|---|---|
+| Swung | damage, attack speed, a wider arc, knockback, critical, an element |
+| Thrust | damage, attack speed, reach, knockback, critical, an element |
+| Shot | damage, fire rate, reach, pierce one more, one more round, an element |
+| Lobbed | damage, throwing speed, reach, a wider burst, one more bounce or pop, an element |
+
+None twice. An element is one it hasn't already got: burn, poison, bleed (worse on the move),
+daze, or slow; elements come from evolutions and nowhere else. Each bonus earns it a nickname,
+a word at the first evolution and a creature of the islands at the second: a golok "Hasty
+Hornbill", a kris "Bitter Komodo". A weapon with a family grows into the next of it as it
+evolves (a knife into a kris, then a karambit; the handgun into the submachine gun; the machete
+into the greatsword; the rifle into the automatic rifle or the sniper rifle), keeping what was
+chosen. Past level 10, mastery, without limit. An evolved weapon shows it: a brass band at the
+grip, and a pink one beside it at the second. What's ailing an enemy shows on it too: flames,
+green bubbles, drips, stars, a smear.
+
+How it lands shows, as well: a blunt blow thumps a ring of dust, a blade's cut runs across the
+way it swept, a thrust stabs straight through. Guns throw out spent cases that lie a while;
+arrows, bolts, nails and darts stick in what they struck; and where something bursts, the ground
+is scorched black, fading to earth.
 
 **English by default.** Every name on screen is in English: a slingshot, not a ketapel; a fighting
 kite, not a layang-layang. Where English has no word of its own (golok, mandau, rencong, badik,
@@ -200,8 +228,8 @@ on: fire and oil, or crewmates who can be downed.
   the village goes on with its day. The first time he leaves for an area, someone has a word for him on the
   way, and comes to the gate to say it; any other time he just goes, at his own pace. He walks into every run the same way, from the way
   he came, the world held still until he's in: slowly enough for the area's story to be told
-  on the way the first time, at his own pace after. Then he chooses what he starts with,
-  nunchaku or handgun. Coming home, whatever has happened since is told on the walk in: what an
+  on the way the first time, at his own pace after. Then the run's under way, and his first
+  level brings his first draw. Coming home, whatever has happened since is told on the walk in: what an
   area freed teaches him, from the cat who teaches it, and what the story has brought back. Then
   a panel sets out what's new, a line each on what it does and where to find it: a building, a
   dodge mutation now on the cards, an area found on the map. When he's down, a summary of the run (time
@@ -381,8 +409,7 @@ on: fire and oil, or crewmates who can be downed.
     says what will bring it back.
   - **Each building opens what it holds.** His home is his pack. The smithy forges weapons, gear
     and support into the cards (8 to 24 salvage each): salvage is spent there and nowhere else.
-    The longhouse's elder lets a run start with any weapon forged, and keeps the book of
-    stories, the story so far to read again. Never a stat on its own: stats only come from gear.
+    The longhouse's elder keeps the book of stories, the story so far to read again. Never a stat on its own: stats only come from gear.
   - **A run starts with what any village has lying about**: six weapons (the nunchaku, the
     handgun, the knife, the slingshot, the golok and the rattan staff) and five pieces of gear
     (the conical hat, the red scarf, the boots, the sarong and the gloves). Nothing else turns up
@@ -393,10 +420,9 @@ on: fire and oil, or crewmates who can be downed.
     things home narrows the cards but never past a draw: three of each kind stay packed for every
     place a run has for one (his mouth and his tail, so six weapons; seven slots, so twenty-one pieces of gear;
     a drone and a set-down, so six support; one mutation, so three).
-  - **The two weapons a run starts with** are the nunchaku and the handgun until Pak Besi, home
-    with the smithy standing, tells him he can choose: then any weapon he has can start a run in
-    his pack, one he swings and one he shoots, so every start can both hold the horde off and
-    reach it. Left home, a chosen one gives its place back to the village's own.
+  - **The pack is the first draw.** Every run's first weapon is dealt from it, so Pak Besi, home
+    with the smithy standing, tells him so once: pack what you'd be glad to draw. Any weapon can
+    be left home, the nunchaku and the handgun too, while six stay packed.
   - **Everything has its story**, read on a card with Tab and at the smithy and the pack: where
     it came from, as the cats tell it. The smithy and the pack show the chosen thing's picture
     beside the list: a weapon on its own, large, and on him, in his mouth and on his tail.

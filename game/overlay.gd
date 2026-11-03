@@ -39,7 +39,7 @@ var history_choice := 0
 ## What each source of damage is called, past the weapons, which go by their own names.
 const SOURCE_NAMES := {
 	"slash": "Rolling slash", "ankles": "Ankle cutter", "pounce": "Pounce", "riposte": "Riposte",
-	"cub": "The cub", "fire": "Burning", "poison": "Poison", "nail": "Nail gun", "caltrop": "Caltrops",
+	"cub": "The cub", "fire": "Burning", "poison": "Poison", "bleed": "Bleeding", "nail": "Nail gun", "caltrop": "Caltrops",
 	"spikes": "Bamboo spikes", "string": "Fighting kite", "sting": "Bee swarm", "snare": "Snare",
 	"alarm_drum": "Alarm drum", "mines": "Mines", "petasan": "Firecrackers", "blade": "Blade", "round": "Rounds",
 }
@@ -59,13 +59,9 @@ var choosing := false
 ## Playing together on one screen: the allies, as main keeps them ({cat, weapon, coat, reading}),
 ## whether another gamepad can join now, and whether he's chosen and waits on them.
 var allies: Array[Dictionary] = []
-## The weapons forged at the smithy an ally can start with, as he can.
-var ally_forged: Array[String] = []
 var joining := false
 ## Playing online, how it's going: who's here, or what went wrong. Shown wherever he is.
 var online_status := ""
-var start_chosen := false
-var start_extra := ""
 ## Tab held: the cards' stats are explained. X held: picking banishes.
 var reading := false
 var banishing := false
@@ -98,8 +94,6 @@ var news: Array[Dictionary] = []
 var village_record: Village
 ## How health shows, from the settings: "both", "bar" or "number".
 var health_shown := "both"
-## The two weapons a run starts with to choose between, by name: one swung, one shot.
-var starters: Array[String] = ["nunchaku", "handgun"]
 ## When his health row last flashed for a hit, in milliseconds, and the hits he'd taken by then.
 var _hurt_at := -1000
 var _hits_seen := -1
@@ -800,7 +794,7 @@ func _draw_kit() -> void:
 	var screen := get_viewport_rect().size
 	var kit: Array[Array] = [["Weapons", ""]]
 	for weapon in cat.weapons:
-		kit.append([Upgrades.WEAPON_NAMES.get(weapon.name, weapon.name), "Level %d" % weapon.level])
+		kit.append([Upgrades.title_of(weapon) if Upgrades.WEAPON_NAMES.has(weapon.name) else weapon.name, "Level %d" % weapon.level])
 	kit.append(["Gear", ""])
 	for slot: String in Upgrades.SLOTS:
 		var piece: String = cat.gear.get(slot, "")
@@ -898,7 +892,7 @@ func _draw_cards() -> void:
 	if banishing:
 		keys.append_array(["X", "and a number banishes"])
 	else:
-		keys.append_array(["R", "reroll (%d)" % cat.rerolls, "Tab", "read", "X", "banish"])
+		keys.append_array(["R", reroll_text(cat), "Tab", "read", "X", "banish"])
 	if cat.offers.size() > 1:
 		keys.append_array(["", "%d more held" % (cat.offers.size() - 1)])
 	var line_width := InterfaceArt.key_line_width(keys)
@@ -968,36 +962,17 @@ func _draw_explained(lines: Array[String], bottom: float) -> void:
 			PixelFont.draw(self, box.position + Vector2(6 + InterfaceArt.bold_width(parts[0] + ":") + 4, 5 + index * PixelFont.LINE_HEIGHT), parts[1], Palette.OFF_WHITE)
 
 
-## The choice a run starts with, as two cards; once he's chosen, the wait for his allies.
+## Before the run: the wait for the guests online to come in.
 func _draw_start() -> void:
 	var screen := get_viewport_rect().size
 	if joining:
 		var keys: Array[String] = ["A", "on another gamepad joins as an ally"]
 		InterfaceArt.key_line(self, Vector2(floorf((screen.x - InterfaceArt.key_line_width(keys)) / 2.0), screen.y - 20), keys)
-	if start_chosen:
-		var waiting := "Waiting for your allies to choose"
-		var waiting_box := Rect2(floorf((screen.x - InterfaceArt.bold_width(waiting)) / 2.0) - 8, floorf(screen.y / 2.0) - 10, InterfaceArt.bold_width(waiting) + 16, 20)
-		InterfaceArt.panel(self, waiting_box)
-		InterfaceArt.bold(self, waiting_box.position + Vector2(8, 5), waiting, Palette.PINK)
-		return
-	var title := "Choose what you start with"
-	# The village's own two have their lines; any other chosen to start with says it was.
-	var village_lines := {"nunchaku": ["Go Chuck Purris", "style"], "handgun": ["Go John Whisker", "style"]}
-	var cards := []
-	for index in starters.size():
-		var name := starters[index]
-		cards.append({"name": Upgrades.WEAPON_NAMES[name], "item": name, "ribbon": "Melee" if index == 0 else "Ranged",
-			"lines": village_lines.get(name, ["Chosen in your", "pack at home"]), "unfamiliar": false})
-	if not start_extra.is_empty():
-		cards.append({"name": Upgrades.WEAPON_NAMES[start_extra], "item": start_extra, "ribbon": "Forged", "lines": ["From the smithy", "A or D: another"], "unfamiliar": false})
-	var gap := 10.0
-	var total := cards.size() * CARD_SIZE.x + (cards.size() - 1) * gap
-	var top := floorf(screen.y / 2.0 - CARD_SIZE.y / 2.0)
-	var frame := Rect2(floorf((screen.x - total) / 2.0) - 10, top - 24, total + 20, CARD_SIZE.y + 34)
-	InterfaceArt.panel(self, frame)
-	InterfaceArt.bold(self, Vector2(floorf((screen.x - InterfaceArt.bold_width(title)) / 2.0), top - 18), title, Palette.PINK)
-	for index in cards.size():
-		_draw_card(Rect2(frame.position.x + 10 + index * (CARD_SIZE.x + gap), top, CARD_SIZE.x, CARD_SIZE.y), str(index + 1), Upgrades.Rarity.COMMON, cards[index])
+	# Waiting on the guests online to come in.
+	var waiting := "Waiting for your allies to come in"
+	var waiting_box := Rect2(floorf((screen.x - InterfaceArt.bold_width(waiting)) / 2.0) - 8, floorf(screen.y / 2.0) - 10, InterfaceArt.bold_width(waiting) + 16, 20)
+	InterfaceArt.panel(self, waiting_box)
+	InterfaceArt.bold(self, waiting_box.position + Vector2(8, 5), waiting, Palette.PINK)
 
 
 ## The see-through panel behind the menu: a checkerboard of palette pixels, not a blend.
@@ -1224,6 +1199,13 @@ func _draw_summary_rows(rows: Array, box: Rect2, top: float, row_height: float) 
 	return y
 
 
+## What R does to the hand: the first draw's own redraw, free, or the run's rerolls, counted.
+static func reroll_text(of: Cat) -> String:
+	if of.weapons.is_empty() and of.first_redraws > 0:
+		return "draw again, free"
+	return "reroll (%d)" % of.rerolls
+
+
 ## What a source of damage is called: a weapon or support by its name, the rest by what it is.
 static func source_name(key: String) -> String:
 	if Upgrades.WEAPON_NAMES.has(key):
@@ -1236,8 +1218,12 @@ static func source_name(key: String) -> String:
 
 
 ## His damage this run, by what did it, the most first: {name, damage, share of all of it, damage
-## a second over the run, kills}.
+## a second over the run, kills}. A weapon he holds goes by the nickname it's earned.
 static func damage_rows(of: Cat, seconds: float) -> Array[Dictionary]:
+	var titles := {}
+	for weapon in of.weapons:
+		if Upgrades.WEAPON_NAMES.has(weapon.name):
+			titles[weapon.name] = Upgrades.title_of(weapon)
 	var total := 0.0
 	for key: String in of.dealt:
 		total += of.dealt[key]
@@ -1246,7 +1232,7 @@ static func damage_rows(of: Cat, seconds: float) -> Array[Dictionary]:
 	var rows: Array[Dictionary] = []
 	for key: String in keys:
 		var damage: float = of.dealt[key]
-		rows.append({"name": source_name(key), "damage": damage, "share": damage / total if total > 0.0 else 0.0,
+		rows.append({"name": titles.get(key, source_name(key)), "damage": damage, "share": damage / total if total > 0.0 else 0.0,
 			"per_second": damage / maxf(seconds, 1.0), "kills": of.finished.get(key, 0)})
 	return rows
 
@@ -1331,7 +1317,8 @@ func _draw_history() -> void:
 	var run: Dictionary = history[history_choice]
 	y = box.position.y + 24 + 10 * row + 6
 	draw_rect(Rect2(box.position.x + 6, y - 3, box.size.x - 12, 1), Palette.PANEL_LIGHT)
-	var weapons: Array = (run.get("weapons", []) as Array).map(func(name: String) -> String: return source_name(name))
+	# Kept as they were called: an older run's by id, a newer one's with its nicknames.
+	var weapons: Array = (run.get("weapons", []) as Array).map(func(name: String) -> String: return source_name(name) if Upgrades.WEAPON_NAMES.has(name) else name)
 	var gear: Array = (run.get("gear", []) as Array).map(func(id: String) -> String: return Upgrades.GEAR[id].name if Upgrades.GEAR.has(id) else id)
 	var x := box.position.x + 12
 	for line: String in wrapped("Took: " + ", ".join(weapons) + (("; wore " + ", ".join(gear)) if not gear.is_empty() else ""), box.size.x - 24).slice(0, 2):
@@ -1377,18 +1364,11 @@ func _draw_allies() -> void:
 		var ally_cat: Cat = ally.cat
 		var color: Color = Palette.PLAYERS[ally_cat.player]
 		var lines: Array[Array] = []
-		if choosing or ally.weapon.is_empty():
-			if ally.weapon.is_empty():
-				lines.append(["LB", Upgrades.WEAPON_NAMES[starters[0]]])
-				lines.append(["Up", Upgrades.WEAPON_NAMES[starters[1]]])
-				if not ally_forged.is_empty():
-					lines.append(["RB", Upgrades.WEAPON_NAMES[ally_forged[ally.forged % ally_forged.size()]]])
-					lines.append(["Y", "another forged"])
-				lines.append(["<>", (ally.coat as String).capitalize() + " coat"])
-				lines.append(["B", "leave"])
-			else:
-				lines.append(["", Upgrades.WEAPON_NAMES[ally.weapon] + ", ready"])
-				lines.append(["B", "choose again"])
+		if not ally.get("ready", true):
+			# Their coat, then in: their weapon comes with their first level-up hand.
+			lines.append(["<>", (ally.coat as String).capitalize() + " coat"])
+			lines.append(["A", "come in"])
+			lines.append(["B", "leave"])
 		elif not ally_cat.alive():
 			lines.append(["", "Down: %d s" % ceili(ally_cat.down_for)])
 			lines.append(["", "Stand by them!"])
@@ -1398,7 +1378,7 @@ func _draw_allies() -> void:
 			for choice_index in offer.size():
 				var card := Upgrades.describe(offer[choice_index])
 				lines.append([buttons[choice_index], card.name, offer[choice_index].rarity])
-			lines.append(["Down", "reroll (%d)" % ally_cat.rerolls])
+			lines.append(["Down", reroll_text(ally_cat)])
 			lines.append(["Back", "the whole cards"])
 			if ally_cat.offers.size() > 1:
 				lines.append(["", "%d more held" % (ally_cat.offers.size() - 1)])
