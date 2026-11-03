@@ -248,16 +248,20 @@ func _draw_all() -> void:
 			_draw_support(thing)
 		elif thing is Companion:
 			_draw_cub(thing)
-		elif thing is LogLoader:
-			_draw_loader(thing)
-		elif thing is LoggingTruck:
-			_draw_truck(thing)
-		elif thing is Bulldozer:
-			_draw_bulldozer(thing)
-		elif thing is Helicopter:
-			_draw_helicopter(thing)
 		elif thing is Machine:
-			_draw_machine(thing)
+			# Every part of it steps a pixel together as it drives: see World.snap.
+			World.snap_to(thing.body.position)
+			if thing is LogLoader:
+				_draw_loader(thing)
+			elif thing is LoggingTruck:
+				_draw_truck(thing)
+			elif thing is Bulldozer:
+				_draw_bulldozer(thing)
+			elif thing is Helicopter:
+				_draw_helicopter(thing)
+			else:
+				_draw_machine(thing)
+			World.unsnap()
 		elif thing is Cage:
 			_draw_cage(thing)
 		elif thing is Structure:
@@ -564,7 +568,9 @@ func _draw_shadow(thing: Variant) -> void:
 		_draw_giant_shadow(thing)
 		return
 	if thing is Machine:
+		World.snap_to(thing.body.position)
 		_draw_machine_shadow(thing)
+		World.unsnap()
 		return
 	if thing is Cage:
 		var cage: Cage = thing
