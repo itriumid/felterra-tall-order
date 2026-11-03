@@ -29,6 +29,9 @@ The builds aren't signed by a publisher Windows or macOS knows yet, so each warn
   Privacy & Security**, find Felterra Tall Order near the bottom, and choose **Open Anyway**.
 - **Linux:** if it won't start, make it executable: `chmod +x felterra_tall_order.x86_64`.
 
+Found a bug, or have an idea? Tell us on [Itrium's Discord](https://discord.gg/ARpBjrD77C), or
+[open an issue](https://github.com/itriumid/felterra-tall-order/issues).
+
 ## Free, and how it will pay for itself
 
 Tall Order is free to download and play, with no advertisements and nothing that tracks you. We
@@ -45,8 +48,8 @@ them by name.
 ## Make it with us
 
 If you draw pixel art, make sound or music, or build games, and Tall Order is something you'd
-like to work on, write to us at [hello@itrium.id](mailto:hello@itrium.id). We'd love to hear from
-you.
+like to work on, write to us at [hello@itrium.id](mailto:hello@itrium.id) or find us on
+[Discord](https://discord.gg/ARpBjrD77C). We'd love to hear from you.
 
 ## Controls
 
