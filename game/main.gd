@@ -228,7 +228,11 @@ var _dev_freed := false
 var _dev_boss := false
 var _at_door := ""
 ## Which forged weapon the start choice's third card shows.
-var _start_extra := 0
+## The run's first draw: three weapons dealt from the pack, and the free redraw it comes with.
+var _hand: Array[String] = []
+var _hand_redraws := 0
+## How many free redraws a first draw has.
+const HAND_REDRAWS := 1
 var _open_shop_first := false
 ## --tidings: news waiting in the village, under its "!"s: at the smithy, at the board, with the
 ## Elder, and Jogiboy's find.
@@ -247,12 +251,24 @@ var _just_restored: Array[String] = []
 ## What's new since he last walked in, as {title, text}: set out once the walk in is done.
 var _news: Array[Dictionary] = []
 ## Whether Jogiboy has something to give him once he's walked in.
-## The two weapons a run starts with to choose between, by name: the village's chosen ones on a run
-## from it, the village's own on any other.
-func _starters() -> Array[String]:
-	if _ran_from_village or _place == "village":
-		return village.starter_names()
-	return ["nunchaku", "handgun"]
+## The weapons a first draw is dealt from, by name: what's packed, on a run from the village; on
+## any other, what any village has lying about.
+func _weapon_pool() -> Array[String]:
+	if _ran_from_village:
+		return village.packed_weapons()
+	var names: Array[String] = []
+	for id in Village.STARTING:
+		if id.begins_with("weapon:"):
+			names.append(id.trim_prefix("weapon:"))
+	return names
+
+
+## The run's first draw, dealt if it hasn't been: his, with its redraw.
+func _first_hand() -> Array[String]:
+	if _hand.is_empty():
+		_hand = Village.deal(_weapon_pool())
+		_hand_redraws = HAND_REDRAWS
+	return _hand
 
 
 ## Whether he last went out west, down the forest path, not through the gate: he comes home that way.
@@ -461,7 +477,7 @@ func _ready() -> void:
 			village.tell("board", "On the map: the deep forest", "Choose it here, at the board by the gate.")
 			village.tell("elder", "Ankle cutter", "A dodge mutation, on your cards from now on.")
 			village.jogiboy_found = Village.JOGIBOY_FINDS
-			_teach_starters_when_due()
+			_teach_packing_when_due()
 		for building in village_map.buildings:
 			if building.name == _at_door:
 				var footprint: Rect2 = building.footprint
@@ -673,6 +689,7 @@ func _enter_village(spot: Vector2) -> void:
 	_watch(arena, null)
 	_overlay.village_map = village_map
 	_start_weapon = ""
+	_hand.clear()
 	_outfit = 0
 	_camera.position = _village_camera()
 
@@ -732,7 +749,7 @@ func _arrive(from_the_forest: bool) -> void:
 		for building in _just_restored:
 			village.tell(building, _building_name(building).capitalize(), Village.EXPLAINS[building])
 	if not telling:
-		_teach_starters_when_due()
+		_teach_packing_when_due()
 	_cutscene = Cutscene.new(lines, settings.get_value("gameplay", "story_waits"))
 	for building in _just_restored:
 		_village_view.restoring(building)
@@ -752,13 +769,13 @@ func _arrive(from_the_forest: bool) -> void:
 	_overlay.cutscene = true
 
 
-## Home with the smithy standing, Pak Besi has a word for him, once: how to choose the two weapons
-## a run starts with. Heard at the smithy, it's taught.
-func _teach_starters_when_due() -> void:
-	if village.is_restored("smithy") and not village.starters_taught():
+## Home with the smithy standing, Pak Besi has a word for him, once: a run starts with whatever the
+## pack deals him, so what he packs is what he'll draw. Heard at the smithy, it's taught.
+func _teach_packing_when_due() -> void:
+	if village.is_restored("smithy") and not Village.PACK_TAUGHT in village.told:
 		village.tell("smithy", "Pak Besi, at the smithy",
-			"\"Every cat goes out with two: one to swing and one to shoot. The nunchaku and the handgun are the village's, but anything I forge you can start with instead. At home, in your pack: Enter on a weapon makes it the one you start with, of its sort.\"",
-			Village.STARTERS_TAUGHT)
+			"\"Nobody walks out of here with the same blade twice. Your first weapon comes out of your pack, three to pick from, so pack what you'd be glad to draw. Leave the rest home. Anything I forge goes in the pack too.\"",
+			Village.PACK_TAUGHT)
 
 
 ## Hears what's new there, set out on a page; the village keeps that it's been heard.
@@ -1120,14 +1137,9 @@ func _forge_row(id: String) -> Dictionary:
 ## a dodge mutation not taught yet, and where it will be.
 func _pack_row(id: String) -> Dictionary:
 	var card := Upgrades.describe({"id": id, "rarity": Upgrades.Rarity.COMMON})
-	var choosing := id.begins_with("weapon:") and village.starters_taught()
 	var row := {"id": id, "name": card.name, "story": card.story, "does": card.does, "item": card.item, "kind": _kind_of(id, card),
-		"can": village.has(id) and (not id in Village.ALWAYS_PACKED or (choosing and not id in village.starters))}
-	if choosing and id in village.starters:
-		row.state = "starts a run"
-	elif id in Village.ALWAYS_PACKED:
-		row.state = "always with you"
-	elif village.has(id):
+		"can": village.has(id)}
+	if village.has(id):
 		row.state = "worn from the start" if village.starting_piece == id else ("left home" if id in village.left_home else "taking it")
 	else:
 		row.state = "not learned yet"
@@ -1223,13 +1235,8 @@ func _read_shop() -> void:
 			# Too few of its kind packed: it stays, and the page says why.
 			var why := village.cant_leave_home(id)
 			var was_worn := village.starting_piece == id
-			var was_starting := id in village.starters
 			done = village.repack(id)
-			if id in village.starters and not was_starting:
-				_overlay.shop_note = "Starts a run now, as the one you %s" % ("swing" if Village.starter_slot(id) == 0 else "shoot")
-			elif was_starting and done:
-				_overlay.shop_note = "The village's own starts a run again" if id in village.left_home else "Taking it, not starting with it"
-			elif not done and village.has(id):
+			if not done and village.has(id):
 				_overlay.shop_note = "Not left home: " + why
 			elif done and was_worn and not id in village.left_home:
 				_overlay.shop_note = "Back in the pack: " + why
@@ -1351,9 +1358,10 @@ func _process(delta: float) -> void:
 			records.remember(Records.entry_of(arena, cat, "Endless"))
 	_overlay.choosing = _choosing()
 	_overlay.joining = _can_join()
-	_overlay.starters = _starters()
+	if _choosing():
+		_overlay.start_hand = _first_hand()
+		_overlay.start_redraws = _hand_redraws
 	_overlay.start_chosen = not _start_weapon.is_empty()
-	_overlay.ally_forged = _forged_weapons()
 	if _choosing():
 		_camera.position = _run_camera()
 		_take_screenshot(delta)
@@ -1442,17 +1450,6 @@ func _remember_run(freed: bool) -> void:
 	records.remember(Records.entry_of(arena, cat, where, freed))
 	if _keeping_settings:
 		records.save()
-
-
-## With the longhouse restored, a run from the village can start with any weapon forged.
-func _forged_weapons() -> Array[String]:
-	var weapons: Array[String] = []
-	if not _ran_from_village or not village.is_restored("longhouse"):
-		return weapons
-	for id in village.forged:
-		if id.begins_with("weapon:") and village.packed(id):
-			weapons.append(id.trim_prefix("weapon:"))
-	return weapons
 
 
 ## A run out from the village: into the area the map board says, or Endless. Endless is a fresh
@@ -1832,6 +1829,7 @@ func _read_choices() -> void:
 		"start_again", "go_again":
 			_close_page()
 			_start_weapon = ""
+			_hand.clear()
 			_outfit = 0
 			if _ran_from_village:
 				_start_run(_run_kind)
@@ -2021,21 +2019,7 @@ func _read_controls() -> void:
 		if not _start_weapon.is_empty():
 			# He's chosen; the allies haven't yet.
 			return
-		var forged := _forged_weapons()
-		if not forged.is_empty():
-			if Input.is_action_just_pressed("move_left"):
-				_start_extra = wrapi(_start_extra - 1, 0, forged.size())
-				_audio.interface("menu_move")
-			elif Input.is_action_just_pressed("move_right"):
-				_start_extra = wrapi(_start_extra + 1, 0, forged.size())
-				_audio.interface("menu_move")
-		_overlay.start_extra = forged[_start_extra % forged.size()] if not forged.is_empty() else ""
-		if Input.is_action_just_pressed("pick_1"):
-			_start_weapon = _starters()[0]
-		elif Input.is_action_just_pressed("pick_2"):
-			_start_weapon = _starters()[1]
-		elif Input.is_action_just_pressed("pick_3") and not forged.is_empty():
-			_start_weapon = forged[_start_extra % forged.size()]
+		_start_weapon = _take_from_hand("")
 		if not _start_weapon.is_empty():
 			_dress()
 			_audio.interface("menu_choose")
@@ -2090,6 +2074,22 @@ func _choosing() -> bool:
 		return false
 	return _start_weapon.is_empty() or _allies.any(func(ally: Dictionary) -> bool: return ally.weapon.is_empty()) \
 		or _online.waiting_on_guests() or (_dev_host and not _allies.any(func(ally: Dictionary) -> bool: return ally.has("peer")))
+
+
+## The first draw, played: a number picks that card, R redraws the hand once. Returns the weapon
+## taken, or "" while he's still looking. The keys are a player's own ("" is his: keyboard and
+## the gamepads nobody's claimed).
+func _take_from_hand(player_suffix: String) -> String:
+	var hand := _first_hand()
+	if Input.is_action_just_pressed("reroll" + player_suffix) and _hand_redraws > 0:
+		_hand_redraws -= 1
+		_hand = Village.deal(_weapon_pool())
+		_audio.interface("reroll")
+		return ""
+	for index in hand.size():
+		if Input.is_action_just_pressed("pick_%d%s" % [index + 1, player_suffix]):
+			return hand[index]
+	return ""
 
 
 ## Whether the run has started: the world has stepped.
@@ -2152,7 +2152,7 @@ func _join(device: int) -> void:
 			coat = each
 			break
 	ally_cat.coat = coat
-	_allies.append({"device": device, "cat": ally_cat, "weapon": "", "coat": coat, "reading": false, "forged": 0})
+	_allies.append({"device": device, "cat": ally_cat, "weapon": "", "coat": coat, "reading": false, "hand": Village.deal(_weapon_pool()), "redraws": HAND_REDRAWS})
 	arena.leash = LEASH
 	_audio.interface("menu_choose")
 
@@ -2227,16 +2227,14 @@ func _read_ally(ally: Dictionary) -> void:
 				ally.coat = ALLY_COATS[at]
 				ally_cat.coat = ally.coat
 				_audio.interface("menu_move")
-		var forged := _forged_weapons()
-		if not forged.is_empty() and pressed.call("change_gear"):
-			ally.forged = wrapi(ally.forged + 1, 0, forged.size())
-			_audio.interface("menu_move")
-		var starters := _starters()
-		for index in starters.size():
+		# Their own first draw, from the same pack, and their own redraw.
+		if pressed.call("reroll") and ally.redraws > 0:
+			ally.redraws -= 1
+			ally.hand = Village.deal(_weapon_pool())
+			_audio.interface("reroll")
+		for index in (ally.hand as Array).size():
 			if pressed.call("pick_%d" % (index + 1)):
-				ally.weapon = starters[index]
-		if not forged.is_empty() and pressed.call("pick_3"):
-			ally.weapon = forged[ally.forged % forged.size()]
+				ally.weapon = ally.hand[index]
 		if not ally.weapon.is_empty():
 			_dress_ally(ally)
 			_audio.interface("menu_choose")
@@ -2277,11 +2275,9 @@ func ally_arrives(peer: int, info: Dictionary, weapon: String) -> int:
 	if _allies.size() >= MOST_PLAYERS - 1 or run_setup_for_guests().is_empty():
 		return 0
 	var dropping_in := _under_way()
-	var forged: Array = info.get("forged", [])
-	# What they start with is one of theirs: their village's own two, one of the two they chose, or
-	# one they forged; anything else, the handgun.
-	var theirs: Array = ["nunchaku", "handgun"] + forged + (info.get("starters", []) as Array)
-	if not weapon in theirs or not weapon in Upgrades.WEAPONS:
+	var packed: Array = info.get("pack", [])
+	# What they start with came out of their own pack; anything else, the handgun.
+	if not weapon in packed or not weapon in Upgrades.WEAPONS:
 		weapon = "handgun"
 	var player := _allies.size() + 1
 	var ally_cat := Cat.new() if dropping_in else arena.add_cat(cat.body.position + Vector2(-0.7 * player, 0.5 * (player % 2)))
@@ -2404,12 +2400,7 @@ func _read_guest(ally: Dictionary) -> void:
 ## What a guest brings from their own village: their coat, what's forged at their smithy, and
 ## the cub, if the spirits have given them one.
 func what_i_bring() -> Dictionary:
-	var forged: Array[String] = []
-	if village.is_restored("longhouse"):
-		for id in village.forged:
-			if id.begins_with("weapon:") and village.packed(id):
-				forged.append(id.trim_prefix("weapon:"))
-	return {"coat": village.coat, "forged": forged, "starters": village.starter_names(), "cub_rank": village.cub_rank if village.gifted() else 0, "cub_element": village.cub_element}
+	return {"coat": village.coat, "pack": village.packed_weapons(), "cub_rank": village.cub_rank if village.gifted() else 0, "cub_element": village.cub_element}
 
 
 ## The host has gone out to Endless: the same clearing or grove laid out here, from its seed, and
@@ -2439,7 +2430,7 @@ func guest_run_begins(setup: Dictionary) -> void:
 	cat.body.position = arena.size / 2.0
 	_watch(arena, cat)
 	_start_weapon = ""
-	_start_extra = 0
+	_hand.clear()
 	_run_kind = "endless"
 	_overlay.place = "run"
 	_overlay.cutscene = false
@@ -2522,7 +2513,9 @@ func _guest_frame(delta: float) -> void:
 		_watch(arena, cat)
 	_overlay.choosing = mine == null
 	_overlay.joining = false
-	_overlay.starters = village.starter_names()
+	if mine == null:
+		_overlay.start_hand = _guest_hand()
+		_overlay.start_redraws = _hand_redraws
 	_overlay.start_chosen = not _start_weapon.is_empty()
 	if not _page.is_empty():
 		_read_page()
@@ -2536,24 +2529,28 @@ func _guest_frame(delta: float) -> void:
 	_take_screenshot(delta)
 
 
-## What a guest starts with: the nunchaku, the handgun, or a weapon forged at their own smithy.
+## What a guest starts with: their own first draw, three from their own pack, with its redraw.
 func _guest_chooses() -> void:
-	var forged: Array = what_i_bring().forged
-	if not forged.is_empty():
-		if Input.is_action_just_pressed("move_left"):
-			_start_extra = wrapi(_start_extra - 1, 0, forged.size())
-		elif Input.is_action_just_pressed("move_right"):
-			_start_extra = wrapi(_start_extra + 1, 0, forged.size())
-	_overlay.start_extra = forged[_start_extra % forged.size()] if not forged.is_empty() else ""
-	if Input.is_action_just_pressed("pick_1"):
-		_start_weapon = village.starter_names()[0]
-	elif Input.is_action_just_pressed("pick_2"):
-		_start_weapon = village.starter_names()[1]
-	elif Input.is_action_just_pressed("pick_3") and not forged.is_empty():
-		_start_weapon = forged[_start_extra % forged.size()]
+	_guest_hand()
+	if Input.is_action_just_pressed("reroll") and _hand_redraws > 0:
+		_hand_redraws -= 1
+		_hand = Village.deal(village.packed_weapons())
+		_audio.interface("reroll")
+		return
+	for index in _hand.size():
+		if Input.is_action_just_pressed("pick_%d" % (index + 1)):
+			_start_weapon = _hand[index]
 	if not _start_weapon.is_empty():
 		_online.choose(_start_weapon)
 		_audio.interface("menu_choose")
+
+
+## A guest's first draw, from their own pack.
+func _guest_hand() -> Array[String]:
+	if _hand.is_empty():
+		_hand = Village.deal(village.packed_weapons())
+		_hand_redraws = HAND_REDRAWS
+	return _hand
 
 
 ## Their own cat, where they're steering it: walking, it's guessed ahead; rolling, flying or down,

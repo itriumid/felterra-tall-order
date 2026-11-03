@@ -59,13 +59,13 @@ var choosing := false
 ## Playing together on one screen: the allies, as main keeps them ({cat, weapon, coat, reading}),
 ## whether another gamepad can join now, and whether he's chosen and waits on them.
 var allies: Array[Dictionary] = []
-## The weapons forged at the smithy an ally can start with, as he can.
-var ally_forged: Array[String] = []
 var joining := false
 ## Playing online, how it's going: who's here, or what went wrong. Shown wherever he is.
 var online_status := ""
 var start_chosen := false
-var start_extra := ""
+## The run's first draw: three weapons dealt from his pack, and whether its free redraw is left.
+var start_hand: Array[String] = []
+var start_redraws := 0
 ## Tab held: the cards' stats are explained. X held: picking banishes.
 var reading := false
 var banishing := false
@@ -98,8 +98,6 @@ var news: Array[Dictionary] = []
 var village_record: Village
 ## How health shows, from the settings: "both", "bar" or "number".
 var health_shown := "both"
-## The two weapons a run starts with to choose between, by name: one swung, one shot.
-var starters: Array[String] = ["nunchaku", "handgun"]
 ## When his health row last flashed for a hit, in milliseconds, and the hits he'd taken by then.
 var _hurt_at := -1000
 var _hits_seen := -1
@@ -980,16 +978,14 @@ func _draw_start() -> void:
 		InterfaceArt.panel(self, waiting_box)
 		InterfaceArt.bold(self, waiting_box.position + Vector2(8, 5), waiting, Palette.PINK)
 		return
-	var title := "Choose what you start with"
-	# The village's own two have their lines; any other chosen to start with says it was.
-	var village_lines := {"nunchaku": ["Go Chuck Purris", "style"], "handgun": ["Go John Whisker", "style"]}
+	var title := "Your first draw"
+	# Dealt from his pack: whatever comes up, swung or shot. Two have their own lines.
+	var known_lines := {"nunchaku": ["Go Chuck Purris", "style"], "handgun": ["Go John Whisker", "style"]}
 	var cards := []
-	for index in starters.size():
-		var name := starters[index]
-		cards.append({"name": Upgrades.WEAPON_NAMES[name], "item": name, "ribbon": "Melee" if index == 0 else "Ranged",
-			"lines": village_lines.get(name, ["Chosen in your", "pack at home"]), "unfamiliar": false})
-	if not start_extra.is_empty():
-		cards.append({"name": Upgrades.WEAPON_NAMES[start_extra], "item": start_extra, "ribbon": "Forged", "lines": ["From the smithy", "A or D: another"], "unfamiliar": false})
+	for name in start_hand:
+		var weapon := Weapon.named(name)
+		cards.append({"name": Upgrades.WEAPON_NAMES[name], "item": name, "ribbon": "Melee" if weapon.kind == Weapon.Kind.MELEE else "Ranged",
+			"lines": known_lines.get(name, wrapped(Upgrades.WEAPON_DOES.get(name, ""), CARD_SIZE.x - 40).slice(0, 3)), "unfamiliar": false})
 	var gap := 10.0
 	var total := cards.size() * CARD_SIZE.x + (cards.size() - 1) * gap
 	var top := floorf(screen.y / 2.0 - CARD_SIZE.y / 2.0)
@@ -998,6 +994,10 @@ func _draw_start() -> void:
 	InterfaceArt.bold(self, Vector2(floorf((screen.x - InterfaceArt.bold_width(title)) / 2.0), top - 18), title, Palette.PINK)
 	for index in cards.size():
 		_draw_card(Rect2(frame.position.x + 10 + index * (CARD_SIZE.x + gap), top, CARD_SIZE.x, CARD_SIZE.y), str(index + 1), Upgrades.Rarity.COMMON, cards[index])
+	var keys: Array[String] = ["1 2 3", "take one"]
+	if start_redraws > 0:
+		keys.append_array(["R", "draw again (%d)" % start_redraws])
+	InterfaceArt.key_line(self, Vector2(floorf((screen.x - InterfaceArt.key_line_width(keys)) / 2.0), frame.end.y + 6), keys)
 
 
 ## The see-through panel behind the menu: a checkerboard of palette pixels, not a blend.
@@ -1379,11 +1379,12 @@ func _draw_allies() -> void:
 		var lines: Array[Array] = []
 		if choosing or ally.weapon.is_empty():
 			if ally.weapon.is_empty():
-				lines.append(["LB", Upgrades.WEAPON_NAMES[starters[0]]])
-				lines.append(["Up", Upgrades.WEAPON_NAMES[starters[1]]])
-				if not ally_forged.is_empty():
-					lines.append(["RB", Upgrades.WEAPON_NAMES[ally_forged[ally.forged % ally_forged.size()]]])
-					lines.append(["Y", "another forged"])
+				# Their own first draw, on their own buttons.
+				var hand: Array = ally.get("hand", [])
+				for slot in hand.size():
+					lines.append([["LB", "Up", "RB"][slot], Upgrades.WEAPON_NAMES[hand[slot]]])
+				if ally.get("redraws", 0) > 0:
+					lines.append(["Down", "draw again"])
 				lines.append(["<>", (ally.coat as String).capitalize() + " coat"])
 				lines.append(["B", "leave"])
 			else:
