@@ -27,6 +27,30 @@ const AIM_NAMES := {"nearest": "Nearest", "toughest": "Toughest", "crowd": "Crow
 var arena: Arena
 var cat: Cat
 var show_numbers := false
+## The damage each hit of his does, rising off what it hit, from the settings; and those showing,
+## as {at (pixels in the world), value, tier, age}. Hits on the same thing a moment apart add up
+## into one number, and only so many show at once, so a crowd never buries the screen.
+var damage_numbers := true
+## A report open over the menu: "damage" (what each thing he fights with has done this run) or
+## "history" (the runs before), with the runs and the one chosen.
+var report := ""
+var history: Array[Dictionary] = []
+var history_choice := 0
+## What each source of damage is called, past the weapons, which go by their own names.
+const SOURCE_NAMES := {
+	"slash": "Rolling slash", "ankles": "Ankle cutter", "pounce": "Pounce", "riposte": "Riposte",
+	"cub": "The cub", "fire": "Burning", "poison": "Poison", "nail": "Nail gun", "caltrop": "Caltrops",
+	"spikes": "Bamboo spikes", "string": "Fighting kite", "sting": "Bee swarm", "snare": "Snare",
+	"alarm_drum": "Alarm drum", "mines": "Mines", "petasan": "Firecrackers", "blade": "Blade", "round": "Rounds",
+}
+var _hits: Array[Dictionary] = []
+const HIT_NUMBER_TIME := 0.7
+const HIT_NUMBER_RISE := 14.0
+const MOST_HIT_NUMBERS := 40
+const HIT_MERGE_PIXELS := 8.0
+const HIT_MERGE_TIME := 0.25
+## A hit's color by how many steps up it landed: plain white, x2 yellow, x3 orange, x4 and up red.
+const TIER_COLORS: Array[Color] = [Palette.OFF_WHITE, Palette.BRASS_LIGHT, Palette.HI_VIS, Palette.SCARF_RED]
 ## Toggled with I: what he's carrying and his stats, set out until it's toggled away.
 var show_kit := false
 ## Waiting for the player to choose a weapon to start with, and the forged weapon offered beside
@@ -103,15 +127,60 @@ var goal := Vector2.ZERO
 var leads_to := "the clearing"
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	for hit in _hits:
+		hit.age += delta
+	_hits = _hits.filter(func(hit: Dictionary) -> bool: return hit.age < HIT_NUMBER_TIME)
 	queue_redraw()
+
+
+## The hits of a step, for their numbers: only what he and his crew dealt, and only with the
+## numbers on.
+func take_hits(events: Array[Dictionary]) -> void:
+	if not damage_numbers:
+		return
+	for event in events:
+		var damage: float = event.get("damage", 0.0)
+		if damage <= 0.0 or not event.get("ours", false):
+			continue
+		var at := World.to_screen(event.position, event.height)
+		var tier: int = event.get("tier", 0)
+		var merged := false
+		for hit in _hits:
+			if hit.age < HIT_MERGE_TIME and hit.at.distance_to(at) <= HIT_MERGE_PIXELS:
+				hit.value += damage
+				hit.tier = maxi(hit.tier, tier)
+				merged = true
+				break
+		if not merged:
+			_hits.append({"at": at, "value": damage, "tier": tier, "age": 0.0})
+			if _hits.size() > MOST_HIT_NUMBERS:
+				_hits.pop_front()
+
+
+## Each number rising off what it hit, outlined, in its tier's color; blinking out at the end.
+func _draw_hits() -> void:
+	var to_screen := get_viewport().get_canvas_transform()
+	for hit in _hits:
+		if hit.age > HIT_NUMBER_TIME - 0.15 and int(hit.age / 0.05) % 2 == 1:
+			continue
+		var value: float = hit.value
+		var text := ("%.1f" % value) if value < 9.95 and absf(value - roundf(value)) > 0.05 else str(roundi(value))
+		var color: Color = TIER_COLORS[mini(hit.tier, TIER_COLORS.size() - 1)]
+		var over: Vector2 = to_screen * (hit.at - Vector2(0, 10.0 + HIT_NUMBER_RISE * hit.age / HIT_NUMBER_TIME))
+		var at := (over - Vector2(PixelFont.width(text) / 2.0, 0)).floor()
+		for step: Vector2 in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]:
+			PixelFont.draw(self, at + step, text, Palette.OUTLINE)
+		PixelFont.draw(self, at, text, color)
 
 
 func _draw() -> void:
 	_draw_online_status()
 	if page in ["title", "together", "join", "waiting"]:
 		_draw_title()
-		if not setting_rows.is_empty():
+		if not report.is_empty():
+			_draw_report()
+		elif not setting_rows.is_empty():
 			_draw_settings()
 		return
 	if place == "village":
@@ -129,7 +198,9 @@ func _draw() -> void:
 			return
 		if not menu.is_empty():
 			_dither()
-			if not setting_rows.is_empty():
+			if not report.is_empty():
+				_draw_report()
+			elif not setting_rows.is_empty():
 				_draw_settings()
 			else:
 				_draw_menu()
@@ -147,12 +218,16 @@ func _draw() -> void:
 	_draw_allies()
 	_draw_boss()
 	_draw_cage_markers()
+	if damage_numbers:
+		_draw_hits()
 	_draw_rescue_talk()
 	if show_numbers:
 		_draw_numbers()
 	if show_kit:
 		_draw_kit()
-	if not setting_rows.is_empty():
+	if not report.is_empty():
+		_draw_report()
+	elif not setting_rows.is_empty():
 		_draw_settings()
 	elif page in ["summary", "guest_summary"]:
 		_draw_summary()
@@ -1102,10 +1177,19 @@ func _draw_summary() -> void:
 		["machines", "Machines broken", str(summary.get("machines", 0))],
 	]
 	var sections := [["Brought home", brought], ["How it went", went]]
+	# What did the damage: the top few, by their share.
+	if cat != null:
+		var damage: Array = []
+		for entry in damage_rows(cat, summary.get("time", 0.0)).slice(0, 4):
+			damage.append(["", entry.name, "%s  %d%%" % [amount(entry.damage), roundi(entry.share * 100.0)]])
+		if not damage.is_empty():
+			sections.append(["Damage dealt", damage])
 	var row_height := PixelFont.LINE_HEIGHT + 2
 	var width := 260.0 if not learned.is_empty() else 220.0
 	# The heading, each section's heading and rows and a gap, the choices, and the margin below.
-	var height := 26 + (brought.size() + went.size() + 2) * row_height + 6 + 8 + menu.size() * (PixelFont.LINE_HEIGHT + 3) + 2
+	var height := 26 + 8 + menu.size() * (PixelFont.LINE_HEIGHT + 3) + 2
+	for section: Array in sections:
+		height += ((section[1] as Array).size() + 1) * row_height + 6
 	var box := Rect2(floorf((screen.x - width) / 2.0), floorf((screen.y - height) / 2.0), width, height)
 	InterfaceArt.panel(self, box)
 	var freed: String = summary.get("freed", "")
@@ -1138,6 +1222,135 @@ func _draw_summary_rows(rows: Array, box: Rect2, top: float, row_height: float) 
 		InterfaceArt.bold(self, Vector2(right - InterfaceArt.bold_width(value), y), value, Palette.LEAF_LIGHT if row[0] in beaten else Palette.OFF_WHITE)
 		y += row_height
 	return y
+
+
+## What a source of damage is called: a weapon or support by its name, the rest by what it is.
+static func source_name(key: String) -> String:
+	if Upgrades.WEAPON_NAMES.has(key):
+		return Upgrades.WEAPON_NAMES[key]
+	if Upgrades.SUPPORT.has(key):
+		return Upgrades.SUPPORT[key].name
+	if Upgrades.MUTATIONS.has(key):
+		return Upgrades.MUTATIONS[key].name
+	return SOURCE_NAMES.get(key, key.capitalize())
+
+
+## His damage this run, by what did it, the most first: {name, damage, share of all of it, damage
+## a second over the run, kills}.
+static func damage_rows(of: Cat, seconds: float) -> Array[Dictionary]:
+	var total := 0.0
+	for key: String in of.dealt:
+		total += of.dealt[key]
+	var keys: Array = of.dealt.keys()
+	keys.sort_custom(func(a: String, b: String) -> bool: return of.dealt[a] > of.dealt[b])
+	var rows: Array[Dictionary] = []
+	for key: String in keys:
+		var damage: float = of.dealt[key]
+		rows.append({"name": source_name(key), "damage": damage, "share": damage / total if total > 0.0 else 0.0,
+			"per_second": damage / maxf(seconds, 1.0), "kills": of.finished.get(key, 0)})
+	return rows
+
+
+## A number of damage as it's read: whole, with a thousands mark past a thousand.
+static func amount(value: float) -> String:
+	var whole := roundi(value)
+	return "%d,%03d" % [whole / 1000, whole % 1000] if whole >= 1000 else str(whole)
+
+
+## The report open over the menu: the damage table or the run history.
+func _draw_report() -> void:
+	if report == "damage":
+		_draw_damage_table()
+	else:
+		_draw_history()
+
+
+## What each thing he fights with has done this run: its damage, its share, its damage a second,
+## and what it finished off. Read it to see what's carrying the run.
+func _draw_damage_table() -> void:
+	var screen := get_viewport_rect().size
+	var rows := damage_rows(cat, arena.time) if cat != null and arena != null else []
+	var shown := mini(rows.size(), 12)
+	var row := PixelFont.LINE_HEIGHT + 3
+	var box := Rect2(floorf((screen.x - 380) / 2.0), floorf((screen.y - (52 + maxi(shown, 1) * row)) / 2.0), 380, 52 + maxi(shown, 1) * row)
+	InterfaceArt.panel(self, box)
+	InterfaceArt.bold(self, box.position + Vector2(10, 7), "Damage dealt", Palette.PINK)
+	var time := "over %d:%02d" % [int(arena.time) / 60, int(arena.time) % 60] if arena != null else ""
+	PixelFont.draw(self, Vector2(box.end.x - 10 - PixelFont.width(time), box.position.y + 7), time, Palette.SMOKE)
+	var columns := [["", 10.0], ["Damage", 200.0], ["Share", 250.0], ["A second", 310.0], ["Kills", 370.0]]
+	var y := box.position.y + 24
+	for column: Array in columns:
+		if column[0] != "":
+			PixelFont.draw(self, Vector2(box.position.x + column[1] - PixelFont.width(column[0]), y), column[0], Palette.SMOKE)
+	y += row
+	if rows.is_empty():
+		PixelFont.draw(self, Vector2(box.position.x + 10, y), "Nothing hit yet", Palette.SMOKE)
+	for index in shown:
+		var entry: Dictionary = rows[index]
+		var cells := [entry.name, amount(entry.damage), "%d%%" % roundi(entry.share * 100.0), "%.1f" % entry.per_second, str(entry.kills)]
+		# The share as a bar under the name, so the biggest reads at a glance.
+		draw_rect(Rect2(box.position.x + 10, y + PixelFont.LINE_HEIGHT, roundf(120.0 * entry.share), 1), Palette.PINK)
+		PixelFont.draw(self, Vector2(box.position.x + 10, y), cells[0], Palette.OFF_WHITE)
+		for column in range(1, 5):
+			var x: float = box.position.x + columns[column][1]
+			PixelFont.draw(self, Vector2(x - PixelFont.width(cells[column]), y), cells[column], Palette.OFF_WHITE if column != 2 else Palette.LEAF_LIGHT)
+		y += row
+	var keys: Array[String] = ["Esc", "back"]
+	InterfaceArt.key_line(self, Vector2(floorf((screen.x - InterfaceArt.key_line_width(keys)) / 2.0), box.end.y + 6), keys)
+
+
+## The runs before, newest first, one a row; the chosen one set out below: what he took, and what
+## each thing did.
+func _draw_history() -> void:
+	var screen := get_viewport_rect().size
+	var row := PixelFont.LINE_HEIGHT + 3
+	var shown := mini(history.size(), 10)
+	var box := Rect2(floorf((screen.x - 420) / 2.0), 14, 420, 316)
+	InterfaceArt.panel(self, box)
+	InterfaceArt.bold(self, box.position + Vector2(10, 7), "Run history", Palette.PINK)
+	var count := ("1 run" if history.size() == 1 else "%d runs" % history.size()) if not history.is_empty() else ""
+	PixelFont.draw(self, Vector2(box.end.x - 10 - PixelFont.width(count), box.position.y + 7), count, Palette.SMOKE)
+	var y := box.position.y + 24
+	if history.is_empty():
+		PixelFont.draw(self, Vector2(box.position.x + 10, y), "No runs yet. Every run you finish is kept here.", Palette.SMOKE)
+	var first := clampi(history_choice - shown / 2, 0, maxi(history.size() - shown, 0))
+	for index in range(first, first + shown):
+		var run: Dictionary = history[index]
+		var chosen := index == history_choice
+		if chosen:
+			draw_rect(Rect2(box.position.x + 6, y - 2, box.size.x - 12, row), Palette.PINK)
+		var ink := Palette.GRAPHITE if chosen else Palette.OFF_WHITE
+		var where: String = run.where + (" (crew)" if run.get("crew", false) else "") + (", freed" if run.get("freed", false) else "")
+		PixelFont.draw(self, Vector2(box.position.x + 12, y), where, ink)
+		var numbers := "%d:%02d   level %d   %d kills" % [int(run.time) / 60, int(run.time) % 60, run.level, run.kills]
+		PixelFont.draw(self, Vector2(box.end.x - 12 - PixelFont.width(numbers), y), numbers, ink)
+		y += row
+	if history.is_empty():
+		return
+	# The chosen run, set out.
+	var run: Dictionary = history[history_choice]
+	y = box.position.y + 24 + 10 * row + 6
+	draw_rect(Rect2(box.position.x + 6, y - 3, box.size.x - 12, 1), Palette.PANEL_LIGHT)
+	var weapons: Array = (run.get("weapons", []) as Array).map(func(name: String) -> String: return source_name(name))
+	var gear: Array = (run.get("gear", []) as Array).map(func(id: String) -> String: return Upgrades.GEAR[id].name if Upgrades.GEAR.has(id) else id)
+	var x := box.position.x + 12
+	for line: String in wrapped("Took: " + ", ".join(weapons) + (("; wore " + ", ".join(gear)) if not gear.is_empty() else ""), box.size.x - 24).slice(0, 2):
+		PixelFont.draw(self, Vector2(x, y), line, Palette.CREAM)
+		y += PixelFont.LINE_HEIGHT
+	y += 3
+	var damage: Dictionary = run.get("damage", {})
+	var total := 0.0
+	for key: String in damage:
+		total += float(damage[key])
+	for key: String in damage:
+		var share := float(damage[key]) / total if total > 0.0 else 0.0
+		draw_rect(Rect2(x, y + PixelFont.LINE_HEIGHT, roundf(120.0 * share), 1), Palette.PINK)
+		PixelFont.draw(self, Vector2(x, y), source_name(key), Palette.OFF_WHITE)
+		var numbers := "%s   %d%%" % [amount(float(damage[key])), roundi(share * 100.0)]
+		PixelFont.draw(self, Vector2(box.end.x - 12 - PixelFont.width(numbers), y), numbers, Palette.LEAF_LIGHT)
+		y += PixelFont.LINE_HEIGHT + 2
+	var keys: Array[String] = ["W S", "choose", "Esc", "back"]
+	InterfaceArt.key_line(self, Vector2(floorf((screen.x - InterfaceArt.key_line_width(keys)) / 2.0), box.end.y + 6), keys)
 
 
 ## A page's choices, the chosen one on pink with graphite text.

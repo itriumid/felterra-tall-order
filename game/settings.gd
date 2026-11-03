@@ -19,7 +19,7 @@ const HEALTH_SHOWN: Array[String] = ["both", "bar", "number"]
 const DEFAULTS := {
 	"graphics": {"full_screen": false, "window_scale": 2, "vsync": true, "fallen": 300, "health": "both"},
 	"audio": {"master": 8, "music": 7, "effects": 8, "interface": 6},
-	"gameplay": {"aim": "nearest", "blood": true, "story_waits": false},
+	"gameplay": {"aim": "nearest", "blood": true, "story_waits": false, "damage_numbers": true},
 	# Whether the title asks if there's a newer version: it sends nothing but the asking.
 	"online": {"updates": true},
 }

@@ -2966,6 +2966,21 @@ static func hurt(art: String) -> String:
 	return red
 
 
+## Arts in the white of a hit landing: every pixel white but the outline, for a flash as it's
+## struck. The same arts in, the same order, so a sheet of them has the same regions.
+static func flashed(arts: Array[String]) -> Array[String]:
+	var white: Array[String] = []
+	for art in arts:
+		var key := "flashed|%d" % art.hash()
+		if not _cache.has(key):
+			var lit := ""
+			for letter in art:
+				lit += "Y" if LEGEND.has(letter) and letter != "k" else letter
+			_cache[key] = lit
+		white.append(_cache[key])
+	return white
+
+
 ## Art of a cat in another coat: its fur's letters swapped for that coat's.
 static func coat(art: String, coat_name: String, view := "") -> String:
 	var letters: String = COATS.get(coat_name, COATS.orange)

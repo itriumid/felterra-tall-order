@@ -136,6 +136,10 @@ var player := 0
 ## does.
 var hits_taken := 0
 var dodges := 0
+## His tally for the run: the damage each thing he fights with has done (a weapon by its name, else
+## what it was: "pounce", "cub", "fire", "mines"...), and what each has finished off.
+var dealt := {}
+var finished := {}
 ## Cards played, counted, and the last one's id, so the view can show what he took.
 var taken := 0
 var last_taken := ""

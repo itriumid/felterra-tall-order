@@ -260,7 +260,7 @@ What gear gives. A card shows the short form; holding Tab explains each one.
 | **Reach** | Built | Guns reach further, blades reach longer |
 | **Speed** | Built | He runs faster |
 | **Luck** | Built | Rarer cards turn up more often |
-| **Critical hits** | Built | A chance for a hit to land twice as hard |
+| **Critical hits** | Built | A chance for a hit to land twice as hard; past 100%, every hit lands a step up and the rest is the chance of one more (x3, x4...) |
 | **Knockback** | Built | Every hit shoves harder |
 
 ## Buildings

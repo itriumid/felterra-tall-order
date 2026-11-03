@@ -21,7 +21,9 @@ const STEPS := [
 	# Salvage thrown out around him, drawn as it flies and lands.
 	["drop_salvage", ""],
 	["pause", "pause"], ["menu_choose", ""],
-	["pause", "pause"], ["move_down", "pause"], ["menu_choose", "settings"], ["move_down", "settings"],
+	# The damage table, from the pause menu, and back to it.
+	["pause", "pause"], ["move_down", "pause"], ["menu_choose", "damage"], ["pause", "pause"], ["pause", ""],
+	["pause", "pause"], ["move_down", "pause"], ["move_down", "pause"], ["menu_choose", "settings"], ["move_down", "settings"],
 	["move_right", "settings"],
 	# Fewer of the fallen left lying, there and then in the run.
 	["move_down", "settings"], ["move_down", "settings"], ["move_left", "settings", {"arena.most_fallen": 100}],
@@ -83,20 +85,23 @@ const STEPS := [
 	["pick_1", "", {"_start_weapon": "nunchaku"}], ["down", "", {"cat.downed": true, "arena.lives": 9}],
 	# Another gamepad drops in to the run under way: out of it while they choose, in once they have.
 	["join_pad_8", "", {"arena.cats.size": 2}], ["pick_2:2", "", {"arena.cats.size": 3}],
-	["pause", "pause"], ["move_down", "pause"], ["move_down", "pause"], ["move_down", "pause"],
+	["pause", "pause"], ["move_down", "pause"], ["move_down", "pause"], ["move_down", "pause"], ["move_down", "pause"],
 	# Home, with the lessons of the two areas freed meanwhile told on the way in; what's new waits.
 	["menu_choose", "", {"_place": "arriving", "village_map.walking_to": VillageMap.RETURN_WEST}], ["pause", "", {"_place": "village"}],
 	# Peace with the forest, and the cub given: at the shrine, a rank for offerings, then smoke woken.
 	["grant_gift", "", {"village.cub_rank": 1}], ["to_shrine", ""], ["menu_choose", "shrine"],
 	["move_down", "shrine"], ["menu_choose", "shrine", {"village.cub_rank": 2}],
 	["move_down", "shrine"], ["move_down", "shrine"], ["menu_choose", "shrine", {"village.cub_element": "smoke", "village.offerings": 62}], ["pause", ""],
-	# From the village's pause menu, back to the title.
+	# From the village's pause menu: the run history, then back to the title.
 	["pause", "village_pause"], ["move_down", "village_pause"], ["move_down", "village_pause"],
+	["menu_choose", "history"], ["move_down", "history"], ["pause", "village_pause"], ["move_down", "village_pause"],
 	["menu_choose", "title", {"_place": "title"}],
 	# Playing together online: its page, joining a host by address, and back out of both.
 	["move_down", "title"], ["menu_choose", "together"], ["move_down", "together"], ["menu_choose", "join"],
 	["pause", "title"], ["move_down", "title"], ["menu_choose", "together"], ["pause", "title"],
-	["move_down", "title"], ["move_down", "title"], ["menu_choose", "settings"],
+	# The run history from the title, and back.
+	["move_down", "title"], ["move_down", "title"], ["move_down", "title"], ["menu_choose", "history"], ["menu_choose", "title"],
+	["move_up", "title"], ["menu_choose", "settings"],
 	# Up from the top wraps to Back, then up again to Reset all progress: asked, then done.
 	["move_up", "settings"], ["move_up", "settings"], ["menu_choose", "settings", {"_reset_state": "asking"}],
 	["menu_choose", "settings", {"_reset_state": "done"}],

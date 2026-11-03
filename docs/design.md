@@ -327,6 +327,16 @@ on: fire and oil, or crewmates who can be downed.
   working with something else at the controls, and its traps, with cats in them. The best run is
   still Endless's. A grove gives an offering for each minute lasted in it, and the summary says
   how many.
+- **What worked is there to read.** Every hit he lands can show its number, rising off what it
+  hit, colored by how hard it landed: white plain, yellow twice as hard, orange three times, red
+  four and more (critical past 100% keeps stepping up). Hits on the same thing a moment apart add
+  into one number, and only forty show at once; a setting turns them off for when they'd bury
+  the screen. Every hit is also tallied to what landed it, a weapon, a mutation, the cub, fire:
+  the pause menu's damage table sets each out (its damage, share, damage a second and kills), the
+  summary shows the top few, and the last twenty runs are kept in the run history, from the
+  title and the village, with what he took and what did the damage. A hit is felt where it lands,
+  too: what's struck flashes white, a blade slashes across it, a round strikes sparks, fire sheds
+  embers and poison weeps green.
 - **The spirits' gift is the endgame, and it's slow.** One companion, the cub, worn as a jimat:
   its rank (1 to 10) and its element (ember, smoke, root, river) are bought at the shrine with
   offerings, roughly thirty long groves to have it all. In a run, its cards level it like
