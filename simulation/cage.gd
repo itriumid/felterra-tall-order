@@ -17,7 +17,8 @@ const RUN_SPEED := 3.2
 const TEMPERAMENTS: Array[String] = ["grateful", "chatty", "fighter"]
 const SAYS := {
 	"grateful": ["Thank you! I'll tell the village!", "You came! I knew someone would.", "Free! Thank you, thank you!",
-		"I owe you a fish. A big one.", "Home! Which way is home? That way. Bye!"],
+		"I owe you a fish. A big one.", "Home! Which way is home? That way. Bye!",
+		"Is it over? Is it over?", "Mind the dogs. They come when he whistles.", "I'm going home. I'm going straight home."],
 	"chatty": ["Oh thank goodness, the food in there was terrible, and the rats, and the noise...",
 		"You won't believe what I saw: a giant, and a whistle, and my cousin says...",
 		"I was only looking for mangoes, honestly, and then this box came down, and...",

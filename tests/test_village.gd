@@ -213,3 +213,18 @@ func test_he_can_set_out_down_the_forest_path_too() -> void:
 		map.step(Arena.STEP)
 		time += Arena.STEP
 	check(not map.walking() and map.cat.body.position.x < 0.0, "seen off west, he didn't walk on out of sight: at %s" % map.cat.body.position)
+
+
+func test_held_for_the_opening_jogiboy_waits_then_trots_up() -> void:
+	var map := VillageMap.new()
+	map.cat.body.position = VillageMap.MEETING_SPOT
+	var held_at := VillageMap.MEETING_SPOT + Vector2(-3.0, 0.0)
+	map.jogi.body.position = held_at
+	map.jogi_held = true
+	for step in 60 * 2:
+		map.step(Arena.STEP)
+	check(map.jogi.body.position.distance_to(held_at) < 0.1, "Jogiboy came over before the story said he did")
+	map.jogi_held = false
+	for step in 60 * 4:
+		map.step(Arena.STEP)
+	check(map.cat.body.position.distance_to(map.jogi.body.position) < 1.5, "Jogiboy never came over once let go")

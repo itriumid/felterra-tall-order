@@ -19,6 +19,10 @@ const PREVIEW_WIDTH := 150.0
 const BOOK_LINES := 8
 ## How wide a speech bubble's lines run, and what each speaker is called over their words.
 const BUBBLE_WIDTH := 170.0
+## How near the top of the screen a bubble may go: under a boss's bar while there is one.
+var _bubble_top := 4.0
+## How wide a human's scribbles run in a bubble.
+const SCRIBBLE_WIDTH := 64
 const SPEAKER_NAMES := {"elder": "The Elder", "jogiboy": "Jogiboy", "tompel": "Tompel", "great_tiger": "The Great Tiger"}
 ## Jogiboy, as everyone called him.
 const JOGI := "Jogiboy"
@@ -215,6 +219,7 @@ func _draw() -> void:
 	if damage_numbers:
 		_draw_hits()
 	_draw_rescue_talk()
+	_bubble_top = 4.0
 	if show_numbers:
 		_draw_numbers()
 	if show_kit:
@@ -345,18 +350,21 @@ func _draw_village() -> void:
 
 ## A line said by someone in the scene, in a speech bubble over their head: who's speaking, and what
 ## they say, wrapped; its tail points down at them. It's kept on screen, whoever's near the edge.
-func _bubble(over: Vector2, who: String, text: String) -> void:
+func _bubble(over: Vector2, who: String, text: String, scribbled := false) -> void:
 	var screen := get_viewport_rect().size
 	var head: Vector2 = get_viewport().get_canvas_transform() * World.to_screen(over, 0.62)
-	var lines := wrapped(text, BUBBLE_WIDTH)
+	# A human's words, to a cat, are scribbles: room for two lines of them.
+	var lines := ["", ""] if scribbled else wrapped(text, BUBBLE_WIDTH)
 	var width := 0
 	for line in lines:
 		width = maxi(width, PixelFont.width(line))
+	if scribbled:
+		width = SCRIBBLE_WIDTH
 	width = maxi(width, InterfaceArt.bold_width(who))
 	var size := Vector2(width + 10, (lines.size() + (1 if not who.is_empty() else 0)) * PixelFont.LINE_HEIGHT + 7)
 	var box := Rect2(Vector2(floorf(head.x - size.x / 2.0), floorf(head.y - size.y - 5)), size)
 	box.position.x = clampf(box.position.x, 4, screen.x - size.x - 4)
-	box.position.y = maxf(box.position.y, 4)
+	box.position.y = maxf(box.position.y, _bubble_top)
 	draw_rect(box.grow(1), Palette.OUTLINE)
 	draw_rect(box, Palette.OFF_WHITE)
 	# The tail, down to the speaker, in steps.
@@ -370,8 +378,26 @@ func _bubble(over: Vector2, who: String, text: String) -> void:
 		InterfaceArt.bold(self, Vector2(box.position.x + 5, y), who, Palette.FUR_SHADOW)
 		y += PixelFont.LINE_HEIGHT
 	for line in lines:
-		PixelFont.draw(self, Vector2(box.position.x + 5, y), line, Palette.GRAPHITE)
+		if scribbled:
+			_scribble(Vector2(box.position.x + 5, y + 3), width, y)
+		else:
+			PixelFont.draw(self, Vector2(box.position.x + 5, y), line, Palette.GRAPHITE)
 		y += PixelFont.LINE_HEIGHT
+
+
+## A line of scribble, so wide: loops and jags the same every time it's drawn at that spot, since
+## what's said doesn't change, only nobody can read it.
+func _scribble(at: Vector2, width: int, seed_from: float) -> void:
+	var random := RandomNumberGenerator.new()
+	random.seed = hash(int(seed_from))
+	var x := 0
+	while x < width:
+		var word := random.randi_range(4, 11)
+		var rise := 0
+		for step in mini(word, width - x):
+			rise = clampi(rise + random.randi_range(-1, 1), -2, 2)
+			draw_rect(Rect2(at + Vector2(x + step, rise), Vector2.ONE), Palette.GRAPHITE)
+		x += word + 3
 
 
 ## A line in a cutscene, said by someone with a portrait: their bust framed on the left, in the
@@ -419,12 +445,17 @@ func _draw_news() -> void:
 
 ## Freed cats having their say, and him answering, in bubbles over them, while the fight goes on.
 func _draw_rescue_talk() -> void:
+	# A boss's bar runs along the top: a bubble pushed up to the edge stays under it.
+	_bubble_top = 30.0 if arena.boss != null else 4.0
 	for cage in arena.cages:
 		var line := cage.saying()
 		if line.is_empty():
 			continue
 		var over: Vector2 = cage.runner.position if line.by == "freed" else cat.body.position
 		_bubble(over, cage.prisoner.name if line.by == "freed" else "", line.text)
+	for line: Dictionary in arena.calls:
+		var follow: Body = line.follow
+		_bubble(follow.position if follow != null else line.at, line.by, line.text, line.human)
 
 
 ## A name over someone in the village, clear of the top of them: centered over where they stand,

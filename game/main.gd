@@ -74,6 +74,8 @@ const GIFT_LINES: Array = [
 ]
 ## The story's opening, told once, as he walks into the village the first time, and the Elder
 ## walks out to meet him. Nobody knows yet what's wrong; finding out is the story.
+## The line of the opening where Jogiboy comes trotting up: he waits at the Elder's door until then.
+const JOGIBOY_TROTS_UP := "A ginger dog trotted up behind the Elder and pushed his nose into Tompel's pack."
 const INTRO: Array = [
 	"We have lived in this forest for as long as anyone remembers.",
 	"Last dry season the figs started dropping before they were ripe, and the stream began to taste of oil.",
@@ -84,7 +86,7 @@ const INTRO: Array = [
 	{"by": "tompel", "mood": "sad", "text": "Nothing, really. I asked everyone. Fishermen, traders, a cat who sells nets at the river mouth."},
 	{"by": "tompel", "mood": "neutral", "text": "Nobody's heard of anything. It's palm trees most of the way to the sea."},
 	{"by": "elder", "mood": "worried", "text": "Hmmm..."},
-	"A ginger dog trotted up behind the Elder and pushed his nose into Tompel's pack.",
+	JOGIBOY_TROTS_UP,
 	{"by": "tompel", "mood": "surprised", "text": "Uh. Elder?"},
 	{"by": "elder", "mood": "happy", "text": "Oh, don't mind him. That's Jogiboy."},
 	{"by": "elder", "mood": "neutral", "text": "I found him by the stream a month ago, half starved, with a ring of keys on his collar."},
@@ -739,6 +741,7 @@ func _arrive(from_the_forest: bool) -> void:
 	_news.clear()
 	if telling:
 		lines = INTRO.duplicate()
+		village_map.jogi_held = true
 		_news.append({"title": "The village", "text": "Walk with W A S D. At a door, Enter uses what's inside; a ruin's door says what brings it back."})
 		_news.append({"title": "The gate", "text": "Walk out through the gate, on the right, or back down the forest path, on the left, to set out. The board by the gate chooses where."})
 	elif not from_the_forest:
@@ -833,6 +836,8 @@ func _lessons_due() -> Array[String]:
 func _arriving(delta: float) -> void:
 	var skip := Input.is_action_just_pressed("pause")
 	_cutscene.step(delta, Input.is_action_just_pressed("menu_choose"), skip)
+	if village_map.jogi_held and (skip or _cutscene.done() or _cutscene.line >= INTRO.find(JOGIBOY_TROTS_UP)):
+		village_map.jogi_held = false
 	_overlay.intro = _cutscene.written()
 	_overlay.speaker = _cutscene.speaker()
 	_overlay.mood = _cutscene.mood()

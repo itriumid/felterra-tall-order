@@ -80,6 +80,7 @@ const LIST: Array[Dictionary] = [
 			{"by": "elder", "mood": "worried", "text": "Granny..."},
 		],
 		"gives": ["weapon:hammer"],
+		"calls": [{"when": "boss", "over": "boss", "by": "The Rat Baron", "text": "Back to digging! All of you!"}],
 		"frees": [{"name": "Uncle Anvil", "coat": "black"}], "bonus": 15,
 	},
 	{
@@ -120,6 +121,7 @@ const LIST: Array[Dictionary] = [
 			{"by": "tompel", "mood": "worried", "text": "You all right?"},
 			{"by": "jogiboy", "mood": "neutral", "text": "Yes. I'm going to go and dig something up."},
 		],
+		"calls": [{"when": "boss", "over": "boss", "by": "The Handler", "human": true}],
 		"frees": [{"name": "Granny Whiskers", "coat": "gray"}], "bonus": 20,
 	},
 	{
@@ -215,6 +217,11 @@ const LIST: Array[Dictionary] = [
 			{"by": "Saffron", "mood": "worried", "text": "There's always a bit of smoke down south. All year, even when it rains."},
 			{"by": "tompel", "mood": "neutral", "text": "Burnt Future."},
 			{"by": "Saffron", "mood": "neutral", "text": "Probably."},
+		],
+		"calls": [
+			{"when": "held:3", "at": Vector2(10.5, 4.0), "by": "Saffron, from somewhere", "text": "Left! No, your other left!"},
+			{"when": "held:90", "at": Vector2(10.5, 4.0), "by": "Saffron, from somewhere", "text": "Halfway. They really hate it when you don't leave."},
+			{"when": "held:170", "at": Vector2(10.5, 4.0), "by": "Saffron, from somewhere", "text": "Something big is coming from the east. Very big."},
 		],
 		"frees": [{"name": "Saffron", "coat": "orange"}], "bonus": 40,
 	},
@@ -371,6 +378,7 @@ const LIST: Array[Dictionary] = [
 			{"by": "Patch", "mood": "happy", "text": "Fits, doesn't it? They had boxes of these hard hats."},
 			{"by": "Saffron", "mood": "worried", "text": "The company's gone, and there are more rats than ever. Funny, that."},
 		],
+		"calls": [{"when": "boss", "at": Vector2(31.5, 11.4), "by": "The official, with the scissors", "human": true}],
 		"frees": [{"name": "Skipper", "coat": "gray"}], "bonus": 80,
 		"props": [{"kind": "ribbon", "at": Vector2(30.0, 12.0)}, {"kind": "sign", "at": Vector2(30.0, 8.6), "lines": ["Grand opening", BOARD]}],
 	},
@@ -424,6 +432,10 @@ const LIST: Array[Dictionary] = [
 			{"by": "jogiboy", "mood": "worried", "text": "Smoke. Not out there. Behind us."},
 		],
 		"again": ["The fires are out. Only the Great Tiger is left."],
+		"calls": [
+			{"when": "roof", "by": "A Keeper", "text": "Fire-bringers!"},
+			{"when": "roof", "by": "A Keeper", "text": "You wear their smell!"},
+		],
 		"frees": [], "bonus": 100,
 	},
 ]
