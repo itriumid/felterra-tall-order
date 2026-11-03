@@ -621,14 +621,20 @@ func riposte(cat: Cat, damage: float) -> void:
 ## A pounce comes down: what's under him takes it, and what's around is thrown.
 func land_pounce(cat: Cat, damage: float) -> void:
 	events.append({"position": cat.body.position, "height": 0.0, "direction": cat.facing, "killed": false, "by": "landing", "giant": false, "kind": "cat"})
+	var hold := Cat.POUNCE_HOLD * cat.strength("pounce")
 	for creature: Creature in creatures.duplicate():
 		var apart := creature.body.position - cat.body.position
 		if apart.length() <= Cat.POUNCE_RADIUS + creature.body.radius:
 			strike(creature, damage, apart.normalized() if apart.length() > 0.001 else cat.facing, 1.6, 1.2, "pounce", cat)
+			if creature.alive():
+				creature.tripped_for = maxf(creature.tripped_for, hold)
 	for giant in giants:
 		var apart := giant.body.position - cat.body.position
 		if giant.standing() and apart.length() <= Cat.POUNCE_RADIUS + giant.body.radius:
 			strike(giant, damage, cat.facing, 0.0, 0.0, "pounce", cat)
+			if giant.standing():
+				giant.snared_for = maxf(giant.snared_for, hold * 0.5)
+				giant.stomp_ready_in = maxf(giant.stomp_ready_in, hold * 0.5)
 	_strike_machines(cat.body.position, Cat.POUNCE_RADIUS, damage, "pounce", cat)
 
 

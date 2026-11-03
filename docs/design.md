@@ -171,7 +171,10 @@ Every weapon, built and planned, is in [`catalog.md`](catalog.md). Weapons diffe
 their numbers: rounds can come several to a shot (the shotgun's cone), go through what they hit
 (the crossbow, the sniper rifle, the bow), or glance off to the next (the slingshot's stones); they
 can poison and slow (the sumpit), set alight (the flare gun), leave burning oil (lamp oil) or
-nails (the nail gun) where they land, or pop as firecrackers (petasan). Blades can trip (the
+nails (the nail gun) where they land, or pop as firecrackers (petasan). And each looks like
+what it is in flight, so a glance tells them apart: a bullet a streak of fire (heavier the heavier
+the gun), a shotgun's lead a spray of dots, a nail, a bolt and an arrow pointing the way they fly,
+a pebble, a dart with its poisoned tip, a flare burning, a bottle turning over. Blades can trip (the
 celurit), hook what they catch in toward him (the kujang), thrust in a line instead of swinging
 (the tombak, the rencong), or break after so many hits and be sharpened again (bambu runcing).
 Families can branch: a rifle grows into the automatic rifle or the sniper rifle, a card for each.

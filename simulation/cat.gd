@@ -24,6 +24,10 @@ const POUNCE_REACH := 3.0
 const POUNCE_TIME := 0.4
 const POUNCE_DAMAGE := 4.0
 const POUNCE_RADIUS := 0.4
+## What a pounce lands on, if it lives, is pinned this long for each card of it, in seconds: down
+## and out of the fight, so it can't turn on him the moment he's on it. A giant only stands held,
+## and holds off his stomp or his saw, half as long.
+const POUNCE_HOLD := 1.0
 ## Ankle cutter: rolling between a giant's legs cuts this share of his health.
 const ANKLE_SHARE := 0.12
 ## Land on your feet: the free roll after a knock is safe for this long, and longer for more.

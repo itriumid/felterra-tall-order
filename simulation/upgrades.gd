@@ -438,7 +438,8 @@ static func _mutation_lines(mutation: String, amount: float, fresh: bool) -> Arr
 		"rolling_slash":
 			return ["The roll cuts" if fresh else "Sharper", "%s%.1f damage a cut" % ["" if fresh else "+", Cat.SLASH_DAMAGE * amount]]
 		"pounce":
-			return ["Ends in a pounce" if fresh else "Harder", "%s%.1f damage landing" % ["" if fresh else "+", Cat.POUNCE_DAMAGE * amount]]
+			return ["Ends in a pounce" if fresh else "Harder", "%s%.1f damage landing" % ["" if fresh else "+", Cat.POUNCE_DAMAGE * amount],
+				"%sPins it %.1f seconds" % ["" if fresh else "+", Cat.POUNCE_HOLD * amount]]
 		"ankle_cutter":
 			return ["Roll through his legs" if fresh else "Deeper", "%s%d%% of his health" % ["" if fresh else "+", roundi(Cat.ANKLE_SHARE * amount * 100.0)]]
 		"land_on_feet":

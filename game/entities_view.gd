@@ -303,19 +303,101 @@ func _draw_all() -> void:
 			draw_rect(Rect2(World.to_screen(shot.position) - Vector2(size, 0), Vector2(size * 2 + 1, 1)), Palette.GROUND_SHADOW)
 			_draw_net(World.to_screen(shot.position, shot.height), size, false)
 			continue
-		if shot.falls:
-			# A stone in flight, its shadow on the ground under it.
-			draw_rect(Rect2(World.to_screen(shot.position), Vector2(2, 1)), Palette.GROUND_SHADOW)
-			draw_rect(Rect2(World.to_screen(shot.position, shot.height) - Vector2(1, 1), Vector2(3, 3)), Palette.OUTLINE)
-			draw_rect(Rect2(World.to_screen(shot.position, shot.height) - Vector2(1, 1), Vector2(2, 2)), Palette.STEEL)
-		else:
-			draw_line(World.to_screen(shot.previous, shot.previous_height), World.to_screen(shot.position, shot.height), Palette.SPARK)
+		_draw_shot(shot)
 	if arena.together():
 		for cat in arena.cats:
 			_draw_marker(cat)
 	if _level_up > 0.0:
 		_draw_level_up()
 	_draw_goals()
+
+
+## A shot in flight, drawn as what was fired, so each weapon's can be told apart: bullets as
+## streaks of fire, heavier the heavier the gun; pellets as a spray of lead; a nail, a bolt and an
+## arrow as what they are, pointing the way they fly; a pebble, a dart with its poisoned tip, a
+## burning flare, a bottle of lamp oil, a firecracker. Anything lobbed has its shadow under it.
+func _draw_shot(shot: Shot) -> void:
+	var at := World.to_screen(shot.position, shot.height)
+	var behind := World.to_screen(shot.previous, shot.previous_height)
+	var way := (at - behind).normalized() if at != behind else Vector2.RIGHT
+	var name := shot.weapon.name if shot.weapon != null else ""
+	if shot.falls:
+		draw_rect(Rect2(World.to_screen(shot.position), Vector2(2, 1)), Palette.GROUND_SHADOW)
+	match name:
+		"shotgun":
+			_speck(at, Palette.STEEL_LIGHT, 1)
+		"nail_gun":
+			_shaft(at, way, 4, Palette.STEEL_LIGHT, Palette.STEEL_DARK)
+			_speck(at - way * 4.0, Palette.STEEL, 1)
+		"crossbow":
+			_shaft(at, way, 6, Palette.BARK_LIGHT, Palette.OUTLINE)
+			_speck(at, Palette.STEEL_LIGHT, 1)
+		"panah":
+			_shaft(at, way, 8, Palette.BARK_LIGHT, Palette.OUTLINE)
+			_speck(at, Palette.STEEL_LIGHT, 1)
+			# Its fletching, at the back.
+			var tail := (at - way * 7.0).floor()
+			var side := Vector2(-way.y, way.x)
+			draw_rect(Rect2((tail + side).floor(), Vector2.ONE), Palette.CLOTH_LIGHT)
+			draw_rect(Rect2((tail - side).floor(), Vector2.ONE), Palette.CLOTH_LIGHT)
+		"ketapel":
+			_pellet(at, Palette.STEEL, 2)
+		"sumpit":
+			_shaft(at, way, 5, Palette.CREAM, Palette.OUTLINE)
+			_speck(at, Palette.LEAF_LIGHT, 1)
+		"flare_gun":
+			# Burning as it goes, sparks and smoke left behind it.
+			_pellet(at, Palette.HI_VIS, 2)
+			_speck(at, Palette.BRASS_LIGHT, 1)
+			for index in 3:
+				_speck(at - way * (3.0 + index * 2.0), Palette.SPARK if index == 0 else Palette.SMOKE, 1)
+		"lamp_oil":
+			# A bottle, turning over as it flies, its wick alight.
+			_pellet(at, Palette.CLOTH_LIGHT, 3)
+			_speck(at + (Vector2(0, -2) if int(shot.life * 12.0) % 2 == 0 else Vector2(2, 0)), Palette.HI_VIS, 1)
+		"petasan":
+			_pellet(at, Palette.SCARF_RED, 2)
+			if int(shot.life * 20.0) % 2 == 0:
+				_speck(at + Vector2(1, -2), Palette.SPARK, 1)
+		"grenade_launcher":
+			_pellet(at, Palette.MOSS, 3)
+		"sniper_rifle":
+			# The heaviest round: a long streak, white-hot down its middle.
+			draw_line(behind - way * 6.0, at, Palette.SPARK, 2.0)
+			draw_line(behind, at, Palette.OFF_WHITE)
+		"rifle", "automatic_rifle", "assault_rifle":
+			draw_line(behind - way * 2.0, at, Palette.SPARK, 2.0)
+			_speck(at, Palette.OFF_WHITE, 1)
+		"gun_drone":
+			draw_line(behind, at, Palette.PAINT_TEAL)
+		_:
+			if shot.falls:
+				_pellet(at, Palette.STEEL, 2)
+			else:
+				# The handgun's and the like: a short streak of fire.
+				draw_line(behind, at, Palette.SPARK)
+				_speck(at, Palette.BRASS_LIGHT, 1)
+
+
+## A square of a color, a few pixels across, its middle at a spot.
+func _speck(at: Vector2, color: Color, size: int) -> void:
+	draw_rect(Rect2((at - Vector2(size, size) / 2.0).floor(), Vector2(size, size)), color)
+
+
+## Something round, outlined, a few pixels across.
+func _pellet(at: Vector2, color: Color, size: int) -> void:
+	var box := Rect2((at - Vector2(size, size) / 2.0).floor(), Vector2(size, size))
+	draw_rect(box.grow(1), Palette.OUTLINE)
+	draw_rect(box, color)
+
+
+## A straight thing in flight, so many pixels long behind its point, with a darker line under it.
+func _shaft(point: Vector2, way: Vector2, length: int, color: Color, under: Color) -> void:
+	for step in length:
+		var spot := (point - way * step).floor()
+		draw_rect(Rect2(spot + Vector2(0, 1), Vector2.ONE), under)
+	for step in length:
+		draw_rect(Rect2((point - way * step).floor(), Vector2.ONE), color)
 
 
 ## On the ground round each cage still shut and each lever still up: how close he has to stand, a

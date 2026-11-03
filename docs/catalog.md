@@ -46,7 +46,7 @@ A spirit leaves nothing lying when it falls, and nothing that bleeds: it goes ou
 | **Worker** | Built | A mini-boss: slow, heavy, stomps (the boot's shadow is the warning). Felled, he topples and crushes what he lands on |
 | **Chainsaw worker** | Built | The first elite: revs (the arc on the ground is the warning), then sweeps the saw at shin height, cutting his own horde too |
 | **Lantern worker** | Planned | A dropped lantern is a fire |
-| **Handler** | Built | The deep forest's boss: keeps his distance, and whistles a pack of dogs in every few seconds |
+| **Handler** | Built | The deep forest's boss: keeps his distance, backing off round anything in his way rather than into it, and whistles a pack of dogs in every few seconds |
 | **Foreman** | Idea | Stays back with a megaphone; while he shouts, the workers near him hurry |
 | **Fumigator** | Idea | Sprays smoke for the pests: it hides what's in it, and makes him cough |
 | **Tree climber** | Idea | In spikes and a harness, up a trunk: drops what he cuts on whatever is below |
@@ -228,7 +228,7 @@ wounds and the scent trail (Nenek Pus again); and the airstrip, the chain roll (
 | Name | Status | Kind | What it does |
 |---|---|---|---|
 | **Rolling slash** | Built | Attack | The roll cuts every creature it touches, once, harder the faster he rolls |
-| **Pounce** | Built | Attack | As the roll ends, he leaps onto the nearest enemy within 3 meters, led to where it will be; landing hits what's under him |
+| **Pounce** | Built | Attack | As the roll ends, he leaps onto the nearest enemy within 3 meters, led to where it will be; landing hits what's under him, and what lives through it is pinned a second for each card (a giant held, and off his stomp, half as long) |
 | **Ankle cutter** | Built | Attack | Rolling between a giant's legs cuts 12 percent of his full health, once a roll |
 | **Land on your feet** | Built | Survival | Knocked off his feet, he rolls out of it, for free |
 | **Lick your wounds** | Built | Survival | Each roll heals a little, up to 3 health a minute |
