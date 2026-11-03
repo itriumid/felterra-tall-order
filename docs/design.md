@@ -17,19 +17,33 @@ The present day. Cats are a modern people, with their own technology at cat scal
 too, and to humans, cats are animals: pests, if anything. A human company has moved into the
 forest a community of cats lives in, and is clearing it.
 
-**The cats don't know that at first.** Finding out is the story, told area by area in
-Liberation: rats where there never were any and a smell of oil in the stream; deeper in, stumps,
-ruts and cages, and a giant with a whistle; then the sawpits, and the sign over the gate. It was
-always humans.
+**Tompel was sent out to find out why.** The forest started dying last dry season, and the
+Elder sent him down the river road. He came home three months later with nothing: whatever it
+is, it isn't out there. Finding out it's inside is the story, told area by area in Liberation:
+rats digging at the edge, tins marked in letters nobody can read; deeper in, stumps, ruts and
+cages, and a giant with a whistle; then the sawpits, and the sign over the gate. It was humans.
 
-**The company** is **PT Makmur Bakti Gemilang**, which the cats call **Makmur Bakar**:
-MBG. It clears the forest as the "official partner" of the **Food Land Acceleration Agency**,
-which has stamped the cats' forest on its maps as *lahan tidur*, idle land, to be cleared for the
-nation's food. Its site boards say *From Idle Land to Plenty* beside *Building a Greener
-Tomorrow!*, and the finale is an official flying in to cut a ribbon on what's left. It's satire of
-deforestation, the peat fires and the way land gets cleared there, and every name in it is made
-up: no real ministry, agency or person is named, the system is the joke rather than anyone in
-it, and the meal program's purpose (feeding children) is never mocked.
+**The company** is **Bright Future Timber**, which the cats call **Burnt Future**. It logs the
+forest as the "official partner" of the **Food Land Acceleration Agency**, which has stamped the
+cats' forest on its maps as *lahan tidur*, idle land, to be cleared for the nation's food. Its
+site boards say *From Idle Land to Plenty* beside *Building a Greener Tomorrow!*, and the finale
+is an official flying in to cut a ribbon on what's left.
+
+**What nobody sees until the siege:** Burnt Future cuts, but it never burned anything. The rats at
+the edge were never nesting: they dig the drains that dry the peat so it burns and keeps
+burning, for **the Free Float**, the rats' own nation. Burned land is idle land: the Agency gets
+it for its projects, and **Green Promise Plantations**, big and perfectly legal, plants oil palm
+in the ash. The clues are there all along (the warm ground at the edge, ash at the sawpits with
+no fire, Saffron's lines of rats going south at night, smoke to the south all year, a permit's
+land "made ready for planting by partner"), and the book of stories admits once an act what it
+missed. It's satire of deforestation, the peat fires and the way land gets cleared there, and
+every name in it is made up: no real ministry, agency, company or person is named, the system is
+the joke rather than anyone in it, and the meal program's purpose (feeding children) is never
+mocked.
+
+**The story is the Elder's book,** so a line told over a scene is "we", in the past tense.
+Everyone talks like themselves, not in quips: the Elder warm and fussing, Granny Whiskers sharp,
+Jogiboy simple and literal, Tompel short.
 
 The cats can't out-muscle a giant. What they can do is be **underfoot**: in the way, beneath
 notice, at ankle height where a giant can't easily reach. The fight is to make the giants take
@@ -43,16 +57,21 @@ cartoon villains.
 spirits are the second faction, after Liberation, and being the first supernatural thing in the
 game is the point. If the cats ever have magic, it's the spirits' gift, never their own.
 
-**After Liberation, the spirits.** After a quiet, the forest's spirits, the Keepers, come for the
-village: wherever the forest burned, they found cats, so they think the cats burned it. The
-siege is a run in the village itself: the spirits set the roofs alight, he puts the fires out
-with water from the well, and then the Great Tiger comes, the forest's grandfather, a great tiger.
-Beaten, it lies down and listens. The Elder shows it the company's cans, stamped MBG, and it
-knows the smell: Makmur Bakar burned the groves. There's peace after that, and the Great Tiger
-raises a shrine by the gate. Endless goes through it from then on, cleansing groves still sick
-from the company, with the spirits on the cats' side. Home from the first grove, the Great Tiger
-gives him the spirits' gift: its grandchild, a tiger cub, bound into a charm at his collar. It
-fights at his heel in the groves, and grows, slowly, on offerings brought home from them.
+**After Liberation, the spirits.** After a few quiet weeks, an old peat fire breaks out under
+the edge, and the forest's spirits, the Keepers, come for the village. The Keepers go to every
+fire to put it out, so everyone, the cats' own old tales included, has always blamed them for
+fires; and tonight they find a village of cats in the company's hard hats and vests. The siege is
+a run in the village itself: in their anger the Keepers set the roofs alight, he puts the fires
+out with water from the well, and then the Great Tiger of Cisewu comes, the forest's grandfather.
+Beaten, he lies down and listens. Granny Whiskers says sorry for her grandmother's tales; the
+Elder shows him a tin from the edge, and he knows the smell from every burned grove. Jogiboy
+knows it too: it's rat. There's peace after that, and the Great Tiger raises a shrine by the
+gate. Endless goes through it from then on, cleansing groves still sick from the smoke, with the
+Keepers on the cats' side. The village carved his statue by the gate long ago, and it came out
+silly; the real one is majestic, and pulls exactly that face only once, when he sees it. Home
+from the first grove, the Great Tiger gives him the spirits' gift: his grandchild, a tiger cub
+called Sprout, bound into a charm at his collar. She fights at his heel in the groves, and
+grows, slowly, on offerings brought home from them.
 
 ## Factions
 
@@ -123,8 +142,10 @@ A clearing the company has cut in an Indonesian tropical forest.
 
 ## The cat
 
-**Tompel** is a white cat with black ears, a black crown and saddle, a black tail, and a black
-mole by his nose. He's a cat, so he walks on four legs: he carries one weapon in his mouth and the
+**Tompel** is a fluffy white cat with black ears and a black crown, a black saddle reaching low
+down his flanks with a white streak across it, black hind thighs over white socks, a plumed black
+tail, and the black patch on his left cheek by his mouth that gave him his name ("tompel" is a
+birthmark). He's a cat, so he walks on four legs: he carries one weapon in his mouth and the
 other in his tail, his tail a limb of its own that curls up behind him, sways as he walks, and
 reaches out to grip what it holds. Every cat in the village walks the same way.
 
@@ -252,7 +273,7 @@ on: fire and oil, or crewmates who can be downed.
   | Who | Freed in | Brings back | Teaches |
   |---|---|---|---|
   | The Elder | (always home) | | Rolling slash, land on your feet |
-  | Uncle Anvil, the smith | The village's edge | The smithy, and he fixes Tompel's roof | |
+  | Uncle Anvil, the smith (everyone calls him Hammer: he can never find his) | The village's edge | The smithy, he fixes Tompel's roof, and he gives Tompel his hammer to keep | |
   | Granny Whiskers, the weaver | The deep forest | The weaver's hut | Pounce, riposte |
   | Patch, the carpenter | The sawpits | The longhouse | Ankle cutter, caltrops |
   | Saffron, the scout | The logged clearing | The watchtower | Long leap, dust cloud |
@@ -261,11 +282,16 @@ on: fire and oil, or crewmates who can be downed.
   | Skipper, the ferryman | The airstrip | | Chain roll |
 
   The huts the rescued cats build themselves, as their number grows.
+- **Names are in English**, for the cast, the spirits and the things he carries alike; a thing's
+  story gives the name it has where it comes from, once (a hornbill sword is what the Dayak cats
+  upriver call a mandau). Names take capitals, people's, peoples', companies' and places' (the
+  Keepers, the Free Float, Green Promise Plantations); "the" before one stays lowercase inside a
+  sentence; everything else is lowercase in a sentence and in sentence case on a label.
 - **Jogiboy** is a villager in his own right: in Felterra everyone is equal, and he's nobody's
   pet. He lives next door to the Elder, has decided Tompel is his friend, and goes everywhere he
   goes, the way a friend once took him out to play: ginger, with a white blaze, white socks, tall
   ears, sad eyes, and a blue collar with keys on it. He speaks for himself, with his own portrait.
-  Finding things is his trade: each time Tompel walks home he has dug up a little salvage for him,
+  He turned up while Tompel was away, half starved, with a ring of keys on his collar: he was a guard dog at a gate in the palm plantations downriver, and the keys were the one guard's who used to take him out to play. Finding things is his trade: each time Tompel walks home he has dug up a little salvage for him,
   and on the map board he sniffs out how many caged cats each area holds. He never comes on a run,
   and nothing ever hurts him. He's here in memory of a dog a friend loved.
 - **Who's talking is shown, not said.** Someone without a portrait says a line in a speech bubble
