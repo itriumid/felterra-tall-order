@@ -791,6 +791,10 @@ func _draw_cat(cat: Cat) -> void:
 	var worn_on_body: String = cat.gear.get("body", "")
 	if Sprites.BODIES.has(worn_on_body):
 		draw_texture(Sprites.lit(Sprites.BODIES[worn_on_body][view], flip), top_left)
+	if cat.coat == "tompel" and Sprites.TOMPEL_COLLAR.has(view):
+		# His own collar, always: red, white-dotted, with a little bell. What he wears at his neck
+		# goes over it.
+		draw_texture(Sprites.lit(Sprites.TOMPEL_COLLAR[view], flip), top_left)
 	for slot in ["neck", "waist", "eyes"]:
 		var item: String = cat.gear.get(slot, "")
 		if Sprites.WORN.has(item):
@@ -1488,7 +1492,7 @@ func _pose_holds(cat: Cat, view: String, flip: bool, frame: int, top_left: Vecto
 		var sway: float = [0.0, 1.0, 0.0, -1.0][frame] + sin(_clock * 2.0)
 		tip = (curl + Vector2(back * 2.0 + sway, -3.0)).round()
 	var tail := {"at": tip, "weapon": gripped, "drawing": Sprites.gun_toward(gripped.name, cat.aim) if gripped != null else {},
-		"behind": view != "back", "tail": _limb(base, curl) + _limb(curl, tip), "fur": _tail_fur(cat)}
+		"behind": view != "back", "tail": _limb(base, curl) + _limb(curl, tip), "fur": _tail_fur(cat), "plumed": cat.coat == "tompel"}
 	holds.append(tail)
 	return holds
 
@@ -1502,10 +1506,16 @@ func _tail_fur(cat: Cat) -> Color:
 
 func _draw_hold(hold: Dictionary) -> void:
 	var points: Array = hold.tail
-	for point: Vector2 in points:
-		draw_rect(Rect2(point - Vector2.ONE, Vector2(3, 3)), Palette.OUTLINE)
-	for point: Vector2 in points:
-		draw_rect(Rect2(point, Vector2.ONE), hold.fur)
+	# Tompel's tail is a plume: thin where it leaves him, fuller along its length, white at its
+	# base and black the rest of the way.
+	var plumed: bool = hold.get("plumed", false)
+	for index in points.size():
+		var thick := _plume(index, points.size()) if plumed else 1
+		draw_rect(Rect2(points[index] - Vector2.ONE, Vector2(thick + 2, thick + 2)), Palette.OUTLINE)
+	for index in points.size():
+		var thick := _plume(index, points.size()) if plumed else 1
+		var fur: Color = Palette.WHITE_FUR if plumed and index < 2 else hold.fur
+		draw_rect(Rect2(points[index], Vector2(thick, thick)), fur)
 	var weapon: Weapon = hold.weapon
 	if weapon == null:
 		return
@@ -1522,6 +1532,11 @@ func _draw_hold(hold: Dictionary) -> void:
 		_draw_smear(weapon, hold.at)
 	elif weapon.kind == Weapon.Kind.RANGED and flash.get(arena.cats[0], 0.0) > 0.0:
 		draw_rect(Rect2(at + drawing.muzzle - Vector2.ONE, Vector2(3, 3)), Palette.SPARK)
+
+
+## How thick a plumed tail is, so far along it: one pixel at the base, two most of the way.
+func _plume(index: int, count: int) -> int:
+	return 1 if index < count / 4 else 2
 
 
 ## The pixels of a limb from one point to another, one per step along it.

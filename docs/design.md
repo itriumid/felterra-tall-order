@@ -68,7 +68,9 @@ Elder shows him a tin from the edge, and he knows the smell from every burned gr
 knows it too: it's rat. There's peace after that, and the Great Tiger raises a shrine by the
 gate. Endless goes through it from then on, cleansing groves still sick from the smoke, with the
 Keepers on the cats' side. The village carved his statue by the gate long ago, and it came out
-silly; the real one is majestic, and pulls exactly that face only once, when he sees it. Home
+silly (it stands there from the start, and the little wooden one from the company's glass case
+joins it once the offices are freed); the real one is majestic, with a bust of his own, and pulls
+exactly that face only once, when he sees it. Home
 from the first grove, the Great Tiger gives him the spirits' gift: his grandchild, a tiger cub
 called Sprout, bound into a charm at his collar. She fights at his heel in the groves, and
 grows, slowly, on offerings brought home from them.
@@ -145,7 +147,8 @@ A clearing the company has cut in an Indonesian tropical forest.
 **Tompel** is a fluffy white cat with black ears and a black crown, a black saddle reaching low
 down his flanks with a white streak across it, black hind thighs over white socks, a plumed black
 tail, and the black patch on his left cheek by his mouth that gave him his name ("tompel" is a
-birthmark). He's a cat, so he walks on four legs: he carries one weapon in his mouth and the
+birthmark). He always wears his own collar, red with white dots and a little bell, under
+whatever he wears at his neck. He's a cat, so he walks on four legs: he carries one weapon in his mouth and the
 other in his tail, his tail a limb of its own that curls up behind him, sways as he walks, and
 reaches out to grip what it holds. Every cat in the village walks the same way.
 
@@ -297,7 +300,9 @@ on: fire and oil, or crewmates who can be downed.
 - **Who's talking is shown, not said.** Someone without a portrait says a line in a speech bubble
   over them, their name at its top and its tail pointing down at them; a line of the story itself
   is written across the top of the screen. In a fight, the same bubbles carry what freed cats say,
-  without holding anything up.
+  and an area's own lines at their moment (the Rat Baron's orders, Saffron calling from the trees
+  through the hold, the Keepers as the roofs catch), without holding anything up. **Humans only
+  scribble:** cats can't understand them, so a human's bubble is loops and jags.
 - **The village has its own music**, from the run's instruments at an easy walking pace (92 beats
   a minute against the run's 154), no drums or rock, the bronze up front, and the run's melody
   played slow and soft over it. Walking out to a run crossfades from one to the other. The title

@@ -178,6 +178,13 @@ var most_fallen := MOST_FALLEN
 var fading: Array[Dictionary] = []
 var random := RandomNumberGenerator.new()
 var time := 0.0
+## What's said in the fight, in a bubble over whoever says it, holding nothing up: as {by, text,
+## at, follow (a body it stays over, or null), until, human}. A human's words are only scribbles:
+## cats can't understand them. Which of the area's lines (its "calls") have been said already.
+var calls: Array[Dictionary] = []
+var _called: Array[int] = []
+## How long a line said in the fight stays up.
+const CALL_TIME := 2.8
 var kills := 0
 var giants_felled := 0
 var machines_broken := 0
@@ -328,6 +335,7 @@ func step() -> void:
 	_drift_smoke()
 	_fight_fires()
 	_pursue_goal()
+	_call_when_due()
 	_spawn()
 
 
@@ -1693,6 +1701,7 @@ func _fight_fires() -> void:
 			if roof.lights_in <= 0.0:
 				roof.lit = true
 				events.append({"position": roof.door, "height": 1.8, "direction": Vector2.ZERO, "killed": false, "by": "roof_alight", "giant": false, "kind": roof.building})
+				_call("roof", roof.door)
 			continue
 		roof.ember_in -= STEP
 		if roof.ember_in <= 0.0:
@@ -1852,6 +1861,34 @@ func _bring_in_the_boss() -> void:
 			boss = guardian
 		"machine": boss = add_machine(at, (size / 2.0 - at).angle(), coming.type)
 	events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "boss_arrives", "giant": true, "kind": coming.type})
+	_call("boss", at)
+
+
+## Says the area's next line for a moment ("boss", "roof"), if it has one not yet said: over the
+## boss, if that's who says it, or where it's said from, or where it happened.
+func _call(moment: String, where: Vector2) -> void:
+	var lines: Array = area.get("calls", []) if not area.is_empty() else []
+	for index in lines.size():
+		var line: Dictionary = lines[index]
+		if line.when != moment or index in _called:
+			continue
+		_called.append(index)
+		var follow: Body = (boss.get("body") as Body) if line.get("over", "") == "boss" and boss != null else null
+		calls.append({"by": line.by, "text": line.get("text", ""), "at": line.get("at", where), "follow": follow,
+			"until": time + CALL_TIME, "human": line.get("human", false)})
+		return
+
+
+## Lines due at a time held ("held:<seconds>"), and lines said long enough ago taken down.
+func _call_when_due() -> void:
+	calls = calls.filter(func(line: Dictionary) -> bool: return line.until > time)
+	if area.is_empty():
+		return
+	var lines: Array = area.get("calls", [])
+	for index in lines.size():
+		var when: String = lines[index].when
+		if when.begins_with("held:") and not index in _called and held_for >= float(when.trim_prefix("held:")):
+			_call(when, size / 2.0)
 
 
 ## Structures stand where they are: they act, and nothing walks through them.

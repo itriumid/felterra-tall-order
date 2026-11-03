@@ -517,6 +517,7 @@ func _draw_prop(prop: Dictionary) -> void:
 		"woodpile": _draw_woodpile(footprint)
 		"washing": _draw_washing(footprint)
 		"palm": _draw_palm(footprint)
+		"statue": _draw_statue(footprint)
 
 
 ## The well in the square: a round wall of stones, the water dark inside, two posts and a little
@@ -577,6 +578,55 @@ func _draw_bench(footprint: Rect2) -> void:
 		_quad([Vector2(leg_x, front), Vector2(leg_x + 0.08, front)], 0.0, 0.3, Palette.BARK)
 	_slope(Vector2(footprint.position.x, footprint.position.y), Vector2(footprint.end.x, footprint.position.y), 0.32, Vector2(footprint.position.x, front), Vector2(footprint.end.x, front), 0.32, Palette.BARK_LIGHT)
 	_quad([Vector2(footprint.position.x, front), Vector2(footprint.end.x, front)], 0.26, 0.32, Palette.BARK)
+
+
+## The Great Tiger in stone, sitting up on his plinth, as the village's carvers saw him: eyes that
+## don't agree on where to look, and a grin full of teeth. Nobody had seen him to say otherwise.
+const STATUE := """
+..dd........dd..
+.dSSd......dSSd.
+.dSSSddddddSSSd.
+dSSSdSSddSSdSSSd
+dSSSSdSddSdSSSSd
+dddSSSSddSSSSddd
+dSYYYGSSSSGYYYSd
+dSYYGGSSSSGGYYSd
+dddSSSSSSSSSSddd
+dSSSSSSGGSSSSSSd
+dSSdpppppppppdSd
+dSSSpYpYpYpYpSSd
+.dSSSpppppppSSd.
+..dSSdSSSSdSSd..
+.dSSSdSSSSdSSSd.
+.dSdSSSSSSSSdSd.
+.dSSSSSSSSSSSSd.
+dddddddddddddddd
+dSSSSSSSSSSSSSSd
+dddddddddddddddd
+"""
+## The little wooden one from the company's glass case, home from the offices, at its foot: the
+## same face, in teak.
+const LITTLE_TIGER := """
+.b....b.
+bBbbbbBb
+bYGBBGYb
+bBBGGBBb
+bBpYYpBb
+.bBBBBb.
+bbbbbbbb
+"""
+static var _statue: ImageTexture
+static var _little_tiger: ImageTexture
+
+
+func _draw_statue(footprint: Rect2) -> void:
+	if _statue == null:
+		_statue = ImageTexture.create_from_image(Sprites.image(STATUE))
+		_little_tiger = ImageTexture.create_from_image(Sprites.image(LITTLE_TIGER))
+	var foot := World.to_screen(Vector2(footprint.get_center().x, footprint.end.y), 0.0)
+	draw_texture(_statue, Vector2(floorf(foot.x - _statue.get_width() / 2.0), floorf(foot.y - _statue.get_height())))
+	if village_record != null and "offices" in village_record.liberated:
+		draw_texture(_little_tiger, Vector2(floorf(foot.x + _statue.get_width() / 2.0 + 1), floorf(foot.y - _little_tiger.get_height())))
 
 
 ## A kitchen garden behind a low bamboo fence: rows of greens in dark earth, chilies red among

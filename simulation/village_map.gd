@@ -96,7 +96,7 @@ const HUTS: Array[Rect2] = [
 ## What makes it a village and not a row of huts, each in the way where it stands, but for
 ## what's flat on the ground or overhead: the well in the square and a bench by it, the gardens
 ## behind the houses, the woodpile by the smithy, a washing line, rice drying on its mat, and the
-## coconut palms.
+## coconut palms; and by the gate, the statue of the Great Tiger.
 const WELL := Rect2(18.9, 5.2, 0.9, 0.7)
 const PROPS: Array[Dictionary] = [
 	{"kind": "well", "footprint": WELL},
@@ -112,6 +112,8 @@ const PROPS: Array[Dictionary] = [
 	{"kind": "palm", "footprint": Rect2(16.6, 11.4, 0.3, 0.3)},
 	{"kind": "palm", "footprint": Rect2(26.8, 16.4, 0.3, 0.3)},
 	{"kind": "palm", "footprint": Rect2(32.6, 12.8, 0.3, 0.3)},
+	# The Great Tiger, as the village's carvers saw him, generations ago, by the gate.
+	{"kind": "statue", "footprint": Rect2(34.5, 6.9, 0.7, 0.45)},
 ]
 
 var cat := Cat.new()
@@ -124,6 +126,8 @@ var elder_to := Vector2.INF
 ## everyone is equal, a dog as much as anyone. He goes everywhere Tompel goes in the village,
 ## trotting after him, and stands by him when he stops.
 var jogi := Cat.new()
+## Held at the Elder's door, for the story's opening: he trots up only once the story says he does.
+var jogi_held := false
 var _jogi_trotting := false
 ## What Jogiboy's playing at ("" for nothing: following Tompel), and whether he's digging now; how
 ## long he's stood, and how long before he's bored of it; and where his play has got to.
@@ -450,6 +454,12 @@ func _step_elder(delta: float) -> void:
 ## he comes up and stands by him, and only sets off again once Tompel has got well ahead. Not
 ## fussing at every step keeps him from stopping and starting. Seeing him off, he waits at the gate.
 func _step_jogi(delta: float) -> void:
+	if jogi_held:
+		_move(jogi, Vector2.ZERO, delta)
+		var to_them := cat.body.position - jogi.body.position
+		if absf(to_them.x) > 0.3:
+			jogi.facing = Vector2(signf(to_them.x), 0.0)
+		return
 	var goal := cat.body.position - cat.facing * JOGI_HEEL + cat.facing.orthogonal() * 0.35
 	if seeing_off:
 		goal = Vector2(EXIT_WEST + 1.4, PATH_BOTTOM - 0.4) if going_west else Vector2(EXIT_FROM - 0.6, PATH_BOTTOM - 0.4)

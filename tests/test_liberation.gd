@@ -230,3 +230,32 @@ func test_the_handler_backs_off_round_a_tree_not_into_it() -> void:
 	_steps(arena, 60 * 2)
 	check(handler.body.position.distance_to(started) > 1.0, "the handler stayed pressed against the tree, at %s" % handler.body.position)
 	check(handler.body.position.distance_to(cat.body.position) > 3.0, "the handler never got off from him")
+
+
+func test_the_rat_baron_says_his_line_over_him_as_he_comes() -> void:
+	var arena := _area("edge")
+	for structure in arena.structures:
+		arena.strike(structure, 1000.0, Vector2.ZERO, 0.0, 0.0, "round")
+	arena.step()
+	check(arena.calls.size() == 1 and arena.calls[0].by == "The Rat Baron" and arena.calls[0].follow == arena.boss.body, "the Rat Baron came without a word over him")
+	_steps(arena, roundi(Arena.CALL_TIME / Arena.STEP) + 2)
+	check(arena.calls.is_empty(), "the Rat Baron's line stayed up")
+
+
+func test_saffron_calls_out_once_at_each_point_in_the_hold() -> void:
+	var arena := _area("clearing")
+	_steps(arena, roundi(4.0 / Arena.STEP))
+	check(arena.calls.size() == 1 and (arena.calls[0].text as String).begins_with("Left!"), "nobody called out early in the hold")
+	_steps(arena, roundi(Arena.CALL_TIME / Arena.STEP))
+	arena.held_for = 95.0
+	_steps(arena, 2)
+	check(arena.calls.size() == 1 and (arena.calls[0].text as String).begins_with("Halfway"), "the call halfway through the hold wasn't the only one up")
+
+
+func test_a_human_boss_only_scribbles() -> void:
+	var arena := _area("deep")
+	for cage in arena.goal_cages:
+		cage.picked = 0.999
+		cage.body.position = arena.cats[0].body.position
+	arena.step()
+	check(arena.calls.any(func(line: Dictionary) -> bool: return line.human and (line.text as String).is_empty()), "the Handler said words a cat could read")
