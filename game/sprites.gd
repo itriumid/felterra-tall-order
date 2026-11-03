@@ -430,6 +430,21 @@ const GOGGLES := {
 ........................
 """,
 }
+## Tompel's own collar, worn always: the bell collar's, red with white dots.
+static var TOMPEL_COLLAR: Dictionary:
+	get:
+		if _tompel_collar.is_empty():
+			for view: String in BELL_COLLAR:
+				var rows := (BELL_COLLAR[view] as String).split("\n")
+				for y in rows.size():
+					var row := rows[y]
+					var dotted := ""
+					for x in row.length():
+						dotted += "Y" if row[x] == "c" and x % 2 == 0 and row.count("c") > 2 else row[x]
+					rows[y] = dotted
+				_tompel_collar[view] = "\n".join(rows)
+		return _tompel_collar
+static var _tompel_collar := {}
 const BELL_COLLAR := {
 	"front": """
 ........................
