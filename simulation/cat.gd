@@ -410,6 +410,9 @@ func _fade_scents(delta: float, arena: Arena) -> void:
 func _start_roll(arena: Arena) -> void:
 	_fresh_roll = false
 	var from := body.position
+	# A mutation that acts as the roll starts marks where it did.
+	if mutations.keys().any(func(mutation: String) -> bool: return Upgrades.MUTATION_WHEN.get(mutation, "") == "start"):
+		arena.events.append({"position": from, "height": 0.0, "direction": _dodge_direction, "killed": false, "by": "roll_start", "giant": false, "kind": "cat"})
 	if has("lick_your_wounds") and _licked < LICK_MOST:
 		var licked := minf(LICK_HEAL * strength("lick_your_wounds"), LICK_MOST - _licked)
 		if _licked <= 0.0:

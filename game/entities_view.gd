@@ -67,6 +67,12 @@ var _glint := {}
 ## {at (pixels), across (the way the stroke runs), age}.
 var _hit_spots := {}
 var _slashes: Array[Dictionary] = []
+## Rings going out where a mutation acted, so it's plain when it did: where a roll that does
+## something as it starts set off, where a pounce came down, where a riposte answered. Each as
+## {at (pixels), color, age}.
+var _rings: Array[Dictionary] = []
+const RING_TIME := 0.3
+const RING_RADIUS := 10.0
 var _taken_seen := {}
 var _level_up := 0.0
 var _level_seen := -1
@@ -321,6 +327,9 @@ func _draw_all() -> void:
 			_draw_net(World.to_screen(shot.position, shot.height), size, false)
 			continue
 		_draw_shot(shot)
+	for ring in _rings:
+		var share: float = ring.age / RING_TIME
+		draw_arc(ring.at, 2.0 + RING_RADIUS * share, 0.0, TAU, 16, ring.color, 1.0)
 	for slash in _slashes:
 		# A bright stroke across, thinning as it goes.
 		var length: float = 5.0 * (1.0 - slash.age / SLASH_TIME) + 2.0
@@ -1500,6 +1509,18 @@ func _feel_hits(delta: float) -> void:
 	for slash in _slashes:
 		slash.age += delta
 	_slashes = _slashes.filter(func(slash: Dictionary) -> bool: return slash.age < SLASH_TIME)
+	for ring in _rings:
+		ring.age += delta
+	_rings = _rings.filter(func(ring: Dictionary) -> bool: return ring.age < RING_TIME)
+	for event in _pending:
+		var ring_color: Variant = {"roll_start": Palette.STEEL_LIGHT, "landing": Palette.PINK, "strike_back": Palette.SPARK}.get(event.by)
+		if ring_color != null and _rings.size() < 24:
+			_rings.append({"at": World.to_screen(event.position, event.height), "color": ring_color, "age": 0.0})
+	# A mutation that acts all through the roll leaves a streak along it while it does.
+	for cat in arena.cats:
+		if cat.dodging_for > 0.0 and cat.mutations.keys().any(func(mutation: String) -> bool: return Upgrades.MUTATION_WHEN.get(mutation, "") == "through"):
+			_droplets.append({"position": cat.body.position, "height": cat.body.height + 0.1, "rise": 0.0,
+				"velocity": Vector2.ZERO, "color": Palette.PINK, "stains": false})
 	for event in _pending:
 		if event.get("damage", 0.0) <= 0.0:
 			continue

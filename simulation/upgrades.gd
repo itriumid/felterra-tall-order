@@ -141,6 +141,24 @@ const EVOLVES := {
 	"knife": ["keris"], "keris": ["kerambit"], "handgun": ["submachine_gun"],
 	"machete": ["greatsword"], "rifle": ["automatic_rifle", "sniper_rifle"], "automatic_rifle": ["assault_rifle"],
 }
+## When in a roll each mutation does what it does: as the roll starts, all through it, as it ends,
+## when he's knocked down, or always. Said on its card, so it's never a guess. A roll lasts 0.22
+## seconds (a long leap, until he lands), and he's safe from hits for its first 0.28.
+const MUTATION_WHEN := {
+	"rolling_slash": "through", "ankle_cutter": "through", "slipstream": "through", "chain_roll": "through",
+	"riposte": "safe", "lick_your_wounds": "start", "caltrops": "start", "dust_cloud": "start",
+	"scent_trail": "start", "pounce": "end", "land_on_feet": "knocked", "long_leap": "roll", "more_charges": "always",
+}
+## Those times as a card's ribbon says them, short, and as reading it says them, in full.
+const WHEN_SHORT := {
+	"start": "as it starts", "through": "all through", "safe": "while safe", "end": "as it ends",
+	"knocked": "when knocked", "roll": "the roll itself", "always": "always",
+}
+const WHEN_LONG := {
+	"start": "As the roll starts", "through": "All through the roll", "safe": "In the roll's first 0.28 seconds, while he's safe",
+	"end": "As the roll ends", "knocked": "When he's knocked off his feet", "roll": "It is the roll: the whole of it a leap",
+	"always": "Always, not just in a roll",
+}
 ## Dodge mutations: each changes what the dodge does. A cat takes up to Cat.MOST_MUTATIONS a run,
 ## and a card for one he has strengthens it. What each is called, and what it does in one line.
 const MUTATIONS := {
@@ -418,7 +436,11 @@ static func _describe(choice: Dictionary) -> Dictionary:
 		card.kind = "mutation"
 		card.name = MUTATIONS[mutation].name + ("" if id.begins_with("mutation:") else " up")
 		card.lines = _mutation_lines(mutation, amount, id.begins_with("mutation:"))
+		var when: String = MUTATION_WHEN.get(mutation, "always")
+		# Its rarity and when it acts, on the ribbon.
+		card.ribbon = "%s, %s" % [RARITY_NAMES[choice.rarity], WHEN_SHORT[when]]
 		card.explain = ["%s: %s" % [MUTATIONS[mutation].name, MUTATIONS[mutation].explain],
+			"When: %s" % WHEN_LONG[when],
 			"One dodge mutation a run; another card for it makes it stronger"]
 		card.unfamiliar = true
 	else:
