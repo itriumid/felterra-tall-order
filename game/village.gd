@@ -240,18 +240,7 @@ func repack(id: String) -> bool:
 	return true
 
 
-## How many weapons a run's first draw deals.
-const HAND_SIZE := 3
-
-
-## A first draw: so many weapons from the pool, at random, none twice. Luck, nothing more.
-static func deal(pool: Array[String]) -> Array[String]:
-	var shuffled := pool.duplicate()
-	shuffled.shuffle()
-	return shuffled.slice(0, HAND_SIZE)
-
-
-## The weapons packed, by name ("golok", not "weapon:golok"): what a run's first draw is dealt from.
+## The weapons packed, by name ("golok", not "weapon:golok"): what a run's first hand is dealt from.
 func packed_weapons() -> Array[String]:
 	var names: Array[String] = []
 	for id in everything():

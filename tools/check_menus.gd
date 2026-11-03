@@ -78,12 +78,14 @@ const STEPS := [
 	# village from the pause menu, the way he went.
 	["leave_village_west", "", {"_place": "leaving", "_went_west": true}], ["pause", "", {"_place": "run", "_run_kind": "endless"}],
 	["pause", "", {"_entering": false}],
-	# An ally joins on a gamepad of their own and chooses the handgun on its buttons; then he
-	# chooses, and the crew's run starts. Down, he's waiting on a crewmate, not out.
-	["join_pad", "", {"arena.leash": Vector2(13.0, 5.5), "_start_weapon": ""}], ["pick_2:1", ""],
-	["deal_known", ""], ["pick_1", "", {"_start_weapon": "nunchaku"}], ["down", "", {"cat.downed": true, "arena.lives": 9}],
-	# Another gamepad drops in to the run under way: out of it while they choose, in once they have.
-	["join_pad_8", "", {"arena.cats.size": 2}], ["pick_2:2", "", {"arena.cats.size": 3}],
+	# Empty-pawed, his first level-up deals him a weapon from the pack, and he takes the first.
+	["level_up", "", {"cat.weapons.size": 0, "cat.offers.size": 1}], ["pick_1", "", {"cat.weapons.size": 1}],
+	# An ally joins on a gamepad of their own: out of the run while they choose a coat, in once they
+	# press A, empty-pawed too. Down, he's waiting on a crewmate, not out.
+	["join_pad", "", {"arena.leash": Vector2(13.0, 5.5), "arena.cats.size": 1}], ["dodge:1", "", {"arena.cats.size": 2}],
+	["down", "", {"cat.downed": true, "arena.lives": 9}],
+	# Another gamepad drops in to the run under way, the same way.
+	["join_pad_8", "", {"arena.cats.size": 2}], ["dodge:2", "", {"arena.cats.size": 3}],
 	["pause", "pause"], ["move_down", "pause"], ["move_down", "pause"], ["move_down", "pause"], ["move_down", "pause"],
 	# Home, with the lessons of the two areas freed meanwhile told on the way in; what's new waits.
 	["menu_choose", "", {"_place": "arriving", "village_map.walking_to": VillageMap.RETURN_WEST}], ["pause", "", {"_place": "village"}],
@@ -176,9 +178,10 @@ func _process(_delta: float) -> bool:
 			if _main.arena.boss == null:
 				_main.arena._bring_in_the_boss()
 			_main.arena.strike(_main.arena.boss, 1.0e7, Vector2.ZERO, 0.0, 0.0, "round")
-		elif action == "deal_known":
-			# A first draw is luck: dealt a known hand, so what's picked can be checked.
-			_main._hand.assign(["nunchaku", "handgun", "knife"])
+		elif action == "level_up":
+			# The head start's experience, all at once: the first level, and its hand.
+			_main.arena.head_start = false
+			_main.arena._gain_experience(Arena.experience_needed(_main.arena.level) - _main.arena.experience)
 		elif action == "to_jogiboy":
 			_main.village_map.cat.body.position = _main.village_map.jogi.body.position + Vector2(0.3, 0.0)
 		elif action in ["to_smithy", "to_weaver", "to_home", "to_board", "to_house", "to_longhouse", "to_market", "to_healer", "to_shrine"]:

@@ -33,14 +33,6 @@ func test_the_pack_is_the_first_draw() -> void:
 	check(not village.repack("weapon:handgun"), "the handgun was left home with too few weapons packed")
 	var pool := village.packed_weapons()
 	check(not "nunchaku" in pool and "machete" in pool and pool.size() == 6, "the pack dealt from %s" % [pool])
-	var dealt := {}
-	for draw in 60:
-		var hand := Village.deal(pool)
-		check(hand.size() == Village.HAND_SIZE, "a first draw dealt %d" % hand.size())
-		for name in hand:
-			check(name in pool and hand.count(name) == 1, "a first draw dealt %s, from %s" % [hand, pool])
-			dealt[name] = true
-	check(dealt.size() == pool.size(), "in sixty draws, only %s ever came up" % [dealt.keys()])
 	# Pak Besi says so, once, at the smithy.
 	village.tell("smithy", "Pak Besi", "Pack what you'd draw.", Village.PACK_TAUGHT)
 	village.hear("smithy")

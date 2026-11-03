@@ -230,3 +230,30 @@ func test_every_portrait_is_the_same_size_in_every_mood() -> void:
 		for mood in Portraits.MOODS:
 			check(Sprites.image(Portraits.art(who, mood)).get_size() == Vector2i(40, 40), "%s's %s portrait isn't 40 by 40" % [who, mood])
 
+
+
+func test_a_run_starts_empty_pawed_and_its_first_level_deals_a_weapon_from_the_pack() -> void:
+	var arena := Arena.new()
+	arena.spawning = false
+	var cat := arena.add_cat(Vector2(10.0, 10.0))
+	cat.wear({"weapons": []})
+	cat.first_pool.assign(["golok", "slingshot", "machete", "ketapel"])
+	cat.first_pool.erase("slingshot")
+	arena.head_start = true
+	# Experience trickles in from the start: the first level comes in its own time, no sooner.
+	for step in roundi(Arena.HEAD_START_TIME * 60.0 * 0.5):
+		arena.step()
+	check(arena.level == 1 and arena.experience > 0, "halfway through the head start, level %d with %d experience" % [arena.level, arena.experience])
+	for step in roundi(Arena.HEAD_START_TIME * 60.0 * 0.5) + 2:
+		arena.step()
+	check(arena.level == 2 and not arena.head_start, "the head start ended at level %d" % arena.level)
+	check(cat.offers.size() == 1, "the first level dealt %d hands" % cat.offers.size())
+	var hand: Array = cat.offers[0]
+	for choice: Dictionary in hand:
+		check(choice.id.trim_prefix("weapon:") in cat.first_pool and choice.rarity == Upgrades.Rarity.COMMON and choice.get("first", false),
+			"the first hand dealt %s, not a common weapon from the pack" % choice)
+	check(hand.size() == 3, "the first hand held %d" % hand.size())
+	# Its redraw is its own: the run's rerolls are left alone.
+	var rerolls := cat.rerolls
+	check(cat.reroll(arena.random) and cat.rerolls == rerolls and cat.first_redraws == 0, "the first redraw spent the run's rerolls")
+	check(cat.play(0) and cat.weapons.size() == 1, "playing the first hand gave him no weapon")

@@ -62,10 +62,6 @@ var allies: Array[Dictionary] = []
 var joining := false
 ## Playing online, how it's going: who's here, or what went wrong. Shown wherever he is.
 var online_status := ""
-var start_chosen := false
-## The run's first draw: three weapons dealt from his pack, and whether its free redraw is left.
-var start_hand: Array[String] = []
-var start_redraws := 0
 ## Tab held: the cards' stats are explained. X held: picking banishes.
 var reading := false
 var banishing := false
@@ -896,7 +892,7 @@ func _draw_cards() -> void:
 	if banishing:
 		keys.append_array(["X", "and a number banishes"])
 	else:
-		keys.append_array(["R", "reroll (%d)" % cat.rerolls, "Tab", "read", "X", "banish"])
+		keys.append_array(["R", reroll_text(cat), "Tab", "read", "X", "banish"])
 	if cat.offers.size() > 1:
 		keys.append_array(["", "%d more held" % (cat.offers.size() - 1)])
 	var line_width := InterfaceArt.key_line_width(keys)
@@ -966,38 +962,17 @@ func _draw_explained(lines: Array[String], bottom: float) -> void:
 			PixelFont.draw(self, box.position + Vector2(6 + InterfaceArt.bold_width(parts[0] + ":") + 4, 5 + index * PixelFont.LINE_HEIGHT), parts[1], Palette.OFF_WHITE)
 
 
-## The choice a run starts with, as two cards; once he's chosen, the wait for his allies.
+## Before the run: the wait for the guests online to come in.
 func _draw_start() -> void:
 	var screen := get_viewport_rect().size
 	if joining:
 		var keys: Array[String] = ["A", "on another gamepad joins as an ally"]
 		InterfaceArt.key_line(self, Vector2(floorf((screen.x - InterfaceArt.key_line_width(keys)) / 2.0), screen.y - 20), keys)
-	if start_chosen:
-		var waiting := "Waiting for your allies to choose"
-		var waiting_box := Rect2(floorf((screen.x - InterfaceArt.bold_width(waiting)) / 2.0) - 8, floorf(screen.y / 2.0) - 10, InterfaceArt.bold_width(waiting) + 16, 20)
-		InterfaceArt.panel(self, waiting_box)
-		InterfaceArt.bold(self, waiting_box.position + Vector2(8, 5), waiting, Palette.PINK)
-		return
-	var title := "Your first draw"
-	# Dealt from his pack: whatever comes up, swung or shot. Two have their own lines.
-	var known_lines := {"nunchaku": ["Go Chuck Purris", "style"], "handgun": ["Go John Whisker", "style"]}
-	var cards := []
-	for name in start_hand:
-		var weapon := Weapon.named(name)
-		cards.append({"name": Upgrades.WEAPON_NAMES[name], "item": name, "ribbon": "Melee" if weapon.kind == Weapon.Kind.MELEE else "Ranged",
-			"lines": known_lines.get(name, wrapped(Upgrades.WEAPON_DOES.get(name, ""), CARD_SIZE.x - 40).slice(0, 3)), "unfamiliar": false})
-	var gap := 10.0
-	var total := cards.size() * CARD_SIZE.x + (cards.size() - 1) * gap
-	var top := floorf(screen.y / 2.0 - CARD_SIZE.y / 2.0)
-	var frame := Rect2(floorf((screen.x - total) / 2.0) - 10, top - 24, total + 20, CARD_SIZE.y + 34)
-	InterfaceArt.panel(self, frame)
-	InterfaceArt.bold(self, Vector2(floorf((screen.x - InterfaceArt.bold_width(title)) / 2.0), top - 18), title, Palette.PINK)
-	for index in cards.size():
-		_draw_card(Rect2(frame.position.x + 10 + index * (CARD_SIZE.x + gap), top, CARD_SIZE.x, CARD_SIZE.y), str(index + 1), Upgrades.Rarity.COMMON, cards[index])
-	var keys: Array[String] = ["1 2 3", "take one"]
-	if start_redraws > 0:
-		keys.append_array(["R", "draw again (%d)" % start_redraws])
-	InterfaceArt.key_line(self, Vector2(floorf((screen.x - InterfaceArt.key_line_width(keys)) / 2.0), frame.end.y + 6), keys)
+	# Waiting on the guests online to come in.
+	var waiting := "Waiting for your allies to come in"
+	var waiting_box := Rect2(floorf((screen.x - InterfaceArt.bold_width(waiting)) / 2.0) - 8, floorf(screen.y / 2.0) - 10, InterfaceArt.bold_width(waiting) + 16, 20)
+	InterfaceArt.panel(self, waiting_box)
+	InterfaceArt.bold(self, waiting_box.position + Vector2(8, 5), waiting, Palette.PINK)
 
 
 ## The see-through panel behind the menu: a checkerboard of palette pixels, not a blend.
@@ -1224,6 +1199,13 @@ func _draw_summary_rows(rows: Array, box: Rect2, top: float, row_height: float) 
 	return y
 
 
+## What R does to the hand: the first draw's own redraw, free, or the run's rerolls, counted.
+static func reroll_text(of: Cat) -> String:
+	if of.weapons.is_empty() and of.first_redraws > 0:
+		return "draw again, free"
+	return "reroll (%d)" % of.rerolls
+
+
 ## What a source of damage is called: a weapon or support by its name, the rest by what it is.
 static func source_name(key: String) -> String:
 	if Upgrades.WEAPON_NAMES.has(key):
@@ -1377,19 +1359,11 @@ func _draw_allies() -> void:
 		var ally_cat: Cat = ally.cat
 		var color: Color = Palette.PLAYERS[ally_cat.player]
 		var lines: Array[Array] = []
-		if choosing or ally.weapon.is_empty():
-			if ally.weapon.is_empty():
-				# Their own first draw, on their own buttons.
-				var hand: Array = ally.get("hand", [])
-				for slot in hand.size():
-					lines.append([["LB", "Up", "RB"][slot], Upgrades.WEAPON_NAMES[hand[slot]]])
-				if ally.get("redraws", 0) > 0:
-					lines.append(["Down", "draw again"])
-				lines.append(["<>", (ally.coat as String).capitalize() + " coat"])
-				lines.append(["B", "leave"])
-			else:
-				lines.append(["", Upgrades.WEAPON_NAMES[ally.weapon] + ", ready"])
-				lines.append(["B", "choose again"])
+		if not ally.get("ready", true):
+			# Their coat, then in: their weapon comes with their first level-up hand.
+			lines.append(["<>", (ally.coat as String).capitalize() + " coat"])
+			lines.append(["A", "come in"])
+			lines.append(["B", "leave"])
 		elif not ally_cat.alive():
 			lines.append(["", "Down: %d s" % ceili(ally_cat.down_for)])
 			lines.append(["", "Stand by them!"])
@@ -1399,7 +1373,7 @@ func _draw_allies() -> void:
 			for choice_index in offer.size():
 				var card := Upgrades.describe(offer[choice_index])
 				lines.append([buttons[choice_index], card.name, offer[choice_index].rarity])
-			lines.append(["Down", "reroll (%d)" % ally_cat.rerolls])
+			lines.append(["Down", reroll_text(ally_cat)])
 			lines.append(["Back", "the whole cards"])
 			if ally_cat.offers.size() > 1:
 				lines.append(["", "%d more held" % (ally_cat.offers.size() - 1)])

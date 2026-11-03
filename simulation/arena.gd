@@ -186,6 +186,12 @@ var spawning := true
 ## each cat an offer.
 var experience := 0
 var level := 1
+## A run starts with no weapon: experience trickles in from the start, filling the bar to the first
+## level in this long, so the first hand (the first draw) comes the way every hand does, by
+## leveling up, before the horde's close.
+var head_start := false
+const HEAD_START_TIME := 2.0
+var _head_start_for := 0.0
 ## Playing together, the crew carries LIVES between them. A cat whose health runs out is down,
 ## not gone: a crewmate standing by them for REVIVE_TIME gets them up, and if nobody comes in
 ## DOWN_TIME, a life is spent and they're up again beside the crew. With none left, the run is
@@ -263,6 +269,13 @@ func add_creature(where: Vector2, kind := "rat") -> Creature:
 
 func step() -> void:
 	time += STEP
+	if head_start:
+		_head_start_for += STEP
+		var due := experience_needed(1) * minf(_head_start_for / HEAD_START_TIME, 1.0)
+		if level == 1 and experience < floori(due):
+			_gain_experience(floori(due) - experience)
+		if level > 1 or _head_start_for >= HEAD_START_TIME:
+			head_start = false
 	# Who stands where, as the step begins: everything that looks for a creature uses it.
 	_build_grid()
 	_find_the_ways()

@@ -264,11 +264,29 @@ static func evolves_from(id: String) -> String:
 
 ## A fresh offer of three different choices, as [{id, rarity}].
 static func offer(cat: Cat, random: RandomNumberGenerator, leaving_out: Array[String] = []) -> Array[Dictionary]:
+	if cat.weapons.is_empty():
+		return first_draw(cat, random, leaving_out)
 	var pool := available(cat).filter(func(id: String) -> bool: return not id in leaving_out)
 	var choices: Array[Dictionary] = []
 	while choices.size() < CHOICES and not pool.is_empty():
 		var id: String = pool.pop_at(random.randi_range(0, pool.size() - 1))
 		choices.append({"id": id, "rarity": roll_rarity(random, cat.luck)})
+	return choices
+
+
+## The first draw: with nothing in his mouth yet, his first hand is weapons only, from his pack (or
+## from any weapon he could have, with no pack to say), all common. Luck, nothing more.
+static func first_draw(cat: Cat, random: RandomNumberGenerator, leaving_out: Array[String] = []) -> Array[Dictionary]:
+	var pool: Array[String] = []
+	if not cat.first_pool.is_empty():
+		for name in cat.first_pool:
+			pool.append("weapon:" + name)
+	else:
+		pool.assign(available(cat).filter(func(id: String) -> bool: return id.begins_with("weapon:")))
+	pool.assign(pool.filter(func(id: String) -> bool: return not id in leaving_out and not cat.banished.has(id)))
+	var choices: Array[Dictionary] = []
+	while choices.size() < CHOICES and not pool.is_empty():
+		choices.append({"id": pool.pop_at(random.randi_range(0, pool.size() - 1)), "rarity": Rarity.COMMON, "first": true})
 	return choices
 
 
@@ -372,6 +390,9 @@ static func _describe(choice: Dictionary) -> Dictionary:
 	var id: String = choice.id
 	var amount: float = AMOUNTS[choice.rarity]
 	var card := {"lines": [], "explain": [], "unfamiliar": false, "item": "", "kind": ""}
+	# The first draw says so, on its ribbon.
+	if choice.get("first", false):
+		card.ribbon = "First draw"
 	if id.begins_with("gear"):
 		var gear_id := id.get_slice(":", 1)
 		var gear: Dictionary = GEAR[gear_id]

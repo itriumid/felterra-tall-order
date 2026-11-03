@@ -11,7 +11,7 @@ extends SceneTree
 ## Each step: what to do, then what has to hold before the next, within a few seconds.
 const STEPS := [
 	"host", "join", "hello_heard", "go_out", "told_of_run", "guest_chooses", "guest_cat_in", "host_chooses",
-	"world_arrives", "guest_steers", "guest_moved",
+	"world_arrives", "guest_first_hand", "guest_plays", "guest_steers", "guest_moved",
 	# The connection drops, and comes back: the same cat, as it was.
 	"guest_drops", "guest_returns",
 	# Leaving on purpose: the cat goes at once. Then someone new drops in to the run under way,
@@ -118,11 +118,13 @@ func _do(step: String) -> void:
 			_host._entering = false
 			_host._overlay.cutscene = false
 		"guest_chooses":
-			_guest._start_weapon = "nunchaku"
-			_guest._online.choose("nunchaku")
+			# Nothing to choose: in at once, empty-pawed.
+			_guest._guest_chooses()
 		"host_chooses":
-			_host._start_weapon = "handgun"
-			_host._dress()
+			pass
+		"guest_plays":
+			# Their first hand's first card, played as their key would.
+			_guest._online.send_press("pick", 0)
 		"guest_steers":
 			_guest_salvage = _guest.village.salvage
 			_guest_started_at = _host_side_guest_cat().body.position
@@ -178,9 +180,15 @@ func _holds(step: String) -> bool:
 			var mine: Cat = _guest._online.receiver.objects.get(_guest._online.my_cat_id)
 			return mine != null and _guest.cat == mine and _guest.arena.cats.size() == 2 \
 				and _guest.arena.creatures.size() > 0 and _guest.arena.creatures.size() >= _host.arena.creatures.size() - 10 \
-				and mine.weapons.size() > 0 and mine.weapons[0].name == "nunchaku"
+				and mine.weapons.is_empty() and mine.first_pool.size() >= 3
 		"guest_chooses", "guest_steers":
 			return true
+		"guest_first_hand":
+			# The head start's level comes, and with it their first hand: weapons from their own pack.
+			var mine: Cat = _guest._online.receiver.objects.get(_guest._online.my_cat_id)
+			return mine != null and not mine.offers.is_empty() and (mine.offers[0] as Array).all(func(choice: Dictionary) -> bool: return choice.get("first", false))
+		"guest_plays":
+			return _host_side_guest_cat().weapons.size() == 1
 		"guest_moved":
 			# Held right on the guest's side, their cat walks right on the host's.
 			_guest._online.send_steering(Vector2.RIGHT, _frames)

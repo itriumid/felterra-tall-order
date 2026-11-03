@@ -228,11 +228,6 @@ var _dev_freed := false
 var _dev_boss := false
 var _at_door := ""
 ## Which forged weapon the start choice's third card shows.
-## The run's first draw: three weapons dealt from the pack, and the free redraw it comes with.
-var _hand: Array[String] = []
-var _hand_redraws := 0
-## How many free redraws a first draw has.
-const HAND_REDRAWS := 1
 var _open_shop_first := false
 ## --tidings: news waiting in the village, under its "!"s: at the smithy, at the board, with the
 ## Elder, and Jogiboy's find.
@@ -261,14 +256,6 @@ func _weapon_pool() -> Array[String]:
 		if id.begins_with("weapon:"):
 			names.append(id.trim_prefix("weapon:"))
 	return names
-
-
-## The run's first draw, dealt if it hasn't been: his, with its redraw.
-func _first_hand() -> Array[String]:
-	if _hand.is_empty():
-		_hand = Village.deal(_weapon_pool())
-		_hand_redraws = HAND_REDRAWS
-	return _hand
 
 
 ## Whether he last went out west, down the forest path, not through the gate: he comes home that way.
@@ -689,7 +676,6 @@ func _enter_village(spot: Vector2) -> void:
 	_watch(arena, null)
 	_overlay.village_map = village_map
 	_start_weapon = ""
-	_hand.clear()
 	_outfit = 0
 	_camera.position = _village_camera()
 
@@ -1282,9 +1268,14 @@ func _village_camera() -> Vector2:
 ## own.
 func _dress() -> void:
 	var outfit: Dictionary = OUTFITS[_outfit].duplicate()
-	if (outfit.weapons as Array).is_empty():
-		outfit.weapons = [_start_weapon if not _start_weapon.is_empty() else "handgun"]
+	# Nothing in his mouth: his first level-up deals him a weapon from the pack, and experience
+	# trickles in from the start so it comes before the horde does. A weapon to start with is only
+	# for trying something out.
+	if (outfit.weapons as Array).is_empty() and not _start_weapon.is_empty():
+		outfit.weapons = [_start_weapon]
 	cat.wear(outfit)
+	cat.first_pool = _weapon_pool()
+	arena.head_start = cat.weapons.is_empty()
 	# The piece he starts in stays on: its stats were given once, when the run began.
 	if _ran_from_village and not village.starting_piece.is_empty():
 		var piece := village.starting_piece.trim_prefix("gear:")
@@ -1358,10 +1349,6 @@ func _process(delta: float) -> void:
 			records.remember(Records.entry_of(arena, cat, "Endless"))
 	_overlay.choosing = _choosing()
 	_overlay.joining = _can_join()
-	if _choosing():
-		_overlay.start_hand = _first_hand()
-		_overlay.start_redraws = _hand_redraws
-	_overlay.start_chosen = not _start_weapon.is_empty()
 	if _choosing():
 		_camera.position = _run_camera()
 		_take_screenshot(delta)
@@ -1829,7 +1816,6 @@ func _read_choices() -> void:
 		"start_again", "go_again":
 			_close_page()
 			_start_weapon = ""
-			_hand.clear()
 			_outfit = 0
 			if _ran_from_village:
 				_start_run(_run_kind)
@@ -2016,13 +2002,7 @@ func _read_controls() -> void:
 	for ally in _allies.duplicate():
 		_read_ally(ally)
 	if _choosing():
-		if not _start_weapon.is_empty():
-			# He's chosen; the allies haven't yet.
-			return
-		_start_weapon = _take_from_hand("")
-		if not _start_weapon.is_empty():
-			_dress()
-			_audio.interface("menu_choose")
+		# Waiting on the guests online to come in: the world holds still.
 		return
 	cat.steering = Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	if _walk != Vector2.ZERO:
@@ -2072,24 +2052,7 @@ func _read_controls() -> void:
 func _choosing() -> bool:
 	if _under_way():
 		return false
-	return _start_weapon.is_empty() or _allies.any(func(ally: Dictionary) -> bool: return ally.weapon.is_empty()) \
-		or _online.waiting_on_guests() or (_dev_host and not _allies.any(func(ally: Dictionary) -> bool: return ally.has("peer")))
-
-
-## The first draw, played: a number picks that card, R redraws the hand once. Returns the weapon
-## taken, or "" while he's still looking. The keys are a player's own ("" is his: keyboard and
-## the gamepads nobody's claimed).
-func _take_from_hand(player_suffix: String) -> String:
-	var hand := _first_hand()
-	if Input.is_action_just_pressed("reroll" + player_suffix) and _hand_redraws > 0:
-		_hand_redraws -= 1
-		_hand = Village.deal(_weapon_pool())
-		_audio.interface("reroll")
-		return ""
-	for index in hand.size():
-		if Input.is_action_just_pressed("pick_%d%s" % [index + 1, player_suffix]):
-			return hand[index]
-	return ""
+	return _online.waiting_on_guests() or (_dev_host and not _allies.any(func(ally: Dictionary) -> bool: return ally.has("peer")))
 
 
 ## Whether the run has started: the world has stepped.
@@ -2152,7 +2115,7 @@ func _join(device: int) -> void:
 			coat = each
 			break
 	ally_cat.coat = coat
-	_allies.append({"device": device, "cat": ally_cat, "weapon": "", "coat": coat, "reading": false, "hand": Village.deal(_weapon_pool()), "redraws": HAND_REDRAWS})
+	_allies.append({"device": device, "cat": ally_cat, "ready": false, "coat": coat, "reading": false})
 	arena.leash = LEASH
 	_audio.interface("menu_choose")
 
@@ -2181,7 +2144,9 @@ func _part_the_crew() -> void:
 
 func _dress_ally(ally: Dictionary) -> void:
 	var ally_cat: Cat = ally.cat
-	ally_cat.wear({"weapons": [ally.weapon if not ally.weapon.is_empty() else "handgun"]})
+	# Empty-pawed, like him: their first level-up deals them a weapon from the same pack.
+	ally_cat.wear({"weapons": []})
+	ally_cat.first_pool = _weapon_pool()
 	ally_cat.coat = ally.coat
 	# Allied cats, given the spirits' gift too: a jimat each, and a cub at each one's heel, ranked
 	# and woken as the shrine has the village's.
@@ -2203,15 +2168,9 @@ func _read_ally(ally: Dictionary) -> void:
 	if not _has_buttons(ally):
 		return
 	var pressed := func(action: String) -> bool: return Input.is_action_just_pressed(InputActions.of(action, player))
-	if _choosing() or ally.weapon.is_empty():
+	if not ally.ready:
 		if pressed.call("banish"):
-			if ally.weapon.is_empty():
-				_leave(ally)
-			else:
-				ally.weapon = ""
-				_audio.interface("menu_back")
-			return
-		if not ally.weapon.is_empty():
+			_leave(ally)
 			return
 		for way in [-1, 1]:
 			if pressed.call("move_left" if way < 0 else "move_right"):
@@ -2227,15 +2186,9 @@ func _read_ally(ally: Dictionary) -> void:
 				ally.coat = ALLY_COATS[at]
 				ally_cat.coat = ally.coat
 				_audio.interface("menu_move")
-		# Their own first draw, from the same pack, and their own redraw.
-		if pressed.call("reroll") and ally.redraws > 0:
-			ally.redraws -= 1
-			ally.hand = Village.deal(_weapon_pool())
-			_audio.interface("reroll")
-		for index in (ally.hand as Array).size():
-			if pressed.call("pick_%d" % (index + 1)):
-				ally.weapon = ally.hand[index]
-		if not ally.weapon.is_empty():
+		# Their coat chosen, A and they're in: their weapon comes with their first level-up hand.
+		if pressed.call("dodge"):
+			ally.ready = true
 			_dress_ally(ally)
 			_audio.interface("menu_choose")
 			if _under_way():
@@ -2275,22 +2228,24 @@ func ally_arrives(peer: int, info: Dictionary, weapon: String) -> int:
 	if _allies.size() >= MOST_PLAYERS - 1 or run_setup_for_guests().is_empty():
 		return 0
 	var dropping_in := _under_way()
-	var packed: Array = info.get("pack", [])
-	# What they start with came out of their own pack; anything else, the handgun.
-	if not weapon in packed or not weapon in Upgrades.WEAPONS:
-		weapon = "handgun"
+	# Empty-pawed: their first level-up hand is dealt from their own pack, what of it is a weapon.
+	var pool: Array[String] = []
+	for name: Variant in info.get("pack", []):
+		if name is String and name in Upgrades.WEAPONS and not name in pool:
+			pool.append(name)
 	var player := _allies.size() + 1
 	var ally_cat := Cat.new() if dropping_in else arena.add_cat(cat.body.position + Vector2(-0.7 * player, 0.5 * (player % 2)))
 	ally_cat.player = player
 	ally_cat.facing = cat.facing
 	var coat: String = info.get("coat", "orange")
-	ally_cat.wear({"weapons": [weapon]})
+	ally_cat.wear({"weapons": []})
+	ally_cat.first_pool = pool
 	ally_cat.coat = coat if coat in Sprites.COATS else "orange"
 	var rank: int = info.get("cub_rank", 0)
 	if arena.grove and rank > 0:
 		ally_cat.charm = Companion.new(info.get("cub_element", "ember"), clampi(rank, 1, Companion.MOST_RANK))
 		ally_cat.charm.body.position = ally_cat.body.position + ally_cat.charm.facing_offset(ally_cat)
-	_allies.append({"device": -1, "peer": peer, "token": info.get("token", ""), "cat": ally_cat, "weapon": weapon, "coat": ally_cat.coat, "reading": false, "steering": Vector2.ZERO, "presses": []})
+	_allies.append({"device": -1, "peer": peer, "token": info.get("token", ""), "cat": ally_cat, "ready": true, "coat": ally_cat.coat, "reading": false, "steering": Vector2.ZERO, "presses": []})
 	_audio.interface("menu_choose")
 	if dropping_in:
 		arena.drop_in(ally_cat)
@@ -2430,7 +2385,6 @@ func guest_run_begins(setup: Dictionary) -> void:
 	cat.body.position = arena.size / 2.0
 	_watch(arena, cat)
 	_start_weapon = ""
-	_hand.clear()
 	_run_kind = "endless"
 	_overlay.place = "run"
 	_overlay.cutscene = false
@@ -2513,10 +2467,6 @@ func _guest_frame(delta: float) -> void:
 		_watch(arena, cat)
 	_overlay.choosing = mine == null
 	_overlay.joining = false
-	if mine == null:
-		_overlay.start_hand = _guest_hand()
-		_overlay.start_redraws = _hand_redraws
-	_overlay.start_chosen = not _start_weapon.is_empty()
 	if not _page.is_empty():
 		_read_page()
 	elif mine == null:
@@ -2529,28 +2479,11 @@ func _guest_frame(delta: float) -> void:
 	_take_screenshot(delta)
 
 
-## What a guest starts with: their own first draw, three from their own pack, with its redraw.
+## A guest comes into the run as soon as it starts: their weapon comes with their first level-up
+## hand, from their own pack, so there's nothing to choose first.
 func _guest_chooses() -> void:
-	_guest_hand()
-	if Input.is_action_just_pressed("reroll") and _hand_redraws > 0:
-		_hand_redraws -= 1
-		_hand = Village.deal(village.packed_weapons())
-		_audio.interface("reroll")
-		return
-	for index in _hand.size():
-		if Input.is_action_just_pressed("pick_%d" % (index + 1)):
-			_start_weapon = _hand[index]
-	if not _start_weapon.is_empty():
-		_online.choose(_start_weapon)
-		_audio.interface("menu_choose")
-
-
-## A guest's first draw, from their own pack.
-func _guest_hand() -> Array[String]:
-	if _hand.is_empty():
-		_hand = Village.deal(village.packed_weapons())
-		_hand_redraws = HAND_REDRAWS
-	return _hand
+	_start_weapon = "in"
+	_online.choose("")
 
 
 ## Their own cat, where they're steering it: walking, it's guessed ahead; rolling, flying or down,
