@@ -181,12 +181,36 @@ func _walk(delta: float, arena: Arena) -> void:
 func _handle(delta: float, toward: Vector2, arena: Arena) -> void:
 	var gap := toward.length() - HANDLER_DISTANCE
 	body.velocity = facing * speed * clampf(gap, -1.0, 1.0)
+	if gap < 0.0:
+		# Backing off: never straight into a tree behind him. Straight away if that's open, else
+		# angled off to one side or the other; with nowhere open, he stands his ground.
+		body.velocity = _retreat(-toward.normalized(), arena) * speed * minf(-gap, 1.0)
+		facing = toward.normalized()
 	whistle_in -= delta
 	if whistle_in <= 0.0:
 		whistle_in = WHISTLE_INTERVAL
 		arena.events.append({"position": body.position, "height": 1.5, "direction": facing, "killed": false, "by": "whistle", "giant": true, "kind": kind})
 		for index in WHISTLE_PACK:
 			arena.add_creature(body.position + facing.rotated((index - 1) * 0.8) * 0.8, "dog")
+
+
+## How far ahead he looks for open ground to back off onto, and the angles off straight away he
+## tries, in turn, in radians.
+const RETREAT_LOOK := 2.0
+const RETREAT_ANGLES: Array[float] = [0.0, 0.6, -0.6, 1.2, -1.2, 1.7, -1.7]
+
+
+## The way to back off: the first of the angles off straight away whose line is clear of anything
+## too tall to step over, ending on open ground inside the clearing. None open, he stays put.
+func _retreat(away: Vector2, arena: Arena) -> Vector2:
+	var inside := Rect2(Vector2.ONE, arena.size - Vector2(2.0, 2.0))
+	for angle in RETREAT_ANGLES:
+		var way := away.rotated(angle)
+		var spot := body.position + way * RETREAT_LOOK
+		if inside.has_point(spot) and not arena.solid_at(spot, body.radius, Arena.STEPS_OVER) \
+				and arena.clear_between(body.position, spot, Arena.STEPS_OVER):
+			return way
+	return Vector2.ZERO
 
 
 func _rev(delta: float, arena: Arena) -> void:

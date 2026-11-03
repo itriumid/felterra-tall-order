@@ -157,3 +157,23 @@ func test_mines_go_off_under_its_tracks() -> void:
 	mines.mines.append({"body": mine, "armed_in": 0.0})
 	arena.step()
 	check(machine.health < Machine.HEALTH, "a mine under its tracks didn't go off")
+
+
+func test_a_machine_driving_moves_as_one_piece_on_screen() -> void:
+	# Drawn snapped to its middle, its parts keep their places against each other as it drives,
+	# not each stepping to the next pixel on a frame of its own.
+	var loader := Machine.make("log_loader")
+	loader.body.position = Vector2(10.0, 10.0)
+	loader.heading = 0.4
+	var last := Vector2.INF
+	for step in 240:
+		loader.body.position += Vector2.from_angle(loader.heading) * 0.8 / 60.0
+		loader.head = loader.point(Machine.REST_FORWARD, Machine.BOOM_ROOT.y)
+		World.snap_to(loader.body.position)
+		var offset := World.to_screen(loader.head, 1.2) - World.to_screen(loader.body.position)
+		World.unsnap()
+		check(not last.is_finite() or offset == last, "the head shifted against the body at step %d" % step)
+		if last.is_finite() and offset != last:
+			break
+		last = offset
+	check(World.snap == Vector2.ZERO, "the snap stayed on after drawing")

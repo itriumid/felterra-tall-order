@@ -248,3 +248,18 @@ func test_chain_roll_gives_a_charge_back_for_a_kill_once_a_roll() -> void:
 	var gained := cat.dodge_charges - after_dodge
 	var refill := 3.0 * Arena.STEP / cat.recharge_time()
 	check(gained >= Cat.CHAIN_SHARE - 0.01 and gained <= Cat.CHAIN_SHARE + refill + 0.01, "the kills gave back %.2f of a charge" % gained)
+
+
+func test_what_a_pounce_lands_on_stays_pinned_longer_with_each_card() -> void:
+	for cards in [1.0, 2.0]:
+		var arena := _arena()
+		var cat := _cat(arena, ["pounce"])
+		cat.mutations["pounce"] = cards
+		# A rat too tough to die of it, right under him.
+		var rat := arena.add_creature(cat.body.position)
+		rat.health = 1.0e6
+		arena.land_pounce(cat, 1.0)
+		check(is_equal_approx(rat.tripped_for, Cat.POUNCE_HOLD * cards), "with %d cards, the rat was pinned %.2f s" % [cards, rat.tripped_for])
+		var giant := arena.add_giant(cat.body.position)
+		arena.land_pounce(cat, 1.0)
+		check(giant.snared_for >= Cat.POUNCE_HOLD * cards * 0.5 and giant.stomp_ready_in >= Cat.POUNCE_HOLD * cards * 0.5, "the giant wasn't held off his stomp")

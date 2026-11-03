@@ -618,17 +618,41 @@ func riposte(cat: Cat, damage: float) -> void:
 	_strike_machines(cat.body.position, Cat.RIPOSTE_REACH, damage, "riposte", cat)
 
 
+## How many steps up a hit lands, from the critical chance: each whole 100% a sure step, and the
+## rest the chance of one more. 0 is a plain hit, 1 twice as hard (x2), 2 x3, and so on.
+func critical_tier(chance: float) -> int:
+	if chance <= 0.0:
+		return 0
+	var sure := floori(chance)
+	return sure + (1 if random.randf() < chance - sure else 0)
+
+
+## His tally of what each thing he fights with has done: its damage, and what it finished off.
+func _tally(attacker: Cat, credit: String, amount: float, killed: bool) -> void:
+	if attacker == null:
+		return
+	attacker.dealt[credit] = attacker.dealt.get(credit, 0.0) + amount
+	if killed:
+		attacker.finished[credit] = attacker.finished.get(credit, 0) + 1
+
+
 ## A pounce comes down: what's under him takes it, and what's around is thrown.
 func land_pounce(cat: Cat, damage: float) -> void:
 	events.append({"position": cat.body.position, "height": 0.0, "direction": cat.facing, "killed": false, "by": "landing", "giant": false, "kind": "cat"})
+	var hold := Cat.POUNCE_HOLD * cat.strength("pounce")
 	for creature: Creature in creatures.duplicate():
 		var apart := creature.body.position - cat.body.position
 		if apart.length() <= Cat.POUNCE_RADIUS + creature.body.radius:
 			strike(creature, damage, apart.normalized() if apart.length() > 0.001 else cat.facing, 1.6, 1.2, "pounce", cat)
+			if creature.alive():
+				creature.tripped_for = maxf(creature.tripped_for, hold)
 	for giant in giants:
 		var apart := giant.body.position - cat.body.position
 		if giant.standing() and apart.length() <= Cat.POUNCE_RADIUS + giant.body.radius:
 			strike(giant, damage, cat.facing, 0.0, 0.0, "pounce", cat)
+			if giant.standing():
+				giant.snared_for = maxf(giant.snared_for, hold * 0.5)
+				giant.stomp_ready_in = maxf(giant.stomp_ready_in, hold * 0.5)
 	_strike_machines(cat.body.position, Cat.POUNCE_RADIUS, damage, "pounce", cat)
 
 
@@ -926,9 +950,9 @@ func afflict(target: Object, weapon: Weapon, attacker: Cat) -> void:
 		return
 	var share := 1.0 + weapon.power + (attacker.damage_bonus if attacker != null else 0.0)
 	if weapon.poison > 0.0:
-		target.afflictions.poison = {"dps": weapon.poison * share, "left": Weapon.AFFLICTION_TIME, "by": attacker, "tick": 0.0}
+		target.afflictions.poison = {"dps": weapon.poison * share, "left": Weapon.AFFLICTION_TIME, "by": attacker, "tick": 0.0, "source": weapon.name}
 	if weapon.burn > 0.0 and weapon.fire_patch <= 0.0:
-		target.afflictions.burn = {"dps": weapon.burn * share, "left": Weapon.AFFLICTION_TIME, "by": attacker, "tick": 0.0}
+		target.afflictions.burn = {"dps": weapon.burn * share, "left": Weapon.AFFLICTION_TIME, "by": attacker, "tick": 0.0, "source": weapon.name}
 	if weapon.slow > 0.0 and target is Creature:
 		target.afflictions.slow = {"share": weapon.slow, "left": Weapon.AFFLICTION_TIME}
 	if weapon.trips > 0.0 and target is Creature:
@@ -952,7 +976,7 @@ func _afflict_all() -> void:
 				affliction.tick += STEP
 				if affliction.tick >= TICK:
 					affliction.tick -= TICK
-					strike(target, affliction.dps * TICK, Vector2.ZERO, 0.0, 0.0, "poison" if kind == "poison" else "fire", affliction.by)
+					strike(target, affliction.dps * TICK, Vector2.ZERO, 0.0, 0.0, "poison" if kind == "poison" else "fire", affliction.by, affliction.get("source", ""))
 			if affliction.left <= 0.0:
 				afflictions.erase(kind)
 
@@ -973,7 +997,7 @@ func _burn_fires() -> void:
 			if target.body.position.distance_to(fire.position) > fire.radius + target.body.radius:
 				continue
 			var burn: Dictionary = target.afflictions.get("burn", {"tick": 0.0, "left": 0.0})
-			target.afflictions.burn = {"dps": fire.dps, "left": maxf(burn.left, 1.0), "by": fire.by, "tick": burn.tick}
+			target.afflictions.burn = {"dps": fire.dps, "left": maxf(burn.left, 1.0), "by": fire.by, "tick": burn.tick, "source": "lamp_oil"}
 		if fire.left > 0.0:
 			burning.append(fire)
 	fires = burning
@@ -1119,22 +1143,29 @@ func _first_hit(shot: Shot) -> Object:
 
 
 func _strike(creature: Object, shot: Shot) -> void:
-	strike(creature, shot.damage, shot.velocity.normalized(), shot.weapon.knock, shot.weapon.lift, "round", shot.shooter)
+	strike(creature, shot.damage, shot.velocity.normalized(), shot.weapon.knock, shot.weapon.lift, "round", shot.shooter, shot.weapon.name)
 
 
 ## A hit on a creature, from a round or a blade: it's hurt, thrown, and falls if it's done for.
-func strike(target: Object, damage: float, direction: Vector2, knock: float, lift: float, by: String, attacker: Cat = null) -> void:
+func strike(target: Object, damage: float, direction: Vector2, knock: float, lift: float, by: String, attacker: Cat = null, source := "") -> void:
 	if not target.alive():
 		return
-	# His own hits: some land twice as hard, and his gear can make them shove harder.
+	# What it's credited to, on his tally: the weapon, the mutation, the support, what's burning.
+	var credit := source if not source.is_empty() else by
+	# His own hits: some land harder, and his gear can make them shove harder. Critical past 100%
+	# keeps paying: each whole hundred is a sure step up (x2, x3...), and what's left, the chance of
+	# one more.
+	var tier := 0
 	if attacker != null:
-		if attacker.critical > 0.0 and random.randf() < attacker.critical:
-			damage *= 2.0
+		tier = critical_tier(attacker.critical)
+		damage *= 1.0 + tier
 		knock *= 1.0 + attacker.knockback_bonus
 	if target is Structure:
 		var structure: Structure = target
+		var broke := minf(damage, structure.health)
 		structure.health -= damage
-		events.append({"position": structure.body.position, "height": structure.body.tall * 0.6, "direction": direction, "killed": not structure.alive(), "by": by, "giant": true, "kind": "structure"})
+		_tally(attacker, credit, broke, false)
+		events.append({"position": structure.body.position, "height": structure.body.tall * 0.6, "direction": direction, "killed": not structure.alive(), "by": by, "giant": true, "kind": "structure", "damage": broke, "tier": tier, "ours": attacker != null})
 		if not structure.alive():
 			structure.broken(self)
 			drop_salvage(structure.body.position, 2)
@@ -1146,7 +1177,8 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 		var through := machine.take(damage, on_joint)
 		if attacker != null:
 			attacker.heal(through * attacker.adrenaline)
-		events.append({"position": target.body.position, "height": minf(0.6, target.body.height + 0.2), "direction": direction, "killed": not machine.alive(), "by": by, "giant": true, "kind": "joint" if on_joint else "machine"})
+		_tally(attacker, credit, through, not machine.alive())
+		events.append({"position": target.body.position, "height": minf(0.6, target.body.height + 0.2), "direction": direction, "killed": not machine.alive(), "by": by, "giant": true, "kind": "joint" if on_joint else "machine", "damage": through, "tier": tier, "ours": attacker != null})
 		if not machine.alive():
 			kills += 1
 			machines_broken += 1
@@ -1163,7 +1195,8 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 		giant.take(damage, direction)
 		# A push is shared over his mass: a round that throws a rat barely moves him.
 		giant.body.velocity += direction * knock / Giant.HEFT
-		events.append({"position": giant.body.position, "height": minf(0.3, Giant.TALL), "direction": direction, "killed": not giant.alive(), "by": by, "giant": true})
+		_tally(attacker, credit, dealt, not giant.alive())
+		events.append({"position": giant.body.position, "height": minf(0.3, Giant.TALL), "direction": direction, "killed": not giant.alive(), "by": by, "giant": true, "damage": dealt, "tier": tier, "ours": attacker != null})
 		if not giant.alive():
 			kills += 1
 			giants_felled += 1
@@ -1183,9 +1216,11 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 	# The view drains these as it draws; headless, nothing does, so the oldest go.
 	if events.size() >= 256:
 		events.pop_front()
+	_tally(attacker, credit, dealt, not creature.alive())
 	events.append({
 		"position": creature.body.position, "height": creature.body.height + creature.body.tall * 0.5,
 		"direction": direction, "killed": not creature.alive(), "by": by, "giant": false, "kind": creature.kind,
+		"damage": dealt, "tier": tier, "ours": attacker != null,
 	})
 	if creature.alive():
 		return

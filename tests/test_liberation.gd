@@ -213,3 +213,20 @@ func test_the_caged_are_left_somewhere_new_each_run() -> void:
 				check(other == cage or other.body.position.distance_to(cage.body.position) >= Arena.GOAL_CAGES_APART, "two cages were left side by side")
 		spots[str(here)] = true
 	check(spots.size() > 1, "the cages were left in the same spots every run")
+
+
+func test_the_handler_backs_off_round_a_tree_not_into_it() -> void:
+	var arena := Arena.new()
+	arena.spawning = false
+	# A tree right behind him, and Tompel coming in close in front: straight back is no way out.
+	var tree: Array[Obstacle] = [Obstacle.from({"kind": "tree", "at": Vector2(18.0, 12.0), "radius": 0.6})]
+	arena.lay_out(Arena.SIZE, tree)
+	var cat := arena.add_cat(Vector2(20.6, 12.0))
+	cat.weapons.clear()
+	cat.health = 1.0e6
+	var handler := arena.add_giant(Vector2(19.1, 12.0), "handler")
+	handler.whistle_in = 1.0e6
+	var started := handler.body.position
+	_steps(arena, 60 * 2)
+	check(handler.body.position.distance_to(started) > 1.0, "the handler stayed pressed against the tree, at %s" % handler.body.position)
+	check(handler.body.position.distance_to(cat.body.position) > 3.0, "the handler never got off from him")

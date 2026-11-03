@@ -299,7 +299,7 @@ func _swing(delta: float, cat: Cat, arena: Arena) -> void:
 		var along_blade := outward.orthogonal() * swing_direction
 		# A hooked blade pulls what it catches in, toward him.
 		var pushed := -outward if hooks else (outward + along_blade * 0.6).normalized()
-		arena.strike(creature, hit_for(cat), pushed, knock, lift, "blade", cat)
+		arena.strike(creature, hit_for(cat), pushed, knock, lift, "blade", cat, name)
 		arena.afflict(creature, self, cat)
 		if breaks > 0:
 			hits_left -= 1

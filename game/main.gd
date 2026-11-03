@@ -39,7 +39,7 @@ const OUTFITS: Array[Dictionary] = [
 ## The menus, as pages of choices. The title runs a world behind it; the pause menu and the
 ## summary of a run stop it (solo; online, the pause menu opens over a world that keeps running).
 const PAGES := {
-	"title": ["play", "together", "settings", "leave"],
+	"title": ["play", "together", "settings", "history", "leave"],
 	# Playing online: hosting, or joining a host by their room's code (or address); a guest waiting
 	# for the host to go out, their pause menu in a run, and the end of one. The code is typed, so
 	# joining has one choice and Escape goes back: W and S are letters there.
@@ -48,8 +48,8 @@ const PAGES := {
 	"waiting": ["part"],
 	"guest_pause": ["carry_on", "settings", "part", "leave"],
 	"guest_summary": ["stay", "part"],
-	"pause": ["carry_on", "settings", "start_again", "village", "leave"],
-	"village_pause": ["carry_on", "settings", "title", "leave"],
+	"pause": ["carry_on", "damage", "settings", "start_again", "village", "leave"],
+	"village_pause": ["carry_on", "settings", "history", "title", "leave"],
 	"summary": ["home", "go_again", "leave"],
 }
 ## What each of the cub's elements is, at the shrine.
@@ -99,6 +99,7 @@ const SETTING_ROWS: Array[Array] = [
 	["audio", "master", "Volume"], ["audio", "music", "Music"], ["audio", "effects", "Effects"],
 	["audio", "interface", "Interface"],
 	["gameplay", "aim", "Aim"], ["gameplay", "blood", "Blood"], ["gameplay", "story_waits", "Story lines"],
+	["gameplay", "damage_numbers", "Damage numbers"],
 	["online", "updates", "Check for updates"],
 	["progress", "reset", "Reset all progress"],
 	["", "back", "Back"],
@@ -181,6 +182,11 @@ var _dev_updates := ""
 ## Which page is showing ("" while playing), the page the settings return to, and the rows chosen.
 var _page := ""
 var _settings_from := "pause"
+## The damage table and the run history open over another page, and go back to it; the history's
+## chosen run.
+var _report_from := "pause"
+var _history_choice := 0
+const REPORTS: Array[String] = ["damage", "history"]
 var _setting_choice := 0
 var records := Records.new()
 ## The village and what's been brought home to it; and the reset's question: "" before it's
@@ -227,6 +233,8 @@ var _open_shop_first := false
 ## --tidings: news waiting in the village, under its "!"s: at the smithy, at the board, with the
 ## Elder, and Jogiboy's find.
 var _dev_tidings := false
+## --report=<damage or history>: that page opens over the pause menu when --menu-after opens it.
+var _dev_report := ""
 ## A line the village says (what was restored, or why not), and for how long more; and the row
 ## chosen in a shop.
 var _village_message := ""
@@ -344,6 +352,8 @@ func _ready() -> void:
 			_open_shop_first = true
 		elif argument == "--tidings":
 			_dev_tidings = true
+		elif argument.begins_with("--report="):
+			_dev_report = argument.trim_prefix("--report=")
 		elif argument.begins_with("--restored="):
 			var names := argument.trim_prefix("--restored=")
 			village.restored.assign(VillageMap.building_names() if names == "all" else Array(names.split(",", false)))
@@ -435,6 +445,7 @@ func _ready() -> void:
 	_build_scene()
 	_entities.blood = settings.get_value("gameplay", "blood")
 	_overlay.health_shown = settings.get_value("graphics", "health")
+	_overlay.damage_numbers = settings.get_value("gameplay", "damage_numbers")
 	_dev_guest_weapon = _start_weapon if not _start_weapon.is_empty() else "handgun"
 	# A real session opens on the title; a development run goes straight into the fight it set up.
 	if not _dev_join.is_empty():
@@ -1333,6 +1344,11 @@ func _process(delta: float) -> void:
 	if _menu_after >= 0.0 and arena.time >= _menu_after:
 		_menu_after = -1.0
 		_open_page("pause")
+		if _dev_report in REPORTS:
+			_report_from = "pause"
+			_page = _dev_report
+			# Something to look back over: this run as it stands, kept for the page only.
+			records.remember(Records.entry_of(arena, cat, "Endless"))
 	_overlay.choosing = _choosing()
 	_overlay.joining = _can_join()
 	_overlay.starters = _starters()
@@ -1385,6 +1401,7 @@ func _step_world(delta: float) -> void:
 	if _online.hosting:
 		_served.append_array(events)
 	_entities.take_events(events)
+	_overlay.take_hits(events)
 	if _village_view.arena != null:
 		_village_view.take_events(events)
 	_audio.take_events(events)
@@ -1402,6 +1419,7 @@ func _end_run() -> void:
 		if _keeping_settings:
 			records.save()
 	_bring_home()
+	_remember_run(false)
 	_overlay.summary = Records.of(arena)
 	_overlay.summary.rescued = arena.rescued.size()
 	_overlay.summary.salvage = arena.salvage
@@ -1415,6 +1433,15 @@ func _end_run() -> void:
 		numbers.earnings = Village.earnings_of(arena)
 		_online.run_over(numbers)
 	_open_page("summary")
+
+
+## The run just ended, kept in the history: where it was, how it went, what he took and what each
+## thing did. Kept on file only in a real session.
+func _remember_run(freed: bool) -> void:
+	var where: String = _overlay.area_name if not _overlay.area_name.is_empty() else "Endless"
+	records.remember(Records.entry_of(arena, cat, where, freed))
+	if _keeping_settings:
+		records.save()
 
 
 ## With the longhouse restored, a run from the village can start with any weapon forged.
@@ -1637,6 +1664,7 @@ func _end_liberation() -> void:
 	if not ("outro:" + _run_kind) in village.told:
 		village.told.append("outro:" + _run_kind)
 	_bring_home()
+	_remember_run(true)
 	_overlay.summary = Records.of(arena)
 	_overlay.summary.rescued = arena.rescued.size()
 	_overlay.summary.salvage = arena.salvage
@@ -1748,12 +1776,17 @@ func _read_page() -> void:
 		return
 	if _page == "settings":
 		_read_settings()
+	elif _page in REPORTS:
+		_read_report()
 	else:
 		_read_choices()
 	# A choice can close its page (Play, Carry on): then there's no page left to show.
 	if _page.is_empty():
 		return
-	_overlay.page = _page if _page != "settings" else _settings_from
+	_overlay.report = _page if _page in REPORTS else ""
+	_overlay.history = records.history
+	_overlay.history_choice = _history_choice
+	_overlay.page = _shown_page()
 	_overlay.menu = _menu_lines()
 	_overlay.menu_choice = _menu_choice
 	_overlay.setting_rows.clear()
@@ -1789,6 +1822,10 @@ func _read_choices() -> void:
 			_settings_from = _page
 			_page = "settings"
 			_setting_choice = 0
+		"damage", "history":
+			_report_from = _page
+			_page = choices[_menu_choice]
+			_history_choice = 0
 		"play":
 			_close_page()
 			_arrive(true)
@@ -1839,6 +1876,32 @@ func _read_choices() -> void:
 			_close_page()
 			_show_title()
 			_open_page("waiting")
+
+
+## The page a menu's drawn from: the settings, the damage table and the run history open over
+## another page, which shows behind them.
+func _shown_page() -> String:
+	if _page == "settings":
+		return _settings_from
+	if _page in REPORTS:
+		return _report_from
+	return _page
+
+
+## The damage table or the run history: Escape or Enter goes back; in the history, up and down
+## choose a run to look at.
+func _read_report() -> void:
+	if Input.is_action_just_pressed("pause") or Input.is_action_just_pressed("menu_choose"):
+		_page = _report_from
+		_audio.interface("menu_back")
+		return
+	if _page == "history" and not records.history.is_empty():
+		if Input.is_action_just_pressed("move_up"):
+			_history_choice = wrapi(_history_choice - 1, 0, records.history.size())
+			_audio.interface("menu_move")
+		if Input.is_action_just_pressed("move_down"):
+			_history_choice = wrapi(_history_choice + 1, 0, records.history.size())
+			_audio.interface("menu_move")
 
 
 ## The settings page: up and down choose a row, left and right change it, Escape goes back.
@@ -1901,6 +1964,7 @@ func _settings_changed() -> void:
 		cat.aim_mode = settings.get_value("gameplay", "aim")
 	_entities.blood = settings.get_value("gameplay", "blood")
 	_overlay.health_shown = settings.get_value("graphics", "health")
+	_overlay.damage_numbers = settings.get_value("gameplay", "damage_numbers")
 	if arena != null:
 		arena.most_fallen = settings.get_value("graphics", "fallen")
 	if _keeping_settings:
@@ -1909,10 +1973,11 @@ func _settings_changed() -> void:
 
 func _menu_lines() -> Array[String]:
 	var lines: Array[String] = []
-	var page := _page if _page != "settings" else _settings_from
+	var page := _shown_page()
 	for item: String in _choices(page):
 		lines.append({
 			"play": "Play", "carry_on": "Carry on", "settings": "Settings", "start_again": "Start again",
+			"damage": "Damage dealt", "history": "Run history",
 			"go_again": "Straight back out", "title": "Back to the title", "leave": "Leave the game",
 			"home": "Home to the village", "village": "Back to the village",
 			"together": "Play together online", "host": "Host: allies join you", "join": "Join a host",
@@ -2437,6 +2502,7 @@ func _guest_frame(delta: float) -> void:
 		for arrival: Array in _online.arrived:
 			var events := _online.receiver.apply(arrival[0], arena)
 			_entities.take_events(events)
+			_overlay.take_hits(events)
 			_audio.take_events(events)
 			steered_to = arrival[1]
 		_online.arrived.clear()

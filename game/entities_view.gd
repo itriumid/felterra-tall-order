@@ -8,6 +8,15 @@ extends Node2D
 const FLASH_TIME := 0.05
 ## A cat hurt flickers red this long, in seconds: on, off, on.
 const HURT_TIME := 0.2
+## A hit flashes what it lands on white this long, in seconds; where hits have just landed is kept
+## by spots this many meters across, so what stands there is drawn flashed.
+const HIT_FLASH := 0.08
+const HIT_SPOT := 0.4
+## A blade's slash across what it hits shows this long, in seconds.
+const SLASH_TIME := 0.14
+## How hits that land are felt, by what landed them: a blade slashes, a round or a stone strikes
+## sparks or grit, fire sheds embers, poison weeps green.
+const SLASHING: Array[String] = ["blade", "slash", "riposte", "pounce", "cub", "ankles", "string"]
 ## A weapon just taken or strengthened: a glint runs along it, this long, in seconds.
 const GLINT_TIME := 0.5
 ## "Level up!" rises over each cat, this long, in seconds, this many pixels.
@@ -54,6 +63,10 @@ var _hits_seen := {}
 ## Each cat's glint along his weapon, the time left of it, and the cards he'd taken when last
 ## looked; and the level-up word over the crew, the time left of it, and the level last seen.
 var _glint := {}
+## Where hits have just landed, by spot, and when; and blades' slashes still showing, as
+## {at (pixels), across (the way the stroke runs), age}.
+var _hit_spots := {}
+var _slashes: Array[Dictionary] = []
 var _taken_seen := {}
 var _level_up := 0.0
 var _level_seen := -1
@@ -235,16 +248,20 @@ func _draw_all() -> void:
 			_draw_support(thing)
 		elif thing is Companion:
 			_draw_cub(thing)
-		elif thing is LogLoader:
-			_draw_loader(thing)
-		elif thing is LoggingTruck:
-			_draw_truck(thing)
-		elif thing is Bulldozer:
-			_draw_bulldozer(thing)
-		elif thing is Helicopter:
-			_draw_helicopter(thing)
 		elif thing is Machine:
-			_draw_machine(thing)
+			# Every part of it steps a pixel together as it drives: see World.snap.
+			World.snap_to(thing.body.position)
+			if thing is LogLoader:
+				_draw_loader(thing)
+			elif thing is LoggingTruck:
+				_draw_truck(thing)
+			elif thing is Bulldozer:
+				_draw_bulldozer(thing)
+			elif thing is Helicopter:
+				_draw_helicopter(thing)
+			else:
+				_draw_machine(thing)
+			World.unsnap()
 		elif thing is Cage:
 			_draw_cage(thing)
 		elif thing is Structure:
@@ -303,19 +320,106 @@ func _draw_all() -> void:
 			draw_rect(Rect2(World.to_screen(shot.position) - Vector2(size, 0), Vector2(size * 2 + 1, 1)), Palette.GROUND_SHADOW)
 			_draw_net(World.to_screen(shot.position, shot.height), size, false)
 			continue
-		if shot.falls:
-			# A stone in flight, its shadow on the ground under it.
-			draw_rect(Rect2(World.to_screen(shot.position), Vector2(2, 1)), Palette.GROUND_SHADOW)
-			draw_rect(Rect2(World.to_screen(shot.position, shot.height) - Vector2(1, 1), Vector2(3, 3)), Palette.OUTLINE)
-			draw_rect(Rect2(World.to_screen(shot.position, shot.height) - Vector2(1, 1), Vector2(2, 2)), Palette.STEEL)
-		else:
-			draw_line(World.to_screen(shot.previous, shot.previous_height), World.to_screen(shot.position, shot.height), Palette.SPARK)
+		_draw_shot(shot)
+	for slash in _slashes:
+		# A bright stroke across, thinning as it goes.
+		var length: float = 5.0 * (1.0 - slash.age / SLASH_TIME) + 2.0
+		var color: Color = Palette.OFF_WHITE if slash.age < SLASH_TIME * 0.5 else Palette.STEEL_LIGHT
+		draw_line((slash.at - slash.across * length).floor(), (slash.at + slash.across * length).floor(), color)
 	if arena.together():
 		for cat in arena.cats:
 			_draw_marker(cat)
 	if _level_up > 0.0:
 		_draw_level_up()
 	_draw_goals()
+
+
+## A shot in flight, drawn as what was fired, so each weapon's can be told apart: bullets as
+## streaks of fire, heavier the heavier the gun; pellets as a spray of lead; a nail, a bolt and an
+## arrow as what they are, pointing the way they fly; a pebble, a dart with its poisoned tip, a
+## burning flare, a bottle of lamp oil, a firecracker. Anything lobbed has its shadow under it.
+func _draw_shot(shot: Shot) -> void:
+	var at := World.to_screen(shot.position, shot.height)
+	var behind := World.to_screen(shot.previous, shot.previous_height)
+	var way := (at - behind).normalized() if at != behind else Vector2.RIGHT
+	var name := shot.weapon.name if shot.weapon != null else ""
+	if shot.falls:
+		draw_rect(Rect2(World.to_screen(shot.position), Vector2(2, 1)), Palette.GROUND_SHADOW)
+	match name:
+		"shotgun":
+			_speck(at, Palette.STEEL_LIGHT, 1)
+		"nail_gun":
+			_shaft(at, way, 4, Palette.STEEL_LIGHT, Palette.STEEL_DARK)
+			_speck(at - way * 4.0, Palette.STEEL, 1)
+		"crossbow":
+			_shaft(at, way, 6, Palette.BARK_LIGHT, Palette.OUTLINE)
+			_speck(at, Palette.STEEL_LIGHT, 1)
+		"panah":
+			_shaft(at, way, 8, Palette.BARK_LIGHT, Palette.OUTLINE)
+			_speck(at, Palette.STEEL_LIGHT, 1)
+			# Its fletching, at the back.
+			var tail := (at - way * 7.0).floor()
+			var side := Vector2(-way.y, way.x)
+			draw_rect(Rect2((tail + side).floor(), Vector2.ONE), Palette.CLOTH_LIGHT)
+			draw_rect(Rect2((tail - side).floor(), Vector2.ONE), Palette.CLOTH_LIGHT)
+		"ketapel":
+			_pellet(at, Palette.STEEL, 2)
+		"sumpit":
+			_shaft(at, way, 5, Palette.CREAM, Palette.OUTLINE)
+			_speck(at, Palette.LEAF_LIGHT, 1)
+		"flare_gun":
+			# Burning as it goes, sparks and smoke left behind it.
+			_pellet(at, Palette.HI_VIS, 2)
+			_speck(at, Palette.BRASS_LIGHT, 1)
+			for index in 3:
+				_speck(at - way * (3.0 + index * 2.0), Palette.SPARK if index == 0 else Palette.SMOKE, 1)
+		"lamp_oil":
+			# A bottle, turning over as it flies, its wick alight.
+			_pellet(at, Palette.CLOTH_LIGHT, 3)
+			_speck(at + (Vector2(0, -2) if int(shot.life * 12.0) % 2 == 0 else Vector2(2, 0)), Palette.HI_VIS, 1)
+		"petasan":
+			_pellet(at, Palette.SCARF_RED, 2)
+			if int(shot.life * 20.0) % 2 == 0:
+				_speck(at + Vector2(1, -2), Palette.SPARK, 1)
+		"grenade_launcher":
+			_pellet(at, Palette.MOSS, 3)
+		"sniper_rifle":
+			# The heaviest round: a long streak, white-hot down its middle.
+			draw_line(behind - way * 6.0, at, Palette.SPARK, 2.0)
+			draw_line(behind, at, Palette.OFF_WHITE)
+		"rifle", "automatic_rifle", "assault_rifle":
+			draw_line(behind - way * 2.0, at, Palette.SPARK, 2.0)
+			_speck(at, Palette.OFF_WHITE, 1)
+		"gun_drone":
+			draw_line(behind, at, Palette.PAINT_TEAL)
+		_:
+			if shot.falls:
+				_pellet(at, Palette.STEEL, 2)
+			else:
+				# The handgun's and the like: a short streak of fire.
+				draw_line(behind, at, Palette.SPARK)
+				_speck(at, Palette.BRASS_LIGHT, 1)
+
+
+## A square of a color, a few pixels across, its middle at a spot.
+func _speck(at: Vector2, color: Color, size: int) -> void:
+	draw_rect(Rect2((at - Vector2(size, size) / 2.0).floor(), Vector2(size, size)), color)
+
+
+## Something round, outlined, a few pixels across.
+func _pellet(at: Vector2, color: Color, size: int) -> void:
+	var box := Rect2((at - Vector2(size, size) / 2.0).floor(), Vector2(size, size))
+	draw_rect(box.grow(1), Palette.OUTLINE)
+	draw_rect(box, color)
+
+
+## A straight thing in flight, so many pixels long behind its point, with a darker line under it.
+func _shaft(point: Vector2, way: Vector2, length: int, color: Color, under: Color) -> void:
+	for step in length:
+		var spot := (point - way * step).floor()
+		draw_rect(Rect2(spot + Vector2(0, 1), Vector2.ONE), under)
+	for step in length:
+		draw_rect(Rect2((point - way * step).floor(), Vector2.ONE), color)
 
 
 ## On the ground round each cage still shut and each lever still up: how close he has to stand, a
@@ -464,7 +568,9 @@ func _draw_shadow(thing: Variant) -> void:
 		_draw_giant_shadow(thing)
 		return
 	if thing is Machine:
+		World.snap_to(thing.body.position)
 		_draw_machine_shadow(thing)
+		World.unsnap()
 		return
 	if thing is Cage:
 		var cage: Cage = thing
@@ -591,7 +697,7 @@ func _draw_guardian_shadow(guardian: Guardian) -> void:
 func _draw_rat(body: Body, frame: int, fallen: bool) -> void:
 	var facing_left := body.velocity.x < 0.0
 	# The fallen lie belly up. Every rat comes off the one sheet, so the horde is drawn together.
-	var sheet := Sprites.sheet(Sprites.RAT_STRIDES)
+	var sheet := Sprites.sheet(Sprites.flashed(Sprites.RAT_STRIDES) if not fallen and _just_hit(body.position) else Sprites.RAT_STRIDES)
 	var region: Rect2 = sheet.regions["%d|%s|%s" % [frame, facing_left, fallen]]
 	var feet := Sprites.RAT_FEET
 	if facing_left:
@@ -606,7 +712,7 @@ func _draw_dog(body: Body, frame: int, fallen: bool, crouching: bool) -> void:
 	if _dog_arts.is_empty():
 		for index in 4:
 			_dog_arts.append(Sprites.dog_art(index))
-	var sheet := Sprites.sheet(_dog_arts)
+	var sheet := Sprites.sheet(Sprites.flashed(_dog_arts) if not fallen and _just_hit(body.position) else _dog_arts)
 	var region: Rect2 = sheet.regions["%d|%s|%s" % [(2 if crouching else frame) % 4, facing_left, fallen]]
 	var feet := Sprites.DOG_FEET
 	if facing_left:
@@ -1385,10 +1491,50 @@ func _draw_smear(weapon: Weapon, paw: Vector2) -> void:
 		traveled += step
 
 
+## Hits that land, felt where they land: what's hit flashes white, a blade's stroke slashes across
+## it, a round strikes sparks, fire sheds embers and poison weeps green.
+func _feel_hits(delta: float) -> void:
+	for spot: Vector2i in _hit_spots.keys():
+		if _hit_spots[spot] < _clock - HIT_FLASH:
+			_hit_spots.erase(spot)
+	for slash in _slashes:
+		slash.age += delta
+	_slashes = _slashes.filter(func(slash: Dictionary) -> bool: return slash.age < SLASH_TIME)
+	for event in _pending:
+		if event.get("damage", 0.0) <= 0.0:
+			continue
+		_hit_spots[_spot_of(event.position)] = _clock
+		var by: String = event.by
+		var direction: Vector2 = event.direction if event.direction != Vector2.ZERO else Vector2.RIGHT
+		if by in SLASHING and _slashes.size() < 60:
+			_slashes.append({"at": World.to_screen(event.position, event.height), "across": direction.orthogonal().rotated(randf_range(-0.5, 0.5)), "age": 0.0})
+		var specks: Array = []
+		match by:
+			"round": specks = [Palette.SPARK, Palette.STEEL_LIGHT]
+			"fire": specks = [Palette.HI_VIS, Palette.SPARK]
+			"poison": specks = [Palette.LEAF_LIGHT, Palette.MOSS]
+		for color: Color in specks:
+			_droplets.append({
+				"position": event.position, "height": maxf(event.height, 0.05), "rise": randf_range(0.6, 1.4),
+				"velocity": (-direction).rotated(randf_range(-1.0, 1.0)) * randf_range(0.3, 0.9), "color": color, "stains": false,
+			})
+
+
+## The spot a place falls in, for the hits just landed there.
+static func _spot_of(position: Vector2) -> Vector2i:
+	return Vector2i((position / HIT_SPOT).floor())
+
+
+## Whether something standing there was just hit.
+func _just_hit(position: Vector2) -> bool:
+	return _hit_spots.has(_spot_of(position))
+
+
 ## Each hit throws droplets out along it and up. They fall under gravity and stain the ground
 ## where they land; stains dry, and in time are gone. With blood off, the same hits throw up
 ## dust and fur, which leave nothing.
 func _bleed(delta: float) -> void:
+	_feel_hits(delta)
 	for event in _pending:
 		if event.by in ["lunge", "rev", "cut", "leap", "poison", "fire", "trampled", "crouch", "pounce", "swipe", "roar", "roof_alight", "stolen", "escaped", "bucket"]:
 			continue
