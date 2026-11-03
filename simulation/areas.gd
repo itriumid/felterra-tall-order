@@ -7,17 +7,19 @@ extends RefCounted
 ##
 ## The cats don't know at first what's wrong with the forest. They find out as they go: rats where
 ## there never were any, then cages, then a giant with a whistle, then the sawpits and the sign
-## over the gate. It was always humans: a company, PT Makmur Bakti Gemilang, which the cats call
-## Makmur Bakar, clearing the forest as the official partner of an agency that has stamped it
-## "idle land", for the nation's food. All of them made up; the way it goes, less so.
+## over the gate. It was always humans: a company, Bright Future Timber, which the cats call Burnt
+## Future, logging the forest as the official partner of an agency that has stamped it "idle land",
+## for the nation's food. What nobody sees until the siege: the rats at the edge were never
+## nesting. They dig the drains that dry the peat so it burns, for the Free Float, their nation,
+## which sells the burned land on. All of them made up; the way it goes, less so.
 ##
 ## Endless is the other way to play: the clearing, a fresh one every run, the horde growing until
 ## he's down. Its plan is the arena's own (Arena.ENDLESS).
 
 ## The company, as its signs give it and as the cats call it; the agency it's partnered with; and
 ## what its site boards say.
-const COMPANY := "PT Makmur Bakti Gemilang"
-const NICKNAME := "Makmur Bakar"
+const COMPANY := "Bright Future Timber"
+const NICKNAME := "Burnt Future"
 const AGENCY := "the Food Land Acceleration Agency"
 const SLOGAN := "Building a Greener Tomorrow!"
 const BOARD := "From Idle Land to Plenty"
@@ -30,7 +32,8 @@ const BOARD := "From Idle Land to Plenty"
 ## dodge mutations, at home, once it's freed. And its ground plan: how big it is, where he stands
 ## once he's walked in, what stands where for good, and what's scattered about it (trees, stumps),
 ## placed from the area's own seed so it's the same every time. A line is told over the scene, or said by a cat in it,
-## as {by, text}: "elder", or a villager's name.
+## as {by, text, mood}: "elder", "tompel", "jogiboy", or a villager's name. The story is the Elder's
+## book, so a line told over the scene is "we", in the past tense.
 const LIST: Array[Dictionary] = [
 	{
 		"id": "edge", "name": "The village's edge", "ground": "edge",
@@ -42,27 +45,42 @@ const LIST: Array[Dictionary] = [
 			"at": [Vector2(8.0, 6.0), Vector2(32.0, 7.0), Vector2(20.0, 19.0)]},
 		"boss": {"kind": "creature", "type": "rat_baron", "at": Vector2(20.0, 2.0), "tip": "It calls the rats in: cut it down before the crowd builds"},
 		"before": [
-			"The rats are thickest just past the last huts.",
-			"They're gathering around something. Feeding on it.",
-			"Find what's drawing them, and break it open.",
+			"Past the last huts, the ground was dry and warm, which it shouldn't have been after the rain.",
+			"The rats were all over a few mounds of dirt, digging, going in and out.",
+			"We took them for nests.",
 		],
 		"after": [
-			"The crates were stamped with marks none of us could read.",
-			"Whoever left them there, it wasn't a rat.",
-			"Their tracks lead deeper into the forest.",
-			"And under the Rat Baron's nest, a cage: Pak Besi, the smith, his hammer taken.",
+			"Under the biggest mound were crates, tins, and a lot of loose dirt.",
+			"The tins had marks on them none of us could read.",
+			"And in a cage behind the mounds sat Uncle Anvil, very cross, on top of his hammer.",
+			{"by": "Uncle Anvil", "mood": "determined", "text": "They wanted it. I sat on it for nine days."},
+			{"by": "tompel", "mood": "surprised", "text": "Nine days?"},
+			{"by": "Uncle Anvil", "mood": "sad", "text": "Eight. I lost count. Is there any rice?"},
 		],
 		"send_off": [
-			"The Elder walks you to the gate.",
-			{"by": "elder", "text": "Just past the last huts. Look, and come home."},
+			{"by": "elder", "mood": "worried", "text": "The rats are worst past the drying racks. Don't be a hero about it."},
 		],
 		"again": ["The nests are still broken. Only the Rat Baron is left."],
 		"teaches": {"by": "elder", "mutations": ["rolling_slash", "land_on_feet"], "lines": [
-			{"by": "elder", "text": "Rats don't stamp crates. I should have taught you this before you went."},
-			{"by": "elder", "text": "Never just get out of the way. Roll through, blade out."},
-			{"by": "elder", "text": "And when you fall, fall rolling."},
+			{"by": "elder", "mood": "worried", "text": "Rats don't pack crates. I should have shown you this before you went."},
+			{"by": "elder", "mood": "neutral", "text": "When something comes at you, don't just jump out of the way. Roll through it, and keep your blade out."},
+			{"by": "elder", "mood": "happy", "text": "And if you fall, fall rolling. My knees learned that the hard way."},
 		]},
-		"frees": [{"name": "Pak Besi", "coat": "black"}], "bonus": 15,
+		"home": [
+			{"by": "Uncle Anvil", "mood": "happy", "text": "Forge is lit. Took me an hour to find the bellows."},
+			{"by": "Uncle Anvil", "mood": "neutral", "text": "Here. Take this."},
+			{"by": "tompel", "mood": "surprised", "text": "Your hammer?"},
+			{"by": "Uncle Anvil", "mood": "neutral", "text": "I've got two more somewhere. If I keep this one I'll put it down in another cage."},
+			{"by": "Uncle Anvil", "mood": "happy", "text": "Hold on to it for me. I'll ask for it back when I remember where the others are."},
+			{"by": "elder", "mood": "neutral", "text": "Granny, you read. What do you make of these tins?"},
+			{"by": "Granny Whiskers", "mood": "neutral", "text": "...These aren't letters. Not ours, and not the humans'."},
+			{"by": "tompel", "mood": "surprised", "text": "You can read human?"},
+			{"by": "Granny Whiskers", "mood": "neutral", "text": "Their fish come wrapped in newspaper. I've eaten a lot of fish."},
+			{"by": "Granny Whiskers", "mood": "determined", "text": "Well. Somebody has to go and find the others, and I'm not waiting around for a boy with a pack."},
+			{"by": "elder", "mood": "worried", "text": "Granny..."},
+		],
+		"gives": ["weapon:hammer"],
+		"frees": [{"name": "Uncle Anvil", "coat": "black"}], "bonus": 15,
 	},
 	{
 		"id": "deep", "name": "The deep forest", "ground": "deep",
@@ -74,28 +92,35 @@ const LIST: Array[Dictionary] = [
 			"at": [Vector2(6.0, 5.0), Vector2(38.0, 5.0), Vector2(7.0, 23.0), Vector2(37.0, 23.0)]},
 		"boss": {"kind": "giant", "type": "handler", "at": Vector2(22.0, 1.0), "tip": "He keeps his distance and whistles dogs in: run him down"},
 		"before": [
-			"Deeper in, the forest goes quiet. Too quiet.",
-			"Stumps, cut flat. Mud churned into ruts as wide as a hut.",
-			"And cats in cages. Our cats.",
-			"Get them out.",
+			"Deeper in, the birds stopped.",
+			"There were stumps cut flat, and ruts in the mud as wide as a hut.",
+			"Then we found the cages.",
 		],
 		"after": [
-			"We saw one. A giant, on two legs, with a whistle.",
-			"The dogs answered to him as if he owned them.",
-			"He wore that same bright orange as their harnesses.",
-			"Whatever this is, it's bigger than rats.",
-			"Nenek Pus was in the last cage, and she wants it known she could have got out herself.",
+			"We finally saw one of them. A giant, standing on two legs, with a whistle in his mouth.",
+			"The dogs ran to him whenever he blew it.",
+			"Granny Whiskers was in the last cage.",
+			{"by": "Granny Whiskers", "mood": "determined", "text": "I'd have got out on my own. I was resting."},
+			{"by": "tompel", "mood": "neutral", "text": "Sure."},
+			{"by": "Granny Whiskers", "mood": "worried", "text": "He had papers on a board, and he wrote us down. On the same list as the rats."},
 		],
 		"send_off": [
-			{"by": "elder", "text": "Deeper than any of us forage now. Bring back whoever you find."},
+			{"by": "jogiboy", "mood": "worried", "text": "Four cats out there. One of them's Granny. She smells cross."},
+			{"by": "elder", "mood": "worried", "text": "She went out yesterday, on her own. Stubborn old thing. Bring her back, and anyone else you find."},
 		],
 		"again": ["The cages stand open, as you left them. Only the Handler is left."],
-		"teaches": {"by": "Nenek Pus", "mutations": ["pounce", "riposte"], "lines": [
-			"Nenek Pus is stiff from the cage, but not too stiff to show off.",
-			{"by": "Nenek Pus", "text": "Over the crowd, onto the one that matters."},
-			{"by": "Nenek Pus", "text": "And let them swing first. Be there after."},
+		"teaches": {"by": "Granny Whiskers", "mutations": ["pounce", "riposte"], "lines": [
+			{"by": "Granny Whiskers", "mood": "neutral", "text": "You fight like your grandfather. All tail and no patience."},
+			{"by": "Granny Whiskers", "mood": "neutral", "text": "Find the one that matters and land on it. Never mind the rest."},
+			{"by": "Granny Whiskers", "mood": "determined", "text": "And when something swings at you, let it miss first. Then be there."},
 		]},
-		"frees": [{"name": "Nenek Pus", "coat": "gray"}], "bonus": 20,
+		"home": [
+			{"by": "jogiboy", "mood": "sad", "text": "I could hear the whistle from here."},
+			{"by": "jogiboy", "mood": "sad", "text": "Those dogs. Nobody ever takes them out to play."},
+			{"by": "tompel", "mood": "worried", "text": "You all right?"},
+			{"by": "jogiboy", "mood": "neutral", "text": "Yes. I'm going to go and dig something up."},
+		],
+		"frees": [{"name": "Granny Whiskers", "coat": "gray"}], "bonus": 20,
 	},
 	{
 		"id": "sawpits", "name": "The sawpits", "ground": "sawpits",
@@ -114,28 +139,42 @@ const LIST: Array[Dictionary] = [
 			"at": [Vector2(10.0, 8.0), Vector2(30.0, 8.0), Vector2(20.0, 17.0)]},
 		"boss": {"kind": "machine", "type": "feller_buncher", "at": Vector2(20.0, 1.8), "tip": "Its jaws come down where their shadow falls: be elsewhere"},
 		"before": [
-			"We followed the ruts to a noise like the whole forest screaming.",
-			"Saws. Logs stacked higher than the trees they were.",
-			"And a sign over the gate: %s. Official partner of %s." % [COMPANY, AGENCY],
-			"\"%s\", more like: prosperity by burning." % NICKNAME,
-			"It's humans. It was always humans.",
+			"We followed the ruts until we heard it: a noise like the whole forest screaming.",
+			"Saws. Logs stacked higher than the trees they used to be.",
+			"There was a sign over the gate, and Granny Whiskers read it out, slowly.",
+			{"by": "Granny Whiskers", "mood": "neutral", "text": "Bright Future Timber. Official partner of the Food Land... Acceleration Agency."},
+			{"by": "tompel", "mood": "neutral", "text": "What's a Food Land Acceleration Agency?"},
+			{"by": "Granny Whiskers", "mood": "neutral", "text": "No idea."},
+			{"by": "tompel", "mood": "determined", "text": "Bright Future. Burnt Future, more like."},
+			"It was humans. It had always been humans.",
 		],
 		"after": [
-			"\"%s\" That's what the sign says." % SLOGAN,
-			"Green on the sign. Ash behind it.",
-			"Their machines came up from a clearing to the east. That's where we go.",
-			"Si Belang comes out from under the saw bench, sawdust to the ears.",
+			"The last saw stopped, and it was very quiet after.",
+			{"by": "Granny Whiskers", "mood": "neutral", "text": "'Building a Greener Tomorrow.'"},
+			{"by": "tompel", "mood": "sad", "text": "There's ash on everything."},
+			"Nobody asked where the ash came from. There wasn't a fire anywhere in the sawpits.",
+			"Patch crawled out from under a saw bench, sawdust up to his ears.",
+			{"by": "Patch", "mood": "neutral", "text": "Took you long enough. I've been under there since the rains."},
+			{"by": "Patch", "mood": "happy", "text": "You know the funny thing? A whole season, and not one of them looked down."},
 		],
 		"send_off": [
-			{"by": "Nenek Pus", "text": "Follow the ruts. Whatever made them, it isn't small."},
+			{"by": "Granny Whiskers", "mood": "worried", "text": "Follow the ruts. Whatever made those wasn't small."},
 		],
 		"again": ["The saws are still in pieces. Only the feller buncher is left."],
-		"teaches": {"by": "Si Belang", "mutations": ["ankle_cutter", "caltrops"], "lines": [
-			"Si Belang worked the sawpits' scraps for a season, and watched the giants the whole time.",
-			{"by": "Si Belang", "text": "Their boots are slow to turn. Go between them, and cut."},
-			{"by": "Si Belang", "text": "And leave them these. Bent nails, a pocketful."},
+		"teaches": {"by": "Patch", "mutations": ["ankle_cutter", "caltrops"], "lines": [
+			{"by": "Patch", "mood": "neutral", "text": "Their boots are slow to turn. Get in between them and cut."},
+			{"by": "Patch", "mood": "neutral", "text": "And leave these behind you. Bent nails. They don't look down, remember."},
 		]},
-		"frees": [{"name": "Si Belang", "coat": "cream"}], "bonus": 30,
+		"home": [
+			{"by": "Patch", "mood": "neutral", "text": "Give me a week and the Elder has a roof again."},
+			{"by": "elder", "mood": "happy", "text": "Good. I've a lot to write down."},
+			{"by": "jogiboy", "mood": "sad", "text": "I've seen giants before. I used to live with them."},
+			{"by": "jogiboy", "mood": "sad", "text": "Downriver, where the palm trees are. They kept me at a gate."},
+			{"by": "tompel", "mood": "surprised", "text": "The palm trees. I walked right past them."},
+			{"by": "jogiboy", "mood": "neutral", "text": "One of them used to take me out to play. These were his keys."},
+			{"by": "jogiboy", "mood": "happy", "text": "I kept them. He'd have wanted me to."},
+		],
+		"frees": [{"name": "Patch", "coat": "cream"}], "bonus": 30,
 		"props": [{"kind": "sign", "at": Vector2(20.0, 3.4), "lines": [COMPANY, "Official partner of %s" % AGENCY, SLOGAN]}],
 	},
 	{
@@ -149,24 +188,35 @@ const LIST: Array[Dictionary] = [
 		"goal": {"kind": "hold", "seconds": 180.0, "title": "Hold the clearing"},
 		"boss": {"kind": "machine", "type": "log_loader", "at": Vector2(46.0, 14.0), "tip": "It throws logs where you stand: keep moving"},
 		"before": [
-			"This was the old fig grove. You can count the stumps from the ridge.",
-			"Hold the clearing. Show them we're not leaving.",
+			"This was the old fig grove. From the ridge, you could count the stumps.",
+			"We decided to stay there until they made us leave.",
 		],
 		"after": [
-			"The loader's arm is still twitching. It'll stop.",
-			"The logs they cut go somewhere. Downhill, toward the river.",
-			"Jingga was up the last fig tree all along, watching everything.",
+			"The loader's arm was still twitching. Then it stopped.",
+			"Somebody dropped out of the last fig tree and landed next to Tompel.",
+			{"by": "Saffron", "mood": "happy", "text": "Finally. I've been up that tree for a month."},
+			{"by": "tompel", "mood": "surprised", "text": "A month? What did you eat?"},
+			{"by": "Saffron", "mood": "sad", "text": "Figs. Don't talk to me about figs."},
+			{"by": "Saffron", "mood": "neutral", "text": "I've watched everything from up there. The logs go downhill, to the river."},
+			{"by": "Saffron", "mood": "worried", "text": "And at night there are rats. Lines of them, carrying things south."},
+			{"by": "tompel", "mood": "neutral", "text": "Rats are rats."},
+			{"by": "Saffron", "mood": "neutral", "text": "If you say so."},
 		],
 		"send_off": [
-			{"by": "Si Belang", "text": "East, where the machines came from. Mind the big ones."},
+			{"by": "Patch", "mood": "neutral", "text": "The machines came up from the east. Mind the big ones. They don't look down, but they don't need to."},
 		],
 		"again": ["You held it once. Only the log loader is left."],
-		"teaches": {"by": "Jingga", "mutations": ["long_leap", "dust_cloud"], "lines": [
-			"Jingga has never once used the bridge over the stream.",
-			{"by": "Jingga", "text": "Why would you? Run, and leave the ground."},
-			{"by": "Jingga", "text": "And when you land, kick. They can't bite what they can't see."},
+		"teaches": {"by": "Saffron", "mutations": ["long_leap", "dust_cloud"], "lines": [
+			{"by": "Saffron", "mood": "happy", "text": "Why go around anything? Run, and jump."},
+			{"by": "Saffron", "mood": "neutral", "text": "And when you land, kick up the dirt. They can't bite what they can't see."},
 		]},
-		"frees": [{"name": "Jingga", "coat": "orange"}], "bonus": 40,
+		"home": [
+			{"by": "Saffron", "mood": "neutral", "text": "You can see all the way to the river from my tower."},
+			{"by": "Saffron", "mood": "worried", "text": "There's always a bit of smoke down south. All year, even when it rains."},
+			{"by": "tompel", "mood": "neutral", "text": "Burnt Future."},
+			{"by": "Saffron", "mood": "neutral", "text": "Probably."},
+		],
+		"frees": [{"name": "Saffron", "coat": "orange"}], "bonus": 40,
 	},
 	{
 		"id": "slide", "name": "The log slide", "ground": "slide",
@@ -184,25 +234,34 @@ const LIST: Array[Dictionary] = [
 			"at": [Vector2(4.5, 1.6), Vector2(13.0, 1.6), Vector2(21.5, 1.6)]},
 		"boss": {"kind": "machine", "type": "logging_truck", "at": Vector2(13.0, 34.0), "tip": "It charges, then stalls with its tank open: hit the tank"},
 		"before": [
-			"They slide the trunks down to the river on a chute of mud.",
-			"Stacks of logs wait at the top, held back by levers.",
-			"A lever is just a door that wants to fall. Pull them.",
+			"They slid the trunks down to the river on a chute of mud.",
+			"At the top, stacks of logs were held back by levers.",
+			"We wondered what would happen if somebody pulled them.",
 		],
 		"after": [
-			"One truck less on the river road.",
-			"Its driver ran for the offices on the hill.",
-			"Kopi and Susu climb out of the cab, arguing about who drove better.",
+			"One truck fewer on the river road. Its driver ran off toward the offices on the hill.",
+			"Then the cab door creaked open, and two cats fell out of it, arguing.",
+			{"by": "Coffee", "mood": "determined", "text": "I said left."},
+			{"by": "Cream", "mood": "determined", "text": "You said 'not right'. That's different."},
+			{"by": "tompel", "mood": "surprised", "text": "What were you doing in there?"},
+			{"by": "Cream", "mood": "happy", "text": "He kept his lunch in a box. We had a plan."},
+			{"by": "Coffee", "mood": "sad", "text": "Then he locked the door and drove off. That wasn't in the plan."},
 		],
 		"send_off": [
-			{"by": "Jingga", "text": "Downhill to the river. Try not to ride a log down there."},
+			{"by": "Saffron", "mood": "happy", "text": "Downhill to the river. Don't ride a log. I've tried."},
 		],
 		"again": ["The levers are still pulled. Only the logging truck is left."],
-		"teaches": {"by": "Kopi", "mutations": ["more_charges", "slipstream"], "lines": [
-			"Kopi and Susu never sit still. Not since the cage.",
-			{"by": "Kopi", "text": "Keep up with us for a week and you won't either."},
-			{"by": "Susu", "text": "Run in my wake. I'll pull you along."},
+		"teaches": {"by": "Coffee", "mutations": ["more_charges", "slipstream"], "lines": [
+			{"by": "Coffee", "mood": "neutral", "text": "Never roll just once. Roll, roll again, then think."},
+			{"by": "Cream", "mood": "happy", "text": "And stay right behind me when I run. You'll go faster than you think you can."},
 		]},
-		"frees": [{"name": "Kopi", "coat": "black"}, {"name": "Susu", "coat": "cream"}], "bonus": 50,
+		"home": [
+			{"by": "Cream", "mood": "happy", "text": "We're open! Everything's half price."},
+			{"by": "Coffee", "mood": "determined", "text": "It is not half price."},
+			{"by": "Cream", "mood": "neutral", "text": "For him it is."},
+			{"by": "Coffee", "mood": "sad", "text": "...For him it is."},
+		],
+		"frees": [{"name": "Coffee", "coat": "black"}, {"name": "Cream", "coat": "cream"}], "bonus": 50,
 	},
 	{
 		"id": "offices", "name": "The company's offices", "ground": "offices",
@@ -221,25 +280,45 @@ const LIST: Array[Dictionary] = [
 			"at": [Vector2(7.0, 12.5), Vector2(37.0, 12.5), Vector2(22.0, 4.0)]},
 		"boss": {"kind": "machine", "type": "bulldozer", "at": Vector2(22.0, 25.5), "tip": "Only the engine at its back can be hurt: get behind it"},
 		"before": [
-			"Cabins in rows. Lights that hum all night. Maps on every wall.",
-			"Our forest is on those maps, stamped: idle land. %s" % BOARD,
-			"Cut the power, and let's see their permits in the dark.",
+			"Up on the hill were cabins in rows, and lights that hummed all night.",
+			"Every wall inside had a map on it, and every map had our forest on it.",
+			{"by": "Granny Whiskers", "mood": "neutral", "text": "'Idle land.'"},
+			{"by": "tompel", "mood": "surprised", "text": "Idle?"},
+			{"by": "Granny Whiskers", "mood": "worried", "text": "That's what it says. All of it. Us too."},
+			{"by": "tompel", "mood": "determined", "text": "Then let's turn their lights off."},
 		],
 		"after": [
-			"Every permit said the same: the rest of it, next season, for the nation's food.",
-			"An official flies in to the airstrip to cut the ribbon.",
-			"Bu Jamu was locked in the canteen. She has opinions about the canteen.",
+			"With the power gone, the cabins were dark, and their papers were just lying about.",
+			{"by": "Granny Whiskers", "mood": "neutral", "text": "'The rest of it, next season. For the nation's food.'"},
+			{"by": "Granny Whiskers", "mood": "neutral", "text": "And this one: 'Land made ready for planting... by partner.'"},
+			{"by": "tompel", "mood": "neutral", "text": "Which partner?"},
+			{"by": "Granny Whiskers", "mood": "neutral", "text": "Doesn't say."},
+			"Nobody asked again.",
+			"In the hallway stood a glass case, and in it, a little wooden tiger with a very silly face.",
+			{"by": "Granny Whiskers", "mood": "neutral", "text": "'Local handicraft. Traditional pest deterrent.'"},
+			{"by": "tompel", "mood": "determined", "text": "That's from our village. It's coming home."},
+			"Auntie Clove had been locked in the canteen. She had opinions about the canteen.",
+			{"by": "Auntie Clove", "mood": "determined", "text": "Rice from a packet. Tea from a packet. Even the sambal came out of a packet."},
+			{"by": "Auntie Clove", "mood": "worried", "text": "And look at you. When did you last eat anything green?"},
 		],
 		"send_off": [
-			"Kopi and Susu walk you to the gate, arguing about which of them saw the hill first.",
+			{"by": "Cream", "mood": "happy", "text": "The offices are up the hill. I saw them first."},
+			{"by": "Coffee", "mood": "determined", "text": "You did not."},
 		],
 		"again": ["The generators are still dead. Only the bulldozer is left."],
-		"teaches": {"by": "Bu Jamu", "mutations": ["lick_your_wounds", "scent_trail"], "lines": [
-			"Bu Jamu looks you over, and tuts.",
-			{"by": "Bu Jamu", "text": "Tend to your wounds as you go. You can fuss later."},
-			{"by": "Bu Jamu", "text": "And leave the dogs something to follow that isn't you. They love my turmeric."},
+		"teaches": {"by": "Auntie Clove", "mutations": ["lick_your_wounds", "scent_trail"], "lines": [
+			{"by": "Auntie Clove", "mood": "neutral", "text": "Tend to your cuts as you go. Don't wait until it's over to fuss."},
+			{"by": "Auntie Clove", "mood": "happy", "text": "And carry a pinch of this. Dogs can't resist turmeric. Let them follow that instead of you."},
 		]},
-		"frees": [{"name": "Bu Jamu", "coat": "cream"}], "bonus": 60,
+		"home": [
+			{"by": "Auntie Clove", "mood": "neutral", "text": "Sit. Drink this."},
+			{"by": "tompel", "mood": "worried", "text": "What's in it?"},
+			{"by": "Auntie Clove", "mood": "neutral", "text": "Drink it."},
+			"The little wooden tiger went by the gate, beside the big one.",
+			{"by": "jogiboy", "mood": "happy", "text": "They look the same."},
+			{"by": "elder", "mood": "happy", "text": "They do, don't they. Somebody downriver must have bought one off our carvers, years ago."},
+		],
+		"frees": [{"name": "Auntie Clove", "coat": "cream"}], "bonus": 60,
 		"props": [{"kind": "sign", "at": Vector2(13.0, 2.6), "lines": [BOARD, SLOGAN]}, {"kind": "sign", "at": Vector2(31.0, 2.6), "lines": ["Concession: idle land", COMPANY]}],
 	},
 	{
@@ -256,25 +335,43 @@ const LIST: Array[Dictionary] = [
 			"at": [Vector2(7.0, 19.0), Vector2(52.0, 4.0), Vector2(30.0, 20.0)]},
 		"boss": {"kind": "machine", "type": "helicopter", "at": Vector2(30.0, 12.0), "tip": "Out of reach in the air: hit it when it lands to unload"},
 		"before": [
-			"The ribbon is already strung across the airstrip.",
-			"Ground the helicopter, and there's no one to cut it.",
+			"At the airstrip the ribbon was already up, strung across the runway between two poles.",
+			"If the helicopter never got down, there'd be nobody to cut it.",
 		],
 		"after": [
-			"The ribbon never got cut. The last of them left by the river road, on foot.",
+			"The helicopter came down in the long grass and stayed there.",
+			"The man with the scissors ran, and the ribbon never got cut.",
+			"The last of them left down the river road, on foot.",
+			"Skipper had been tied up in the hangar with the cargo.",
+			{"by": "Skipper", "mood": "neutral", "text": "Is that the helicopter?"},
+			{"by": "tompel", "mood": "happy", "text": "It was."},
+			{"by": "Skipper", "mood": "happy", "text": "Good."},
 			"They'll be back one day. Giants are stubborn.",
 			"But they'll have to take us seriously now.",
 			"It was a tall order. We filled it.",
 		],
 		"send_off": [
-			"The whole village comes to the gate.",
-			{"by": "elder", "text": "There's a ribbon out there that mustn't get cut."},
+			"The whole village came to the gate.",
+			{"by": "elder", "mood": "determined", "text": "Somebody important is flying in to cut a ribbon on our forest. I'd rather he didn't."},
 		],
 		"again": ["The fuel lines are still cut. Only the helicopter is left."],
-		"teaches": {"by": "Datuk", "mutations": ["chain_roll"], "lines": [
-			"Datuk was a ferry hand on the river before the cage, and never wasted a move.",
-			{"by": "Datuk", "text": "Finish one roll, start the next. A roll that ends in a fall is half a roll."},
+		"teaches": {"by": "Skipper", "mutations": ["chain_roll"], "lines": [
+			{"by": "Skipper", "mood": "neutral", "text": "Don't stop between rolls. Finish one, start the next."},
+			{"by": "Skipper", "mood": "neutral", "text": "That's all. I'm not one for talking."},
 		]},
-		"frees": [{"name": "Datuk", "coat": "gray"}], "bonus": 80,
+		"home": [
+			{"by": "elder", "mood": "happy", "text": "Rest. For once in your life, rest."},
+			{"by": "tompel", "mood": "neutral", "text": "I'm resting."},
+			{"by": "elder", "mood": "neutral", "text": "You're holding a hammer."},
+			{"by": "Uncle Anvil", "mood": "worried", "text": "Have you seen my hammer?"},
+			{"by": "tompel", "mood": "neutral", "text": "You gave it to me."},
+			{"by": "Uncle Anvil", "mood": "surprised", "text": "...Did I? Well. Keep it, then."},
+			{"by": "Cream", "mood": "happy", "text": "Liberation sale! Everything must go!"},
+			{"by": "Coffee", "mood": "determined", "text": "We said 'Freedom sale'."},
+			{"by": "Patch", "mood": "happy", "text": "Fits, doesn't it? They had boxes of these hard hats."},
+			{"by": "Saffron", "mood": "worried", "text": "The company's gone, and there are more rats than ever. Funny, that."},
+		],
+		"frees": [{"name": "Skipper", "coat": "gray"}], "bonus": 80,
 		"props": [{"kind": "ribbon", "at": Vector2(30.0, 12.0)}, {"kind": "sign", "at": Vector2(30.0, 8.6), "lines": ["Grand opening", BOARD]}],
 	},
 	{
@@ -289,25 +386,44 @@ const LIST: Array[Dictionary] = [
 			"roofs": ["longhouse", "healer", "hut_0", "market"], "lit_at_start": 2, "light_every": 20.0},
 		"boss": {"kind": "guardian", "type": "tiger", "at": Vector2(25.5, 1.4), "tip": "Its pounce lands where you stood: move, then hit it while it gathers itself"},
 		"before": [
-			"Lights come out of the trees, low and orange, and drift over the huts.",
-			"Where they touch the thatch, it catches.",
-			"Water from the well, a bucket at a time: get the fires out.",
-			"And something big is watching from the forest.",
+			"The edge was burning. Not the trees: the ground, smoking up through the dirt where the mounds had been.",
+			"Then the lights came out of the trees, low and orange, and drifted over the huts.",
+			"We had always been told the Keepers' lights meant fire.",
+			"Where they touched the thatch, it caught.",
+			{"by": "elder", "mood": "determined", "text": "Water! From the well, a bucket at a time!"},
+			"And something big was watching from the trees.",
 		],
 		"after": [
-			"The great tiger lies down in the square, and the lights go out, one by one.",
-			"It is Inyiak Balang, the forest's grandfather, older than the village.",
-			"The forest burned, it says, and wherever it burned, it found cats.",
-			"The Elder shows it the company's cans from the sawpits, stamped MBG. Makmur Bakar.",
-			"Inyiak Balang knows that smell. It's in every burned grove.",
-			"Groves are still sick with it, it says, and their spirits can't rest.",
-			"It will raise a shrine here, by the gate. Through it, the way to those groves.",
+			"The Great Tiger lay down in the middle of the square, and the lights went out one by one.",
+			"Nobody in the village had ever seen him, but we knew who he was.",
+			{"by": "great_tiger", "mood": "sad", "text": "Every time the forest burns, they say it was us."},
+			{"by": "great_tiger", "mood": "sad", "text": "We go to the fires to put them out. Every time. And every time, we are blamed."},
+			{"by": "great_tiger", "mood": "determined", "text": "Tonight it burned beside your village. And here you are, dressed like the men with the saws."},
+			{"by": "Patch", "mood": "surprised", "text": "...Oh."},
+			{"by": "elder", "mood": "sad", "text": "We took it all from them. We thought it was ours to take."},
+			{"by": "Granny Whiskers", "mood": "sad", "text": "My grandmother blamed you for her knees. I blamed you for the rest. I'm sorry."},
+			{"by": "great_tiger", "mood": "neutral", "text": "Your grandmother's knees were bad, little one. That was not us either."},
+			"The Elder brought out one of the tins from the edge.",
+			{"by": "elder", "mood": "neutral", "text": "This was under the mounds. Right where it's burning now."},
+			{"by": "great_tiger", "mood": "determined", "text": "That smell. It is in every burned grove I have walked through."},
+			{"by": "jogiboy", "mood": "surprised", "text": "...That's rat."},
+			{"by": "tompel", "mood": "surprised", "text": "The rats. Under our feet, the whole time."},
+			{"by": "elder", "mood": "sad", "text": "Nests. We thought they were nests."},
+			{"by": "Saffron", "mood": "worried", "text": "The lines at night, going south. I told you."},
+			{"by": "tompel", "mood": "sad", "text": "So Burnt Future never burned anything."},
+			{"by": "Patch", "mood": "neutral", "text": "They cut everything down. That's bad enough."},
+			{"by": "great_tiger", "mood": "sad", "text": "The groves that burned are still sick. The Keepers there cannot rest, and cannot think."},
+			{"by": "great_tiger", "mood": "determined", "text": "I will set a stone by your gate. Through it is the way to them. Come and help me."},
+			"On his way out, the Great Tiger stopped at the gate and looked at the statue for a long time.",
+			{"by": "great_tiger", "mood": "surprised", "text": "..."},
+			{"by": "jogiboy", "mood": "happy", "text": "See? Same face."},
 		],
 		"send_off": [
-			"Halfway to the gate, Jogiboy stops dead, his ears up.",
-			{"by": "jogiboy", "text": "Smoke. Not out there. Behind us!"},
+			"We had a few quiet weeks, the first in a long time.",
+			"Halfway to the gate, Jogiboy stopped dead, his ears up.",
+			{"by": "jogiboy", "mood": "worried", "text": "Smoke. Not out there. Behind us."},
 		],
-		"again": ["The fires are out. Only Inyiak Balang is left."],
+		"again": ["The fires are out. Only the Great Tiger is left."],
 		"frees": [], "bonus": 100,
 	},
 ]
@@ -404,6 +520,14 @@ static func named(id: String) -> Dictionary:
 
 
 ## The dodge mutations an area's freeing teaches, by id, if any.
+## The area whose first freeing hands him a thing, by card id, or "".
+static func gives(id: String) -> String:
+	for area: Dictionary in LIST:
+		if id in area.get("gives", []):
+			return area.id
+	return ""
+
+
 static func teaches(id: String) -> Array[String]:
 	var mutations: Array[String] = []
 	mutations.assign(named(id).get("teaches", {}).get("mutations", []))

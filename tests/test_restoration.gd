@@ -19,7 +19,7 @@ func test_the_story_brings_the_village_back() -> void:
 	check(village.catch_up() == ["home", "smithy"], "freeing the edge brought back %s, not his home and the smithy" % str(village.restored))
 	check(village.salvage == 100 + Areas.named("edge").bonus, "bringing a building back cost salvage")
 	check(village.catch_up().is_empty(), "something came back twice")
-	check(village.restored_lines(["home"])[0].contains("Pak Besi"), "his home's story doesn't name who fixed it")
+	check(village.restored_lines(["home"])[0].contains("Uncle Anvil"), "his home's story doesn't name who fixed it")
 	for index in 2:
 		village.cats.append({"name": "Tes", "coat": "gray"})
 	check(village.catch_up() == ["hut_1"], "three cats rescued didn't build a hut")

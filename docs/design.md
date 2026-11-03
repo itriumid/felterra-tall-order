@@ -17,19 +17,33 @@ The present day. Cats are a modern people, with their own technology at cat scal
 too, and to humans, cats are animals: pests, if anything. A human company has moved into the
 forest a community of cats lives in, and is clearing it.
 
-**The cats don't know that at first.** Finding out is the story, told area by area in
-Liberation: rats where there never were any and a smell of oil in the stream; deeper in, stumps,
-ruts and cages, and a giant with a whistle; then the sawpits, and the sign over the gate. It was
-always humans.
+**Tompel was sent out to find out why.** The forest started dying last dry season, and the
+Elder sent him down the river road. He came home three months later with nothing: whatever it
+is, it isn't out there. Finding out it's inside is the story, told area by area in Liberation:
+rats digging at the edge, tins marked in letters nobody can read; deeper in, stumps, ruts and
+cages, and a giant with a whistle; then the sawpits, and the sign over the gate. It was humans.
 
-**The company** is **PT Makmur Bakti Gemilang**, which the cats call **Makmur Bakar**:
-MBG. It clears the forest as the "official partner" of the **Food Land Acceleration Agency**,
-which has stamped the cats' forest on its maps as *lahan tidur*, idle land, to be cleared for the
-nation's food. Its site boards say *From Idle Land to Plenty* beside *Building a Greener
-Tomorrow!*, and the finale is an official flying in to cut a ribbon on what's left. It's satire of
-deforestation, the peat fires and the way land gets cleared there, and every name in it is made
-up: no real ministry, agency or person is named, the system is the joke rather than anyone in
-it, and the meal program's purpose (feeding children) is never mocked.
+**The company** is **Bright Future Timber**, which the cats call **Burnt Future**. It logs the
+forest as the "official partner" of the **Food Land Acceleration Agency**, which has stamped the
+cats' forest on its maps as *lahan tidur*, idle land, to be cleared for the nation's food. Its
+site boards say *From Idle Land to Plenty* beside *Building a Greener Tomorrow!*, and the finale
+is an official flying in to cut a ribbon on what's left.
+
+**What nobody sees until the siege:** Burnt Future cuts, but it never burned anything. The rats at
+the edge were never nesting: they dig the drains that dry the peat so it burns and keeps
+burning, for **the Free Float**, the rats' own nation. Burned land is idle land: the Agency gets
+it for its projects, and **Green Promise Plantations**, big and perfectly legal, plants oil palm
+in the ash. The clues are there all along (the warm ground at the edge, ash at the sawpits with
+no fire, Saffron's lines of rats going south at night, smoke to the south all year, a permit's
+land "made ready for planting by partner"), and the book of stories admits once an act what it
+missed. It's satire of deforestation, the peat fires and the way land gets cleared there, and
+every name in it is made up: no real ministry, agency, company or person is named, the system is
+the joke rather than anyone in it, and the meal program's purpose (feeding children) is never
+mocked.
+
+**The story is the Elder's book,** so a line told over a scene is "we", in the past tense.
+Everyone talks like themselves, not in quips: the Elder warm and fussing, Granny Whiskers sharp,
+Jogiboy simple and literal, Tompel short.
 
 The cats can't out-muscle a giant. What they can do is be **underfoot**: in the way, beneath
 notice, at ankle height where a giant can't easily reach. The fight is to make the giants take
@@ -43,16 +57,21 @@ cartoon villains.
 spirits are the second faction, after Liberation, and being the first supernatural thing in the
 game is the point. If the cats ever have magic, it's the spirits' gift, never their own.
 
-**After Liberation, the spirits.** After a quiet, the forest's spirits, the penunggu, come for the
-village: wherever the forest burned, they found cats, so they think the cats burned it. The
-siege is a run in the village itself: the spirits set the roofs alight, he puts the fires out
-with water from the well, and then Inyiak Balang comes, the forest's grandfather, a great tiger.
-Beaten, it lies down and listens. The Elder shows it the company's cans, stamped MBG, and it
-knows the smell: Makmur Bakar burned the groves. There's peace after that, and Inyiak Balang
-raises a shrine by the gate. Endless goes through it from then on, cleansing groves still sick
-from the company, with the spirits on the cats' side. Home from the first grove, Inyiak Balang
-gives him the spirits' gift: its grandchild, a tiger cub, bound into a jimat at his collar. It
-fights at his heel in the groves, and grows, slowly, on offerings brought home from them.
+**After Liberation, the spirits.** After a few quiet weeks, an old peat fire breaks out under
+the edge, and the forest's spirits, the Keepers, come for the village. The Keepers go to every
+fire to put it out, so everyone, the cats' own old tales included, has always blamed them for
+fires; and tonight they find a village of cats in the company's hard hats and vests. The siege is
+a run in the village itself: in their anger the Keepers set the roofs alight, he puts the fires
+out with water from the well, and then the Great Tiger of Cisewu comes, the forest's grandfather.
+Beaten, he lies down and listens. Granny Whiskers says sorry for her grandmother's tales; the
+Elder shows him a tin from the edge, and he knows the smell from every burned grove. Jogiboy
+knows it too: it's rat. There's peace after that, and the Great Tiger raises a shrine by the
+gate. Endless goes through it from then on, cleansing groves still sick from the smoke, with the
+Keepers on the cats' side. The village carved his statue by the gate long ago, and it came out
+silly; the real one is majestic, and pulls exactly that face only once, when he sees it. Home
+from the first grove, the Great Tiger gives him the spirits' gift: his grandchild, a tiger cub
+called Sprout, bound into a charm at his collar. She fights at his heel in the groves, and
+grows, slowly, on offerings brought home from them.
 
 ## Factions
 
@@ -103,7 +122,7 @@ nothing lying when it falls, and nothing that bleeds: it goes out in embers.
 |---|---|
 | **The horde** | Ember wisps floating off the burned peat, tuyul who run off with salvage, pocong who can only hop, smoke monkeys who leap and hide in their own smoke |
 | **Heavies** | Charred saplings, walking on their roots in groups |
-| **The guardian** | Inyiak Balang, the great tiger: its pounce lands where he stood (the spot is marked), its paw sweeps (the arc is marked), and its roar throws him back and calls embers out of the trees. Gathering itself after a pounce, hits land double |
+| **The guardian** | The Great Tiger, the great tiger: its pounce lands where he stood (the spot is marked), its paw sweeps (the arc is marked), and its roar throws him back and calls embers out of the trees. Gathering itself after a pounce, hits land double |
 
 ## The first map
 
@@ -123,8 +142,10 @@ A clearing the company has cut in an Indonesian tropical forest.
 
 ## The cat
 
-**Tompel** is a white cat with black ears, a black crown and saddle, a black tail, and a black
-mole by his nose. He's a cat, so he walks on four legs: he carries one weapon in his mouth and the
+**Tompel** is a fluffy white cat with black ears and a black crown, a black saddle reaching low
+down his flanks with a white streak across it, black hind thighs over white socks, a plumed black
+tail, and the black patch on his left cheek by his mouth that gave him his name ("tompel" is a
+birthmark). He's a cat, so he walks on four legs: he carries one weapon in his mouth and the
 other in his tail, his tail a limb of its own that curls up behind him, sways as he walks, and
 reaches out to grip what it holds. Every cat in the village walks the same way.
 
@@ -246,26 +267,31 @@ on: fire and oil, or crewmates who can be downed.
   of the screen beside their portrait: a bigger, more detailed bust, in the mood of the line
   (neutral, happy, sad, surprised, determined or worried), the same pixels as everything else,
   only more of them. Each cat is the one bust in their own coat with their own touches: the
-  Elder's headcloth and white brows, Nenek Pus's glasses and shawl, Tompel's crown and mole.
+  Elder's headcloth and white brows, Granny Whiskers's glasses and shawl, Tompel's crown and mole.
 - **The cast**, one freed in each area, each bringing back what their trade needs:
 
   | Who | Freed in | Brings back | Teaches |
   |---|---|---|---|
   | The Elder | (always home) | | Rolling slash, land on your feet |
-  | Pak Besi, the smith | The village's edge | The smithy, and he fixes Tompel's roof | |
-  | Nenek Pus, the weaver | The deep forest | The weaver's hut | Pounce, riposte |
-  | Si Belang, the carpenter | The sawpits | The longhouse | Ankle cutter, caltrops |
-  | Jingga, the scout | The logged clearing | The watchtower | Long leap, dust cloud |
-  | Kopi and Susu, the stall keepers | The log slide | The market | More charges, slipstream |
-  | Bu Jamu, the herbalist | The company's offices | The healer's hut | Lick your wounds, scent trail |
-  | Datuk, the ferryman | The airstrip | | Chain roll |
+  | Uncle Anvil, the smith (everyone calls him Hammer: he can never find his) | The village's edge | The smithy, he fixes Tompel's roof, and he gives Tompel his hammer to keep | |
+  | Granny Whiskers, the weaver | The deep forest | The weaver's hut | Pounce, riposte |
+  | Patch, the carpenter | The sawpits | The longhouse | Ankle cutter, caltrops |
+  | Saffron, the scout | The logged clearing | The watchtower | Long leap, dust cloud |
+  | Coffee and Cream, the stall keepers | The log slide | The market | More charges, slipstream |
+  | Auntie Clove, the herbalist | The company's offices | The healer's hut | Lick your wounds, scent trail |
+  | Skipper, the ferryman | The airstrip | | Chain roll |
 
   The huts the rescued cats build themselves, as their number grows.
+- **Names are in English**, for the cast, the spirits and the things he carries alike; a thing's
+  story gives the name it has where it comes from, once (a hornbill sword is what the Dayak cats
+  upriver call a mandau). Names take capitals, people's, peoples', companies' and places' (the
+  Keepers, the Free Float, Green Promise Plantations); "the" before one stays lowercase inside a
+  sentence; everything else is lowercase in a sentence and in sentence case on a label.
 - **Jogiboy** is a villager in his own right: in Felterra everyone is equal, and he's nobody's
   pet. He lives next door to the Elder, has decided Tompel is his friend, and goes everywhere he
   goes, the way a friend once took him out to play: ginger, with a white blaze, white socks, tall
   ears, sad eyes, and a blue collar with keys on it. He speaks for himself, with his own portrait.
-  Finding things is his trade: each time Tompel walks home he has dug up a little salvage for him,
+  He turned up while Tompel was away, half starved, with a ring of keys on his collar: he was a guard dog at a gate in the palm plantations downriver, and the keys were the one guard's who used to take him out to play. Finding things is his trade: each time Tompel walks home he has dug up a little salvage for him,
   and on the map board he sniffs out how many caged cats each area holds. He never comes on a run,
   and nothing ever hurts him. He's here in memory of a dog a friend loved.
 - **Who's talking is shown, not said.** Someone without a portrait says a line in a speech bubble
@@ -313,7 +339,7 @@ on: fire and oil, or crewmates who can be downed.
   | The log slide | Pull the three levers, and the logs roll down over everything | The logging truck: it charges, stalls with its tank open, and tips over when wrecked |
   | The company's offices | Cut the power: three generators | The bulldozer, whose engine at the back is the only weak point |
   | The airstrip | Cut the three fuel lines | The helicopter, out of reach until it lands to unload |
-  | The village, besieged | Put out the four fires, with water from the well | Inyiak Balang, the forest's guardian |
+  | The village, besieged | Put out the four fires, with water from the well | The Great Tiger, the forest's guardian |
 
   **Each area has its own ground plan**: its own size, and what stands in it for good, so each
   plays differently, not only looks it.
@@ -347,7 +373,7 @@ on: fire and oil, or crewmates who can be downed.
   a roof left burning throws out an ember wisp every 6 seconds. Standing at the well fills a
   bucket in a second; standing at a burning house's door with it puts the fire out in a little
   over one. Marks at the screen's edge show the burning houses and, with no water carried, the
-  well. Once the last is out, Inyiak Balang comes out of the forest above the smithy.
+  well. Once the last is out, the Great Tiger comes out of the forest above the smithy.
 - **Cleansing**: once there's peace, Endless is through the shrine, in a grove still sick from
   the company, laid out fresh from each run's seed: a sick grove in the deep forest, the burned
   peat, or the riverbank, where nothing walks into the oily river. The restless spirits come in
@@ -365,7 +391,7 @@ on: fire and oil, or crewmates who can be downed.
   title and the village, with what he took and what did the damage. A hit is felt where it lands,
   too: what's struck flashes white, a blade slashes across it, a round strikes sparks, fire sheds
   embers and poison weeps green.
-- **The spirits' gift is the endgame, and it's slow.** One companion, the cub, worn as a jimat:
+- **The spirits' gift is the endgame, and it's slow.** One companion, the cub, worn as a charm:
   its rank (1 to 10) and its element (ember, smoke, root, river) are bought at the shrine with
   offerings, roughly thirty long groves to have it all. In a run, its cards level it like
   support. The ranks and costs are in [`catalog.md`](catalog.md).
@@ -403,7 +429,7 @@ on: fire and oil, or crewmates who can be downed.
     longhouse's painted band and its umbul-umbul, the tall flags on bamboo poles, at the way in.
   - **The story brings it back, never salvage.** His home is fixed up by the first cat he
     rescues, as a thank-you. Freeing the village's edge brings back the smithy (the company's
-    crates were full of tools); the deep forest, the weaver's hut (Nenek Pus moves in with her
+    crates were full of tools); the deep forest, the weaver's hut (Granny Whiskers moves in with her
     loom); the sawpits, the longhouse (after the sawpits, everyone wants to talk at once); and
     each area after, another hut. What came back is told as he walks home to it. A ruin's door
     says what will bring it back.
@@ -420,7 +446,7 @@ on: fire and oil, or crewmates who can be downed.
     things home narrows the cards but never past a draw: three of each kind stay packed for every
     place a run has for one (his mouth and his tail, so six weapons; seven slots, so twenty-one pieces of gear;
     a drone and a set-down, so six support; one mutation, so three).
-  - **The pack is the first draw.** Every run's first weapon is dealt from it, so Pak Besi, home
+  - **The pack is the first draw.** Every run's first weapon is dealt from it, so Uncle Anvil, home
     with the smithy standing, tells him so once: pack what you'd be glad to draw. Any weapon can
     be left home, the nunchaku and the handgun too, while six stay packed.
   - **Everything has its story**, read on a card with Tab and at the smithy and the pack: where
@@ -556,7 +582,7 @@ One to four players, **online and on one screen**.
   goes on, out of it; then they come in beside a crewmate who's standing, a few seconds out of
   harm's way, dealt the cards the crew's level-ups have handed out so far, one a level, so nobody
   joins behind.
-- **The gift, for every ally:** in a grove, every ally wears a jimat of their own, with a cub at
+- **The gift, for every ally:** in a grove, every ally wears a charm of their own, with a cub at
   their heel: they're allied cats, and the spirits' gift is for the forest's cats.
 - **Cards on one screen:** each ally's cards sit in a small panel down the side of the screen,
   and holding Back shows them whole.

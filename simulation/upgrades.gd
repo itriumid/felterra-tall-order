@@ -37,14 +37,14 @@ const UNFAMILIAR: Array[String] = ["adrenaline", "regeneration", "luck", "critic
 const GEAR := {
 	"vest": {"name": "Vest", "slot": "body", "stats": {"armor": 0.4, "health": 2.0}},
 	"hard_hat": {"name": "Hard hat", "slot": "head", "stats": {"armor": 0.3, "health": 2.0}},
-	"caping": {"name": "Conical hat", "slot": "head", "stats": {"regeneration": 0.05, "luck": 0.3}},
+	"caping": {"name": "Straw hat", "slot": "head", "stats": {"regeneration": 0.05, "luck": 0.3}},
 	"bell_collar": {"name": "Bell collar", "slot": "neck", "stats": {"luck": 0.6}},
 	"scarf": {"name": "Red scarf", "slot": "neck", "stats": {"speed": 0.06}},
 	"goggles": {"name": "Goggles", "slot": "eyes", "stats": {"reach": 0.08}},
 	"gloves": {"name": "Gloves", "slot": "paws", "stats": {"damage": 0.1, "attack_speed": 0.05}},
 	"boots": {"name": "Boots", "slot": "feet", "stats": {"speed": 0.05, "armor": 0.1}},
-	"jamu_flask": {"name": "Herbal flask", "slot": "waist", "stats": {"adrenaline": 0.03}},
-	"peci": {"name": "Velvet cap", "slot": "head", "stats": {"luck": 0.4, "health": 1.0}},
+	"jamu_flask": {"name": "Tonic flask", "slot": "waist", "stats": {"adrenaline": 0.03}},
+	"peci": {"name": "Black cap", "slot": "head", "stats": {"luck": 0.4, "health": 1.0}},
 	"batik_shirt": {"name": "Batik shirt", "slot": "body", "stats": {"health": 3.0, "luck": 0.2}},
 	"raincoat": {"name": "Raincoat", "slot": "body", "stats": {"armor": 0.6}},
 	"headlamp": {"name": "Headlamp", "slot": "eyes", "stats": {"reach": 0.1}},
@@ -55,7 +55,7 @@ const GEAR := {
 	"sandals": {"name": "Sandals", "slot": "feet", "stats": {"speed": 0.07}},
 	"sarong": {"name": "Sarong", "slot": "waist", "stats": {"speed": 0.03, "armor": 0.2}},
 	"tool_belt": {"name": "Tool belt", "slot": "waist", "stats": {"attack_speed": 0.06}},
-	"batik_headcloth": {"name": "Batik headcloth", "slot": "head", "stats": {"luck": 0.3, "attack_speed": 0.03}},
+	"batik_headcloth": {"name": "Headcloth", "slot": "head", "stats": {"luck": 0.3, "attack_speed": 0.03}},
 	"ear_defenders": {"name": "Ear defenders", "slot": "head", "stats": {"armor": 0.35}},
 	"life_jacket": {"name": "Life jacket", "slot": "body", "stats": {"health": 4.0}},
 	"kebaya": {"name": "Lace blouse", "slot": "body", "stats": {"regeneration": 0.06, "luck": 0.2}},
@@ -72,7 +72,7 @@ const SLOTS: Array[String] = ["head", "body", "neck", "eyes", "paws", "feet", "w
 ## A weapon a family grows into isn't offered on its own: it's reached by evolving.
 const WEAPONS: Array[String] = [
 	"nunchaku", "knife", "handgun", "machete", "rifle", "shotgun", "grenade_launcher", "nail_gun", "flare_gun",
-	"crossbow", "lamp_oil", "golok", "celurit", "rattan_staff", "ketapel", "sumpit", "petasan",
+	"crossbow", "lamp_oil", "hammer", "golok", "celurit", "rattan_staff", "ketapel", "sumpit", "petasan",
 	"tombak", "bambu_runcing", "mandau", "rencong", "badik", "kujang", "panah",
 ]
 const WEAPON_NAMES := {
@@ -81,10 +81,10 @@ const WEAPON_NAMES := {
 	"machete": "Machete", "greatsword": "Greatsword", "rifle": "Rifle", "automatic_rifle": "Automatic rifle",
 	"assault_rifle": "Assault rifle", "sniper_rifle": "Sniper rifle", "shotgun": "Shotgun",
 	"grenade_launcher": "Grenade launcher", "nail_gun": "Nail gun", "flare_gun": "Flare gun",
-	"crossbow": "Crossbow", "lamp_oil": "Lamp oil", "golok": "Golok", "celurit": "Sickle",
+	"crossbow": "Crossbow", "lamp_oil": "Lamp oil", "hammer": "Smith's hammer", "golok": "Chopper", "celurit": "Sickle",
 	"rattan_staff": "Rattan staff", "ketapel": "Slingshot", "sumpit": "Blowpipe", "petasan": "Firecrackers",
-	"tombak": "Spear", "bambu_runcing": "Bamboo spear", "mandau": "Mandau", "rencong": "Rencong",
-	"badik": "Badik", "kujang": "Kujang", "panah": "Bow",
+	"tombak": "Spear", "bambu_runcing": "Bamboo spear", "mandau": "Hornbill sword", "rencong": "Prayer dagger",
+	"badik": "Sailor's dagger", "kujang": "Crescent blade", "panah": "Bow",
 }
 ## What each weapon does, in a line, for a card read in full and for the smithy.
 const WEAPON_DOES := {
@@ -108,6 +108,7 @@ const WEAPON_DOES := {
 	"lamp_oil": "Thrown: the oil burns where it lands, setting alight what stands in it",
 	"golok": "A heavy chopping blade: slower, harder",
 	"celurit": "A sickle: hooks a leg and trips what it hits",
+	"hammer": "A slow, heavy blow from overhead; blunt, it sends what it hits flying",
 	"rattan_staff": "Two-handed: a full sweep around him, with heavy knockback",
 	"ketapel": "Stones that glance off one into the next, twice",
 	"sumpit": "Darts that poison and slow",
@@ -577,7 +578,7 @@ static func _describe(choice: Dictionary) -> Dictionary:
 		card.kind = "charm"
 		card.name = "The cub" + (" mastery" if mastery else " up")
 		card.lines = ["+%d%% damage" % roundi(LEVEL_DAMAGE * amount * share * 100.0), "+%d%% pounces" % roundi(LEVEL_TEMPO * amount * share * 100.0)]
-		card.explain = ["The jimat: the spirits' gift, a tiger cub at his heel; its levels raise what its pounce does, and how often"]
+		card.explain = ["The charm: the spirits' gift, a tiger cub at his heel; its levels raise what its pounce does, and how often"]
 		if mastery:
 			card.explain.append("Mastery: past level %d, there's no limit; each is worth half a level" % WEAPON_TOP)
 	elif id.begins_with("mutation"):

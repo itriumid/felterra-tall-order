@@ -59,27 +59,58 @@ const ELEMENT_STORIES := {
 	"root": "The saplings that grew back where the forest burned, and hold on to what walks on them.",
 	"river": "The river that carried the logs away, carrying the horde away now instead.",
 }
-## Home from the first grove: Inyiak Balang gives the spirits' gift, the only magic a cat will
+## Home from the first grove: the Great Tiger gives the spirits' gift, the only magic a cat will
 ## ever carry, and it isn't his.
 const GIFT_LINES: Array = [
-	"Inyiak Balang is waiting by the shrine, and something small is tumbling round its paws.",
-	"A cub. Its grandchild, it says, and it wants to see the groves.",
-	"It binds the cub into a jimat, a charm of carved bone, and hangs it at his collar.",
-	"Bring offerings from the groves, it says, and the cub will grow. Slowly. Tigers do.",
+	"The Great Tiger was waiting by the shrine, and something small was tumbling round his paws.",
+	{"by": "great_tiger", "mood": "happy", "text": "My grandchild, Sprout. She wants to see the groves."},
+	{"by": "great_tiger", "mood": "neutral", "text": "Carry her with you."},
+	"He bound the cub into a charm of carved bone, and hung it on Tompel's collar, next to the bell.",
+	{"by": "great_tiger", "mood": "neutral", "text": "Bring offerings from the groves, and she will grow. Slowly. Tigers do."},
+	{"by": "jogiboy", "mood": "happy", "text": "Can I find things for her too?"},
+	{"by": "great_tiger", "mood": "happy", "text": "You may."},
+	"We used to call it our forest. It was never ours. We only live in it, like the Keepers do.",
+	"Like the rats did, before somebody started paying them.",
 ]
 ## The story's opening, told once, as he walks into the village the first time, and the Elder
 ## walks out to meet him. Nobody knows yet what's wrong; finding out is the story.
 const INTRO: Array = [
-	"This forest has been ours for as long as anyone remembers.",
-	"Lately, it doesn't feel like ours.",
-	{"by": "elder", "mood": "happy", "text": "There you are. Welcome home, or what's left of it."},
-	{"by": "elder", "mood": "worried", "text": "Rats where there never were any. A smell of oil in the stream."},
-	{"by": "elder", "mood": "sad", "text": "Cats have gone out foraging and never come home."},
-	{"by": "elder", "mood": "worried", "text": "Something is wrong out there. Someone has to go and look."},
-	{"by": "tompel", "mood": "determined", "text": "Then I'll go and look."},
-	{"by": "elder", "mood": "happy", "text": "And this is Jogiboy. He lives next door to me, and he's decided you're his friend."},
-	{"by": "jogiboy", "mood": "happy", "text": "I'll look after the village while you're out. I'm good at finding things."},
-	{"by": "elder", "text": "The gate's that way, past the board. Start at the edge, past the last huts."},
+	"We have lived in this forest for as long as anyone remembers.",
+	"Last dry season the figs started dropping before they were ripe, and the stream began to taste of oil.",
+	"The Elder sent Tompel down the river road to find out why. He was gone three months.",
+	{"by": "elder", "mood": "happy", "text": "Tompel! Look at you. Did nobody feed you down there?"},
+	{"by": "tompel", "mood": "neutral", "text": "Not much. I'm fine."},
+	{"by": "elder", "mood": "neutral", "text": "Well? What did you find?"},
+	{"by": "tompel", "mood": "sad", "text": "Nothing, really. I asked everyone. Fishermen, traders, a cat who sells nets at the river mouth."},
+	{"by": "tompel", "mood": "neutral", "text": "Nobody's heard of anything. It's palm trees most of the way to the sea."},
+	{"by": "elder", "mood": "worried", "text": "Hmmm..."},
+	"A ginger dog trotted up behind the Elder and pushed his nose into Tompel's pack.",
+	{"by": "tompel", "mood": "surprised", "text": "Uh. Elder?"},
+	{"by": "elder", "mood": "happy", "text": "Oh, don't mind him. That's Jogiboy."},
+	{"by": "elder", "mood": "neutral", "text": "I found him by the stream a month ago, half starved, with a ring of keys on his collar."},
+	{"by": "elder", "mood": "neutral", "text": "He won't say where he came from."},
+	{"by": "elder", "mood": "happy", "text": "He's been sleeping in your house. Under it, mostly, since the roof went."},
+	{"by": "jogiboy", "mood": "happy", "text": "It smells like you in there. So I already know you."},
+	{"by": "tompel", "mood": "neutral", "text": "...Okay. Hi, Jogiboy."},
+	{"by": "jogiboy", "mood": "neutral", "text": "You've been near the palm trees."},
+	{"by": "tompel", "mood": "surprised", "text": "How did you..."},
+	{"by": "jogiboy", "mood": "happy", "text": "I'm good at finding things."},
+	{"by": "elder", "mood": "worried", "text": "It's got worse since you left. Rats everywhere past the last huts. We never had rats."},
+	{"by": "elder", "mood": "sad", "text": "And some of the foragers didn't come back. Uncle Anvil was the first."},
+	{"by": "tompel", "mood": "worried", "text": "Hammer's gone?"},
+	{"by": "elder", "mood": "neutral", "text": "He went to see who was digging out past the huts. He even took his hammer."},
+	{"by": "elder", "mood": "happy", "text": "First time in years he knew where it was."},
+	{"by": "Granny Whiskers", "mood": "worried", "text": "It's the Keepers, you know. They're angry with us. My grandmother always said..."},
+	{"by": "elder", "mood": "neutral", "text": "Your grandmother blamed the Keepers for her knees."},
+	{"by": "Granny Whiskers", "mood": "determined", "text": "Her knees were right more often than you are."},
+	{"by": "tompel", "mood": "determined", "text": "I'll go. I'll start at the edge."},
+	{"by": "elder", "mood": "worried", "text": "With what? Hammer's forge has been cold for weeks."},
+	{"by": "tompel", "mood": "neutral", "text": "I picked up a few things on the way back. They're in my pack."},
+	{"by": "jogiboy", "mood": "happy", "text": "I'll look after the village while you're out."},
+	{"by": "tompel", "mood": "surprised", "text": "Was that statue by the gate always this ugly?"},
+	{"by": "elder", "mood": "neutral", "text": "Careful. That's the Great Tiger."},
+	{"by": "jogiboy", "mood": "neutral", "text": "Nobody's ever seen him. So nobody can say it's wrong."},
+	{"by": "elder", "mood": "worried", "text": "Look around out there, and come home. That's all."},
 ]
 ## How far he walks into a run before it starts, in meters.
 const ENTRANCE := 5.0
@@ -714,16 +745,17 @@ func _arrive(from_the_forest: bool) -> void:
 		for area_id in _lessons_due():
 			var teaches: Dictionary = Areas.named(area_id).teaches
 			lines.append_array(teaches.lines)
+			lines.append_array(Areas.named(area_id).get("home", []))
 			for mutation: String in teaches.mutations:
 				village.tell("elder", Upgrades.MUTATIONS[mutation].name, "A dodge mutation, on your cards from now on. " + Upgrades.MUTATIONS[mutation].explain + ".")
 			var after := Areas.ids().find(area_id) + 1
 			if after < Areas.ids().size() and not Areas.ids()[after] in village.liberated:
 				village.tell("board", "On the map: " + (Areas.named(Areas.ids()[after]).name as String).to_lower(), "Choose it here, at the board by the gate.")
 		lines.append_array(village.restored_lines(_just_restored))
-		# Home from the first grove, Inyiak Balang is at the shrine, with the spirits' gift.
+		# Home from the first grove, the Great Tiger is at the shrine, with the spirits' gift.
 		if _cleansed and village.give_cub():
 			lines.append_array(GIFT_LINES)
-			village.tell("shrine", "The jimat", "The cub goes with you to the groves, at your heel. Here at the shrine, offerings from the groves rank it up, and wake its other elements.")
+			village.tell("shrine", "The charm", "The cub goes with you to the groves, at your heel. Here at the shrine, offerings from the groves rank it up, and wake its other elements.")
 			_keep_village()
 		_cleansed = false
 		# With the last area free, the spirits come as he walks home: the first time, Jogiboy smells
@@ -755,12 +787,12 @@ func _arrive(from_the_forest: bool) -> void:
 	_overlay.cutscene = true
 
 
-## Home with the smithy standing, Pak Besi has a word for him, once: a run starts with whatever the
+## Home with the smithy standing, Uncle Anvil has a word for him, once: a run starts with whatever the
 ## pack deals him, so what he packs is what he'll draw. Heard at the smithy, it's taught.
 func _teach_packing_when_due() -> void:
 	if village.is_restored("smithy") and not Village.PACK_TAUGHT in village.told:
-		village.tell("smithy", "Pak Besi, at the smithy",
-			"\"Nobody walks out of here with the same blade twice. Your first weapon comes out of your pack, three to pick from, so pack what you'd be glad to draw. Leave the rest home. Anything I forge goes in the pack too.\"",
+		village.tell("smithy", "Uncle Anvil, at the smithy",
+			"\"Whatever's in your pack, you'll be grabbing it without looking once it starts: three to pick from, at the first level. So don't pack anything you can't use. Anything I forge goes in the pack too.\"",
 			Village.PACK_TAUGHT)
 
 
@@ -949,10 +981,10 @@ func _door_prompt(building: String) -> String:
 		"smithy": return "The smithy: forge"
 		"hut_0": return "The weaver's hut: looks"
 		"longhouse": return "The Elder's longhouse: the book of stories"
-		"watchtower": return "Jingga's watchtower: she tells you what's out there, on the board"
-		"market": return "Kopi and Susu's market: trade"
-		"healer": return "Bu Jamu's hut: a tonic for the next run"
-		"shrine": return "Inyiak Balang's shrine: the groves, and the cub" if village.gifted() else "Inyiak Balang's shrine: the way to a sick grove"
+		"watchtower": return "Saffron's watchtower: she tells you what's out there, on the board"
+		"market": return "Coffee and Cream's market: trade"
+		"healer": return "Auntie Clove's hut: a tonic for the next run"
+		"shrine": return "The Great Tiger's shrine: the groves, and the cub" if village.gifted() else "The Great Tiger's shrine: the way to a sick grove"
 	return "%s, home to two" % name.capitalize()
 
 
@@ -999,7 +1031,7 @@ func _use(building: String) -> void:
 		"healer":
 			_open_page("healer")
 		"watchtower":
-			_say("Jingga: \"Everything I see, I've put on the board by the gate.\"")
+			_say("Saffron: \"Everything I see, I've put on the board by the gate.\"")
 		"shrine":
 			_open_page("shrine")
 			_shop_choice = 0
@@ -1028,7 +1060,7 @@ func _shop_rows() -> Array[Dictionary]:
 			if area.get("in_the_village", false):
 				continue
 			var state: String = "free" if free else ("held by the company: " + area.goal.title.to_lower() if found else "not found yet")
-			# From the watchtower, Jingga tells what's waiting there, and how to beat it.
+			# From the watchtower, Saffron tells what's waiting there, and how to beat it.
 			var told := ""
 			if found and not free and village.is_restored("watchtower"):
 				told = "%s. %s" % [Overlay.BOSS_NAMES.get(area.boss.type, area.boss.type), _sentence(area.boss.tip)]
@@ -1054,24 +1086,24 @@ func _shop_rows() -> Array[Dictionary]:
 			var price: Dictionary = Village.TRADES[for_what]
 			var give := "salvage" if for_what == "cloth" else "cloth"
 			rows.append({"id": for_what, "name": "%d %s for %d %s" % [price[give], give, price[for_what], for_what], "state": "trade",
-				"can": village.get(give) >= price[give], "story": "Kopi and Susu argue over every price, and you still get the same one."})
+				"can": village.get(give) >= price[give], "story": "Coffee and Cream argue over every price, and you still get the same one."})
 	elif _page == "healer":
 		rows.append({"id": "tonic", "name": "Turmeric tonic", "state": "ready for the next run" if village.tonic_ready else "%d salvage" % Village.TONIC_COST,
 			"can": not village.tonic_ready and village.salvage >= Village.TONIC_COST, "does": "The next run starts with %d more rerolls" % Village.TONIC_REROLLS,
-			"story": "Bu Jamu's own recipe: turmeric, tamarind, and something she won't tell you. Bitter. It works."})
+			"story": "Auntie Clove's own recipe: turmeric, tamarind, and something she won't tell you. Bitter. It works."})
 	elif _page == "shrine":
 		var chosen := village.next_run == "endless"
 		rows.append({"id": "grove", "name": "To a sick grove", "state": "chosen: out through the gate" if chosen else "choose it", "can": not chosen,
 			"does": "Endless: cleanse a grove still sick from the company, a fresh one every run",
 			"story": "Through the shrine, the forest is the way it was before the company came, and sick where they've been."})
 		if not village.gifted():
-			rows.append({"id": "", "name": "Inyiak Balang", "state": "waiting", "can": false, "does": "Cleanse a grove, and come home",
-				"story": "The great tiger lies by the shrine with its eyes half shut. It's waiting for something."})
+			rows.append({"id": "", "name": "The Great Tiger", "state": "waiting", "can": false, "does": "Cleanse a grove, and come home",
+				"story": "The Great Tiger lies by the shrine with his eyes half shut. He's waiting for something."})
 		else:
 			var cost := village.next_rank_cost()
 			rows.append({"id": "rank", "name": "The cub, rank %d of %d" % [village.cub_rank, Companion.MOST_RANK], "state": "%d offerings for the next" % cost if cost >= 0 else "fully grown",
 				"can": cost >= 0 and village.offerings >= cost, "does": "Each rank adds %d%% to what its pounce does" % roundi(Companion.RANK_SHARE * 100.0),
-				"story": "Inyiak Balang takes the offerings, and the cub grows a little. Slowly. Tigers do."})
+				"story": "The Great Tiger takes the offerings, and Sprout grows a little. Slowly. Tigers do."})
 			for element: String in Companion.ELEMENTS:
 				var woken := element in village.elements
 				var price: int = Village.ELEMENT_COSTS[element]
@@ -1111,6 +1143,8 @@ func _forge_row(id: String) -> Dictionary:
 	var row := {"id": id, "name": card.name, "can": false, "story": card.story, "does": card.does, "item": card.item, "kind": _kind_of(id, card)}
 	if id in Village.STARTING:
 		row.state = "carried from the start"
+	elif Areas.gives(id) != "":
+		row.state = "Uncle Anvil's" if id in village.given() else "freeing %s brings it" % (Areas.named(Areas.gives(id)).name as String).to_lower()
 	elif id in village.forged:
 		row.state = "forged"
 	else:
@@ -1163,7 +1197,7 @@ func _chapters() -> Array[Dictionary]:
 		if ("outro:" + area.id) in village.told:
 			chapters.append({"name": "%s: freed" % area.name, "lines": area.after})
 		if ("teach:" + area.id) in village.told:
-			chapters.append({"name": "What %s taught" % _speaker_name(area.teaches.by), "lines": area.teaches.lines})
+			chapters.append({"name": "What %s taught" % _speaker_name(area.teaches.by), "lines": area.teaches.lines + area.get("home", [])})
 	if chapters.is_empty():
 		chapters.append({"name": "Nothing written yet", "lines": ["The pages are empty. Go and find out what's wrong."]})
 	return chapters
@@ -1236,7 +1270,7 @@ func _read_shop() -> void:
 	if Input.is_action_just_pressed("move_up") or Input.is_action_just_pressed("move_down") or Input.is_action_just_pressed("move_left") or Input.is_action_just_pressed("move_right"):
 		_overlay.shop_note = ""
 	_overlay.shop_page = _page
-	_overlay.shop_title = {"forge": "The smithy", "pack": "Your pack", "looks": "The weaver's hut", "board": "The map of the forest", "book": "The book of stories", "market": "The market", "healer": "The healer's hut", "shrine": "Inyiak Balang's shrine"}[_page]
+	_overlay.shop_title = {"forge": "The smithy", "pack": "Your pack", "looks": "The weaver's hut", "board": "The map of the forest", "book": "The book of stories", "market": "The market", "healer": "The healer's hut", "shrine": "The Great Tiger's shrine"}[_page]
 	_overlay.shop_tabs.clear()
 	if _page in ["forge", "pack"]:
 		for tab: Array in _tabs():
@@ -2148,7 +2182,7 @@ func _dress_ally(ally: Dictionary) -> void:
 	ally_cat.wear({"weapons": []})
 	ally_cat.first_pool = _weapon_pool()
 	ally_cat.coat = ally.coat
-	# Allied cats, given the spirits' gift too: a jimat each, and a cub at each one's heel, ranked
+	# Allied cats, given the spirits' gift too: a charm each, and a cub at each one's heel, ranked
 	# and woken as the shrine has the village's.
 	if arena.grove and village.gifted() and ally_cat.charm == null:
 		ally_cat.charm = Companion.new(village.cub_element, village.cub_rank)

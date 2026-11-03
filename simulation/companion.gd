@@ -1,6 +1,6 @@
 class_name Companion
 extends RefCounted
-## The spirits' gift: a tiger cub, Inyiak Balang's grandchild, bound into the jimat he wears at
+## The spirits' gift: a tiger cub, the Great Tiger's grandchild, bound into the charm he wears at
 ## his collar. The cats have no magic of their own; this is the forest's, lent. It walks at his
 ## heel, and when something comes near him it runs at it and pounces, a real leap, and what it
 ## lands among takes its element: ember sets them burning, smoke slows them in a cloud, root holds

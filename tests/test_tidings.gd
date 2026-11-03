@@ -1,6 +1,6 @@
 extends TestCase
 ## What's new in the village waits where it's told, under a "!", until he goes and hears it:
-## Jogiboy keeps what he digs up until he's asked, and Pak Besi's word on starting weapons is what
+## Jogiboy keeps what he digs up until he's asked, and Uncle Anvil's word on starting weapons is what
 ## lets him choose them: one he swings and one he shoots.
 
 
@@ -33,10 +33,10 @@ func test_the_pack_is_the_first_draw() -> void:
 	check(not village.repack("weapon:handgun"), "the handgun was left home with too few weapons packed")
 	var pool := village.packed_weapons()
 	check(not "nunchaku" in pool and "machete" in pool and pool.size() == 6, "the pack dealt from %s" % [pool])
-	# Pak Besi says so, once, at the smithy.
-	village.tell("smithy", "Pak Besi", "Pack what you'd draw.", Village.PACK_TAUGHT)
+	# Uncle Anvil says so, once, at the smithy.
+	village.tell("smithy", "Uncle Anvil", "Pack what you'd draw.", Village.PACK_TAUGHT)
 	village.hear("smithy")
-	check(Village.PACK_TAUGHT in village.told, "hearing Pak Besi didn't teach packing")
+	check(Village.PACK_TAUGHT in village.told, "hearing Uncle Anvil didn't teach packing")
 
 
 func test_news_comes_back_as_it_was_kept() -> void:

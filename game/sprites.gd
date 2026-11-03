@@ -29,15 +29,19 @@ const LEGEND := {
 ## orange, and another coat swaps its letters.
 const COATS := {"orange": "oOy", "gray": "uUi", "black": "fFj", "cream": "lzZ", "tompel": "QWY"}
 ## Tompel's markings on his white coat, in black: his ears and the crown of his head, a saddle
-## along his back, and the mole beside his nose. His tail is black too: it's drawn on its own. Rows and columns are the body's, as
-## shares of the drawing that hold however the walk leans it: each mark is {rows, columns}, and the
-## mole is where it sits from his nose: so far along, and so many rows up or down.
+## along his back that reaches low down his flanks, with a white streak across it, and the black
+## patch on his left cheek by his mouth that gave him his name. His tail is black too: it's drawn
+## on its own. Rows and columns are the body's: each mark is {rows, columns}, a streak is left
+## white inside them, and the patch is where it starts from his nose: so far along, and so many
+## rows up or down, two pixels wide.
 const TOMPEL_MARKS := {
 	"front": [{"rows": Vector2i(3, 7), "columns": Vector2i(0, 24)}],
 	"back": [{"rows": Vector2i(3, 10), "columns": Vector2i(0, 24)}, {"rows": Vector2i(13, 15), "columns": Vector2i(7, 17)}],
-	"side": [{"rows": Vector2i(5, 9), "columns": Vector2i(12, 24)}, {"rows": Vector2i(11, 14), "columns": Vector2i(4, 13)}],
+	"side": [{"rows": Vector2i(5, 10), "columns": Vector2i(12, 24)}, {"rows": Vector2i(11, 14), "columns": Vector2i(4, 13)}],
 }
-const TOMPEL_MOLE := {"front": Vector2i(-1, -1), "side": Vector2i(-2, 0)}
+const TOMPEL_STREAK := {"side": [{"rows": Vector2i(8, 8), "columns": Vector2i(15, 21)}], "back": [{"rows": Vector2i(7, 7), "columns": Vector2i(3, 9)}]}
+## His left cheek: the viewer's right, from the front; the side he shows facing east.
+const TOMPEL_MOLE := {"front": Vector2i(2, 1), "side": Vector2i(-3, 1)}
 ## Where to look for his nose, below his ears' pink, in each view.
 const TOMPEL_NOSE_FROM := {"front": 9, "side": 11}
 ## Salvage lying about: a bolt, a plate, a spanner.
@@ -3003,7 +3007,7 @@ static func coat(art: String, coat_name: String, view := "") -> String:
 		var swapped := ""
 		for x in row.length():
 			var index := fur.find(row[x])
-			if Vector2i(x, y) == mole and row[x] != "k":
+			if mole.x >= 0 and (Vector2i(x, y) == mole or Vector2i(x, y) == mole + Vector2i(1, 0)) and row[x] != "k":
 				# The mole sits on his muzzle as readily as on his fur.
 				swapped += (COATS.black as String)[1]
 				continue
@@ -3017,6 +3021,9 @@ static func coat(art: String, coat_name: String, view := "") -> String:
 
 ## Whether a pixel of fur is one of Tompel's black markings, in a view.
 static func _tompel_marked(view: String, x: int, y: int) -> bool:
+	for streak: Dictionary in TOMPEL_STREAK.get(view, []):
+		if y >= streak.rows.x and y <= streak.rows.y and x >= streak.columns.x and x < streak.columns.y:
+			return false
 	for mark: Dictionary in TOMPEL_MARKS.get(view, []):
 		if y >= mark.rows.x and y <= mark.rows.y and x >= mark.columns.x and x < mark.columns.y:
 			return true

@@ -40,7 +40,7 @@ const STEPS := [
 	["pause", "", {"_entering": false}], ["pick_1", ""],
 	["free_area", "", {"_freeing": true}], ["pause", "summary", {"village.liberated": ["edge"]}],
 	# Home: the Elder's lesson and the smithy told on the way in, skipped. What's new waits where
-	# it's told: at the smithy, what it does and Pak Besi's word on the pack; and with Jogiboy, the
+	# it's told: at the smithy, what it does and Uncle Anvil's word on the pack; and with Jogiboy, the
 	# salvage he dug up, handed over.
 	["menu_choose", "", {"_place": "arriving"}],
 	["pause", "", {"_place": "village", "village.restored": ["home", "smithy"], "village.told": ["send_off:edge", "intro:edge", "outro:edge", "teach:edge"]}],
@@ -53,15 +53,16 @@ const STEPS := [
 	["to_smithy", ""], ["menu_choose", "forge"], ["move_right", "forge"],
 	["menu_choose", "forge", {"village.forged": ["gear:vest"]}], ["pause", ""],
 	# His pack at home: the vest worn from the start, then not left home but back in the pack, with
-	# too little gear packed to leave any home; a weapon not left home either.
+	# too little gear packed to leave any home; then a weapon left home, since Uncle Anvil's hammer
+	# makes seven.
 	# Home first tells what it's for, the first time; then it's his pack.
 	["to_house", ""], ["menu_choose", "news"], ["menu_choose", ""], ["menu_choose", "pack"], ["move_right", "pack"],
 	["menu_choose", "pack", {"village.starting_piece": "gear:vest"}],
 	["menu_choose", "pack", {"village.left_home": [], "village.starting_piece": ""}],
-	["move_left", "pack"], ["move_down", "pack"], ["move_down", "pack"], ["menu_choose", "pack", {"village.left_home": []}],
-	# The nunchaku is in the pack like anything else now, but with only six weapons packed, not
-	# even it can be left home.
-	["move_up", "pack"], ["move_up", "pack"], ["menu_choose", "pack", {"village.left_home": []}], ["pause", ""],
+	["move_left", "pack"], ["move_down", "pack"], ["move_down", "pack"], ["menu_choose", "pack", {"village.left_home": ["weapon:handgun"]}],
+	# The nunchaku is in the pack like anything else now, but with only six weapons left packed, it
+	# can't be left home too.
+	["move_up", "pack"], ["move_up", "pack"], ["menu_choose", "pack", {"village.left_home": ["weapon:handgun"]}], ["pause", ""],
 	# The weaver's hut: buy a gray coat, and wear it.
 	["to_weaver", ""], ["menu_choose", "looks"], ["move_down", "looks"], ["move_down", "looks"], ["menu_choose", "looks", {"village.coat": "gray"}], ["pause", ""],
 	# The market: salvage traded for cloth. The healer's hut: a tonic brewed for the next run.

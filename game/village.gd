@@ -31,17 +31,23 @@ const RESTORED_BY := {
 ## the cat who fixed it.
 const RESTORED_LINES := {
 	"home": ["Your roof doesn't leak anymore. %s fixed it while you were out.", "A thank-you, for getting them out."],
-	"smithy": ["Pak Besi has his hammer back, and the company's tools from the edge.", "The old smithy has its fire again."],
-	"hut_0": ["Nenek Pus has moved into the hut by the path, and set up her loom."],
-	"longhouse": ["Si Belang was a carpenter before the sawpits. He starts on the longhouse the day he's home.", "It's big enough to hold everyone. After the sawpits, everyone wants to talk at once."],
-	"watchtower": ["Jingga has built herself a tower by the gate, the way she likes it: tall, and a bit wobbly."],
-	"market": ["Kopi and Susu have their stall back. They're already arguing over the prices."],
-	"healer": ["Bu Jamu has her pots out, and the whole village smells of turmeric."],
+	"smithy": ["Uncle Anvil has the company's tools from the edge, and two hammers he's sure are somewhere.", "The old smithy has its fire again."],
+	"hut_0": ["Granny Whiskers has moved into the hut by the path, and set up her loom."],
+	"longhouse": ["Patch was a carpenter before the sawpits. He starts on the longhouse the day he's home.", "It's big enough to hold everyone. After the sawpits, everyone wants to talk at once."],
+	"watchtower": ["Saffron has built herself a tower by the gate, the way she likes it: tall, and a bit wobbly."],
+	"market": ["Coffee and Cream have their stall back. They're already arguing over the prices."],
+	"healer": ["Auntie Clove has her pots out, and the whole village smells of turmeric."],
 	"hut_1": ["The cats you've rescued have built themselves a hut."],
 	"hut_2": ["Another hut stands again, with room for two more."],
 	"hut_3": ["Another hut stands again, built from the company's own planks."],
 	"hut_4": ["The last hut stands again. The village is whole."],
-	"shrine": ["Inyiak Balang has raised its shrine by the gate, out of stone older than the village.", "Through it, the way to the groves still sick from the company."],
+	"shrine": ["The Great Tiger has raised his shrine by the gate, out of stone older than the village.", "Through it, the way to the groves still sick from the smoke."],
+}
+## The cast's names before they were given in English, and what they're called now: a village
+## saved before keeps its cats, under their new names.
+const RENAMED := {
+	"Pak Besi": "Uncle Anvil", "Nenek Pus": "Granny Whiskers", "Si Belang": "Patch", "Jingga": "Saffron",
+	"Kopi": "Coffee", "Susu": "Cream", "Bu Jamu": "Auntie Clove", "Datuk": "Skipper",
 }
 ## What each building does, in full, for what's new as he walks home to it.
 const EXPLAINS := {
@@ -49,14 +55,14 @@ const EXPLAINS := {
 	"smithy": "Forge weapons, gear and support with salvage. Once forged, they turn up on your cards.",
 	"hut_0": "The weaver sells new looks for cloth. Cats housed in huts weave cloth while you're away.",
 	"longhouse": "Read the story so far in the book of stories.",
-	"watchtower": "Jingga watches the forest: on the map board, each area found shows its boss, and how to beat it.",
-	"market": "Trade salvage for cloth, or cloth for salvage, at Kopi and Susu's prices.",
-	"healer": "Bu Jamu brews a tonic for salvage: the next run starts with two more rerolls.",
+	"watchtower": "Saffron watches the forest: on the map board, each area found shows its boss, and how to beat it.",
+	"market": "Trade salvage for cloth, or cloth for salvage, at Coffee and Cream's prices.",
+	"healer": "Auntie Clove brews a tonic for salvage: the next run starts with two more rerolls.",
 	"hut_1": "Room for two more cats, weaving cloth while you're away.",
 	"hut_2": "Room for two more cats, weaving cloth while you're away.",
 	"hut_3": "Room for two more cats, weaving cloth while you're away.",
 	"hut_4": "Room for two more cats, weaving cloth while you're away.",
-	"shrine": "Endless is here now: cleanse a grove still sick from the company, a fresh one every run, with the forest's spirits on your side.",
+	"shrine": "Endless is here now: cleanse a grove still sick from the smoke, a fresh one every run, with the forest's spirits on your side.",
 }
 ## What each building opens, in a line, for its prompt.
 const OPENS := {
@@ -109,7 +115,7 @@ const STARTING: Array[String] = [
 	"gear:caping", "gear:scarf", "gear:boots", "gear:sarong", "gear:gloves",
 ]
 ## A run starts with no weapon: its first draw is three weapons from what's packed, so the pack is
-## his opening hand. Pak Besi tells him so, once, home with the smithy standing.
+## his opening hand. Uncle Anvil tells him so, once, home with the smithy standing.
 const PACK_TAUGHT := "teach:pack"
 ## How many of each kind must stay packed, for every place a run has for one: leaving things home
 ## narrows the cards, but never so far that they stop being a draw.
@@ -178,7 +184,7 @@ var goals_done: Array[String] = []
 ## A tonic from the healer's hut, brewed and waiting for the next run.
 var tonic_ready := false
 ## The spirits' gift: offerings brought home from the groves, the cub's rank at the shrine (none
-## until Inyiak Balang gives it), the element it fights with, and the elements it has woken.
+## until the Great Tiger gives it), the element it fights with, and the elements it has woken.
 var offerings := 0
 var cub_rank := 0
 var cub_element := "ember"
@@ -209,9 +215,18 @@ func learned() -> Array[String]:
 	return ids
 
 
-## Whether he has a thing at all: it starts with him, it's forged, or it's been taught.
+## What the story has handed him: Uncle Anvil's hammer, once the village's edge is free.
+func given() -> Array[String]:
+	var ids: Array[String] = []
+	for area_id in liberated:
+		for id: String in Areas.named(area_id).get("gives", []):
+			ids.append(id)
+	return ids
+
+
+## Whether he has a thing at all: it starts with him, it's forged, it's been taught, or given.
 func has(id: String) -> bool:
-	return id in STARTING or id in forged or id in learned()
+	return id in STARTING or id in forged or id in learned() or id in given()
 
 
 ## Whether a run's cards can offer it: he has it, and hasn't left it home.
@@ -390,12 +405,12 @@ static func offerings_from(seconds: float) -> int:
 	return floori(seconds / OFFERING_EVERY)
 
 
-## Whether Inyiak Balang has given the cub.
+## Whether the Great Tiger has given the cub.
 func gifted() -> bool:
 	return cub_rank > 0
 
 
-## Given at the shrine: the cub, bound into a jimat. Once.
+## Given at the shrine: the cub, bound into a charm. Once.
 func give_cub() -> bool:
 	if not truce() or gifted():
 		return false
@@ -608,6 +623,7 @@ func load_from(path := PATH) -> void:
 		cats.clear()
 		for each: Variant in saved_cats:
 			if each is Dictionary and each.has("name") and each.has("coat"):
+				each.name = RENAMED.get(each.name, each.name)
 				cats.append(each)
 	salvage = _count(file, "salvage")
 	cloth = _count(file, "cloth")
