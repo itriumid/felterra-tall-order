@@ -1,5 +1,5 @@
 extends TestCase
-## The forest's spirits: what each of the horde does, the siege's fires, Inyiak Balang, the peace
+## The forest's spirits: what each of the horde does, the siege's fires, the Great Tiger, the peace
 ## after it, and Endless as cleansing a sick grove.
 
 

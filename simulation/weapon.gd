@@ -109,6 +109,8 @@ const ARSENAL := {
 	# Two sticks on a chain, one in his paw: the swing goes most of the way round him, and it's blunt,
 	# so it shoves harder than it cuts.
 	"nunchaku": {"melee": true, "reach": 0.55, "interval": 0.34, "damage": 1.9, "arc": 220.0, "swing_time": 0.16, "knock": 2.8, "lift": 1.0},
+	# Uncle Anvil's hammer: slow, heavy, overhead, and blunt, so it sends things flying.
+	"hammer": {"melee": true, "reach": 0.55, "interval": 0.75, "damage": 5.5, "arc": 90.0, "swing_time": 0.2, "knock": 5.0, "lift": 1.4},
 	# Indonesian blades and staffs.
 	"golok": {"melee": true, "reach": 0.6, "interval": 0.5, "damage": 4.2, "arc": 110.0, "knock": 2.4},
 	"celurit": {"melee": true, "reach": 0.55, "interval": 0.45, "damage": 2.8, "arc": 130.0, "trips": 1.2, "knock": 1.0},

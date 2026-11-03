@@ -114,7 +114,7 @@ const HOLDS := 2
 var weapons: Array[Weapon] = [Weapon.handgun()]
 ## What he carries on his back, by slot ("drone", "set_down"): one of each at most.
 var supports := {}
-## The jimat at his collar, with the spirits' gift bound into it, or none: only once there's peace
+## The charm at his collar, with the spirits' gift bound into it, or none: only once there's peace
 ## with the forest, and only in a grove.
 var charm: Companion
 ## How his weapons pick a target: "nearest", "toughest" (the most health left) or "crowd" (the

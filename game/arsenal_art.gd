@@ -621,6 +621,39 @@ ksSk...
 .....k.
 """, "grip": Vector2(5, 10), "muzzle": Vector2(2, 1)},
 	},
+	"hammer": {
+		"east": {"art": """
+.........kkk.
+kkkkkkkkkSSSk
+kAAAAAAAksSSk
+kaaaaaaaksSSk
+kkkkkkkkksssk
+.........kkk.
+""", "grip": Vector2(2, 2), "muzzle": Vector2(11, 2)},
+		"northeast": {"art": """
+.....kkk..
+....kSSSk.
+...ksSSSSk
+..kAksSSk.
+.kAak.kk..
+kAak......
+kak.......
+.k........
+""", "grip": Vector2(1, 6), "muzzle": Vector2(6, 2)},
+		"north": {"art": """
+.kkkkk.
+kSSSSSk
+ksSSSsk
+.kkkkk.
+..kAk..
+..kak..
+..kAk..
+..kak..
+..kAk..
+..kak..
+...k...
+""", "grip": Vector2(3, 8), "muzzle": Vector2(3, 1)},
+	},
 	"rattan_staff": {
 		"east": {"art": """
 .kkkkkkkkkkkkkkkkkk.

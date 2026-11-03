@@ -1,6 +1,6 @@
 class_name Guardian
 extends Giant
-## Inyiak Balang, the forest's grandfather: the great tiger who keeps the forest, older than the
+## The Great Tiger, the forest's grandfather: the great tiger who keeps the forest, older than the
 ## village. It has come for the village because wherever the forest burned, it found cats.
 ##
 ## It stalks him, circling at a distance, and with him in reach it crouches, the spot it will land on marked on the ground

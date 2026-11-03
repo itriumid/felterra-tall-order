@@ -50,7 +50,7 @@ func _in_the_game() -> Array[String]:
 		names.append(Upgrades.SUPPORT[support].name)
 	for mutation: String in Upgrades.MUTATIONS:
 		names.append(Upgrades.MUTATIONS[mutation].name)
-	names.append("Inyiak Balang")
+	names.append("The Great Tiger")
 	# The spirits' gift, and the elements it fights in.
 	names.append("The cub")
 	for element: String in Companion.ELEMENTS:

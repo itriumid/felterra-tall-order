@@ -704,7 +704,7 @@ func _draw_palm(footprint: Rect2) -> void:
 
 ## The map of the forest, carved on a board on two posts: green where it's free, the company's
 ## orange marks where it isn't, and the paths between.
-## Inyiak Balang's shrine: a small candi of old stone, three tiers stepping in, moss in its
+## The Great Tiger's shrine: a small candi of old stone, three tiers stepping in, moss in its
 ## joints, a niche where the forest's lights keep, and offerings of flowers at its foot.
 func _draw_shrine(footprint: Rect2) -> void:
 	var tier_height := 12
@@ -833,7 +833,7 @@ func _draw_jogi(jogi: Cat) -> void:
 	draw_texture(texture, corner)
 
 
-## Jingga's watchtower: four bamboo posts up to a lookout platform, a ladder, and a little thatched
+## Saffron's watchtower: four bamboo posts up to a lookout platform, a ladder, and a little thatched
 ## roof over it. A ruin is its posts snapped short and the platform down in the grass.
 func _draw_watchtower(footprint: Rect2, restored: bool) -> void:
 	var left := footprint.position.x + 0.15
@@ -866,7 +866,7 @@ func _draw_watchtower(footprint: Rect2, restored: bool) -> void:
 	_thatch(left - 0.25, right + 0.25, middle, deck + 1.0, front + 0.25, deck + 0.5)
 
 
-## Kopi and Susu's stall: posts under a striped awning, and a counter heaped with fruit, facing the
+## Coffee and Cream's stall: posts under a striped awning, and a counter heaped with fruit, facing the
 ## road. A ruin is the awning torn down over the counter's broken boards. With him at the counter,
 ## the awning is drawn back, so it doesn't hide him.
 func _draw_market(footprint: Rect2, restored: bool, drawn_back := false) -> void:
@@ -917,7 +917,7 @@ func _draw_market(footprint: Rect2, restored: bool, drawn_back := false) -> void
 			_slope(Vector2(from, back + 0.1), Vector2(to, back + 0.1), 0.25, Vector2(from, front + 0.1), Vector2(to, front + 0.1), 0.02, color)
 
 
-## Bu Jamu's pots of herbs out front of the healer's hut: turmeric, ginger and lemongrass growing,
+## Auntie Clove's pots of herbs out front of the healer's hut: turmeric, ginger and lemongrass growing,
 ## or knocked over in the ruin.
 func _draw_herbs(footprint: Rect2, restored: bool) -> void:
 	for index in 3:

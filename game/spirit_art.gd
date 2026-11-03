@@ -1,6 +1,6 @@
 class_name SpiritArt
 extends RefCounted
-## The forest's spirits, drawn the way the rest are: palette letters, outlined. Inyiak Balang, the
+## The forest's spirits, drawn the way the rest are: palette letters, outlined. The Great Tiger, the
 ## great tiger, side-on and facing right (mirrored for left): walking, crouched to pounce, in the
 ## air, and lying down. And the restless spirits of its horde, each in a frame or two.
 
@@ -168,7 +168,7 @@ kkoooFokk.kkllllllwwwwwwwwllllllOOOOOOOOOOOOOOook.
 }
 ## Where the tiger's feet meet the ground in its pictures.
 const TIGER_FEET := Vector2(22, 29)
-## The cub, the spirits' gift: Inyiak Balang's grandchild, small enough to walk at a cat's heel,
+## The cub, the spirits' gift: the Great Tiger's grandchild, small enough to walk at a cat's heel,
 ## side-on and facing right, two steps of a walk and the leap.
 const CUB := {
 	"walk_0": """

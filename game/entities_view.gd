@@ -35,9 +35,9 @@ const DOG_STRIDE := 0.6
 ## How far the cub runs for each step of its walk; and the colors of each of its elements, for the
 ## motes about it and what it throws out landing.
 const CUB_STRIDE := 0.3
-## Where the jimat hangs at his collar in each view he's drawn in, on a cat's drawing so wide; from
+## Where the charm hangs at his collar in each view he's drawn in, on a cat's drawing so wide; from
 ## behind, it's under his chin, out of sight.
-const JIMAT_AT := {"front": Vector2(12, 14), "side": Vector2(15, 15)}
+const CHARM_AT := {"front": Vector2(12, 14), "side": Vector2(15, 15)}
 const CAT_WIDTH := 24
 const ELEMENT_COLORS := {
 	"ember": [Palette.SPARK, Palette.HI_VIS, Palette.BRASS_LIGHT],
@@ -82,7 +82,7 @@ const MOST_MARKS := 300
 ## lands, by weapon: blunt ones thump, the rest cut or stab as they're swung or thrust.
 const CASED: Array[String] = ["handgun", "submachine_gun", "rifle", "automatic_rifle", "assault_rifle", "sniper_rifle", "shotgun"]
 const STICKS: Array[String] = ["crossbow", "panah", "nail_gun", "sumpit"]
-const BLUNT: Array[String] = ["nunchaku", "rattan_staff"]
+const BLUNT: Array[String] = ["nunchaku", "rattan_staff", "hammer"]
 var _cases_seen := {}
 var _forms := {}
 var _taken_seen := {}
@@ -673,7 +673,7 @@ func _draw_spirit(creature: Creature) -> void:
 		draw_texture(texture, corner + Vector2(region.size.x / 2 - 2, -texture.get_height()))
 
 
-## Inyiak Balang: walking, crouched, in the air, or lying down, a picture each, facing the way it
+## The Great Tiger: walking, crouched, in the air, or lying down, a picture each, facing the way it
 ## goes. With a paw raised for a swipe, it's lifted off the ground a little at the front.
 func _draw_guardian(guardian: Guardian) -> void:
 	var pose := "walk_%d" % (int(_walked.get(guardian, 0.0) / 0.9) % 2)
@@ -795,9 +795,9 @@ func _draw_cat(cat: Cat) -> void:
 		var item: String = cat.gear.get(slot, "")
 		if Sprites.WORN.has(item):
 			draw_texture(Sprites.lit(Sprites.WORN[item][view], flip), top_left)
-	if cat.charm != null and JIMAT_AT.has(view):
-		# The jimat at his collar: a sliver of carved bone, beside where a bell would hang.
-		var spot: Vector2 = JIMAT_AT[view]
+	if cat.charm != null and CHARM_AT.has(view):
+		# The charm at his collar: a sliver of carved bone, beside where a bell would hang.
+		var spot: Vector2 = CHARM_AT[view]
 		if flip:
 			spot.x = CAT_WIDTH - 1 - spot.x
 		draw_rect(Rect2(top_left + spot, Vector2(1, 2)), Palette.CREAM)

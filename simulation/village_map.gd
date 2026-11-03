@@ -78,14 +78,14 @@ const SQUARE := Rect2(16.4, 3.6, 6.4, 4.0)
 ## The map of the forest, carved on a board at the gate: where the next run goes. It was never a
 ## ruin.
 const BOARD := Rect2(34.3, 10.9, 1.2, 0.45)
-## What the cats freed in the story bring back: Jingga's watchtower, Kopi and Susu's market stall
-## across the road from the square, and Bu Jamu's healer's hut by the gate.
+## What the cats freed in the story bring back: Saffron's watchtower, Coffee and Cream's market stall
+## across the road from the square, and Auntie Clove's healer's hut by the gate.
 const WATCHTOWER := Rect2(31.0, 3.0, 1.4, 1.2)
 const MARKET := Rect2(20.0, 11.4, 2.4, 1.2)
 const HEALER := Rect2(32.8, 4.8, 2.0, 1.3)
 ## His own home: the first house in from the forest.
 const HOME := Rect2(12.6, 4.6, 2.0, 1.3)
-## The shrine Inyiak Balang raises by the gate once there's peace with the forest: the way to the
+## The shrine the Great Tiger raises by the gate once there's peace with the forest: the way to the
 ## groves still sick from the company. It's never a ruin; until then, it isn't there at all.
 const SHRINE := Rect2(33.4, 14.2, 1.6, 1.2)
 ## The huts, each at its own depth off the road: the weaver's first, by the way in.

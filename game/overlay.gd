@@ -9,7 +9,7 @@ const CARD_SIZE := Vector2(150, 70)
 const BOSS_NAMES := {
 	"feller_buncher": "Feller buncher", "log_loader": "Log loader", "logging_truck": "Logging truck",
 	"bulldozer": "Bulldozer", "helicopter": "Helicopter", "rat_baron": "The Rat Baron", "handler": "The Handler",
-	"tiger": "Inyiak Balang",
+	"tiger": "The Great Tiger",
 }
 ## How many of a shop's rows show at once, and how many lines its chosen thing's story gets.
 const SHOP_ROWS_SHOWN := 13
@@ -19,7 +19,7 @@ const PREVIEW_WIDTH := 150.0
 const BOOK_LINES := 8
 ## How wide a speech bubble's lines run, and what each speaker is called over their words.
 const BUBBLE_WIDTH := 170.0
-const SPEAKER_NAMES := {"elder": "The Elder", "jogiboy": "Jogiboy", "tompel": "Tompel"}
+const SPEAKER_NAMES := {"elder": "The Elder", "jogiboy": "Jogiboy", "tompel": "Tompel", "great_tiger": "The Great Tiger"}
 ## Jogiboy, as everyone called him.
 const JOGI := "Jogiboy"
 const AIM_NAMES := {"nearest": "Nearest", "toughest": "Toughest", "crowd": "Crowd"}
