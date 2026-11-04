@@ -9,17 +9,22 @@ func _send(host: Arena, sender: Snapshot.Sender, receiver: Snapshot.Receiver, gu
 	return receiver.apply(sender.delta(Snapshot.take(host, events)), guest)
 
 
-## Each cat plays the first card of a hand as it's dealt, as a player would: nobody sits on a
-## backlog of hands.
-func _play_cards(arena: Arena) -> void:
+## Each cat plays the first card of a hand as it's dealt, as a player would, keeping no more than
+## this many hands unplayed; or, held at NEVER_PLAYED, none ever.
+const NEVER_PLAYED := -1
+
+
+func _play_cards(arena: Arena, held := 0) -> void:
+	if held == NEVER_PLAYED:
+		return
 	for cat in arena.cats:
-		while not cat.offers.is_empty():
+		while cat.offers.size() > held:
 			cat.play(0)
 
 
 ## A busy fight a minute in, two cats with something to fight with, giants and dogs about, the
-## cards played as they come.
-func _host() -> Arena:
+## cards played as they come but for those held.
+func _host(held := 0) -> Arena:
 	var arena := Arena.new(7)
 	var first := arena.add_cat(Arena.SIZE / 2.0)
 	var second := arena.add_cat(Arena.SIZE / 2.0 + Vector2(2.0, 0.0))
@@ -29,7 +34,7 @@ func _host() -> Arena:
 	first.wear({"weapons": ["nunchaku"]})
 	for step in int(60.0 / Arena.STEP):
 		arena.step()
-		_play_cards(arena)
+		_play_cards(arena, held)
 	return arena
 
 
@@ -97,16 +102,42 @@ func test_events_come_with_it() -> void:
 
 
 func test_a_busy_fight_is_small_enough_to_send() -> void:
-	var host := _host()
+	_check_a_second_of_snapshots(0)
+
+
+## Players who let their hands stack up: a level-up resends every hand they hold.
+func test_a_busy_fight_is_small_enough_with_five_hands_held() -> void:
+	_check_a_second_of_snapshots(5)
+
+
+func test_a_busy_fight_is_small_enough_with_ten_hands_held() -> void:
+	_check_a_second_of_snapshots(10)
+
+
+## Nobody plays a card all fight: every hand dealt is still held.
+func test_a_busy_fight_is_small_enough_with_no_card_ever_played() -> void:
+	_check_a_second_of_snapshots(NEVER_PLAYED)
+
+
+## A second of snapshots from a busy fight, a level-up dealt in the middle of it, the cats keeping
+## this many hands unplayed.
+func _check_a_second_of_snapshots(held: int) -> void:
+	var host := _host(held)
 	var sender := Snapshot.Sender.new()
 	var first := sender.delta(Snapshot.take(host, [])).size()
 	# The next, three steps on: a twentieth of a second.
 	var largest := 0
 	for tick in 20:
+		if tick == 10:
+			host._gain_experience(Arena.experience_needed(host.level) - host.experience)
 		for step in 3:
 			host.step()
-			_play_cards(host)
+			_play_cards(host, held)
 		largest = maxi(largest, sender.delta(Snapshot.take(host, [])).size())
-	print("      %d in the horde, %d fallen: the first snapshot %d bytes, then at most %d" % [host.creatures.size(), host.fallen.size(), first, largest])
+	var hands: Array = host.cats.map(func(cat: Cat) -> int: return cat.offers.size())
+	if held != NEVER_PLAYED:
+		check(hands.all(func(count: int) -> bool: return count == held), "the cats hold %s hands, not %d" % [str(hands), held])
+	var holding := "all" if held == NEVER_PLAYED else str(held)
+	print("      %s hands held, %d in the horde, %d fallen: the first snapshot %d bytes, then at most %d" % [holding, host.creatures.size(), host.fallen.size(), first, largest])
 	# 20 a second to each guest, under about 400 kilobits a second.
-	check(largest < 2500, "a snapshot takes %d bytes" % largest)
+	check(largest < 2500, "with %d hands held, a snapshot takes %d bytes" % [host.cats[0].offers.size(), largest])

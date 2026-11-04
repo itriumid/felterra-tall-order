@@ -8,7 +8,9 @@ extends RefCounted
 ## under the host's id for it, so the guest updates the same objects in place: a walk cycle keeps
 ## counting, a muzzle flash knows a round was fired. A field goes only when it's changed since the
 ## last snapshot that guest was sent; snapshots go in order and are never lost, so each guest
-## always has what the next one changes. The horde and the fallen, hundreds at a time, go packed:
+## always has what the next one changes. An object new to a guest goes with only what differs from
+## a fresh one, since that's what the guest makes it from; a list that's only lost some from its
+## front and grown at its end (the hands held, oldest played first) goes as just that. The horde and the fallen, hundreds at a time, go packed:
 ## only what's drawn.
 ##
 ## Take the world once a tick with `take`, then hand it to each guest's own Sender; a guest puts
@@ -93,23 +95,53 @@ class Sender:
 	var _fallen_kinds := PackedStringArray()
 	## Whether this guest has had every firefly once: after that, only the slots that changed.
 	var _had_fireflies := false
+	## The horde's ids as this guest has them, in order: the next sends only who's gone and who's
+	## new, and a kind only for the new (a creature's kind never changes).
+	var _creature_ids := PackedInt64Array()
+
+	## The horde, its ids as an edit of what this guest has: the places of those gone from it, then
+	## those new, at its end. Whatever the order, that remakes it: what's kept is kept in order,
+	## and everything after the last kept is sent as new.
+	func _horde_edit(packed: Dictionary) -> Dictionary:
+		var ids: PackedInt64Array = packed.ids
+		var kinds: PackedStringArray = packed.kinds
+		var gone := PackedInt32Array()
+		var next := 0
+		for place in _creature_ids.size():
+			if next < ids.size() and _creature_ids[place] == ids[next]:
+				next += 1
+			else:
+				gone.append(place)
+		_creature_ids = ids
+		return {"gone": gone, "new": ids.slice(next), "kinds": kinds.slice(next), "numbers": packed.numbers}
 
 	## What's changed for this guest since their last, packed to send.
 	func delta(world: Dictionary) -> PackedByteArray:
 		var arena := {}
 		for name: String in world.arena:
-			if not _arena.has(name) or _arena[name] != world.arena[name]:
+			if not _arena.has(name):
 				arena[name] = world.arena[name]
+			elif _arena[name] != world.arena[name]:
+				arena[name] = Snapshot._edit(_arena[name], world.arena[name])
 		var objects := {}
 		for id: int in world.objects:
 			var now: Dictionary = world.objects[id]
 			var was: Dictionary = _objects.get(id, {})
 			var changed := {}
-			for name: String in now:
-				if name == "#" and not was.is_empty():
-					continue
-				if not was.has(name) or was[name] != now[name]:
-					changed[name] = now[name]
+			if was.is_empty():
+				# New to this guest: the script, and what isn't as a fresh one has it.
+				var fresh := Snapshot._fresh(now["#"])
+				for name: String in now:
+					if name == "#" or not fresh.has(name) or fresh[name] != now[name]:
+						changed[name] = now[name]
+			else:
+				for name: String in now:
+					if name == "#":
+						continue
+					if not was.has(name):
+						changed[name] = now[name]
+					elif was[name] != now[name]:
+						changed[name] = Snapshot._edit(was[name], now[name])
 			if not changed.is_empty():
 				objects[id] = changed
 		var gone: Array[int] = []
@@ -141,7 +173,7 @@ class Sender:
 			slots = PackedInt32Array(range(lights.worth.size()))
 			_had_fireflies = true
 		var state := {
-			"arena": arena, "objects": objects, "gone": gone, "creatures": world.creatures,
+			"arena": arena, "objects": objects, "gone": gone, "creatures": _horde_edit(world.creatures),
 			"fallen": {"count": numbers.size() / record, "moved": moved, "numbers": moved_numbers, "kinds": moved_kinds},
 			"events": world.events, "fireflies": Snapshot._pack_fireflies(lights, slots),
 		}
@@ -156,6 +188,7 @@ class Sender:
 class Receiver:
 	var objects := {}
 	var _creature_ids := {}
+	var _horde_ids := PackedInt64Array()
 
 	## Puts a snapshot into the guest's arena, and returns the events that came with it.
 	func apply(packed: PackedByteArray, arena: Arena) -> Array[Dictionary]:
@@ -188,6 +221,15 @@ class Receiver:
 		return events
 
 	func _decode(value: Variant, existing: Variant) -> Variant:
+		# A list that lost some from its front and grew at its end: the one there, so edited.
+		if value is Dictionary and value.has("~") and value.size() == 1:
+			var edit: Array = value["~"]
+			var list := []
+			if existing is Array:
+				list.assign((existing as Array).slice(edit[0]))
+			for item: Variant in edit[1]:
+				list.append(_decode(item, null))
+			return list
 		if value is Array:
 			var list := []
 			for index in (value as Array).size():
@@ -204,8 +246,20 @@ class Receiver:
 		return table
 
 	func _unpack_creatures(packed: Dictionary, arena: Arena) -> void:
-		var ids: PackedInt64Array = packed.ids
-		var kinds: PackedStringArray = packed.kinds
+		# The ids as we had them, less those gone, and the new at the end, with their kinds.
+		var ids := PackedInt64Array()
+		var kinds := PackedStringArray()
+		var gone: PackedInt32Array = packed.gone
+		var next_gone := 0
+		for place in _horde_ids.size():
+			if next_gone < gone.size() and gone[next_gone] == place:
+				next_gone += 1
+				continue
+			ids.append(_horde_ids[place])
+			kinds.append((objects[_horde_ids[place]] as Creature).kind)
+		ids.append_array(packed.new)
+		kinds.append_array(packed.kinds)
+		_horde_ids = ids
 		var numbers: PackedByteArray = packed.numbers
 		var creatures: Array[Creature] = []
 		var here := {}
@@ -262,6 +316,52 @@ static func put(object: Object, name: String, value: Variant) -> void:
 		(was as Array).assign(value)
 	else:
 		object.set(name, value)
+
+
+## What a fresh object of a script holds, encoded, for an object new to a guest to be sent only
+## what differs: the guest makes it fresh the same way. Only what two fresh ones agree on, and
+## never another object (the guest's fresh one has its own).
+static var _fresh_fields := {}
+
+
+static func _fresh(path: String) -> Dictionary:
+	if _fresh_fields.has(path):
+		return _fresh_fields[path]
+	var one := _make(path)
+	var another := _make(path)
+	var fields := {}
+	for property in one.get_property_list():
+		var name: String = property.name
+		if not property.usage & PROPERTY_USAGE_SCRIPT_VARIABLE or name.begins_with("_"):
+			continue
+		var value: Variant = _encode(one.get(name), {})
+		if _holds_an_object(value) or value != _encode(another.get(name), {}):
+			continue
+		fields[name] = value
+	_fresh_fields[path] = fields
+	return fields
+
+
+static func _holds_an_object(value: Variant) -> bool:
+	if value is Array:
+		return (value as Array).any(func(item: Variant) -> bool: return _holds_an_object(item))
+	if value is Dictionary:
+		return value.has("@") or (value as Dictionary).values().any(func(item: Variant) -> bool: return _holds_an_object(item))
+	return false
+
+
+## A changed field, to send: a list that has only lost some from its front and grown at its end
+## goes as {"~": [how many lost, what was added]}; anything else goes whole.
+static func _edit(was: Variant, now: Variant) -> Variant:
+	if not (was is Array and now is Array) or (was as Array).size() < 2:
+		return now
+	var before: Array = was
+	var after: Array = now
+	for lost in mini(before.size(), 3):
+		var kept := before.size() - lost
+		if kept <= after.size() and after.slice(0, kept) == before.slice(lost):
+			return {"~": [lost, after.slice(kept)]}
+	return now
 
 
 ## A fresh object of a simulation class, by its script: a cage wants dice to be made with.
