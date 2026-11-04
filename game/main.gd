@@ -259,6 +259,8 @@ var _dev_grove := false
 ## home was a grove's, for the walk in.
 var _dev_cub := ""
 var _cleansed := false
+## How many of Jogiboy's barks have been heard.
+var _barks_heard := 0
 ## The grove this run is in, as the village keeps that its line was told: "grove:<id>".
 var _grove_told := ""
 var _horde_kind := "rat"
@@ -1295,10 +1297,17 @@ func _read_shop() -> void:
 
 
 func _step_village(delta: float) -> void:
+	# With something new waiting somewhere, Jogiboy shows the way; never in the middle of a scene.
+	village_map.leads_to = village.nearest_tiding(village_map, village_map.cat.body.position) if _place == "village" else Vector2.INF
 	_behind = minf(_behind + delta, Arena.STEP * 5.0)
 	while _behind >= Arena.STEP:
 		_behind -= Arena.STEP
 		village_map.step(Arena.STEP)
+	# Jogiboy barking to call him on: heard, and said in a bubble over him for a moment.
+	if village_map.jogi_barks != _barks_heard:
+		_barks_heard = village_map.jogi_barks
+		_audio.play_at("bark", village_map.jogi.body.position, -4.0, 1.25)
+		_overlay.barked_for = Overlay.BARK_SHOWS
 	_camera.position = _village_camera()
 
 

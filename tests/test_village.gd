@@ -228,3 +228,47 @@ func test_held_for_the_opening_jogiboy_waits_then_trots_up() -> void:
 	for step in 60 * 4:
 		map.step(Arena.STEP)
 	check(map.cat.body.position.distance_to(map.jogi.body.position) < 1.5, "Jogiboy never came over once let go")
+
+
+func test_jogiboy_leads_the_way_to_whats_new_and_waits() -> void:
+	var map := VillageMap.new()
+	map.cat.body.position = VillageMap.MEETING_SPOT
+	map.jogi.body.position = VillageMap.MEETING_SPOT + Vector2(-0.8, 0.0)
+	map.leads_to = VillageMap.door_step(VillageMap.SMITHY)
+	for step in 60 * 3:
+		map.step(Arena.STEP)
+	check(map.jogi_leading, "Jogiboy didn't lead the way")
+	var ahead := VillageMap.along_the_way(map.cat.body.position, map.leads_to, VillageMap.LEAD_AHEAD)
+	check(map.jogi.body.position.distance_to(ahead) < 0.5, "Jogiboy wasn't waiting ahead on the way")
+	check(map.jogi.body.position.distance_to(map.leads_to) < map.cat.body.position.distance_to(map.leads_to), "Jogiboy led the wrong way")
+
+
+func test_walked_away_from_jogiboy_gives_up_and_comes_to_heel() -> void:
+	var map := VillageMap.new()
+	map.cat.body.position = VillageMap.MEETING_SPOT
+	map.jogi.body.position = VillageMap.MEETING_SPOT
+	map.leads_to = VillageMap.door_step(VillageMap.SMITHY)
+	for step in 60 * 2:
+		map.step(Arena.STEP)
+	for step in 60 * 3:
+		map.cat.steering = Vector2.LEFT
+		map.step(Arena.STEP)
+	check(not map.jogi_leading, "Jogiboy kept leading after Tompel went the other way")
+
+
+func test_the_way_runs_along_the_road_and_never_past_where_its_going() -> void:
+	var from := Vector2(14.0, 5.6)
+	var to := Vector2(30.0, 12.6)
+	var road := (VillageMap.PATH_TOP + VillageMap.PATH_BOTTOM) / 2.0
+	check(absf(VillageMap.along_the_way(from, to, 8.0).y - road) < 0.01, "the way didn't keep to the road")
+	check(VillageMap.along_the_way(from, to, 1000.0) == to, "the way ran past where it was going")
+
+
+func test_waiting_ahead_jogiboy_barks_to_call_him_on() -> void:
+	var map := VillageMap.new()
+	map.cat.body.position = VillageMap.MEETING_SPOT
+	map.jogi.body.position = VillageMap.MEETING_SPOT
+	map.leads_to = VillageMap.door_step(VillageMap.SMITHY)
+	for step in 60 * 6:
+		map.step(Arena.STEP)
+	check(map.jogi_barks >= 2, "Jogiboy waited ahead without barking for him")

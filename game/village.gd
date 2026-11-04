@@ -276,6 +276,28 @@ func tell(at: String, title: String, text: String, teaches := "") -> void:
 	tidings.append(tiding)
 
 
+## Where in the village there's something new for him, standing where he'd hear it: the door of
+## each building with news (one standing, or the board), and the Elder where he is. Not Jogiboy,
+## who's at his heel anyway.
+func tiding_spots(map: VillageMap) -> Array[Vector2]:
+	var spots: Array[Vector2] = []
+	for building in map.buildings:
+		if has_tidings(building.name) and (building.restored or building.name == "board"):
+			spots.append(VillageMap.door_step(building.footprint))
+	if has_tidings("elder"):
+		spots.append(map.elder.body.position)
+	return spots
+
+
+## The nearest of them to a point, or nowhere (INF).
+func nearest_tiding(map: VillageMap, to: Vector2) -> Vector2:
+	var nearest := Vector2.INF
+	for spot in tiding_spots(map):
+		if not nearest.is_finite() or spot.distance_to(to) < nearest.distance_to(to):
+			nearest = spot
+	return nearest
+
+
 ## Whether there's something new waiting to be heard there.
 func has_tidings(at: String) -> bool:
 	return (at == "jogiboy" and jogiboy_found > 0) or tidings.any(func(tiding: Dictionary) -> bool: return tiding.at == at)

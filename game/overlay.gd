@@ -107,6 +107,10 @@ const HURT_FLASH_MS := 200
 const LOW_HEALTH := 0.3
 var door := ""
 var message := ""
+## Jogiboy's bark, said over him for a moment: how long it's still up, and what he says.
+var barked_for := 0.0
+const BARK_SHOWS := 0.9
+const BARKS: Array[String] = ["Arf!", "Arf arf!", "This way!"]
 var shop_page := ""
 var shop_title := ""
 var shop_rows: Array[Dictionary] = []
@@ -327,6 +331,14 @@ func _draw_village() -> void:
 		return
 	if village_record != null:
 		_draw_village_counts()
+		# Each "!" out of sight, marked at the screen's edge, the way it's done out on a run.
+		var news: Array[Dictionary] = []
+		for spot in village_record.tiding_spots(village_map):
+			news.append({"at": spot, "icon": "", "color": Palette.BRASS_LIGHT})
+		_draw_edge_targets(news, village_map.cat.body.position, 30.0)
+	if barked_for > 0.0:
+		barked_for = maxf(barked_for - get_process_delta_time(), 0.0)
+		_bubble(village_map.jogi.body.position, "", BARKS[village_map.jogi_barks % BARKS.size()])
 	_shadowed(message, screen.y - 38, Palette.PINK)
 	if not door.is_empty():
 		var keys: Array[String] = ["Enter", door]
@@ -751,8 +763,24 @@ func _draw_cage_markers() -> void:
 		for lever in arena.levers:
 			if not lever.pulled:
 				targets.append({"at": lever.position, "icon": "", "color": Palette.BRASS_LIGHT})
-	var inside := Rect2(Vector2(14, 62), screen.size - Vector2(28, 76))
-	var from: Vector2 = cat.body.position if cat != null else arena.size / 2.0
+	_draw_edge_targets(targets, cat.body.position if cat != null else arena.size / 2.0)
+	# The siege: each burning house, and with no water carried, the well.
+	var burning := false
+	for roof in arena.roofs:
+		if roof.lit and not roof.out:
+			burning = true
+			_mark(to_screen * World.to_screen(roof.door, 0.25), "fire", Palette.HI_VIS)
+	if burning and cat != null and not cat.water:
+		_mark(to_screen * World.to_screen(arena.well.get_center(), 0.25), "water", Palette.CLOTH_LIGHT)
+
+
+## For each target out of sight ({at, icon, color}): at the edge of the screen, an arrow pointing to
+## it, a badge saying what it is (an icon, or a "!"), and how far from here, in meters.
+func _draw_edge_targets(targets: Array[Dictionary], from: Vector2, top := 62.0) -> void:
+	var screen := get_viewport_rect()
+	var to_screen := get_viewport().get_canvas_transform()
+	# Kept clear of what's along the top: a run's status panel, or the village's counts.
+	var inside := Rect2(Vector2(14, top), screen.size - Vector2(28, top + 14))
 	for target in targets:
 		var at: Vector2 = to_screen * World.to_screen(target.at, 0.25)
 		if screen.grow(-4).has_point(at):
@@ -777,14 +805,6 @@ func _draw_cage_markers() -> void:
 		var label_at := Vector2(floorf(badge.get_center().x - PixelFont.width(meters) / 2.0), label_y)
 		PixelFont.draw(self, label_at + Vector2(1, 1), meters, Palette.GRAPHITE)
 		PixelFont.draw(self, label_at, meters, Palette.OFF_WHITE)
-	# The siege: each burning house, and with no water carried, the well.
-	var burning := false
-	for roof in arena.roofs:
-		if roof.lit and not roof.out:
-			burning = true
-			_mark(to_screen * World.to_screen(roof.door, 0.25), "fire", Palette.HI_VIS)
-	if burning and cat != null and not cat.water:
-		_mark(to_screen * World.to_screen(arena.well.get_center(), 0.25), "water", Palette.CLOTH_LIGHT)
 
 
 ## A mark at the edge of the screen, the way to something out of sight.
