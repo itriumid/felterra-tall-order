@@ -9,7 +9,16 @@ func _send(host: Arena, sender: Snapshot.Sender, receiver: Snapshot.Receiver, gu
 	return receiver.apply(sender.delta(Snapshot.take(host, events)), guest)
 
 
-## A busy fight a minute in, two cats with something to fight with, giants and dogs about.
+## Each cat plays the first card of a hand as it's dealt, as a player would: nobody sits on a
+## backlog of hands.
+func _play_cards(arena: Arena) -> void:
+	for cat in arena.cats:
+		while not cat.offers.is_empty():
+			cat.play(0)
+
+
+## A busy fight a minute in, two cats with something to fight with, giants and dogs about, the
+## cards played as they come.
 func _host() -> Arena:
 	var arena := Arena.new(7)
 	var first := arena.add_cat(Arena.SIZE / 2.0)
@@ -20,6 +29,7 @@ func _host() -> Arena:
 	first.wear({"weapons": ["nunchaku"]})
 	for step in int(60.0 / Arena.STEP):
 		arena.step()
+		_play_cards(arena)
 	return arena
 
 
@@ -95,6 +105,7 @@ func test_a_busy_fight_is_small_enough_to_send() -> void:
 	for tick in 20:
 		for step in 3:
 			host.step()
+			_play_cards(host)
 		largest = maxi(largest, sender.delta(Snapshot.take(host, [])).size())
 	print("      %d in the horde, %d fallen: the first snapshot %d bytes, then at most %d" % [host.creatures.size(), host.fallen.size(), first, largest])
 	# 20 a second to each guest, under about 400 kilobits a second.
