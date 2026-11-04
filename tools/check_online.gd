@@ -12,8 +12,9 @@ extends SceneTree
 const STEPS := [
 	"host", "join", "hello_heard", "go_out", "told_of_run", "guest_chooses", "guest_cat_in", "host_chooses",
 	"world_arrives", "guest_first_hand", "guest_plays", "guest_steers", "guest_moved",
-	# The connection drops, and comes back: the same cat, as it was.
-	"guest_drops", "guest_returns",
+	# The connection drops, and comes back: the same cat, as it was, holding the same hands, the
+	# horde and the fireflies as the host has them; and what's dealt after comes through.
+	"guest_holds_hands", "guest_drops", "guest_returns", "world_agrees", "dealt_after_return",
 	# Leaving on purpose: the cat goes at once. Then someone new drops in to the run under way,
 	# dealt the cards the crew's level-ups have handed out.
 	"guest_parts", "guest_gone", "guest_drops_in", "guest_chooses_late",
@@ -45,6 +46,7 @@ var _frames := 0
 var _guest_started_at := Vector2.ZERO
 var _guest_salvage := 0
 var _dropped_cat := 0
+var _held_before := 0
 ## The rooms service to play by code through, or "" to play by address.
 var _rooms := ""
 
@@ -134,6 +136,17 @@ func _do(step: String) -> void:
 			_host.arena.lost = true
 			for cat: Cat in _host.arena.cats:
 				cat.health = 0.0
+		"guest_holds_hands":
+			# Three levels' hands, none played, and fireflies out where nobody's near.
+			for level in 3:
+				_host.arena._gain_experience(Arena.experience_needed(_host.arena.level) - _host.arena.experience)
+			for index in 30:
+				_host.arena.fireflies.rise(Vector2(2.0 + index * 0.3, 2.0), 1, _host.arena.time)
+		"dealt_after_return":
+			# The oldest hand played, a new one dealt: the list loses its front and grows at its end.
+			_held_before = _host_side_guest_cat().offers.size()
+			_guest._online.send_press("pick", 0)
+			_host.arena._gain_experience(Arena.experience_needed(_host.arena.level) - _host.arena.experience)
 		"guest_drops":
 			_dropped_cat = _guest._online.my_cat_id
 			_guest._online.multiplayer.multiplayer_peer.close()
@@ -207,6 +220,14 @@ func _holds(step: String) -> bool:
 			return not _guest._online.reconnecting and _guest._online.my_cat_id == _dropped_cat \
 				and not back.is_empty() and not back.get("away", true) and back.cat in _host.arena.cats \
 				and _guest.cat == _guest._online.receiver.objects.get(_dropped_cat)
+		"guest_holds_hands":
+			return _guest_agrees_on_hands() and _host_side_guest_cat().offers.size() >= 3
+		"world_agrees":
+			return _guest_agrees_on_hands() and _guest.arena.fireflies.count() == _host.arena.fireflies.count() \
+				and _guest_agrees_on_horde()
+		"dealt_after_return":
+			return _guest_agrees_on_hands() and _host_side_guest_cat().offers.size() == _held_before \
+				and _host_side_guest_cat().taken > 1
 		"guest_parts":
 			return not _guest._online.guesting
 		"guest_gone":
@@ -229,6 +250,28 @@ func _holds(step: String) -> bool:
 
 func _host_side_guest_cat() -> Cat:
 	return _host._allies[0].cat
+
+
+## The hands the guest's cat holds, on the guest's side, are the host's.
+func _guest_agrees_on_hands() -> bool:
+	var mine: Cat = _guest._online.receiver.objects.get(_guest._online.my_cat_id)
+	return mine != null and not _host._allies.is_empty() and mine.offers == _host_side_guest_cat().offers
+
+
+## The horde on the guest's side is the host's, a snapshot behind: nearly all of the host's are
+## there, and every one both have is the same kind.
+func _guest_agrees_on_horde() -> bool:
+	var kinds := {}
+	for creature: Creature in _host.arena.creatures:
+		kinds[creature.get_instance_id()] = creature.kind
+	var shared := 0
+	for id: int in _guest._online.receiver._horde_ids:
+		if not kinds.has(id):
+			continue
+		if (_guest._online.receiver.objects[id] as Creature).kind != kinds[id]:
+			return false
+		shared += 1
+	return shared > 0 and shared >= kinds.size() * 0.9
 
 
 func _finish(passed: bool) -> void:

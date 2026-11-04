@@ -81,6 +81,9 @@ const SKIN_SHADOW := Color8(184, 132, 100)
 const BLOOD := Color8(150, 30, 36)
 const BLOOD_DRY := Color8(92, 28, 30)
 const SPARK := Color8(255, 230, 150)
+## A firefly's light, and the glow round it.
+const FIREFLY := Color8(255, 255, 240)
+const FIREFLY_GLOW := Color8(255, 222, 92, 235)
 const SMOKE := Color8(180, 176, 166)
 
 # Interface: Itrium's Rhodonite, and the neutral surfaces around it: a panel's shadow and its lit

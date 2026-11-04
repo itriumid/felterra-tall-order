@@ -100,9 +100,9 @@ func test_felling_a_giant_is_worth_more_than_a_rat() -> void:
 	var arena := _arena()
 	arena.add_cat(Arena.SIZE / 2.0)
 	var giant := arena.add_giant(Arena.SIZE / 2.0 + Vector2(3.0, 0.0))
-	var before := arena.experience + arena.level * 100
 	arena.strike(giant, 1000.0, Vector2.RIGHT, 0.0, 0.0, "round")
-	check(arena.experience + arena.level * 100 - before >= Giant.WORTH, "felling a giant gave too little experience")
+	# What he was worth rises as fireflies where he fell.
+	check(arena.fireflies.total() >= Giant.WORTH and arena.fireflies.total() > Creature.KINDS.rat.worth, "felling a giant left %d experience in fireflies" % arena.fireflies.total())
 
 
 func test_a_knife_reaches_a_giant_at_his_shins() -> void:

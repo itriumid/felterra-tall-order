@@ -121,8 +121,7 @@ func test_broken_it_stays_as_a_wreck() -> void:
 	var cat := _cat(arena, Arena.SIZE / 2.0 + Vector2(-8.0, 0.0))
 	arena.strike(machine, Machine.HEALTH / Machine.ARMOR_SHARE + 1.0, Vector2.ZERO, 0.0, 0.0, "round", cat)
 	check(not machine.standing() and arena.machines_broken == 1, "it took more than its health and kept working")
-	var gained := arena.experience + (arena.level - 1) * 100
-	check(gained > 0, "breaking it gave no experience")
+	check(arena.fireflies.total() > 0, "breaking it left no fireflies")
 	var at := machine.body.position
 	for step in 60 * 5:
 		arena.step()
