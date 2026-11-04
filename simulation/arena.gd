@@ -210,6 +210,9 @@ var spawning := true
 ## each cat an offer.
 var experience := 0
 var level := 1
+## The experience not caught yet: fireflies, rising from whatever falls (see Fireflies). Sent to a
+## guest by slot, not with the rest.
+var fireflies := Fireflies.new()
 ## A run starts with no weapon: experience trickles in from the start, filling the bar to the first
 ## level in this long, so the first hand (the first draw) comes the way every hand does, by
 ## leveling up, before the horde's close.
@@ -350,6 +353,7 @@ func step() -> void:
 	_pop_crackers()
 	_pick_locks()
 	_pick_up()
+	_catch_fireflies()
 	_drift_smoke()
 	_fight_fires()
 	_pursue_goal()
@@ -1260,7 +1264,7 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 			machines_broken += 1
 			if attacker != null:
 				attacker.killed_one()
-			_gain_experience(machine.worth)
+			fireflies.rise(machine.body.position, machine.worth, time)
 			drop_salvage(machine.body.position, SALVAGE.get(machine.kind, 0))
 		return
 	var dealt: float = minf(damage, target.health)
@@ -1278,7 +1282,7 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 			giants_felled += 1
 			if attacker != null:
 				attacker.killed_one()
-			_gain_experience(giant.worth)
+			fireflies.rise(giant.body.position, giant.worth, time)
 			drop_salvage(giant.body.position, SALVAGE.get(giant.kind, 0))
 		return
 	var creature: Creature = target
@@ -1303,9 +1307,10 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 	kills += 1
 	if attacker != null:
 		attacker.killed_one()
-	_gain_experience(creature.worth)
+	fireflies.rise(creature.body.position, creature.worth + creature.glow, time)
 	creatures.erase(creature)
-	# What a tuyul was running off with, he drops.
+	# What a tuyul was running off with, he drops: the salvage, and the fireflies he swallowed
+	# rise again with his own.
 	if creature.carrying > 0:
 		drop_salvage(creature.body.position, creature.carrying)
 	# A spirit goes out: nothing's left lying.
@@ -1361,6 +1366,13 @@ func _pick_up() -> void:
 		if not taken:
 			lying.append(piece)
 	pickups = lying
+
+
+## Fireflies near a cat come to him; caught, they count for the crew.
+func _catch_fireflies() -> void:
+	for caught in fireflies.step(STEP, cats):
+		_gain_experience(caught.worth)
+		events.append({"position": caught.position, "height": 0.3, "direction": Vector2.ZERO, "killed": false, "by": "firefly", "giant": false, "kind": "firefly"})
 
 
 ## A cat joining a run under way: in beside whoever's standing, a moment out of harm's way, and
@@ -1703,9 +1715,13 @@ func _drift_smoke() -> void:
 	smoke = smoke.filter(func(puff: Dictionary) -> bool: return puff.left > 0.0)
 
 
-## Tuyul on their errands: one carrying salvage makes for the trees, and is gone into them with
-## it; one with nothing goes for salvage lying near enough to smell, and takes it. With none, it
-## goes for a cat.
+## Tuyul on their errands: one carrying salvage, or fireflies enough, makes for the trees, and is
+## gone into them with it; one with nothing goes for salvage lying near enough to smell, and takes
+## it, or else a firefly. With neither, it goes for a cat.
+## The experience in fireflies a tuyul swallows before he's off with it.
+const GLOW_ENOUGH := 6
+
+
 func _send_on_errands() -> void:
 	var escaped: Array[Creature] = []
 	for creature in creatures:
@@ -1719,7 +1735,13 @@ func _send_on_errands() -> void:
 		if not Creature.KINDS[creature.kind].get("steals", false):
 			continue
 		var at := creature.body.position
-		if creature.carrying > 0:
+		# Fireflies he runs through, he swallows, whatever he's after.
+		var swallowed := fireflies.take_near(at, creature.body.radius + Fireflies.CATCH)
+		if swallowed > 0:
+			creature.glow += swallowed
+			creature.errand = Vector2.INF
+			events.append({"position": at, "height": 0.2, "direction": Vector2.ZERO, "killed": false, "by": "stolen", "giant": false, "kind": creature.kind})
+		if creature.carrying > 0 or creature.glow >= GLOW_ENOUGH:
 			if not creature.errand.is_finite():
 				creature.errand = _nearest_edge(at)
 			if at.distance_to(creature.errand) < 0.4:
@@ -1731,6 +1753,10 @@ func _send_on_errands() -> void:
 			if piece.body.height < 0.3 and at.distance_to(piece.body.position) <= Creature.SNIFFS and (nearest == null or at.distance_to(piece.body.position) < at.distance_to(nearest.body.position)):
 				nearest = piece
 		if nearest == null:
+			# No salvage: the nearest firefly will do.
+			var light := fireflies.nearest(at, Creature.SNIFFS)
+			if light.is_finite():
+				creature.errand = light
 			continue
 		if at.distance_to(nearest.body.position) <= creature.body.radius + Pickup.REACH * 0.5:
 			pickups.erase(nearest)
@@ -1907,6 +1933,7 @@ func _dam_drains() -> void:
 ## more come, and whoever was paid to be here keeps coming, harder.
 func _cleanse() -> void:
 	cleansed = true
+	fireflies.call_all()
 	events.append({"position": size / 2.0, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "cleansed", "giant": false, "kind": "grove"})
 	for creature in creatures:
 		if creature.keeper():
@@ -1972,6 +1999,7 @@ func _pursue_goal() -> void:
 		return
 	if boss != null and not (boss.standing() if boss is Machine or boss is Giant else boss.alive()):
 		liberated = true
+		fireflies.call_all()
 		events.append({"position": boss.body.position, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "liberated", "giant": false, "kind": area.id})
 
 

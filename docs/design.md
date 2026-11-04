@@ -122,7 +122,7 @@ nothing lying when it falls, and nothing that bleeds: it goes out in embers.
 
 | Role | Who |
 |---|---|
-| **The horde** | Ember wisps floating off the burned peat, tuyul who run off with salvage, pocong who can only hop, smoke monkeys who leap and hide in their own smoke |
+| **The horde** | Ember wisps floating off the burned peat, tuyul who run off with salvage and fireflies, pocong who can only hop, smoke monkeys who leap and hide in their own smoke |
 | **Heavies** | Charred saplings, walking on their roots in groups |
 | **The guardian** | The Great Tiger, the great tiger: its pounce lands where he stood (the spot is marked), its paw sweeps (the arc is marked), and its roar throws him back and calls embers out of the trees. Gathering itself after a pounce, hits land double |
 
@@ -165,6 +165,22 @@ his pack, with one free redraw of its own. Luck, nothing more: what he packs is 
 draw, a weapon he swings or one he shoots. Each ally draws their own the same way, and a guest
 from their own pack. Two of the village's weapons wink at the films on their cards: the
 nunchaku, "Go Chuck Purris style", and the handgun, "Go John Whisker style".
+
+### Fireflies
+
+After the first draw, experience is in **fireflies**. Whatever falls, one rises from where it
+fell, carrying what it was worth (a big fall rises as a few, a bigger worth a bigger light), and
+hangs there blinking. A cat within a meter and a half draws it in, faster as it comes; caught,
+it counts for the whole crew. Nobody near, it waits for as long as the run lasts: they don't
+merge or fade, so a fight fought at range leaves a field of them to go back for. A tuyul
+swallows any he runs through, goes looking for them when there's no salvage, and once full makes
+for the trees; caught, he gives them all back. Freeing an area or cleansing a grove calls every
+one in.
+
+They're built to be cheap in the hundreds: kept by slot in packed arrays, in a grid, with only
+those coming to a cat moving, and only those on screen drawn. Online, a firefly is sent when it
+rises, starts to come or is caught, never as it flies: a guest flies it in itself.
+`tools/benchmark_fireflies.gd` measures them by the thousand.
 
 ### Every weapon evolves
 

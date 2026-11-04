@@ -335,6 +335,7 @@ func _draw_all() -> void:
 	_draw_smoke()
 	for droplet in _droplets:
 		draw_rect(Rect2(World.to_screen(droplet.position, droplet.height), Vector2.ONE), droplet.color)
+	_draw_fireflies()
 	for shot in arena.shots:
 		if shot.weapon != null and shot.weapon.name == "net_drone":
 			# A net in flight: bundled as it goes up, opening out as it comes down, its shadow under
@@ -1687,6 +1688,44 @@ func _mark(position: Vector2, height: float, kind: String, way: Vector2, life: f
 		_marks.pop_front()
 
 
+## Fireflies: each rises from where something fell to hang a little off the ground, bobbing and
+## blinking in its own time, a bigger worth a bigger light; one coming to a cat streaks in, lit
+## up. Only those on screen are drawn, a pixel or a few each, so a field of hundreds is cheap.
+const FIREFLY_RISES := 0.6
+const FIREFLY_HANGS := 0.35
+
+
+func _draw_fireflies() -> void:
+	var lights := arena.fireflies
+	var seen := get_canvas_transform().affine_inverse() * get_viewport_rect()
+	var area := Rect2(seen.position / World.PIXELS_PER_METER, seen.size / World.PIXELS_PER_METER).grow(1.0)
+	for slot in lights.within(area):
+		var worth := lights.worth[slot]
+		var ground := World.to_screen(lights.at[slot])
+		var coming := lights.speed[slot] > 0.0
+		var risen := clampf((arena.time - lights.born[slot]) / FIREFLY_RISES, 0.0, 1.0)
+		var phase := slot * 1.7
+		var height := FIREFLY_HANGS * (1.0 - (1.0 - risen) * (1.0 - risen))
+		if not coming:
+			height += sin(_clock * 2.3 + phase) * 0.04
+		var spot := World.to_screen(lights.at[slot], height)
+		if not coming:
+			spot.x += roundf(sin(_clock * 1.1 + phase * 0.6) * 1.0)
+		draw_rect(Rect2(ground, Vector2.ONE), Palette.GROUND_SHADOW)
+		# The glow round it, a cross dimmed or a square lit (a big one's reaching further), and
+		# the light at its middle while it's lit.
+		var bright := coming or sin(_clock * 3.0 + phase) > -0.4
+		if bright:
+			draw_rect(Rect2(spot - Vector2.ONE, Vector2(3, 3)), Palette.FIREFLY_GLOW)
+			if worth >= Fireflies.SPLIT_FROM:
+				draw_rect(Rect2(spot - Vector2(2, 0), Vector2(5, 1)), Palette.FIREFLY_GLOW)
+				draw_rect(Rect2(spot - Vector2(0, 2), Vector2(1, 5)), Palette.FIREFLY_GLOW)
+			draw_rect(Rect2(spot, Vector2.ONE), Palette.FIREFLY)
+		else:
+			draw_rect(Rect2(spot - Vector2(1, 0), Vector2(3, 1)), Palette.FIREFLY_GLOW)
+			draw_rect(Rect2(spot - Vector2(0, 1), Vector2(1, 3)), Palette.FIREFLY_GLOW)
+
+
 ## What's lying about from the fight: spent cases glinting, scorch fading from black to earth, and
 ## arrows, bolts, nails and darts stuck where they struck, their ends out.
 func _draw_marks() -> void:
@@ -1883,6 +1922,13 @@ func _bleed(delta: float) -> void:
 					"position": event.position, "height": 0.3, "rise": randf_range(0.6, 1.6),
 					"velocity": Vector2.from_angle(randf() * TAU) * randf_range(0.4, 1.2),
 					"color": Palette.STEEL_LIGHT if index % 2 else Palette.SPARK, "stains": false,
+				})
+			continue
+		if event.by == "firefly":
+			for index in 2:
+				_droplets.append({
+					"position": event.position, "height": 0.25, "rise": randf_range(0.6, 1.0),
+					"velocity": Vector2(randf_range(-0.4, 0.4), randf_range(-0.4, 0.4)), "color": Palette.FIREFLY, "stains": false,
 				})
 			continue
 		if event.by == "pickup":

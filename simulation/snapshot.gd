@@ -16,7 +16,7 @@ extends RefCounted
 
 ## What the guest lays out for itself from the area and its seed, or never needs: where things
 ## stand, the host's dice and its plan, and what's sent packed or on its own.
-const ARENA_SKIPS: Array[String] = ["obstacles", "random", "plan", "area", "size", "spawning", "events", "creatures", "fallen"]
+const ARENA_SKIPS: Array[String] = ["obstacles", "random", "plan", "area", "size", "spawning", "events", "creatures", "fallen", "fireflies"]
 ## The horde, packed: each creature's id and kind, then these, as whole centimeters (or hundredths)
 ## in 16 bits each.
 const CREATURE_FIELDS := 9
@@ -38,7 +38,22 @@ static func take(arena: Arena, events: Array[Dictionary]) -> Dictionary:
 	return {
 		"arena": fields, "objects": objects, "creatures": _pack_creatures(arena.creatures),
 		"fallen": _pack_fallen(arena.fallen), "events": _encode(events, objects),
+		"fireflies": {"slots": arena.fireflies.take_touched(), "from": arena.fireflies},
 	}
+
+
+## Fireflies by slot, these slots: where, worth, when it rose and how fast it's coming.
+static func _pack_fireflies(fireflies: Fireflies, slots: PackedInt32Array) -> Dictionary:
+	var at := PackedVector2Array()
+	var worth := PackedInt32Array()
+	var born := PackedFloat32Array()
+	var speed := PackedFloat32Array()
+	for slot in slots:
+		at.append(fireflies.at[slot])
+		worth.append(fireflies.worth[slot])
+		born.append(fireflies.born[slot])
+		speed.append(fireflies.speed[slot])
+	return {"slots": slots, "at": at, "worth": worth, "born": born, "speed": speed}
 
 
 ## An object as {"@": id}, its fields set down in `objects` under that id with its script; arrays
@@ -76,6 +91,8 @@ class Sender:
 	var _objects := {}
 	var _fallen := PackedByteArray()
 	var _fallen_kinds := PackedStringArray()
+	## Whether this guest has had every firefly once: after that, only the slots that changed.
+	var _had_fireflies := false
 
 	## What's changed for this guest since their last, packed to send.
 	func delta(world: Dictionary) -> PackedByteArray:
@@ -118,10 +135,15 @@ class Sender:
 		_objects = world.objects
 		_fallen = numbers
 		_fallen_kinds = fallen.kinds
+		var lights: Fireflies = world.fireflies.from
+		var slots: PackedInt32Array = world.fireflies.slots
+		if not _had_fireflies:
+			slots = PackedInt32Array(range(lights.worth.size()))
+			_had_fireflies = true
 		var state := {
 			"arena": arena, "objects": objects, "gone": gone, "creatures": world.creatures,
 			"fallen": {"count": numbers.size() / record, "moved": moved, "numbers": moved_numbers, "kinds": moved_kinds},
-			"events": world.events,
+			"events": world.events, "fireflies": Snapshot._pack_fireflies(lights, slots),
 		}
 		var bytes := var_to_bytes(state)
 		var packed := bytes.compress(FileAccess.COMPRESSION_ZSTD)
@@ -158,6 +180,9 @@ class Receiver:
 			Snapshot.put(arena, name, _decode(state.arena[name], arena.get(name)))
 		_unpack_creatures(state.creatures, arena)
 		_unpack_fallen(state.fallen, arena)
+		var lights: Dictionary = state.fireflies
+		for index in lights.slots.size():
+			arena.fireflies.put(lights.slots[index], lights.at[index], lights.worth[index], lights.born[index], lights.speed[index])
 		var events: Array[Dictionary] = []
 		events.assign(_decode(state.events, null))
 		return events

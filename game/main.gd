@@ -7,7 +7,8 @@ extends Node
 ## --dogs=<count> starts with guard dogs close by, --chainsaw=<count> with chainsaw workers; --giant=<count> starts with giants close by, --giant-from=<x>,<y> that far from him; --start=<nunchaku or handgun, or any weapon> skips choosing; --no-blood starts with blood off; --screenshot=<path> saves
 ## a frame after --screenshot-after seconds (default 4) and quits; --frames=<count> saves that
 ## many, a twentieth of a second apart, as <path>_1.png and on; --walk=<x>,<y> steers the cat
-## that way on his own; --fallen=<count> scatters that many bodies; --mutations=<id>,<id> gives
+## that way on his own; --fallen=<count> scatters that many bodies; --fireflies=<count> that many
+## fireflies, worth one each, some of them big; --mutations=<id>,<id> gives
 ## him those dodge mutations, a common card of each; --dodge-every=<seconds> dodges on his own;
 ## --offer=<id>,<id>,<id> hands him a card of those choices, common, uncommon and rare;
 ## --support=<id>,<id> puts those on his back; --machine starts with a feller buncher close by;
@@ -326,6 +327,7 @@ var _start := Arena.SIZE / 2.0
 ## Whether a development flag put him somewhere, so an area doesn't move him to its own start.
 var _placed := false
 var _fallen := 0
+var _fireflies := 0
 var _giants := 0
 var _dogs := 0
 var _chainsaws := 0
@@ -359,6 +361,8 @@ func _ready() -> void:
 			_placed = true
 		elif argument.begins_with("--fallen="):
 			_fallen = argument.trim_prefix("--fallen=").to_int()
+		elif argument.begins_with("--fireflies="):
+			_fireflies = argument.trim_prefix("--fireflies=").to_int()
 		elif argument.begins_with("--walk="):
 			var parts := argument.trim_prefix("--walk=").split(",")
 			_walk = Vector2(parts[0].to_float(), parts[1].to_float())
@@ -666,6 +670,10 @@ func _begin(horde: int, spawning: bool) -> void:
 		body.radius = 0.08
 		body.position = _start + Vector2(arena.random.randf_range(-7.0, 7.0), arena.random.randf_range(-4.0, 4.0))
 		arena.fallen.append(body)
+	for index in _fireflies:
+		var spot := _start + Vector2(arena.random.randf_range(-8.0, 8.0), arena.random.randf_range(-5.0, 5.0))
+		if spot.distance_to(_start) > Fireflies.PULL + 0.5:
+			arena.fireflies.rise(spot, Fireflies.SPLIT_FROM if index % 7 == 0 else 1, arena.time - 1.0 if index % 3 else arena.time)
 	_watch(arena, cat)
 	# The view starts on him, even if a menu opens before the first frame moves it.
 	_camera.position = World.to_screen(cat.body.position)
@@ -2539,6 +2547,7 @@ func _guest_frame(delta: float) -> void:
 		_since_world += delta
 	for body: Body in _truth:
 		body.position = _truth[body] + body.velocity * minf(_since_world, GUESSED_AHEAD)
+	arena.fireflies.glide(delta, arena.cats)
 	var mine: Cat = _online.receiver.objects.get(_online.my_cat_id)
 	if mine != null:
 		_guess_my_cat(mine, steered_to, delta)

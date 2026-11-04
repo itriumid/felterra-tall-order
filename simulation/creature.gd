@@ -96,6 +96,8 @@ var call_in := 2.0
 ## trees with it. And the salvage it's carrying.
 var errand := Vector2.INF
 var carrying := 0
+## The experience in the fireflies a tuyul's swallowed: caught, it rises again with his own.
+var glow := 0
 ## How long until a torchbearer sets the ground alight again.
 var torch_in := 2.0
 ## A Keeper come to itself, its grove cleansed: it bites nobody, and makes for the trees.
