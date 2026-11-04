@@ -481,6 +481,16 @@ on: fire and oil, or crewmates who can be downed.
     dug up with him, kept until he goes and asks. Walking up and pressing Enter hears it. Only
     the first walk in, with how to walk at all, is set out at once: news set out at the end of a
     run is too easily skipped.
+  - **Finding it.** A "!" out of sight is marked at the screen's edge, the way a run marks its
+    goals, with how far it is. And Jogiboy shows the way: with something new waiting, he trots
+    a little ahead of Tompel along the road toward the nearest "!", and waits there looking
+    back, barking now and then ("Arf!", "This way!") to call him on. Walk the other way and he
+    lets it go and comes to heel, until Tompel stands still a moment and he tries again. He
+    never takes the keys: the way is shown, never walked for him. He has a word for it, too,
+    a different one each time: as Tompel comes up to it ("Uncle Anvil wants a word with you."),
+    if he stands at the door and doesn't go in ("Go on. Say hello."), and if he walks off from
+    it ("Hey! Granny Whiskers wanted to talk to you!"); a place gets its own ("There's something
+    new at the board.").
   - **Housed cats weave cloth**: each restored hut houses two rescued cats, and every run brings
     in a cloth for each. The first hut is the weaver's, who sells looks for cloth (his coat, the
     umbul-umbul's colors), its own currency so a look never competes with forging. The full

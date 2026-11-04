@@ -276,6 +276,57 @@ func tell(at: String, title: String, text: String, teaches := "") -> void:
 	tidings.append(tiding)
 
 
+## Where in the village there's something new for him, standing where he'd hear it: the door of
+## each building with news (one standing, or the board), and the Elder where he is. Not Jogiboy,
+## who's at his heel anyway.
+func tiding_spots(map: VillageMap) -> Array[Vector2]:
+	var spots: Array[Vector2] = []
+	for building in map.buildings:
+		if has_tidings(building.name) and (building.restored or building.name == "board"):
+			spots.append(VillageMap.door_step(building.footprint))
+	if has_tidings("elder"):
+		spots.append(map.elder.body.position)
+	return spots
+
+
+## The nearest of them to a point, or nowhere (INF).
+func nearest_tiding(map: VillageMap, to: Vector2) -> Vector2:
+	var nearest := Vector2.INF
+	for spot in tiding_spots(map):
+		if not nearest.is_finite() or spot.distance_to(to) < nearest.distance_to(to):
+			nearest = spot
+	return nearest
+
+
+## Who has the news at the nearest of them, as Jogiboy would say it: {name, plural, person}, a
+## person by name, or a place ("the board"). Empty with nothing new anywhere.
+func nearest_teller(map: VillageMap, to: Vector2) -> Dictionary:
+	var nearest := nearest_tiding(map, to)
+	if not nearest.is_finite():
+		return {}
+	if has_tidings("elder") and map.elder.body.position.distance_to(nearest) < 0.01:
+		return TELLERS.elder
+	for building in map.buildings:
+		if VillageMap.door_step(building.footprint).distance_to(nearest) < 0.01:
+			return TELLERS.get(building.name, {"name": "the hut", "person": false})
+	return {}
+
+
+## Who has the news there, as Jogiboy puts it.
+const TELLERS := {
+	"elder": {"name": "the Elder", "person": true},
+	"smithy": {"name": "Uncle Anvil", "person": true},
+	"hut_0": {"name": "Granny Whiskers", "person": true},
+	"watchtower": {"name": "Saffron", "person": true},
+	"market": {"name": "Coffee and Cream", "person": true, "plural": true},
+	"healer": {"name": "Auntie Clove", "person": true},
+	"shrine": {"name": "the Great Tiger", "person": true},
+	"longhouse": {"name": "the longhouse", "person": false},
+	"board": {"name": "the board", "person": false},
+	"home": {"name": "your house", "person": false},
+}
+
+
 ## Whether there's something new waiting to be heard there.
 func has_tidings(at: String) -> bool:
 	return (at == "jogiboy" and jogiboy_found > 0) or tidings.any(func(tiding: Dictionary) -> bool: return tiding.at == at)

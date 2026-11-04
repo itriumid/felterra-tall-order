@@ -228,3 +228,83 @@ func test_held_for_the_opening_jogiboy_waits_then_trots_up() -> void:
 	for step in 60 * 4:
 		map.step(Arena.STEP)
 	check(map.cat.body.position.distance_to(map.jogi.body.position) < 1.5, "Jogiboy never came over once let go")
+
+
+func test_jogiboy_leads_the_way_to_whats_new_and_waits() -> void:
+	var map := VillageMap.new()
+	map.cat.body.position = VillageMap.MEETING_SPOT
+	map.jogi.body.position = VillageMap.MEETING_SPOT + Vector2(-0.8, 0.0)
+	map.leads_to = VillageMap.door_step(VillageMap.SMITHY)
+	for step in 60 * 3:
+		map.step(Arena.STEP)
+	check(map.jogi_leading, "Jogiboy didn't lead the way")
+	var ahead := VillageMap.along_the_way(map.cat.body.position, map.leads_to, VillageMap.LEAD_AHEAD)
+	check(map.jogi.body.position.distance_to(ahead) < 0.5, "Jogiboy wasn't waiting ahead on the way")
+	check(map.jogi.body.position.distance_to(map.leads_to) < map.cat.body.position.distance_to(map.leads_to), "Jogiboy led the wrong way")
+
+
+func test_walked_away_from_jogiboy_gives_up_and_comes_to_heel() -> void:
+	var map := VillageMap.new()
+	map.cat.body.position = VillageMap.MEETING_SPOT
+	map.jogi.body.position = VillageMap.MEETING_SPOT
+	map.leads_to = VillageMap.door_step(VillageMap.SMITHY)
+	for step in 60 * 2:
+		map.step(Arena.STEP)
+	for step in 60 * 3:
+		map.cat.steering = Vector2.LEFT
+		map.step(Arena.STEP)
+	check(not map.jogi_leading, "Jogiboy kept leading after Tompel went the other way")
+
+
+func test_the_way_runs_along_the_road_and_never_past_where_its_going() -> void:
+	var from := Vector2(14.0, 5.6)
+	var to := Vector2(30.0, 12.6)
+	var road := (VillageMap.PATH_TOP + VillageMap.PATH_BOTTOM) / 2.0
+	check(absf(VillageMap.along_the_way(from, to, 8.0).y - road) < 0.01, "the way didn't keep to the road")
+	check(VillageMap.along_the_way(from, to, 1000.0) == to, "the way ran past where it was going")
+
+
+func test_waiting_ahead_jogiboy_barks_to_call_him_on() -> void:
+	var map := VillageMap.new()
+	map.cat.body.position = VillageMap.MEETING_SPOT
+	map.jogi.body.position = VillageMap.MEETING_SPOT
+	map.leads_to = VillageMap.door_step(VillageMap.SMITHY)
+	for step in 60 * 6:
+		map.step(Arena.STEP)
+	check(map.jogi_barks >= 2, "Jogiboy waited ahead without barking for him")
+
+
+func test_jogiboy_has_a_word_as_tompel_comes_up_and_calls_after_him_if_he_walks_off() -> void:
+	var map := VillageMap.new()
+	var spot := VillageMap.door_step(VillageMap.SMITHY)
+	# Up from the road below the smithy; then standing at its door; then off back along the road.
+	map.cat.body.position = Vector2(spot.x, 11.4)
+	map.jogi.body.position = map.cat.body.position
+	map.leads_to = spot
+	var said: Array[String] = []
+	var heard := 0
+	var away := Vector2(14.0, 9.0)
+	for step in 60 * 14:
+		var toward := (spot if step < 60 * 9 else away) - map.cat.body.position
+		map.cat.steering = toward.normalized() if (step < 60 * 4 or step >= 60 * 9) and toward.length() > 0.3 else Vector2.ZERO
+		map.step(Arena.STEP)
+		if map.jogi_moments != heard:
+			heard = map.jogi_moments
+			said.append(map.jogi_moment)
+	check("nearing" in said, "Jogiboy said nothing as Tompel came up to the smithy: %s" % str(said))
+	check("lingering" in said, "Jogiboy didn't nudge him, standing at the door: %s" % str(said))
+	check("leaving" in said, "Jogiboy didn't call after him walking off: %s" % str(said))
+
+
+func test_jogiboys_words_agree_with_whos_meant_and_start_with_capitals() -> void:
+	for moment: String in ["nearing", "lingering", "leaving"]:
+		for count in 12:
+			var one := JogiboySays.line(moment, Village.TELLERS.elder, count)
+			var two := JogiboySays.line(moment, Village.TELLERS.market, count)
+			check(not one.contains("{") and not two.contains("{"), "a word was left unfilled: %s / %s" % [one, two])
+			check(not one.contains(". the") and not one.contains("! the") and not one.begins_with("the"), "a sentence started small: %s" % one)
+			check(not two.contains("Cream has") and not two.contains("Cream wants") and not two.contains("Cream is"), "Coffee and Cream were one cat: %s" % two)
+	var lines := {}
+	for count in 12:
+		lines[JogiboySays.line("nearing", Village.TELLERS.smithy, count)] = true
+	check(lines.size() >= 4, "Jogiboy said the same few things over and over")

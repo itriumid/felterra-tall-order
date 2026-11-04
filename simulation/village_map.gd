@@ -128,6 +128,41 @@ var elder_to := Vector2.INF
 var jogi := Cat.new()
 ## Held at the Elder's door, for the story's opening: he trots up only once the story says he does.
 var jogi_held := false
+## Where there's something new for him, the nearest, or nowhere (INF): Jogiboy leads him there,
+## a little way ahead along the road, and waits looking back, barking now and then to call him on.
+## When Tompel walks the other way, he gives up and comes to heel, until Tompel stands still a
+## moment and he tries again. Each bark counts up, for the view to hear and show.
+var leads_to := Vector2.INF
+var jogi_leading := false
+var _gave_up_on := Vector2.INF
+var _stood_for := 0.0
+var _away_for := 0.0
+var jogi_barks := 0
+var _bark_in := 0.0
+## What Jogiboy has to say about it, as Tompel comes and goes: "nearing" as he walks up to it,
+## "lingering" when he's there and doesn't go in, "leaving" when he walks off from it. Each said
+## counts up, for the view to put words to.
+var jogi_moment := ""
+var jogi_moments := 0
+var _watching := Vector2.INF
+var _was_near := false
+var _said_nearing := false
+var _lingered := 0.0
+## How near counts as near, how far past it counts as walking off, how long at the door before he
+## nudges, and how long between nudges.
+const NEAR := 3.2
+const WALKED_OFF := 5.0
+const LINGER_NUDGE := 4.0
+const LINGER_AGAIN := 7.0
+## How soon he barks once he's waiting, and how often after, while Tompel doesn't come.
+const BARK_FIRST := 0.4
+const BARK_AGAIN := 2.6
+## How far ahead of Tompel he leads, how close is there already, how long Tompel walks the other
+## way before he gives up, and how long Tompel stands still before he tries again.
+const LEAD_AHEAD := 2.2
+const LEAD_THERE := 1.6
+const LEAD_GIVES_UP := 0.6
+const LEAD_AGAIN_AFTER := 1.5
 var _jogi_trotting := false
 ## What Jogiboy's playing at ("" for nothing: following Tompel), and whether he's digging now; how
 ## long he's stood, and how long before he's bored of it; and where his play has got to.
@@ -460,6 +495,9 @@ func _step_jogi(delta: float) -> void:
 		if absf(to_them.x) > 0.3:
 			jogi.facing = Vector2(signf(to_them.x), 0.0)
 		return
+	_watch_him(delta)
+	if _lead(delta):
+		return
 	var goal := cat.body.position - cat.facing * JOGI_HEEL + cat.facing.orthogonal() * 0.35
 	if seeing_off:
 		goal = Vector2(EXIT_WEST + 1.4, PATH_BOTTOM - 0.4) if going_west else Vector2(EXIT_FROM - 0.6, PATH_BOTTOM - 0.4)
@@ -495,6 +533,98 @@ func _step_jogi(delta: float) -> void:
 		return
 	# Coming up to him: slowing as he arrives, not stopping dead.
 	_move(jogi, toward.normalized() * minf(JOGI_SPEED, maxf(toward.length() * 3.0, 0.8)), delta)
+
+
+## Jogiboy leading him to what's new: a little way ahead along the way there, then waiting by it,
+## turned back to him. Whether he's leading this step.
+func _lead(delta: float) -> bool:
+	_stood_for = _stood_for + delta if cat.body.velocity.length() < 0.2 else 0.0
+	if _gave_up_on.is_finite() and (_stood_for >= LEAD_AGAIN_AFTER or _gave_up_on.distance_to(leads_to) > 0.5):
+		_gave_up_on = Vector2.INF
+	var wants := leads_to.is_finite() and not seeing_off and not _gave_up_on.is_finite() \
+		and cat.body.position.distance_to(leads_to) > LEAD_THERE
+	# Walking away from it, not toward: a moment of that and Jogiboy lets it go, for now.
+	var going := cat.body.velocity
+	var away := wants and going.length() > 0.2 and going.normalized().dot((along_the_way(cat.body.position, leads_to, 0.5) - cat.body.position).normalized()) < -0.2
+	_away_for = _away_for + delta if away else 0.0
+	if _away_for >= LEAD_GIVES_UP:
+		_gave_up_on = leads_to
+		_away_for = 0.0
+		wants = false
+	jogi_leading = wants
+	if not wants:
+		return false
+	jogi_playing = ""
+	jogi_digging = false
+	_jogi_idle = 0.0
+	var spot := along_the_way(cat.body.position, leads_to, LEAD_AHEAD)
+	var toward := spot - jogi.body.position
+	if toward.length() < JOGI_SETTLE:
+		_move(jogi, Vector2.ZERO, delta)
+		# Waiting, he looks back at him, and while Tompel stays put, barks to call him on.
+		var to_him := cat.body.position - jogi.body.position
+		if absf(to_him.x) > 0.3:
+			jogi.facing = Vector2(signf(to_him.x), 0.0)
+		if cat.body.velocity.length() < 0.2:
+			_bark_in -= delta
+			if _bark_in <= 0.0:
+				jogi_barks += 1
+				_bark_in = BARK_AGAIN
+	else:
+		_bark_in = BARK_FIRST
+		_move(jogi, toward.normalized() * minf(JOGI_SPEED, maxf(toward.length() * 3.0, 0.8)), delta)
+	return true
+
+
+## Jogiboy watching Tompel with the news: a word as he comes up to it, a nudge if he stands there
+## and doesn't go in, and a call after him if he walks off from it.
+func _watch_him(delta: float) -> void:
+	if not leads_to.is_finite() or seeing_off:
+		_watching = Vector2.INF
+		return
+	if not _watching.is_finite() or _watching.distance_to(leads_to) > 0.5:
+		_watching = leads_to
+		_was_near = false
+		_said_nearing = false
+		_lingered = 0.0
+	var apart := cat.body.position.distance_to(leads_to)
+	var walking := cat.body.velocity.length() > 0.2
+	if apart <= NEAR:
+		if not _said_nearing and walking and cat.body.velocity.dot(leads_to - cat.body.position) > 0.0:
+			_said_nearing = true
+			_say("nearing")
+		_was_near = true
+		_lingered = _lingered + delta if not walking else 0.0
+		if _lingered >= LINGER_NUDGE:
+			_lingered -= LINGER_AGAIN
+			_say("lingering")
+	elif _was_near and apart >= WALKED_OFF:
+		_was_near = false
+		_said_nearing = false
+		_say("leaving")
+
+
+func _say(moment: String) -> void:
+	jogi_moment = moment
+	jogi_moments += 1
+
+
+## A spot so far along the way from one place to another in the village: along the road while the
+## two are apart along it, then off it to the door; never past where it's going.
+static func along_the_way(from: Vector2, to: Vector2, distance: float) -> Vector2:
+	var road := (PATH_TOP + PATH_BOTTOM) / 2.0
+	var points: Array[Vector2] = [from]
+	if absf(from.x - to.x) > 2.0 and (absf(from.y - road) > 1.0 or absf(to.y - road) > 1.0):
+		points.append(Vector2(from.x, road))
+		points.append(Vector2(to.x, road))
+	points.append(to)
+	var left := distance
+	for index in range(1, points.size()):
+		var leg := points[index] - points[index - 1]
+		if leg.length() >= left:
+			return points[index - 1] + leg.normalized() * left
+		left -= leg.length()
+	return to
 
 
 ## Bored of standing, Jogiboy plays: zoomies round Tompel, a dash after something only he can see
