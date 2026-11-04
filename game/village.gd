@@ -387,7 +387,8 @@ func bring_home(arena: Arena) -> void:
 ## What a run earned, as it's shared with every village in the crew: the cats rescued, the salvage
 ## picked up, and how long a grove was cleansed for.
 static func earnings_of(arena: Arena) -> Dictionary:
-	return {"rescued": arena.rescued.duplicate(true), "salvage": arena.salvage, "grove": arena.grove, "time": arena.time}
+	return {"rescued": arena.rescued.duplicate(true), "salvage": arena.salvage, "grove": arena.grove, "time": arena.time,
+		"cleansed": arena.cleansed, "crew_came": arena.crew_came}
 
 
 ## A run's earnings, brought home: the rescued move in, the salvage is stored, the weavers weave,
@@ -398,6 +399,28 @@ func take_earnings(earnings: Dictionary) -> void:
 	cloth += weavers()
 	if earnings.get("grove", false):
 		offerings += offerings_from(earnings.get("time", 0.0))
+	if earnings.get("cleansed", false):
+		# A grove given back: offerings for it, and the Great Tiger has a word on how the forest's
+		# edge is holding.
+		offerings += CLEANSED_OFFERINGS
+		groves_cleansed += 1
+		tell("shrine", "The Great Tiger", "\"%s\"" % (FRONT_LINES[mini(groves_cleansed, FRONT_LINES.size()) - 1] as String).replace("%d", str(groves_cleansed)))
+	if earnings.get("crew_came", false) and not CREW_SMELLED in told:
+		tell("jogiboy", "Jogiboy", "He sniffs at you for a long time. \"I know that smell. That's where I used to live, with the palm trees.\" He doesn't say anything else for a while.", CREW_SMELLED)
+
+
+## What a cleansed grove gives besides, in offerings; how many groves have been given back; and
+## what the Great Tiger says at the shrine as each one is, the last said again from then on.
+const CLEANSED_OFFERINGS := 3
+var groves_cleansed := 0
+const FRONT_LINES: Array[String] = [
+	"The grove you cleansed is quiet. Its Keepers remember themselves now. They're watching its edge.",
+	"Two groves quiet. The rats have gone further south, where the peat is still dry.",
+	"Three. The east holds. Green Promise's men stand at its edge now, and don't come in.",
+	"%d groves quiet. The Keepers hold every edge you've given back.",
+]
+## Told once, the first time Green Promise's crew came: what Jogiboy smells on him.
+const CREW_SMELLED := "told:crew"
 
 
 ## The offerings a grove gives for lasting so long in it.
@@ -582,6 +605,7 @@ func clear() -> void:
 	goals_done.clear()
 	tonic_ready = false
 	offerings = 0
+	groves_cleansed = 0
 	cub_rank = 0
 	cub_element = "ember"
 	elements.assign(["ember"])
@@ -608,6 +632,7 @@ func save(path := PATH) -> bool:
 	file.set_value("village", "goals_done", goals_done)
 	file.set_value("village", "tonic_ready", tonic_ready)
 	file.set_value("village", "offerings", offerings)
+	file.set_value("village", "groves_cleansed", groves_cleansed)
 	file.set_value("village", "cub_rank", cub_rank)
 	file.set_value("village", "cub_element", cub_element)
 	file.set_value("village", "elements", elements)
@@ -670,6 +695,7 @@ func load_from(path := PATH) -> void:
 					tiding.teaches = each.teaches
 				tidings.append(tiding)
 	offerings = _count(file, "offerings")
+	groves_cleansed = _count(file, "groves_cleansed")
 	cub_rank = mini(_count(file, "cub_rank"), Companion.MOST_RANK) if truce() else 0
 	_names(file, "elements", elements, ELEMENT_COSTS.keys())
 	if not "ember" in elements:

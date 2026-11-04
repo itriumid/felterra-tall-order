@@ -124,7 +124,8 @@ func test_spirits_come_in_their_mix_and_packs() -> void:
 			kinds[creature.kind] = true
 	for kind: String in ["wisp", "tuyul", "pocong", "sapling", "monkey"]:
 		check(kinds.has(kind), "no %s came in 75 seconds" % kind)
-	check(not kinds.has("rat") and not kinds.has("dog"), "the company's creatures came to a grove: %s" % str(kinds.keys()))
+	# The Free Float's peons are there, digging; the company's dogs aren't.
+	check(kinds.has("rat") and not kinds.has("dog"), "a grove's horde wasn't the Keepers and the rats' peons: %s" % str(kinds.keys()))
 	check(arena.giants.is_empty(), "a worker came to a grove")
 
 
@@ -321,3 +322,96 @@ func test_the_siege_is_never_somewhere_to_go() -> void:
 	kept.load_from("user://test_siege_village.cfg")
 	DirAccess.remove_absolute("user://test_siege_village.cfg")
 	check(kept.next_run != "siege", "a kept village still goes to the siege")
+
+
+func _grove_with_a_cat() -> Arena:
+	var arena := Arena.new()
+	arena.begin_grove(7)
+	arena.add_cat(arena.size / 2.0).health = 1.0e9
+	return arena
+
+
+func test_a_grove_has_its_drains_out_in_the_open() -> void:
+	var arena := _grove_with_a_cat()
+	check(arena.drains.size() == Arena.DRAINS, "a grove had %d drains" % arena.drains.size())
+	for drain in arena.drains:
+		check(not arena.solid_at(drain.position, 1.0), "a drain was dug into something standing")
+		check((drain.position as Vector2).distance_to(arena.size / 2.0) > 4.0, "a drain was where he walks in")
+
+
+func test_standing_by_a_drain_dams_it_and_walking_off_lets_it_slip() -> void:
+	var arena := _grove_with_a_cat()
+	var drain: Dictionary = arena.drains[0]
+	arena.cats[0].body.position = drain.position
+	for step in roundi(Arena.DAM_TIME / 2.0 / Arena.STEP):
+		arena.cats[0].body.position = drain.position
+		arena.step()
+	var half: float = drain.dammed
+	check(half > 0.4 and not drain.done, "half the time by a drain didn't half dam it")
+	arena.cats[0].body.position = arena.size / 2.0
+	for step in 60:
+		arena.cats[0].body.position = arena.size / 2.0
+		arena.step()
+	check(drain.dammed < half, "the earth didn't slip back with nobody there")
+
+
+func test_damming_every_drain_calms_the_keepers_but_not_the_tuyul() -> void:
+	var arena := _grove_with_a_cat()
+	var wisp := arena.add_creature(arena.size / 2.0 + Vector2(3.0, 0.0), "wisp")
+	var tuyul := arena.add_creature(arena.size / 2.0 + Vector2(-3.0, 0.0), "tuyul")
+	for drain in arena.drains:
+		drain.dammed = 0.999
+		arena.cats[0].body.position = drain.position
+		arena.step()
+	check(arena.cleansed, "every drain was dammed and the grove wasn't cleansed")
+	check(wisp.calm and not tuyul.calm, "the cleansing didn't calm the Keeper alone")
+	check(not wisp in arena._targets(), "a calmed Keeper could still be fought")
+	check(arena.plan == Areas.GROVE_CLEANSED_PLAN, "the grove went on as it was")
+	check(arena.calls.any(func(line: Dictionary) -> bool: return line.by == "A Keeper"), "nobody said anything as the Keepers came to themselves")
+
+
+func test_a_calmed_keeper_walks_off_into_the_trees_and_is_gone() -> void:
+	var arena := _grove_with_a_cat()
+	var wisp := arena.add_creature(arena.size / 2.0 + Vector2(3.0, 0.0), "wisp")
+	wisp.calm = true
+	for step in 60 * 20:
+		arena.step()
+		if not wisp in arena.creatures:
+			break
+	check(not wisp in arena.creatures, "a calmed Keeper never left")
+
+
+func test_a_torchbearers_fire_burns_cats_and_never_rats() -> void:
+	var arena := Arena.new()
+	var cat := arena.add_cat(Vector2(10.0, 10.0))
+	var rat := arena.add_creature(Vector2(12.0, 10.0), "rat")
+	arena.set_rat_fire(cat.body.position)
+	arena.set_rat_fire(rat.body.position)
+	var health := cat.health
+	for step in 60:
+		cat.body.position = Vector2(10.0, 10.0)
+		arena.step()
+	check(cat.health < health, "standing in a torchbearer's fire didn't burn him")
+	check(not rat.afflictions.has("burn"), "a torchbearer's fire burned a rat")
+
+
+func _keepers_in_a_minute(heard: float) -> int:
+	var arena := Arena.new()
+	arena.random.seed = 11
+	arena.begin_grove(11)
+	arena.keepers_heard = heard
+	arena.add_cat(arena.size / 2.0).health = 1.0e9
+	var seen := {}
+	for step in 60 * 60:
+		arena.step()
+		for creature in arena.creatures:
+			if creature.keeper():
+				seen[creature] = true
+	return seen.size()
+
+
+func test_groves_given_back_mean_fewer_keepers_come_maddened() -> void:
+	check(Arena.heard_for(1) == Arena.KEEPERS_HEARD_EACH and Arena.heard_for(10) == Arena.KEEPERS_HEARD_MOST, "the share heard didn't grow by the grove, or past its most")
+	var none_heard := _keepers_in_a_minute(0.0)
+	var most_heard := _keepers_in_a_minute(Arena.KEEPERS_HEARD_MOST)
+	check(most_heard < none_heard * 0.85, "with groves given back, %d Keepers came against %d" % [most_heard, none_heard])

@@ -31,6 +31,16 @@ const KINDS := {
 		"speed": 1.5, "grip": 8.0, "bite": 3.0, "bite_interval": 1.0, "health": 160.0,
 		"radius": 0.3, "tall": 0.34, "heft": 12.0, "worth": 40, "calls": 4, "call_interval": 5.0,
 	},
+	# The Free Float's own, by rank. A torchbearer sets the dry ground alight behind it as it runs,
+	# and the fire burns cats, never rats. A foreman calls the peons in around it.
+	"torchbearer": {
+		"speed": 1.6, "grip": 12.0, "bite": 1.0, "bite_interval": 0.8, "health": 4.0,
+		"radius": 0.09, "tall": 0.12, "heft": 1.2, "worth": 2, "torch": 3.5,
+	},
+	"foreman": {
+		"speed": 1.5, "grip": 10.0, "bite": 2.0, "bite_interval": 0.9, "health": 30.0,
+		"radius": 0.16, "tall": 0.2, "heft": 4.0, "worth": 8, "calls": 3, "call_interval": 7.0,
+	},
 	# The spirits. An ember wisp floats just off the ground, so it goes over what's low, and
 	# blades and rounds still meet it.
 	"wisp": {
@@ -38,10 +48,11 @@ const KINDS := {
 		"radius": 0.08, "tall": 0.12, "heft": 0.6, "worth": 1, "spirit": true, "hovers": 0.2,
 	},
 	# A tuyul goes for salvage lying about, or bites what he's carrying off him, and runs for the
-	# trees with it: caught, he drops it.
+	# trees with it: caught, he drops it. He's no Keeper: the rats pay him, so he's a thief on
+	# purpose, and a cleansed grove doesn't calm him.
 	"tuyul": {
 		"speed": 2.5, "grip": 14.0, "bite": 0.5, "bite_interval": 0.8, "health": 4.0,
-		"radius": 0.08, "tall": 0.16, "heft": 1.0, "worth": 2, "spirit": true, "steals": true,
+		"radius": 0.08, "tall": 0.16, "heft": 1.0, "worth": 2, "spirit": true, "steals": true, "hired": true,
 	},
 	"sapling": {
 		"speed": 0.8, "grip": 6.0, "bite": 2.5, "bite_interval": 1.4, "health": 24.0,
@@ -85,6 +96,10 @@ var call_in := 2.0
 ## trees with it. And the salvage it's carrying.
 var errand := Vector2.INF
 var carrying := 0
+## How long until a torchbearer sets the ground alight again.
+var torch_in := 2.0
+## A Keeper come to itself, its grove cleansed: it bites nobody, and makes for the trees.
+var calm := false
 
 
 func _init(creature_kind := "rat") -> void:
@@ -96,6 +111,12 @@ func _init(creature_kind := "rat") -> void:
 	body.kind = kind
 	body.hovers = KINDS[kind].get("hovers", 0.0)
 	body.height = body.hovers
+
+
+## Whether it's one of the forest's Keepers, maddened by the smoke: a spirit, but not one of the
+## tuyul, whom the rats pay. A cleansed grove calms a Keeper; a tuyul it doesn't.
+func keeper() -> bool:
+	return spirit() and not KINDS[kind].get("hired", false)
 
 
 ## Whether it's one of the forest's spirits, which leave nothing lying when they fall.
@@ -134,6 +155,11 @@ func step(delta: float, prey: Cat, arena: Arena = null) -> void:
 	# A hop's rest is taken on the ground.
 	if not (hops() and body.airborne()):
 		state_for = maxf(state_for - delta, 0.0)
+	if KINDS[kind].has("torch") and arena != null and not calm:
+		torch_in -= delta
+		if torch_in <= 0.0:
+			torch_in = stat("torch")
+			arena.set_rat_fire(body.position)
 	if KINDS[kind].has("calls") and arena != null:
 		call_in -= delta
 		if call_in <= 0.0:

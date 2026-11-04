@@ -241,6 +241,7 @@ func _draw_all() -> void:
 	standing.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	for stain in _stains:
 		draw_rect(Rect2(World.to_screen(stain.position), Vector2.ONE), Palette.BLOOD if stain.age < STAIN_DRIES else Palette.BLOOD_DRY)
+	_draw_drains()
 	_draw_marks()
 	for piece in arena.pickups:
 		standing.append([piece.body.position.y, piece])
@@ -323,6 +324,7 @@ func _draw_all() -> void:
 				_draw_spirit(thing)
 			else:
 				_draw_rat(thing.body, _frame(thing, RAT_STRIDE), thing.tripped())
+				_draw_rank(thing)
 			_draw_afflictions(thing, thing.body.height + thing.body.tall, thing.tripped(), 3)
 		elif thing is Body:
 			_draw_lying(thing)
@@ -456,6 +458,39 @@ func _draw_reaches() -> void:
 	for lever in arena.levers:
 		if not lever.pulled:
 			_draw_reach(lever.position, Arena.LEVER_REACH, lever.picked)
+	for drain in arena.drains:
+		if not drain.done:
+			_draw_reach(drain.position, Arena.DAM_REACH, drain.dammed)
+
+
+## How long a drain's ditch runs, in meters.
+const DRAIN_LENGTH := 3.0
+## A grove's drains, flat in the ground: a ditch of dark, oily water running out of the peat, and
+## as it's dammed, a bank of earth rising across it, the water backing up behind clear. Dammed,
+## it's a pool.
+func _draw_drains() -> void:
+	for drain in arena.drains:
+		var middle := World.to_screen(drain.position).floor()
+		var half := int(DRAIN_LENGTH * World.PIXELS_PER_METER / 2.0)
+		var dammed: float = drain.dammed if not drain.done else 1.0
+		var bank_x := -half + roundi(dammed * half * 2.0)
+		for x in range(-half, half + 1):
+			var wobble := 1 if posmod(x + int(middle.x), 9) < 4 else 0
+			var top := middle + Vector2(x, -3 + wobble)
+			# Its banks, dug up and dry; the ditch dark between them.
+			draw_rect(Rect2(top, Vector2(1, 1)), Palette.MUD_LIGHT)
+			draw_rect(Rect2(top + Vector2(0, 1), Vector2(1, 4)), Palette.MUD_DARK)
+			draw_rect(Rect2(top + Vector2(0, 5), Vector2(1, 1)), Palette.MUD)
+			var backed := x < bank_x
+			draw_rect(Rect2(top + Vector2(0, 2), Vector2(1, 2)), Palette.CLOTH_LIGHT if backed else Palette.GRAPHITE)
+			if not backed and posmod(x + int(_clock * 6.0), 7) == 0:
+				# The oil on it, catching the light as it runs.
+				draw_rect(Rect2(top + Vector2(0, 2), Vector2.ONE), Palette.SMOKE)
+		if dammed > 0.0:
+			# The bank of earth across it, rising as it's built.
+			var height := 2 + roundi(dammed * 3.0)
+			draw_rect(Rect2(middle + Vector2(bank_x - 1, 2 - height), Vector2(3, height + 1)), Palette.MUD_LIGHT)
+			draw_rect(Rect2(middle + Vector2(bank_x + 1, 3 - height), Vector2(1, height)), Palette.MUD)
 
 
 func _draw_reach(center: Vector2, reach: float, done: float) -> void:
@@ -474,7 +509,7 @@ func _draw_reach(center: Vector2, reach: float, done: float) -> void:
 ## What the area's goal still asks of him, marked: a pointer bobbing over each in sight. The
 ## overlay points the way to those out of sight.
 func _draw_goals() -> void:
-	if arena.goal_done or arena.area.is_empty():
+	if (arena.goal_done or arena.area.is_empty()) and not (arena.grove and not arena.cleansed):
 		return
 	var bob := Vector2(0, -1) if fmod(_clock, 0.8) < 0.4 else Vector2.ZERO
 	for mark in Overlay.goal_marks(arena):
@@ -729,6 +764,25 @@ func _draw_rat(body: Body, frame: int, fallen: bool) -> void:
 		feet.x = region.size.x - 1 - feet.x
 	var corner := World.to_screen(body.position, body.height) - feet - Vector2(0, 0 if fallen else Sprites.RAT_LIFT[frame])
 	draw_texture_rect_region(sheet.texture, Rect2(corner, region.size), region)
+
+
+## The Free Float's ranks, over a rat: a torchbearer's lit torch, held up; a foreman's hard hat and
+## the hi-vis vest over his back.
+func _draw_rank(creature: Creature) -> void:
+	if creature.tripped() or not creature.kind in ["torchbearer", "foreman"]:
+		return
+	var way := -1.0 if creature.body.velocity.x < 0.0 else 1.0
+	var top := World.to_screen(creature.body.position, creature.body.height + creature.body.tall).floor()
+	if creature.kind == "torchbearer":
+		var hand := top + Vector2(2.0 * way, -1)
+		draw_rect(Rect2(hand, Vector2(1, 3)), Palette.BARK)
+		draw_rect(Rect2(hand + Vector2(0, -2), Vector2(1, 2)), Palette.SPARK)
+		if fmod(_clock, 0.3) < 0.15:
+			draw_rect(Rect2(hand + Vector2(-1 if way > 0 else 1, -2), Vector2.ONE), Palette.HI_VIS)
+	else:
+		draw_rect(Rect2(top + Vector2(-2, 1), Vector2(4, 2)), Palette.HI_VIS)
+		draw_rect(Rect2(top + Vector2(-1, -1), Vector2(3, 1)), Palette.BRASS_LIGHT)
+		draw_rect(Rect2(top + Vector2(-2, 0), Vector2(5, 1)), Palette.BRASS)
 
 
 ## A dog: galloping, or bunched low before a lunge, or fallen on its back.
@@ -1973,11 +2027,15 @@ func _draw_giant(giant: Giant) -> void:
 		# Ear defenders over the hard hat's straps.
 		for across in [-0.1, 0.1]:
 			parts.append(_part(giant, [across, 1.57, 0.02], [across, 1.57, 0.02], 3, Palette.STEEL_DARK, 0.05, 4))
-	parts.append(_part(giant, [0.0, hip, 0.0], [0.0, shoulder, 0.0], 14, Palette.HI_VIS))
-	# The reflective band across the vest, the head, and the hard hat over it.
-	parts.append(_part(giant, [0.0, 1.15, 0.0], [0.0, 1.15, 0.0], 14, Palette.STEEL_LIGHT, 0.01, 2))
+	# A planter's clean green shirt, no reflective band; everyone else's hi-vis vest with one.
+	var planter := giant.kind == "planter"
+	parts.append(_part(giant, [0.0, hip, 0.0], [0.0, shoulder, 0.0], 14, Palette.LEAF if planter else Palette.HI_VIS))
+	if planter:
+		parts.append(_part(giant, [0.06, 1.3, 0.07], [0.06, 1.3, 0.07], 2, Palette.CREAM, 0.02))
+	else:
+		parts.append(_part(giant, [0.0, 1.15, 0.0], [0.0, 1.15, 0.0], 14, Palette.STEEL_LIGHT, 0.01, 2))
 	parts.append(_part(giant, [0.0, 1.5, 0.02], [0.0, 1.62, 0.02], 9, Palette.SKIN, 0.02))
-	var hat := Palette.CLOTH_SHADOW if giant.kind == "handler" else Palette.BRASS_LIGHT
+	var hat := Palette.CLOTH_SHADOW if giant.kind == "handler" else (Palette.LEAF_LIGHT if planter else Palette.BRASS_LIGHT)
 	parts.append(_part(giant, [0.0, 1.66, 0.02], [0.0, 1.7, 0.02], 11, hat, 0.03, 5))
 	parts.append(_part(giant, [0.0, 1.64, -0.06], [0.0, 1.64, 0.16], 3, Palette.CLOTH if giant.kind == "handler" else Palette.BRASS, 0.04))
 	if giant.kind == "handler":

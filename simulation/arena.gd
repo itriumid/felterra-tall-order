@@ -153,6 +153,23 @@ var plan := ENDLESS
 var area := {}
 ## Whether this is a grove being cleansed, once there's peace with the forest.
 var grove := false
+## A grove's drains: the ditches the rats dug so the peat dries out and burns. Standing by one dams
+## it, a little at a time; walk off and the earth slips back. Each as {position, dammed (0 to 1),
+## done}. With every one dammed, the grove is cleansed: its maddened Keepers come to themselves and
+## drift off into the trees, and the run goes on against whoever was paid to be there.
+var drains: Array[Dictionary] = []
+var cleansed := false
+## How many fewer of a grove's Keepers come maddened, as a share: the Keepers of groves given back
+## have told the others. The same for one cat or four, so a crew can't stack it up.
+var keepers_heard := 0.0
+const KEEPERS_HEARD_EACH := 0.1
+const KEEPERS_HEARD_MOST := 0.3
+## Whether Green Promise's crew came into this grove: Jogiboy will smell it on him, at home.
+var crew_came := false
+const DRAINS := 3
+const DAM_REACH := 0.9
+const DAM_TIME := 4.0
+const DAM_SLIPS := 0.2
 var structures: Array[Structure] = []
 var goal_cages: Array[Cage] = []
 var levers: Array[Dictionary] = []
@@ -296,6 +313,7 @@ func step() -> void:
 	_hold_together(was_at)
 	_tend_the_downed()
 	_send_on_errands()
+	_dam_drains()
 	for creature in creatures:
 		creature.step(STEP, _prey_for(creature), self)
 		_keep_inside(creature.body)
@@ -376,7 +394,11 @@ func target_for(where: Vector2, reach: float, mode: String, height := EYE) -> Ob
 ## Everything there is to fight: the horde and the giants still on their feet.
 func _targets() -> Array:
 	var targets: Array = []
-	targets.append_array(creatures)
+	# A calmed Keeper on its way into the trees is nobody's to fight. Only a cleansed grove has any.
+	if cleansed:
+		targets.append_array(creatures.filter(func(creature: Creature) -> bool: return not creature.calm))
+	else:
+		targets.append_array(creatures)
 	for giant in giants:
 		if giant.standing():
 			targets.append(giant)
@@ -466,6 +488,8 @@ func nearest_creature(where: Vector2, reach: float) -> Creature:
 	var nearest: Creature = null
 	var nearest_distance := reach * reach
 	for creature in creatures:
+		if creature.calm:
+			continue
 		var distance := where.distance_squared_to(creature.body.position)
 		if distance < nearest_distance:
 			nearest_distance = distance
@@ -834,7 +858,7 @@ func _bite() -> void:
 					var apart := cat.body.position - creature.body.position
 					# It bites what it can reach: along the ground and up off it, on its feet or in
 					# the middle of a lunge.
-					if creature.bite_ready_in > 0.0 or (creature.body.airborne() and not creature.lunging()) \
+					if creature.calm or creature.bite_ready_in > 0.0 or (creature.body.airborne() and not creature.lunging()) \
 							or apart.length() > cat.body.radius + creature.body.radius + 0.02 \
 							or cat.body.height > creature.body.height + creature.body.tall \
 							or creature.body.height > cat.body.height + Cat.TALL:
@@ -1009,10 +1033,35 @@ func _afflict_all() -> void:
 
 
 ## Burning oil on the ground sets alight what stands in it, and burns down.
+## A fire a torchbearer leaves where it runs: how big, how long it smolders, and how often it
+## burns a cat standing in it, and how hard.
+const RAT_FIRE_RADIUS := 0.45
+const RAT_FIRE_LASTS := 5.0
+const RAT_FIRE_EVERY := 0.6
+const RAT_FIRE_BURNS := 1.0
+
+
+## A torchbearer sets the ground alight where it is.
+func set_rat_fire(at: Vector2) -> void:
+	fires.append({"position": at, "radius": RAT_FIRE_RADIUS, "left": RAT_FIRE_LASTS, "dps": RAT_FIRE_BURNS, "by": null, "lit_by_rats": true, "tick": RAT_FIRE_EVERY})
+	events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "rat_fire", "giant": false, "kind": "torchbearer"})
+
+
 func _burn_fires() -> void:
 	var burning: Array[Dictionary] = []
 	for fire in fires:
 		fire.left -= STEP
+		if fire.get("lit_by_rats", false):
+			# A torchbearer's fire: it's the cats it's for, not the horde that set it.
+			fire.tick = fire.get("tick", 0.0) - STEP
+			if fire.tick <= 0.0:
+				fire.tick = RAT_FIRE_EVERY
+				for cat in cats:
+					if cat.alive() and not cat.body.airborne() and cat.body.position.distance_to(fire.position) <= fire.radius + cat.body.radius:
+						cat.hurt(fire.dps, Vector2.ZERO)
+			if fire.left > 0.0:
+				burning.append(fire)
+			continue
 		var standing_in: Array = []
 		for creature in creatures:
 			if not creature.body.airborne():
@@ -1561,8 +1610,12 @@ func _spawn() -> void:
 		if _since_giant >= giants_plan.interval and giants.filter(func(giant: Giant) -> bool: return giant.standing()).size() < giants_plan.most:
 			_since_giant = 0.0
 			_giants_sent += 1
-			var chainsaw: bool = time >= giants_plan.chainsaw_from and _giants_sent % int(giants_plan.chainsaw_every) == 0
-			add_giant(edge_point(), "chainsaw" if chainsaw else "worker")
+			var chainsaw: bool = giants_plan.has("chainsaw_from") and time >= giants_plan.chainsaw_from and _giants_sent % int(giants_plan.chainsaw_every) == 0
+			var gate := edge_point()
+			add_giant(gate, giants_plan.get("kind", "chainsaw" if chainsaw else "worker"))
+			if giants_plan.get("kind", "") == "planter":
+				crew_came = true
+				_call("crew", gate)
 	var machines_plan: Dictionary = plan.get("machines", {})
 	if not machines_plan.is_empty():
 		_since_machine += STEP
@@ -1599,7 +1652,11 @@ func _spawn() -> void:
 			# A pack comes out of the trees together.
 			var gate := edge_point()
 			for each in mini(pack.pack, pack.most - out_already):
+				if _stays_away(pack.kind):
+					continue
 				add_creature((gate + Vector2(random.randf_range(-0.6, 0.6), random.randf_range(-0.6, 0.6))).clamp(Vector2.ONE * 0.3, size - Vector2.ONE * 0.3), pack.kind)
+			if pack.kind == "rat_baron" and out_already < pack.most:
+				_call("baron", gate)
 	var rats_plan: Dictionary = plan.get("rats", {})
 	if rats_plan.is_empty() or creatures.size() >= MOST_CREATURES:
 		return
@@ -1607,7 +1664,9 @@ func _spawn() -> void:
 	var interval: float = 1.0 / ((rats_plan.rate + rats_plan.growth * time) * crew_scale())
 	while _since_spawn >= interval and creatures.size() < MOST_CREATURES:
 		_since_spawn -= interval
-		add_creature(edge_point(), _one_of(rats_plan.get("kinds", {"rat": 1})))
+		var kind := _one_of(rats_plan.get("kinds", {"rat": 1}))
+		if not _stays_away(kind):
+			add_creature(edge_point(), kind)
 
 
 ## One kind from a mix, by its share of it.
@@ -1650,6 +1709,13 @@ func _drift_smoke() -> void:
 func _send_on_errands() -> void:
 	var escaped: Array[Creature] = []
 	for creature in creatures:
+		if creature.calm:
+			# Come to itself, a Keeper makes for the trees, and is gone into them.
+			if not creature.errand.is_finite():
+				creature.errand = _nearest_edge(creature.body.position)
+			if creature.body.position.distance_to(creature.errand) < 0.5:
+				escaped.append(creature)
+			continue
 		if not Creature.KINDS[creature.kind].get("steals", false):
 			continue
 		var at := creature.body.position
@@ -1674,7 +1740,7 @@ func _send_on_errands() -> void:
 			creature.errand = nearest.body.position
 	for creature in escaped:
 		creatures.erase(creature)
-		events.append({"position": creature.body.position, "height": 0.1, "direction": Vector2.ZERO, "killed": false, "by": "escaped", "giant": false, "kind": creature.kind})
+		events.append({"position": creature.body.position, "height": 0.1, "direction": Vector2.ZERO, "killed": false, "by": "calmed" if creature.calm else "escaped", "giant": false, "kind": creature.kind})
 
 
 ## The nearest point just inside the edge, where the trees start, that nothing stands on.
@@ -1787,6 +1853,67 @@ func begin_grove(seed_value: int) -> void:
 	var grove := Areas.grove(seed_value)
 	lay_out(grove.size, Areas.obstacles(grove))
 	_reset_spawning()
+	cleansed = false
+	drains.clear()
+	# One at each end of the grove and one off its middle, never where he walks in.
+	var middle_y := 3.5 if random.randf() < 0.5 else size.y - 3.5
+	for near: Vector2 in [Vector2(size.x * 0.17, random.randf_range(4.0, size.y - 4.0)), Vector2(size.x * 0.5 + random.randf_range(-3.0, 3.0), middle_y), Vector2(size.x * 0.83, random.randf_range(4.0, size.y - 4.0))]:
+		drains.append({"position": _drain_spot(near), "dammed": 0.0, "done": false})
+
+
+## A spot near there for a drain: out in the open, clear of what stands, and apart from the others.
+func _drain_spot(near: Vector2) -> Vector2:
+	for attempt in 24:
+		var spot := near + Vector2(random.randf_range(-2.5, 2.5), random.randf_range(-2.0, 2.0))
+		if not Rect2(Vector2(3.0, 3.0), size - Vector2(6.0, 6.0)).has_point(spot) or solid_at(spot, 1.0):
+			continue
+		if drains.any(func(drain: Dictionary) -> bool: return (drain.position as Vector2).distance_to(spot) < 6.0):
+			continue
+		return spot
+	return near.clamp(Vector2(3.0, 3.0), size - Vector2(3.0, 3.0))
+
+
+## Cats by a drain dam it; with nobody there, the earth slips back. The last one dammed cleanses
+## the grove.
+## The share fewer maddened Keepers come, for so many groves given back.
+static func heard_for(groves_cleansed: int) -> float:
+	return minf(groves_cleansed * KEEPERS_HEARD_EACH, KEEPERS_HEARD_MOST)
+
+
+## Whether a kind of creature, coming into a grove, stays away instead: a Keeper that's heard.
+func _stays_away(kind: String) -> bool:
+	if not grove or keepers_heard <= 0.0:
+		return false
+	var kind_of: Dictionary = Creature.KINDS[kind]
+	return kind_of.get("spirit", false) and not kind_of.get("hired", false) and random.randf() < keepers_heard
+
+
+func _dam_drains() -> void:
+	if not grove or cleansed:
+		return
+	for drain in drains:
+		if drain.done:
+			continue
+		var damming := cats.any(func(cat: Cat) -> bool: return cat.alive() and not cat.body.airborne() and cat.body.position.distance_to(drain.position) <= DAM_REACH)
+		drain.dammed = clampf(drain.dammed + (STEP / DAM_TIME if damming else -STEP * DAM_SLIPS), 0.0, 1.0)
+		if drain.dammed >= 1.0:
+			drain.done = true
+			events.append({"position": drain.position, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "dammed", "giant": false, "kind": "drain"})
+	if drains.all(func(drain: Dictionary) -> bool: return drain.done):
+		_cleanse()
+
+
+## The water's back in the peat: every maddened Keeper comes to itself and makes for the trees, no
+## more come, and whoever was paid to be here keeps coming, harder.
+func _cleanse() -> void:
+	cleansed = true
+	events.append({"position": size / 2.0, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "cleansed", "giant": false, "kind": "grove"})
+	for creature in creatures:
+		if creature.keeper():
+			creature.calm = true
+	plan = Areas.GROVE_CLEANSED_PLAN
+	_reset_spawning()
+	_call("cleansed", size / 2.0)
 
 
 ## The timers for what the plan spawns, set so each first comes when the plan says.
@@ -1867,7 +1994,7 @@ func _bring_in_the_boss() -> void:
 ## Says the area's next line for a moment ("boss", "roof"), if it has one not yet said: over the
 ## boss, if that's who says it, or where it's said from, or where it happened.
 func _call(moment: String, where: Vector2) -> void:
-	var lines: Array = area.get("calls", []) if not area.is_empty() else []
+	var lines := _calls_here()
 	for index in lines.size():
 		var line: Dictionary = lines[index]
 		if line.when != moment or index in _called:
@@ -1879,12 +2006,17 @@ func _call(moment: String, where: Vector2) -> void:
 		return
 
 
+## The lines that can be said here: the area's, or a grove's.
+func _calls_here() -> Array:
+	if not area.is_empty():
+		return area.get("calls", [])
+	return Areas.GROVE_CALLS if grove else []
+
+
 ## Lines due at a time held ("held:<seconds>"), and lines said long enough ago taken down.
 func _call_when_due() -> void:
 	calls = calls.filter(func(line: Dictionary) -> bool: return line.until > time)
-	if area.is_empty():
-		return
-	var lines: Array = area.get("calls", [])
+	var lines := _calls_here()
 	for index in lines.size():
 		var when: String = lines[index].when
 		if when.begins_with("held:") and not index in _called and held_for >= float(when.trim_prefix("held:")):

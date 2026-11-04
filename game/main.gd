@@ -16,7 +16,8 @@ extends Node
 ## --area=<id> starts a liberation run in that area, --freed as if it's been freed already, --boss
 ## with its goal done and its boss on the way; --grove starts Endless as cleansing, in a corrupted
 ## grove; --cub=<element>[:<rank>] gives the cub, and in a grove it's at his heel (with --village,
-## it's at the shrine); --offerings=<count> gives that many to spend there; --horde-kind=<kind> makes the --horde that kind (wisp, tuyul, pocong, sapling, monkey);
+## it's at the shrine); --offerings=<count> gives that many to spend there; --seed=<number> lays out
+## an Endless clearing or grove from that seed, the same every time; --horde-kind=<kind> makes the --horde that kind (wisp, tuyul, pocong, sapling, monkey);
 ## --villagers=<count> puts that many rescued cats in it, for this run only; --restored=<all, or
 ## names> shows those buildings brought back from ruin; --salvage=<count> and --cloth=<count> give
 ## the village that much to spend; --liberated=<ids> has those areas freed already; --at-door=<building>
@@ -251,11 +252,15 @@ var _entering_pace := Cat.SPEED
 var _freeing := false
 var _free_for := 0.0
 var _dev_area := ""
+## A run's seed, fixed for trying things: the same clearing or grove, laid out the same, twice.
+var _dev_seed := -1
 var _dev_grove := false
 ## The cub to try out in a grove, as its element and rank, from --cub; and whether the last run
 ## home was a grove's, for the walk in.
 var _dev_cub := ""
 var _cleansed := false
+## The grove this run is in, as the village keeps that its line was told: "grove:<id>".
+var _grove_told := ""
 var _horde_kind := "rat"
 var _dev_freed := false
 var _dev_boss := false
@@ -376,6 +381,8 @@ func _ready() -> void:
 		elif argument.begins_with("--villagers="):
 			for index in argument.trim_prefix("--villagers=").to_int():
 				village.cats.append({"name": Cage.NAMES[index % Cage.NAMES.size()], "coat": Cage.COATS[index % Cage.COATS.size()]})
+		elif argument.begins_with("--seed="):
+			_dev_seed = argument.trim_prefix("--seed=").to_int()
 		elif argument.begins_with("--offerings="):
 			village.offerings = argument.trim_prefix("--offerings=").to_int()
 		elif argument.begins_with("--salvage="):
@@ -1516,7 +1523,7 @@ func _set_up_run(run_kind: String) -> void:
 	_freeing = false
 	_fight_in_the_village(false)
 	if run_kind == "endless" or run_kind.is_empty():
-		var fresh := randi()
+		var fresh := _dev_seed if _dev_seed >= 0 else randi()
 		_run_seed = fresh
 		arena.random.seed = fresh
 		_overlay.area_name = ""
@@ -1524,6 +1531,7 @@ func _set_up_run(run_kind: String) -> void:
 		# company, laid out fresh from the run's seed.
 		if run_kind == "endless" and village.truce():
 			arena.begin_grove(fresh)
+			arena.keepers_heard = Arena.heard_for(village.groves_cleansed)
 			var grove := Areas.grove(fresh)
 			if not _placed:
 				cat.body.position = grove.start
@@ -1533,6 +1541,16 @@ func _set_up_run(run_kind: String) -> void:
 				_heel_the_cub()
 			_ground.paint(grove.ground, fresh, false)
 			_overlay.area_name = grove.name
+			# The first time in each kind of grove, the book's line for it; the first time in any,
+			# the Great Tiger's word on what cleansing it takes.
+			_grove_told = "grove:" + (grove.id as String)
+			if not _grove_told in village.told:
+				var lines: Array = [Areas.GROVE_LINES.get(grove.id, "")]
+				if not village.told.any(func(told: String) -> bool: return told.begins_with("grove:")):
+					lines.append({"by": "great_tiger", "mood": "determined", "text": "Block the rats' ditches. Let the water come back, and the Keepers will remember who they are."})
+				_cutscene = Cutscene.new(lines, settings.get_value("gameplay", "story_waits"))
+				_briefing = true
+				_music.place = "intro"
 			return
 		_ground.paint("clearing", fresh, false)
 		return
@@ -1615,6 +1633,8 @@ func _briefed(delta: float) -> void:
 	var skip := Input.is_action_just_pressed("pause")
 	_cutscene.step(delta, Input.is_action_just_pressed("menu_choose"), skip)
 	_overlay.intro = _cutscene.written()
+	_overlay.speaker = _cutscene.speaker()
+	_overlay.mood = _cutscene.mood()
 	_overlay.cutscene = true
 	var arrived := true
 	if _entering:
@@ -1633,6 +1653,9 @@ func _briefed(delta: float) -> void:
 	if (_cutscene.done() and arrived) or skip:
 		if _briefing and _run_kind in Areas.ids() and not ("intro:" + _run_kind) in village.told:
 			village.told.append("intro:" + _run_kind)
+			_keep_village()
+		if _briefing and arena.grove and not _grove_told in village.told:
+			village.told.append(_grove_told)
 			_keep_village()
 		_briefing = false
 		_entering = false
@@ -1671,6 +1694,8 @@ func _freeing_step(delta: float) -> void:
 	var skip := Input.is_action_just_pressed("pause")
 	_cutscene.step(delta, Input.is_action_just_pressed("menu_choose"), skip)
 	_overlay.intro = _cutscene.written()
+	_overlay.speaker = _cutscene.speaker()
+	_overlay.mood = _cutscene.mood()
 	_overlay.cutscene = not _cutscene.lines.is_empty() and not _cutscene.done()
 	# Skipped, it's over at once; left to run, it ends when its story's told and the pause is up.
 	if skip or (_cutscene.done() and _free_for <= 0.0):

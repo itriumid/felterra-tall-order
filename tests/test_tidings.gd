@@ -58,3 +58,25 @@ func test_news_comes_back_as_it_was_kept() -> void:
 	back.load_from(path)
 	check(back.packed("weapon:knife") and not "teach:starters" in back.told, "an older village loaded wrong")
 	DirAccess.remove_absolute(path)
+
+
+func test_a_cleansed_grove_is_counted_and_the_great_tiger_has_a_word() -> void:
+	var village := Village.new()
+	village.take_earnings({"grove": true, "time": 0.0, "cleansed": true})
+	check(village.groves_cleansed == 1 and village.offerings == Village.CLEANSED_OFFERINGS, "a cleansed grove wasn't counted, or gave nothing")
+	check(village.has_tidings("shrine"), "the Great Tiger had nothing to say at the shrine")
+	village.hear("shrine")
+	for count in 5:
+		village.take_earnings({"grove": true, "time": 0.0, "cleansed": true})
+		village.hear("shrine")
+	check(village.groves_cleansed == 6, "six cleansed groves weren't six")
+
+
+func test_jogiboy_smells_green_promise_once() -> void:
+	var village := Village.new()
+	village.take_earnings({"grove": true, "time": 0.0, "crew_came": true})
+	check(village.has_tidings("jogiboy"), "Jogiboy didn't smell the palm plantation on him")
+	village.jogiboy_found = 0
+	village.hear("jogiboy")
+	village.take_earnings({"grove": true, "time": 0.0, "crew_came": true})
+	check(not village.has_tidings("jogiboy"), "Jogiboy said it twice")
