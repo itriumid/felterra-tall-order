@@ -380,12 +380,28 @@ on: fire and oil, or crewmates who can be downed.
   over one. Marks at the screen's edge show the burning houses and, with no water carried, the
   well. Once the last is out, the Great Tiger comes out of the forest above the smithy.
 - **Cleansing**: once there's peace, Endless is through the shrine, in a grove still sick from
-  the company, laid out fresh from each run's seed: a sick grove in the deep forest, the burned
-  peat, or the riverbank, where nothing walks into the oily river. The restless spirits come in
-  their mix, the saplings and the monkeys in packs, the company's abandoned feller bunchers still
-  working with something else at the controls, and its traps, with cats in them. The best run is
-  still Endless's. A grove gives an offering for each minute lasted in it, and the summary says
-  how many.
+  the rats' smoke, laid out fresh from each run's seed: a sick grove in the deep forest, the
+  burned peat, or the riverbank, where nothing walks into the oily river. The first time in each,
+  the book has a line for it, and the first time in any, the Great Tiger says what it takes.
+  - **Dam the drains.** Each grove has three of the rats' drains, ditches of dark oily water that
+    dry the peat so it burns. Standing by one dams it in four seconds, a bank of earth rising
+    across it and clear water backing up behind; walk off and the earth slips back. Its ring on
+    the ground fills as it's dammed, a pointer bobs over it, and one out of sight is marked at
+    the screen's edge.
+  - **Before:** the maddened Keepers come in their mix (ember wisps, pocong, the saplings and
+    the monkeys in packs) with the Free Float's peons, still digging, and the tuyul the rats pay;
+    Burnt Future's abandoned feller bunchers still working with something else at the controls;
+    and its traps, with cats in them.
+  - **Cleansed,** once the last drain is dammed: every Keeper comes to itself ("...Where are we?
+    Who are you?"), stops fighting, and walks off into the trees; nothing fights a calmed one, and
+    no more come. The run goes on, harder, against whoever was paid to be there: peons and
+    torchbearers, whose fires burn cats and never rats; foremen calling peons in; the tuyul; in
+    time a Baron of the Free Float, demoted to the groves ("I've been reclassified!"); and Green
+    Promise Plantations' planters, in clean green shirts, come to put oil palm in the ash.
+  - **At home:** a grove gives an offering for each minute lasted in it, and three more cleansed.
+    The village counts the groves given back, and the Great Tiger has a word at the shrine each
+    time on how the forest's edge is holding. The first time Green Promise's crew came, Jogiboy
+    smells the palm plantation on him. The best run is still Endless's.
 - **What worked is there to read.** Every hit he lands can show its number, rising off what it
   hit, colored by how hard it landed: white plain, yellow twice as hard, orange three times, red
   four and more (critical past 100% keeps stepping up). Hits on the same thing a moment apart add

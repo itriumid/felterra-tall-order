@@ -289,7 +289,11 @@ func _draw_status() -> void:
 ## A story's line as it's written out, and the keys to hurry it or skip it.
 func _draw_cutscene() -> void:
 	var screen := get_viewport_rect().size
-	if not intro.is_empty():
+	# Someone with a portrait says theirs beside it, as in the village; the story itself is
+	# written over the scene.
+	if not intro.is_empty() and not speaker.is_empty() and Portraits.has(speaker):
+		_dialog(speaker, mood, intro)
+	elif not intro.is_empty():
 		_shadowed(intro, 46, Palette.OFF_WHITE)
 	var keys: Array[String] = ["Esc", "skip"]
 	if not intro.is_empty():
@@ -706,6 +710,10 @@ static func wrapped(text: String, width: float) -> Array[String]:
 ## pointer over it goes: the cages still shut, the things still to break, the levers still up.
 static func goal_marks(on: Arena) -> Array[Vector2]:
 	var marks: Array[Vector2] = []
+	if on.grove and not on.cleansed:
+		for drain in on.drains:
+			if not drain.done:
+				marks.append(World.to_screen(drain.position) - Vector2(0, 14))
 	if on.goal_done or on.area.is_empty():
 		return marks
 	for cage in on.goal_cages:
@@ -731,6 +739,10 @@ func _draw_cage_markers() -> void:
 	for cage in arena.cages:
 		if not cage.opened:
 			targets.append({"at": cage.body.position, "icon": "cage", "color": Palette.PINK})
+	if arena.grove and not arena.cleansed:
+		for drain in arena.drains:
+			if not drain.done:
+				targets.append({"at": drain.position, "icon": "", "color": Palette.BRASS_LIGHT})
 	if not arena.goal_done and not arena.area.is_empty():
 		if arena.area.goal.kind == "structures":
 			for structure in arena.structures:

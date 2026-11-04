@@ -16,6 +16,9 @@ const KINDS := {
 	"chainsaw": {"health": 90.0, "speed": 0.9, "worth": 30},
 	# The handler: the deep forest's boss. He keeps his distance and whistles his dogs in.
 	"handler": {"health": 150.0, "speed": 1.0, "worth": 40},
+	# Green Promise Plantations' planters, in clean green shirts and caps, come into a cleansed
+	# grove to put oil palm in the ash: a worker by any other name, and as heavy on his feet.
+	"planter": {"health": 70.0, "speed": 1.0, "worth": 18},
 }
 ## The handler: how far off he keeps, how often he whistles, and how many dogs come to it.
 const HANDLER_DISTANCE := 5.0

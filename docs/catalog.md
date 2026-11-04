@@ -20,7 +20,9 @@ workers are giants.
 
 | Name | Status | What it does |
 |---|---|---|
-| **Rat** | Built | From the supply crates. Small and quick, comes in numbers, bites |
+| **Rat** | Built | A peon of the Free Float, the rats' own nation, who dig the drains that dry the peat out so it burns. Small and quick, comes in numbers, bites |
+| **Torchbearer** | Built | A Free Float rat with a lit torch: in a cleansed grove, it sets the dry ground alight behind it as it runs, and the fire burns cats, never rats |
+| **Rat foreman** | Built | A Free Float rat in a hard hat and a hi-vis vest, tougher than the peons, calling three of them in around him every few seconds |
 | **Guard dog** | Built | The company's, in a hi-vis harness. Faster than a cat; crouches, then lunges through the air. In packs of three |
 | **Gull** | Planned | At the camp |
 | **Cockroach** | Idea | From the supply crates too: tiny, in swarms, crunched underfoot by him and the giants alike |
@@ -28,13 +30,16 @@ workers are giants.
 
 ### The spirits
 
-The forest's own, the second faction: restless, and sure at first that the cats burned the forest.
-A spirit leaves nothing lying when it falls, and nothing that bleeds: it goes out in embers.
+The forest's own, the second faction: the Keepers, who go to every fire to put it out and get the
+blame for it. In the siege they're sure the cats burned the forest; in a grove still sick from the
+rats' smoke, they're maddened, not evil, and once the grove is cleansed they come to themselves and
+drift off into the trees. A spirit leaves nothing lying when it falls, and nothing that bleeds: it
+goes out in embers. The tuyul are no Keepers: the rats pay them.
 
 | Name | Status | What it does |
 |---|---|---|
 | **Ember wisp** | Built | Off the burned peat, and off a burning roof: floats just off the ground, over what's low, and comes in numbers |
-| **Tuyul** | Built | Small and quick: goes for salvage lying about, or bites a piece off what he's picked up, and runs for the trees with it. Caught, he drops it |
+| **Tuyul** | Built | A thief spirit the Free Float pays, so a cleansed grove doesn't calm him. Small and quick: goes for salvage lying about, or bites a piece off what he's picked up, and runs for the trees with it. Caught, he drops it |
 | **Charred sapling** | Built | A burned young tree walking on its roots: slow and tough, in groups |
 | **Smoke monkey** | Built | A macaque made of haze: crouches and leaps like a dog, and lands in its own smoke, where it can't be made out from further than a meter or so |
 | **Pocong** | Built | Wrapped in its shroud, it can only hop. A hard hit knocks it flat, and it struggles to get up |
@@ -46,6 +51,7 @@ A spirit leaves nothing lying when it falls, and nothing that bleeds: it goes ou
 | **Worker** | Built | A mini-boss: slow, heavy, stomps (the boot's shadow is the warning). Felled, he topples and crushes what he lands on |
 | **Chainsaw worker** | Built | The first elite: revs (the arc on the ground is the warning), then sweeps the saw at shin height, cutting his own horde too |
 | **Lantern worker** | Planned | A dropped lantern is a fire |
+| **Planter** | Built | Green Promise Plantations', in a clean green shirt and cap, come into a cleansed grove to put oil palm in the ash: a worker by any other name, as heavy on his feet |
 | **Handler** | Built | The deep forest's boss: keeps his distance, backing off round anything in his way rather than into it, and whistles a pack of dogs in every few seconds |
 | **Foreman** | Idea | Stays back with a megaphone; while he shouts, the workers near him hurry |
 | **Fumigator** | Idea | Sprays smoke for the pests: it hides what's in it, and makes him cough |

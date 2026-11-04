@@ -458,14 +458,38 @@ const GROVES: Array[Dictionary] = [
 		"scatter": [{"kind": "tree", "count": 10, "radius": [0.45, 0.7]}, {"kind": "bush", "count": 16, "radius": [0.45, 0.8]}, {"kind": "rock", "count": 8, "radius": [0.4, 0.8]}],
 	},
 ]
-## What comes at him in a grove: the restless spirits, and the company's machines, left behind
-## and still working, with something else at the controls. The company's traps are still there too,
-## with cats in them.
+## What comes at him in a grove: its Keepers, maddened by the smoke; the Free Float's peons, still
+## digging, and the tuyul they pay; and Burnt Future's machines, left behind and still working,
+## with something else at the controls. The company's traps are still there too, with cats in them.
 const GROVE_PLAN := {
-	"rats": {"rate": 1.4, "growth": 0.05, "kinds": {"wisp": 5, "tuyul": 1, "pocong": 2}},
+	"rats": {"rate": 1.4, "growth": 0.05, "kinds": {"wisp": 5, "tuyul": 1, "pocong": 2, "rat": 2}},
 	"packs": [{"kind": "sapling", "from": 40.0, "interval": 35.0, "pack": 4, "most": 12}, {"kind": "monkey", "from": 60.0, "interval": 30.0, "pack": 3, "most": 9}],
 	"machines": {"from": 300.0, "interval": 300.0, "kind": "feller_buncher"},
 	"cages": {"from": 40.0, "interval": 75.0, "most": 2},
+}
+
+
+## Once the grove is cleansed: the Keepers are gone, and the ones who were paid to be there come
+## harder. The Free Float's peons and torchbearers, its foremen, and in time a Baron; the tuyul;
+## and Green Promise Plantations' planting crews, come to put oil palm in the ash.
+const GROVE_CLEANSED_PLAN := {
+	"rats": {"rate": 1.7, "growth": 0.06, "kinds": {"rat": 6, "tuyul": 2, "torchbearer": 2}},
+	"packs": [{"kind": "foreman", "from": 25.0, "interval": 40.0, "pack": 1, "most": 3}, {"kind": "rat_baron", "from": 150.0, "interval": 300.0, "pack": 1, "most": 1}],
+	"giants": {"from": 60.0, "interval": 40.0, "most": 3, "kind": "planter"},
+	"cages": {"from": 40.0, "interval": 75.0, "most": 2},
+}
+## What's said in a grove, in the fight: the Keepers coming to themselves, Green Promise's crew
+## arriving (a human, so only scribbles), and a Baron of the Free Float, demoted to the groves.
+const GROVE_CALLS: Array[Dictionary] = [
+	{"when": "cleansed", "by": "A Keeper", "text": "...Where are we? Who are you?"},
+	{"when": "crew", "by": "Green Promise's foreman", "human": true},
+	{"when": "baron", "by": "A Baron of the Free Float", "text": "I've been reclassified! Do you know what that does to a career?"},
+]
+## Going into a grove, the first time each kind is seen: the book's line for it.
+const GROVE_LINES := {
+	"sick_grove": "The trees there still remembered the smoke. So did the Keepers.",
+	"burned_peat": "The ground was warm under our feet. It shouldn't have been.",
+	"riverbank": "The river had carried their logs away for a year. It was in a bad mood.",
 }
 
 

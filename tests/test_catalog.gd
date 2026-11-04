@@ -7,8 +7,9 @@ const CATALOG := "res://docs/catalog.md"
 const CREATURE_NAMES := {
 	"rat": "Rat", "dog": "Guard dog", "rat_baron": "Rat Baron", "wisp": "Ember wisp", "tuyul": "Tuyul",
 	"sapling": "Charred sapling", "monkey": "Smoke monkey", "pocong": "Pocong",
+	"torchbearer": "Torchbearer", "foreman": "Rat foreman",
 }
-const GIANT_NAMES := {"worker": "Worker", "chainsaw": "Chainsaw worker", "handler": "Handler"}
+const GIANT_NAMES := {"worker": "Worker", "chainsaw": "Chainsaw worker", "handler": "Handler", "planter": "Planter"}
 const MACHINE_NAMES := {
 	"feller_buncher": "Feller buncher", "log_loader": "Log loader", "logging_truck": "Logging truck",
 	"bulldozer": "Bulldozer", "helicopter": "Helicopter",
