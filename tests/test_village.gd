@@ -272,3 +272,39 @@ func test_waiting_ahead_jogiboy_barks_to_call_him_on() -> void:
 	for step in 60 * 6:
 		map.step(Arena.STEP)
 	check(map.jogi_barks >= 2, "Jogiboy waited ahead without barking for him")
+
+
+func test_jogiboy_has_a_word_as_tompel_comes_up_and_calls_after_him_if_he_walks_off() -> void:
+	var map := VillageMap.new()
+	var spot := VillageMap.door_step(VillageMap.SMITHY)
+	# Up from the road below the smithy; then standing at its door; then off back along the road.
+	map.cat.body.position = Vector2(spot.x, 11.4)
+	map.jogi.body.position = map.cat.body.position
+	map.leads_to = spot
+	var said: Array[String] = []
+	var heard := 0
+	var away := Vector2(14.0, 9.0)
+	for step in 60 * 14:
+		var toward := (spot if step < 60 * 9 else away) - map.cat.body.position
+		map.cat.steering = toward.normalized() if (step < 60 * 4 or step >= 60 * 9) and toward.length() > 0.3 else Vector2.ZERO
+		map.step(Arena.STEP)
+		if map.jogi_moments != heard:
+			heard = map.jogi_moments
+			said.append(map.jogi_moment)
+	check("nearing" in said, "Jogiboy said nothing as Tompel came up to the smithy: %s" % str(said))
+	check("lingering" in said, "Jogiboy didn't nudge him, standing at the door: %s" % str(said))
+	check("leaving" in said, "Jogiboy didn't call after him walking off: %s" % str(said))
+
+
+func test_jogiboys_words_agree_with_whos_meant_and_start_with_capitals() -> void:
+	for moment: String in ["nearing", "lingering", "leaving"]:
+		for count in 12:
+			var one := JogiboySays.line(moment, Village.TELLERS.elder, count)
+			var two := JogiboySays.line(moment, Village.TELLERS.market, count)
+			check(not one.contains("{") and not two.contains("{"), "a word was left unfilled: %s / %s" % [one, two])
+			check(not one.contains(". the") and not one.contains("! the") and not one.begins_with("the"), "a sentence started small: %s" % one)
+			check(not two.contains("Cream has") and not two.contains("Cream wants") and not two.contains("Cream is"), "Coffee and Cream were one cat: %s" % two)
+	var lines := {}
+	for count in 12:
+		lines[JogiboySays.line("nearing", Village.TELLERS.smithy, count)] = true
+	check(lines.size() >= 4, "Jogiboy said the same few things over and over")

@@ -107,10 +107,12 @@ const HURT_FLASH_MS := 200
 const LOW_HEALTH := 0.3
 var door := ""
 var message := ""
-## Jogiboy's bark, said over him for a moment: how long it's still up, and what he says.
-var barked_for := 0.0
+## What Jogiboy's saying, over him for a moment: his bark, or a word about the news; how long it's
+## still up.
+var _jogi_line := ""
+var _jogi_line_for := 0.0
 const BARK_SHOWS := 0.9
-const BARKS: Array[String] = ["Arf!", "Arf arf!", "This way!"]
+const JOGI_SAYS_FOR := 2.6
 var shop_page := ""
 var shop_title := ""
 var shop_rows: Array[Dictionary] = []
@@ -336,9 +338,9 @@ func _draw_village() -> void:
 		for spot in village_record.tiding_spots(village_map):
 			news.append({"at": spot, "icon": "", "color": Palette.BRASS_LIGHT})
 		_draw_edge_targets(news, village_map.cat.body.position, 30.0)
-	if barked_for > 0.0:
-		barked_for = maxf(barked_for - get_process_delta_time(), 0.0)
-		_bubble(village_map.jogi.body.position, "", BARKS[village_map.jogi_barks % BARKS.size()])
+	if _jogi_line_for > 0.0:
+		_jogi_line_for = maxf(_jogi_line_for - get_process_delta_time(), 0.0)
+		_bubble(village_map.jogi.body.position, "", _jogi_line)
 	_shadowed(message, screen.y - 38, Palette.PINK)
 	if not door.is_empty():
 		var keys: Array[String] = ["Enter", door]
@@ -362,6 +364,14 @@ func _draw_village() -> void:
 		var at := Vector2(floorf((screen.x - PixelFont.width(hint)) / 2.0), screen.y - 24)
 		PixelFont.draw(self, at + Vector2(1, 1), hint, Palette.GRAPHITE)
 		PixelFont.draw(self, at, hint, Palette.OFF_WHITE)
+
+
+## Jogiboy says something, over him, for so long; a longer word isn't cut off by a bark.
+func jogi_says(text: String, seconds: float) -> void:
+	if _jogi_line_for > BARK_SHOWS and seconds <= BARK_SHOWS:
+		return
+	_jogi_line = text
+	_jogi_line_for = seconds
 
 
 ## A line said by someone in the scene, in a speech bubble over their head: who's speaking, and what

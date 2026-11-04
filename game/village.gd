@@ -298,6 +298,35 @@ func nearest_tiding(map: VillageMap, to: Vector2) -> Vector2:
 	return nearest
 
 
+## Who has the news at the nearest of them, as Jogiboy would say it: {name, plural, person}, a
+## person by name, or a place ("the board"). Empty with nothing new anywhere.
+func nearest_teller(map: VillageMap, to: Vector2) -> Dictionary:
+	var nearest := nearest_tiding(map, to)
+	if not nearest.is_finite():
+		return {}
+	if has_tidings("elder") and map.elder.body.position.distance_to(nearest) < 0.01:
+		return TELLERS.elder
+	for building in map.buildings:
+		if VillageMap.door_step(building.footprint).distance_to(nearest) < 0.01:
+			return TELLERS.get(building.name, {"name": "the hut", "person": false})
+	return {}
+
+
+## Who has the news there, as Jogiboy puts it.
+const TELLERS := {
+	"elder": {"name": "the Elder", "person": true},
+	"smithy": {"name": "Uncle Anvil", "person": true},
+	"hut_0": {"name": "Granny Whiskers", "person": true},
+	"watchtower": {"name": "Saffron", "person": true},
+	"market": {"name": "Coffee and Cream", "person": true, "plural": true},
+	"healer": {"name": "Auntie Clove", "person": true},
+	"shrine": {"name": "the Great Tiger", "person": true},
+	"longhouse": {"name": "the longhouse", "person": false},
+	"board": {"name": "the board", "person": false},
+	"home": {"name": "your house", "person": false},
+}
+
+
 ## Whether there's something new waiting to be heard there.
 func has_tidings(at: String) -> bool:
 	return (at == "jogiboy" and jogiboy_found > 0) or tidings.any(func(tiding: Dictionary) -> bool: return tiding.at == at)

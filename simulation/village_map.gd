@@ -139,6 +139,21 @@ var _stood_for := 0.0
 var _away_for := 0.0
 var jogi_barks := 0
 var _bark_in := 0.0
+## What Jogiboy has to say about it, as Tompel comes and goes: "nearing" as he walks up to it,
+## "lingering" when he's there and doesn't go in, "leaving" when he walks off from it. Each said
+## counts up, for the view to put words to.
+var jogi_moment := ""
+var jogi_moments := 0
+var _watching := Vector2.INF
+var _was_near := false
+var _said_nearing := false
+var _lingered := 0.0
+## How near counts as near, how far past it counts as walking off, how long at the door before he
+## nudges, and how long between nudges.
+const NEAR := 3.2
+const WALKED_OFF := 5.0
+const LINGER_NUDGE := 4.0
+const LINGER_AGAIN := 7.0
 ## How soon he barks once he's waiting, and how often after, while Tompel doesn't come.
 const BARK_FIRST := 0.4
 const BARK_AGAIN := 2.6
@@ -480,6 +495,7 @@ func _step_jogi(delta: float) -> void:
 		if absf(to_them.x) > 0.3:
 			jogi.facing = Vector2(signf(to_them.x), 0.0)
 		return
+	_watch_him(delta)
 	if _lead(delta):
 		return
 	var goal := cat.body.position - cat.facing * JOGI_HEEL + cat.facing.orthogonal() * 0.35
@@ -558,6 +574,39 @@ func _lead(delta: float) -> bool:
 		_bark_in = BARK_FIRST
 		_move(jogi, toward.normalized() * minf(JOGI_SPEED, maxf(toward.length() * 3.0, 0.8)), delta)
 	return true
+
+
+## Jogiboy watching Tompel with the news: a word as he comes up to it, a nudge if he stands there
+## and doesn't go in, and a call after him if he walks off from it.
+func _watch_him(delta: float) -> void:
+	if not leads_to.is_finite() or seeing_off:
+		_watching = Vector2.INF
+		return
+	if not _watching.is_finite() or _watching.distance_to(leads_to) > 0.5:
+		_watching = leads_to
+		_was_near = false
+		_said_nearing = false
+		_lingered = 0.0
+	var apart := cat.body.position.distance_to(leads_to)
+	var walking := cat.body.velocity.length() > 0.2
+	if apart <= NEAR:
+		if not _said_nearing and walking and cat.body.velocity.dot(leads_to - cat.body.position) > 0.0:
+			_said_nearing = true
+			_say("nearing")
+		_was_near = true
+		_lingered = _lingered + delta if not walking else 0.0
+		if _lingered >= LINGER_NUDGE:
+			_lingered -= LINGER_AGAIN
+			_say("lingering")
+	elif _was_near and apart >= WALKED_OFF:
+		_was_near = false
+		_said_nearing = false
+		_say("leaving")
+
+
+func _say(moment: String) -> void:
+	jogi_moment = moment
+	jogi_moments += 1
 
 
 ## A spot so far along the way from one place to another in the village: along the road while the

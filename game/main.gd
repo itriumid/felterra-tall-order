@@ -259,8 +259,9 @@ var _dev_grove := false
 ## home was a grove's, for the walk in.
 var _dev_cub := ""
 var _cleansed := false
-## How many of Jogiboy's barks have been heard.
+## How many of Jogiboy's barks, and of his words about the news, have been heard.
 var _barks_heard := 0
+var _moments_heard := 0
 ## The grove this run is in, as the village keeps that its line was told: "grove:<id>".
 var _grove_told := ""
 var _horde_kind := "rat"
@@ -1307,7 +1308,13 @@ func _step_village(delta: float) -> void:
 	if village_map.jogi_barks != _barks_heard:
 		_barks_heard = village_map.jogi_barks
 		_audio.play_at("bark", village_map.jogi.body.position, -4.0, 1.25)
-		_overlay.barked_for = Overlay.BARK_SHOWS
+		_overlay.jogi_says(JogiboySays.bark(village_map.jogi_barks), Overlay.BARK_SHOWS)
+	# And what he has to say about it, as Tompel comes and goes.
+	if village_map.jogi_moments != _moments_heard:
+		_moments_heard = village_map.jogi_moments
+		var teller := village.nearest_teller(village_map, village_map.cat.body.position)
+		if not teller.is_empty():
+			_overlay.jogi_says(JogiboySays.line(village_map.jogi_moment, teller, village_map.jogi_moments), Overlay.JOGI_SAYS_FOR)
 	_camera.position = _village_camera()
 
 
