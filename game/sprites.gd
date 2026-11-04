@@ -30,14 +30,14 @@ const LEGEND := {
 const COATS := {"orange": "oOy", "gray": "uUi", "black": "fFj", "cream": "lzZ", "tompel": "QWY"}
 ## Tompel's markings on his white coat, in black: his ears and the crown of his head, a saddle
 ## along his back that reaches low down his flanks, with a white streak across it, and the black
-## patch on his left cheek by his mouth that gave him his name. His tail is black too: it's drawn
-## on its own. Rows and columns are the body's: each mark is {rows, columns}, a streak is left
+## patch on his left cheek by his mouth that gave him his name; and his haunches and hind legs,
+## black down to his white socks. His tail is black too: it's drawn on its own. Rows and columns are the body's: each mark is {rows, columns}, a streak is left
 ## white inside them, and the patch is where it starts from his nose: so far along, and so many
 ## rows up or down, two pixels wide.
 const TOMPEL_MARKS := {
-	"front": [{"rows": Vector2i(3, 7), "columns": Vector2i(0, 24)}],
-	"back": [{"rows": Vector2i(3, 10), "columns": Vector2i(0, 24)}, {"rows": Vector2i(13, 15), "columns": Vector2i(7, 17)}],
-	"side": [{"rows": Vector2i(5, 10), "columns": Vector2i(12, 24)}, {"rows": Vector2i(11, 14), "columns": Vector2i(4, 13)}],
+	"front": [{"rows": Vector2i(3, 7), "columns": Vector2i(0, 24)}, {"rows": Vector2i(19, 20), "columns": Vector2i(5, 8)}, {"rows": Vector2i(19, 20), "columns": Vector2i(16, 19)}],
+	"back": [{"rows": Vector2i(3, 10), "columns": Vector2i(0, 24)}, {"rows": Vector2i(13, 15), "columns": Vector2i(7, 17)}, {"rows": Vector2i(16, 20), "columns": Vector2i(7, 10)}, {"rows": Vector2i(16, 20), "columns": Vector2i(13, 16)}],
+	"side": [{"rows": Vector2i(5, 10), "columns": Vector2i(12, 24)}, {"rows": Vector2i(11, 14), "columns": Vector2i(4, 13)}, {"rows": Vector2i(15, 19), "columns": Vector2i(3, 10)}],
 }
 const TOMPEL_STREAK := {"side": [{"rows": Vector2i(8, 8), "columns": Vector2i(15, 21)}], "back": [{"rows": Vector2i(7, 7), "columns": Vector2i(3, 9)}]}
 ## His left cheek: the viewer's right, from the front; the side he shows facing east.
@@ -430,7 +430,8 @@ const GOGGLES := {
 ........................
 """,
 }
-## Tompel's own collar, worn always: the bell collar's, red with white dots.
+## Tompel's own collar, worn always: the bell collar's, red with white dots: across the band one
+## pixel in three, and where it runs down his neck, seen from the side, one on every other row.
 static var TOMPEL_COLLAR: Dictionary:
 	get:
 		if _tompel_collar.is_empty():
@@ -440,7 +441,9 @@ static var TOMPEL_COLLAR: Dictionary:
 					var row := rows[y]
 					var dotted := ""
 					for x in row.length():
-						dotted += "Y" if row[x] == "c" and x % 2 == 0 and row.count("c") > 2 else row[x]
+						var across := row.count("c") > 2
+						var dot := (across and x % 3 == 1) or (not across and y % 2 == 1 and x == row.find("c"))
+						dotted += "Y" if row[x] == "c" and dot else row[x]
 					rows[y] = dotted
 				_tompel_collar[view] = "\n".join(rows)
 		return _tompel_collar
