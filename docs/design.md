@@ -402,6 +402,9 @@ on: fire and oil, or crewmates who can be downed.
     The village counts the groves given back, and the Great Tiger has a word at the shrine each
     time on how the forest's edge is holding. The first time Green Promise's crew came, Jogiboy
     smells the palm plantation on him. The best run is still Endless's.
+  - **The edge holds.** The Keepers of groves given back tell the others: in every grove after,
+    a tenth fewer Keepers come maddened for each grove held, to three tenths at most. It's the
+    run's, never a cat's, so it's the same help for one cat or a crew of four.
 - **What worked is there to read.** Every hit he lands can show its number, rising off what it
   hit, colored by how hard it landed: white plain, yellow twice as hard, orange three times, red
   four and more (critical past 100% keeps stepping up). Hits on the same thing a moment apart add

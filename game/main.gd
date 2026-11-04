@@ -1531,6 +1531,7 @@ func _set_up_run(run_kind: String) -> void:
 		# company, laid out fresh from the run's seed.
 		if run_kind == "endless" and village.truce():
 			arena.begin_grove(fresh)
+			arena.keepers_heard = Arena.heard_for(village.groves_cleansed)
 			var grove := Areas.grove(fresh)
 			if not _placed:
 				cat.body.position = grove.start

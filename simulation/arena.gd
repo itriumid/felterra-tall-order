@@ -159,6 +159,11 @@ var grove := false
 ## drift off into the trees, and the run goes on against whoever was paid to be there.
 var drains: Array[Dictionary] = []
 var cleansed := false
+## How many fewer of a grove's Keepers come maddened, as a share: the Keepers of groves given back
+## have told the others. The same for one cat or four, so a crew can't stack it up.
+var keepers_heard := 0.0
+const KEEPERS_HEARD_EACH := 0.1
+const KEEPERS_HEARD_MOST := 0.3
 ## Whether Green Promise's crew came into this grove: Jogiboy will smell it on him, at home.
 var crew_came := false
 const DRAINS := 3
@@ -1647,6 +1652,8 @@ func _spawn() -> void:
 			# A pack comes out of the trees together.
 			var gate := edge_point()
 			for each in mini(pack.pack, pack.most - out_already):
+				if _stays_away(pack.kind):
+					continue
 				add_creature((gate + Vector2(random.randf_range(-0.6, 0.6), random.randf_range(-0.6, 0.6))).clamp(Vector2.ONE * 0.3, size - Vector2.ONE * 0.3), pack.kind)
 			if pack.kind == "rat_baron" and out_already < pack.most:
 				_call("baron", gate)
@@ -1657,7 +1664,9 @@ func _spawn() -> void:
 	var interval: float = 1.0 / ((rats_plan.rate + rats_plan.growth * time) * crew_scale())
 	while _since_spawn >= interval and creatures.size() < MOST_CREATURES:
 		_since_spawn -= interval
-		add_creature(edge_point(), _one_of(rats_plan.get("kinds", {"rat": 1})))
+		var kind := _one_of(rats_plan.get("kinds", {"rat": 1}))
+		if not _stays_away(kind):
+			add_creature(edge_point(), kind)
 
 
 ## One kind from a mix, by its share of it.
@@ -1866,6 +1875,19 @@ func _drain_spot(near: Vector2) -> Vector2:
 
 ## Cats by a drain dam it; with nobody there, the earth slips back. The last one dammed cleanses
 ## the grove.
+## The share fewer maddened Keepers come, for so many groves given back.
+static func heard_for(groves_cleansed: int) -> float:
+	return minf(groves_cleansed * KEEPERS_HEARD_EACH, KEEPERS_HEARD_MOST)
+
+
+## Whether a kind of creature, coming into a grove, stays away instead: a Keeper that's heard.
+func _stays_away(kind: String) -> bool:
+	if not grove or keepers_heard <= 0.0:
+		return false
+	var kind_of: Dictionary = Creature.KINDS[kind]
+	return kind_of.get("spirit", false) and not kind_of.get("hired", false) and random.randf() < keepers_heard
+
+
 func _dam_drains() -> void:
 	if not grove or cleansed:
 		return

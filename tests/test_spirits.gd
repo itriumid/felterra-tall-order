@@ -393,3 +393,25 @@ func test_a_torchbearers_fire_burns_cats_and_never_rats() -> void:
 		arena.step()
 	check(cat.health < health, "standing in a torchbearer's fire didn't burn him")
 	check(not rat.afflictions.has("burn"), "a torchbearer's fire burned a rat")
+
+
+func _keepers_in_a_minute(heard: float) -> int:
+	var arena := Arena.new()
+	arena.random.seed = 11
+	arena.begin_grove(11)
+	arena.keepers_heard = heard
+	arena.add_cat(arena.size / 2.0).health = 1.0e9
+	var seen := {}
+	for step in 60 * 60:
+		arena.step()
+		for creature in arena.creatures:
+			if creature.keeper():
+				seen[creature] = true
+	return seen.size()
+
+
+func test_groves_given_back_mean_fewer_keepers_come_maddened() -> void:
+	check(Arena.heard_for(1) == Arena.KEEPERS_HEARD_EACH and Arena.heard_for(10) == Arena.KEEPERS_HEARD_MOST, "the share heard didn't grow by the grove, or past its most")
+	var none_heard := _keepers_in_a_minute(0.0)
+	var most_heard := _keepers_in_a_minute(Arena.KEEPERS_HEARD_MOST)
+	check(most_heard < none_heard * 0.85, "with groves given back, %d Keepers came against %d" % [most_heard, none_heard])
