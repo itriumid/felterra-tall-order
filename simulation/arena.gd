@@ -368,7 +368,7 @@ func target_for(where: Vector2, reach: float, mode: String, height := EYE) -> Ob
 	var best: Object = null
 	var best_score := -INF
 	var scored: Array = []
-	for target in _targets():
+	for target in (_targets_close(where, reach) if reach <= CLOSE_REACH else _targets()):
 		var distance: float = where.distance_to(target.body.position) - target.body.radius
 		if distance > reach:
 			continue
@@ -403,6 +403,36 @@ func _targets() -> Array:
 		targets.append_array(creatures.filter(func(creature: Creature) -> bool: return not creature.calm))
 	else:
 		targets.append_array(creatures)
+	_add_the_big(targets)
+	return targets
+
+
+## The same, for a short reach (a blade's, a pounce's): of the horde, only what the grid has in
+## the cells round the point, so a blade in a horde of hundreds looks at a handful. The grid is the
+## step's, so one that's fallen since is left out, and the cells are taken a little wide for what
+## has moved and for how big the biggest is.
+const CLOSE_REACH := 1.6
+const CLOSE_MARGIN := 0.5
+
+func _targets_close(where: Vector2, reach: float) -> Array:
+	var targets: Array = []
+	var low := _cell_of(where - Vector2.ONE * (reach + CLOSE_MARGIN))
+	var high := _cell_of(where + Vector2.ONE * (reach + CLOSE_MARGIN))
+	for x in range(low.x, high.x + 1):
+		for y in range(low.y, high.y + 1):
+			var here: Variant = _grid.get(Vector2i(x, y))
+			if here == null:
+				continue
+			for creature: Creature in here:
+				if creature.alive() and not (cleansed and creature.calm):
+					targets.append(creature)
+	_add_the_big(targets)
+	return targets
+
+
+## The giants and machines on their feet, a machine's joint while it's open, and what stands to be
+## broken: few enough to look at every one.
+func _add_the_big(targets: Array) -> void:
 	for giant in giants:
 		if giant.standing():
 			targets.append(giant)
@@ -414,7 +444,6 @@ func _targets() -> Array:
 	for structure in structures:
 		if structure.alive():
 			targets.append(structure)
-	return targets
 
 
 ## Everything there is to fight within reach of a point, counting how big each is.
@@ -775,7 +804,6 @@ func _build_grid() -> void:
 ## each. The grid keeps it to neighbors, so a big horde costs what its crowding costs: each cell
 ## against itself and the four after it, so every pair is looked at once. A dog is wider than a
 ## cell, so it looks further, on its own.
-const FORWARD: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 1), Vector2i(0, 1), Vector2i(1, 1)]
 ## How far each of a pair standing in each other is pushed, as a share of how far they overlap,
 ## and how many times a step the crowd is gone over: a packed crowd pushing in on him settles only
 ## if it's gone over more than once.
@@ -784,12 +812,18 @@ const PARTINGS := 2
 
 
 func _separate() -> void:
+	_part_the_narrow()
 	for parting in PARTINGS:
-		_part_the_crowd()
+		_part_the_wide()
 
 
-func _part_the_crowd() -> void:
-	var wide: Array[Creature] = []
+
+
+func _part_the_narrow() -> void:
+	var count := creatures.size()
+	_part_at.resize(count)
+	_part_radius.resize(count)
+	_part_out.resize(count)
 	var half := CELL / 2.0
 	for cell: Vector2i in _grid:
 		var here: Array = _grid[cell]
@@ -829,7 +863,7 @@ func _part_the_crowd() -> void:
 		for x in range(cell.x - 2, cell.x + 3):
 			for y in range(cell.y - 2, cell.y + 3):
 				for other: Creature in _grid.get(Vector2i(x, y), []):
-					if other == creature or (other.body.radius > CELL / 2.0 and other.get_instance_id() < creature.get_instance_id()):
+					if other == creature or (other.body.radius > half and other.get_instance_id() < creature.get_instance_id()):
 						continue
 					_part(creature, other)
 
