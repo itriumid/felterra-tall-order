@@ -68,6 +68,66 @@ describe('a room', () => {
 		expect(host.heard).toEqual([{ type: 'peer', id: 2 }]);
 	});
 
+	it('tells a guest and the host the servers to reach each other through, before telling them of each other', () => {
+		const host = line(HOST);
+		const guest = line(2);
+		const servers = [
+			{ urls: ['stun:stun.cloudflare.com:3478'] },
+			{ urls: ['turn:turn.cloudflare.com:3478?transport=udp'], username: 'someone', credential: 'something' }
+		];
+		room(host.line, guest.line).room.came(guest.line, servers);
+		expect(guest.heard).toEqual([
+			{ type: 'ice_servers', servers },
+			{ type: 'joined', id: 2 }
+		]);
+		expect(host.heard).toEqual([
+			{ type: 'ice_servers', servers },
+			{ type: 'peer', id: 2 }
+		]);
+	});
+
+	it('tells the host the servers again with each guest, and no guest those of another', () => {
+		const host = line(HOST);
+		const first = line(2);
+		const second = line(3);
+		const { room: it } = room(host.line, first.line, second.line);
+		const servers = (credential: string) => [{ urls: ['turn:turn.cloudflare.com:3478?transport=udp'], username: 'someone', credential }];
+		it.came(first.line, servers('one'));
+		it.came(second.line, servers('two'));
+		expect(host.heard.filter((each) => each.type === 'ice_servers')).toEqual([
+			{ type: 'ice_servers', servers: servers('one') },
+			{ type: 'ice_servers', servers: servers('two') }
+		]);
+		expect(first.heard).toEqual([
+			{ type: 'ice_servers', servers: servers('one') },
+			{ type: 'joined', id: 2 }
+		]);
+	});
+
+	it('says nothing of servers when there are none to offer', () => {
+		const host = line(HOST);
+		const guest = line(2);
+		room(host.line, guest.line).room.came(guest.line, null);
+		expect(guest.heard).toEqual([{ type: 'joined', id: 2 }]);
+		expect(host.heard).toEqual([{ type: 'peer', id: 2 }]);
+	});
+
+	it('tells the host nothing of servers as the room opens, or a guest turned away', () => {
+		const host = line(HOST);
+		const guest = line(2, '0.0.4');
+		const { room: it } = room(host.line);
+		it.opened(host.line, 'KTPL42');
+		it.refuse(guest.line, 'version');
+		expect([...host.heard, ...guest.heard].some((each) => each.type === 'ice_servers')).toBe(false);
+	});
+
+	it('passes no servers from one player to another', () => {
+		const host = line(HOST);
+		const guest = line(2);
+		room(host.line, guest.line).room.heard(guest.line, JSON.stringify({ type: 'ice_servers', servers: [{ urls: ['turn:elsewhere.example'] }] }));
+		expect(host.heard).toEqual([]);
+	});
+
 	it("passes a guest's offer to the host, marked with who it's from", () => {
 		const host = line(HOST);
 		const guest = line(3);

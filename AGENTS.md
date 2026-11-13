@@ -117,7 +117,12 @@ catalog and the code agree.
   meets Cloudflare. Run it locally with `pnpm dev`, and play by room code against it with
   `tools/check_online.gd -- --title --rooms=ws://127.0.0.1:8787`, or the game with
   `--rooms=ws://127.0.0.1:8787`. Its own Workers Builds project deploys it, with `rooms` as
-  the root directory.
+  the root directory. A relay for players who can't connect directly (Cloudflare Realtime TURN) is
+  in `turn.ts`: the room hands each guest and the host a four-hour credential as the guest comes
+  in, made with a TURN key in the Worker's secrets `TURN_KEY_ID` and `TURN_KEY_API_TOKEN`.
+  Without both, or with Cloudflare not answering, players get STUN only and nothing fails. The
+  secrets are deliberately not under `secrets.required` in `wrangler.jsonc`, which would fail a
+  deploy without them. When the relay is used, the game's traffic goes through Cloudflare.
 - **The font is a submodule**: Itrium Pixel, at `addons/itrium_pixel_font`, from
   itriumid/pixel-font. Never edit it here; a glyph this game needs is added there, then the
   submodule is updated to that commit.
