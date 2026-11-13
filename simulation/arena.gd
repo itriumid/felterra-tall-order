@@ -184,6 +184,12 @@ const DAM_REACH := 0.9
 const DAM_TIME := 4.0
 const DAM_SLIPS := 0.2
 var structures: Array[Structure] = []
+## A piece of the company's writing lying in the area, for Granny Whiskers to read at home, as
+## {position}: none where the area has none, or it's been brought home already. And whether he's
+## picked it up this run: it goes home with him, win or lose.
+var paper := {}
+var paper_found := false
+const PAPER_REACH := 0.45
 var goal_cages: Array[Cage] = []
 var levers: Array[Dictionary] = []
 var logs: Array[Dictionary] = []
@@ -380,6 +386,7 @@ func step() -> void:
 	_pop_crackers()
 	_pick_locks()
 	_pick_up()
+	_find_the_paper()
 	_catch_fireflies()
 	_drift_smoke()
 	_fight_fires()
@@ -1463,6 +1470,30 @@ func _pick_up() -> void:
 	pickups = lying
 
 
+## A spot clear of what stands, at a point or as near it as there is one: tried there, then round
+## it, a little further out each time.
+func _clear_spot(near: Vector2) -> Vector2:
+	for ring in 8:
+		for turn in (1 if ring == 0 else 8):
+			var spot := (near + Vector2.from_angle(TAU * turn / 8.0) * 0.6 * ring).clamp(Vector2.ONE, size - Vector2.ONE)
+			if not solid_at(spot, 0.3):
+				return spot
+	return near
+
+
+## The area's paper, lying where it lies until a cat walks over it: then it's his to take home, and
+## he says what it is.
+func _find_the_paper() -> void:
+	if paper.is_empty() or paper_found:
+		return
+	for cat in cats:
+		if cat.alive() and cat.body.position.distance_to(paper.position) <= PAPER_REACH:
+			paper_found = true
+			events.append({"position": paper.position, "height": 0.1, "direction": Vector2.ZERO, "killed": false, "by": "paper", "giant": false, "kind": "paper"})
+			calls.append({"by": "Tompel", "text": area.paper.found, "at": cat.body.position, "follow": cat.body, "until": time + CALL_TIME, "human": false})
+			return
+
+
 ## Fireflies near a cat come to him; caught, they count for the crew.
 func _catch_fireflies() -> void:
 	for caught in fireflies.step(STEP, cats):
@@ -1935,11 +1966,15 @@ func filling(cat: Cat) -> float:
 
 
 ## Into an area of the forest: its plan for what spawns, and its goal's things where it puts them.
-func begin_area(area_id: String, goal_kept := false) -> void:
+func begin_area(area_id: String, goal_kept := false, papers_home: Array[String] = []) -> void:
 	area = Areas.named(area_id)
 	plan = area.plan
 	lay_out(area.get("size", SIZE), Areas.obstacles(area))
 	_reset_spawning()
+	paper = {}
+	paper_found = false
+	if area.has("paper") and not area_id in papers_home:
+		paper = {"position": _clear_spot(area.paper.at)}
 	if goal_kept:
 		# Done on an earlier run, and it stays done: what was broken stays broken, the caged stay
 		# free. Only the boss is left, once he's had time to grow.

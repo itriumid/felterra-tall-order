@@ -365,6 +365,7 @@ func _draw_all() -> void:
 	if _level_up > 0.0:
 		_draw_level_up()
 	_draw_goals()
+	_draw_paper()
 
 
 ## A shot in flight, drawn as what was fired, so each weapon's can be told apart: bullets as
@@ -520,6 +521,21 @@ func _draw_goals() -> void:
 	var bob := Vector2(0, -1) if fmod(_clock, 0.8) < 0.4 else Vector2.ZERO
 	for mark in Overlay.goal_marks(arena):
 		InterfaceArt.pointer(self, mark + bob, Vector2.DOWN, Palette.BRASS_LIGHT)
+
+
+## The area's paper, lying where it is until he takes it: a sheet with a few lines on it and the
+## company's red stamp, outlined, as what he can pick up is, with a pointer bobbing over it.
+func _draw_paper() -> void:
+	if arena.paper.is_empty() or arena.paper_found:
+		return
+	var at := World.to_screen(arena.paper.position).round() - Vector2(3, 6)
+	draw_rect(Rect2(at - Vector2.ONE, Vector2(8, 9)), Palette.OUTLINE)
+	draw_rect(Rect2(at, Vector2(6, 7)), Palette.OFF_WHITE)
+	for row in 3:
+		draw_rect(Rect2(at + Vector2(1, 1 + row * 2), Vector2(4 if row < 2 else 2, 1)), Palette.STEEL)
+	draw_rect(Rect2(at + Vector2(3, 4), Vector2(2, 2)), Palette.SCARF_RED)
+	var bob := Vector2(0, -1) if fmod(_clock, 0.8) < 0.4 else Vector2.ZERO
+	InterfaceArt.pointer(self, at + Vector2(3, -6) + bob, Vector2.DOWN, Palette.OFF_WHITE)
 
 
 ## How far over a cat's feet its player's marker points down, in pixels: just over its ears.
@@ -1967,7 +1983,7 @@ func _bleed(delta: float) -> void:
 					"velocity": Vector2(randf_range(-0.4, 0.4), randf_range(-0.4, 0.4)), "color": Palette.FIREFLY, "stains": false,
 				})
 			continue
-		if event.by == "pickup":
+		if event.by == "pickup" or event.by == "paper":
 			for index in 3:
 				_droplets.append({
 					"position": event.position, "height": 0.15, "rise": randf_range(0.8, 1.4),

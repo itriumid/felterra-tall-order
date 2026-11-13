@@ -13,6 +13,28 @@ their forest and moved in with its machines, and doesn't see cats as people at a
 **Felterra** is a world of cats, set in the Nusantara seas. It's shared with other Felterra
 games, but this story stands on its own: nothing here depends on another game's events.
 
+**The world's rule: it's our world, seen from below the knee.** Nothing about Felterra is
+magic. Animals are people to each other, with their own trades, villages and nations (the
+cats, a dog like Jogiboy, the rats' Free Float), and all of it happens at a height the giants
+never look at. Felterra is the cats' name for it: everything below a giant's knee. Humans
+aren't cruel and aren't in on it; they have simply never looked down. That is what keeps the
+cats cats and not people in cat suits: four legs, a mouth and a tail to carry with, things
+built at their own size from what the giants drop, and no place in the giants' world at all.
+
+**Writing is the one bridge, and it goes one way.** A cat can't understand a human's speech,
+and a human hears a meow. But a cat who's eaten enough fish out of newspaper can read what
+humans write, and no human has ever read anything of a cat's. No device translates and no
+spell does: the spirits are the forest's, and what they could bridge is kept for another
+Felterra story. So the story turns on reading: what the company is doing is found out from its
+own papers, and the cats win by writing back in the giants' own letters. Making a giant look
+down is the tall order.
+
+**Nobody looks down.** The giants never looked down at the cats. The cats never looked down at
+the rats ("Rats are rats", Tompel says, the way a giant would say it of him), and blamed the
+Keepers for fires the Keepers were putting out. Every reveal is somebody being seen for the
+first time, and Tompel's part in it is his own: sent away three months to find what was wrong,
+he came home with nothing, because it was underfoot the whole time.
+
 The present day. Cats are a modern people, with their own technology at cat scale. Humans exist
 too, and to humans, cats are animals: pests, if anything. A human company has moved into the
 forest a community of cats lives in, and is clearing it.
@@ -389,6 +411,21 @@ on: fire and oil, or crewmates who can be downed.
   while he's behind it, and a tree's crown over him thins. The fixed pieces are placed by hand;
   the scattered ones (trees, stumps, bushes) from the area's own seed, the same every time, kept
   clear of where he comes in, the goal's things, the boss's way in, and each other.
+- **The papers.** Each area the company holds (the deep forest to the airstrip) has a piece of
+  its writing lying in it: the Handler's list, a site board, a warning sign, a delivery note,
+  the permit, and at the airstrip the official's speech. It's marked in white, where what the
+  goal asks is brass, with an arrow at the screen's edge. Walking over it takes it, and it goes
+  home with him, win or lose; brought home once, it isn't there again. At the weaver's hut,
+  Granny Whiskers reads each one out under a "!", and each of the first five carries a clue the
+  story used to only say (the sign forbidding fires in a grove already cut; drainage pipe going
+  south to a partner; "no persons live on the land") and gives her one word: CATS, IDLE, NOT,
+  HERE, LIVE. They're kept in the Elder's book.
+- **Two endings at the airstrip.** With all five words read before it's freed, Patch and Granny
+  Whiskers paint them across the runway while he keeps the company busy: NOT IDLE. CATS LIVE
+  HERE. The official reads it, and looks down. Without them, the company still leaves, never
+  knowing who did it, and the book says so: "We aren't done filling it." A freed area can be
+  gone back to for its paper, and once she has the five words the sign goes up on the next walk
+  home.
 - **Endless mode**: the giants never stop coming; factions arrive and start to mix.
 - **Endless hardens.** From four minutes in, whatever comes out of the jungle in Endless or a
   grove comes tougher, bites harder and is shoved less, a little more each minute and faster as

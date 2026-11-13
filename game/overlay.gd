@@ -773,6 +773,9 @@ func _draw_cage_markers() -> void:
 		for lever in arena.levers:
 			if not lever.pulled:
 				targets.append({"at": lever.position, "icon": "", "color": Palette.BRASS_LIGHT})
+	# The area's paper, until he has it: white, where what the goal asks is brass.
+	if not arena.paper.is_empty() and not arena.paper_found:
+		targets.append({"at": arena.paper.position, "icon": "", "color": Palette.OFF_WHITE})
 	_draw_edge_targets(targets, cat.body.position if cat != null else arena.size / 2.0)
 	# The siege: each burning house, and with no water carried, the well.
 	var burning := false
