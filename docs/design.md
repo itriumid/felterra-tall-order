@@ -389,6 +389,14 @@ on: fire and oil, or crewmates who can be downed.
   the scattered ones (trees, stumps, bushes) from the area's own seed, the same every time, kept
   clear of where he comes in, the goal's things, the boss's way in, and each other.
 - **Endless mode**: the giants never stop coming; factions arrive and start to mix.
+- **Endless hardens.** From four minutes in, whatever comes out of the jungle in Endless or a
+  grove comes tougher, bites harder and is shoved less, a little more each minute and faster as
+  it goes; dog packs grow by a dog every three minutes, up to four more; and another giant may
+  stand at once every four minutes, up to three more. A level takes more experience past level
+  15. And adrenaline gives back no more than 4% of his health a second. Together they're what
+  ends a run: a strong build lasts past twenty minutes, and none lasts for good. A liberation
+  area doesn't harden; its boss ends it. (Tuned against a simple bot; it wants people playing
+  it.)
 - **The siege** comes by itself, never chosen and never on the map: the first time he walks
   home with the airstrip free, once what's new is read, Jogiboy smells smoke, and the spirits are
   at the village. He walks in at the gate to it under attack. Beaten back, he's home, and the

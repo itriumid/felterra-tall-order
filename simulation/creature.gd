@@ -82,6 +82,9 @@ var worth := 1
 ## Where it ambles when there's no cat to run at, or nowhere (INF).
 var wander_to := Vector2.INF
 var bite_ready_in := 0.0
+## How much harder it bites than its kind does: more, the later in Endless it came (see
+## Arena.pressure). Its health is raised by the same as it comes.
+var might := 1.0
 var state := State.RUNNING
 ## The time left in a crouch or a recovery, and the way a crouch will lunge.
 var state_for := 0.0

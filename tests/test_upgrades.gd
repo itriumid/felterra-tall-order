@@ -141,11 +141,31 @@ func test_adrenaline_gives_back_a_share_of_damage_dealt() -> void:
 	var arena := _quiet()
 	var cat := arena.add_cat(Arena.SIZE / 2.0)
 	cat.health = 5.0
-	cat.raise("adrenaline", 0.5)
+	cat.raise("adrenaline", 0.1)
 	var rat := arena.add_creature(cat.body.position + Vector2(3.0, 0.0))
 	rat.health = 100.0
 	arena.strike(rat, 2.0, Vector2.RIGHT, 0.0, 0.0, "round", cat)
-	check(is_equal_approx(cat.health, 6.0), "dealing 2 at half adrenaline healed to %.2f" % cat.health)
+	check(is_equal_approx(cat.health, 5.2), "dealing 2 at a tenth adrenaline healed to %.2f" % cat.health)
+
+
+func test_adrenaline_gives_back_only_so_much_a_second() -> void:
+	var arena := _quiet()
+	var cat := arena.add_cat(Arena.SIZE / 2.0)
+	cat.health = 1.0
+	cat.raise("adrenaline", 1.0)
+	var rat := arena.add_creature(cat.body.position + Vector2(3.0, 0.0))
+	rat.health = 1000.0
+	for hit in 20:
+		arena.strike(rat, 5.0, Vector2.RIGHT, 0.0, 0.0, "round", cat)
+	var most := cat.max_health * Cat.ADRENALINE_MOST
+	check(is_equal_approx(cat.health, 1.0 + most), "a burst of hits gave back %.2f, not a second's most of %.2f" % [cat.health - 1.0, most])
+	# A second on, it has another second's worth to give.
+	for step in 60:
+		rat.body.position = cat.body.position + Vector2(3.0, 0.0)
+		cat.step(Arena.STEP, arena)
+	var before := cat.health
+	arena.strike(rat, 50.0, Vector2.RIGHT, 0.0, 0.0, "round", cat)
+	check(is_equal_approx(cat.health, before + most), "a second later it gave back %.2f" % (cat.health - before))
 
 
 func _play_levels(cat: Cat, random: RandomNumberGenerator, levels: int) -> Array[int]:
