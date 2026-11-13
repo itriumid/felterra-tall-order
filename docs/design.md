@@ -824,7 +824,8 @@ creature, one tile set) to set the standard everything else is matched to.
 ### Type
 
 Our own pixel font from Nine Seas for everything you read: capitals 7 pixels tall, proportional,
-on whole pixels. A larger display face drawn the same way for titles, card names and banners,
+on whole pixels. The title's own name is drawn, not set: chunky outlined capitals, with TALL
+standing half as tall again as ORDER, the way a giant stands over a cat. A larger display face drawn the same way for titles, card names and banners,
 and outlined digits for damage numbers. Outside the game (store page, logo, trailer), Plus
 Jakarta Sans.
 

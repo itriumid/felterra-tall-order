@@ -1174,7 +1174,7 @@ func _draw_title() -> void:
 	var title := "Tall Order"
 	var line := "A crew of cats against giants"
 	var row := PixelFont.LINE_HEIGHT + 3
-	var width := maxf(InterfaceArt.bold_width(title) + 40, PixelFont.width(line) + 24)
+	var width := maxf(InterfaceArt.logo_width() + 16, PixelFont.width(line) + 24)
 	for choice in menu:
 		width = maxf(width, PixelFont.width(choice) + 40)
 	var height := 52 + menu.size() * row + 10
@@ -1183,10 +1183,14 @@ func _draw_title() -> void:
 		return
 	InterfaceArt.panel(self, box)
 	var center := box.position.x + box.size.x / 2.0
-	PixelFont.draw(self, Vector2(floorf(center - PixelFont.width(heading) / 2.0), box.position.y + 8), heading, Palette.OFF_WHITE)
-	InterfaceArt.bold(self, Vector2(floorf(center - InterfaceArt.bold_width(title) / 2.0), box.position.y + 20), title, Palette.PINK)
-	PixelFont.draw(self, Vector2(floorf(center - PixelFont.width(line) / 2.0), box.position.y + 33), line, Palette.SMOKE)
-	_draw_choices(Vector2(box.position.x + 6, box.position.y + 52), box.size.x - 12)
+	var logo_at := Vector2(floorf(center - InterfaceArt.logo_width() / 2.0), box.position.y - InterfaceArt.LOGO_HEIGHT - 10)
+	var heading_at := Vector2(floorf(center - PixelFont.width(heading) / 2.0), logo_at.y - PixelFont.LINE_HEIGHT - 3)
+	PixelFont.draw(self, heading_at + Vector2(1, 1), heading, Palette.GRAPHITE)
+	PixelFont.draw(self, heading_at, heading, Palette.OFF_WHITE)
+	InterfaceArt.logo(self, logo_at)
+	InterfaceArt.panel(self, box)
+	PixelFont.draw(self, Vector2(floorf(center - PixelFont.width(line) / 2.0), box.position.y + 7), line, Palette.SMOKE)
+	_draw_choices(Vector2(box.position.x + 6, box.position.y + 22), box.size.x - 12)
 	var keys: Array[String] = ["W S", "choose", "Enter", "take"]
 	var keys_width := InterfaceArt.key_line_width(keys)
 	InterfaceArt.key_line(self, Vector2(floorf((screen.x - keys_width) / 2.0), box.end.y + 6), keys)
