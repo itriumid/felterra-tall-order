@@ -432,11 +432,27 @@ func _drum(delta: float, cat: Cat, arena: Arena) -> void:
 	arena.events.append({"position": body.position, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "set_down", "giant": false, "kind": name})
 
 
+## Whether what the swarm is on is still in the fight. Each list holds its own kind only, so it's
+## looked for in the one it could be in.
+func _still_there(target: Object, arena: Arena) -> bool:
+	if target is Creature:
+		return arena.creatures.has(target)
+	if target is Giant:
+		return arena.giants.has(target)
+	if target is Machine:
+		return arena.machines.has(target)
+	if target is Machine.Joint:
+		return arena.machines.has((target as Machine.Joint).machine)
+	if target is Structure:
+		return arena.structures.has(target)
+	return false
+
+
 ## The bee swarm: out of its hive on his pack after whatever's nearest, stinging it and slowing it,
 ## on to the next when it's down, and home when there's nothing left in reach.
 func _swarm(delta: float, cat: Cat, arena: Arena) -> void:
 	_sting_in = maxf(_sting_in - delta, 0.0)
-	var gone: bool = _stinging == null or not _stinging.alive() or not (_stinging in arena.creatures or _stinging in arena.giants or _stinging in arena.machines or _stinging in arena.structures)
+	var gone: bool = _stinging == null or not _stinging.alive() or not _still_there(_stinging, arena)
 	if gone or _stinging.body.position.distance_to(cat.body.position) > SWARM_REACH:
 		_stinging = arena.target_for(cat.body.position, SWARM_REACH, "nearest") if cat.alive() else null
 	var home := cat.body.position
