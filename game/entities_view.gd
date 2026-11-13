@@ -1704,6 +1704,10 @@ const FIREFLY_HANGS := 0.35
 
 func _draw_fireflies() -> void:
 	var lights := arena.fireflies
+	if _firefly_sheet == null:
+		_firefly_sheet = ImageTexture.create_from_image(firefly_sheet())
+	var across := FIREFLY_MIDDLE.x * 2.0 + 1.0
+	var size := Vector2(across, across)
 	var seen := get_canvas_transform().affine_inverse() * get_viewport_rect()
 	var area := Rect2(seen.position / World.PIXELS_PER_METER, seen.size / World.PIXELS_PER_METER).grow(1.0)
 	for slot in lights.within(area):
@@ -1715,22 +1719,47 @@ func _draw_fireflies() -> void:
 		var height := FIREFLY_HANGS * (1.0 - (1.0 - risen) * (1.0 - risen))
 		if not coming:
 			height += sin(_clock * 2.3 + phase) * 0.04
-		var spot := World.to_screen(lights.at[slot], height)
+		var spot := World.to_screen(lights.at[slot], height).round()
 		if not coming:
 			spot.x += roundf(sin(_clock * 1.1 + phase * 0.6) * 1.0)
 		draw_rect(Rect2(ground, Vector2.ONE), Palette.GROUND_SHADOW)
-		# The glow round it, a cross dimmed or a square lit (a big one's reaching further), and
-		# the light at its middle while it's lit.
+		# Lit, a square of glow with the light at its middle (a big one's reaching further); dimmed,
+		# a cross of it. Either way outlined, as everything he can pick up is, so it stands off the
+		# fallen it rose from.
 		var bright := coming or sin(_clock * 3.0 + phase) > -0.4
-		if bright:
-			draw_rect(Rect2(spot - Vector2.ONE, Vector2(3, 3)), Palette.FIREFLY_GLOW)
-			if worth >= Fireflies.SPLIT_FROM:
-				draw_rect(Rect2(spot - Vector2(2, 0), Vector2(5, 1)), Palette.FIREFLY_GLOW)
-				draw_rect(Rect2(spot - Vector2(0, 2), Vector2(1, 5)), Palette.FIREFLY_GLOW)
-			draw_rect(Rect2(spot, Vector2.ONE), Palette.FIREFLY)
-		else:
-			draw_rect(Rect2(spot - Vector2(1, 0), Vector2(3, 1)), Palette.FIREFLY_GLOW)
-			draw_rect(Rect2(spot - Vector2(0, 1), Vector2(1, 3)), Palette.FIREFLY_GLOW)
+		var picture := 2 if not bright else (1 if worth >= Fireflies.SPLIT_FROM else 0)
+		draw_texture_rect_region(_firefly_sheet, Rect2(spot - FIREFLY_MIDDLE, size), Rect2(Vector2(picture * across, 0.0), size))
+
+
+## A firefly's three pictures (lit, lit and big, dimmed), drawn once, side by side on one sheet:
+## each firefly is a single draw off it, however many are out.
+const FIREFLY_MIDDLE := Vector2(3, 3)
+var _firefly_sheet: ImageTexture
+
+
+static func firefly_sheet() -> Image:
+	var square: Array[Vector2i] = []
+	var cross: Array[Vector2i] = [Vector2i(0, 0), Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+	for x in range(-1, 2):
+		for y in range(-1, 2):
+			square.append(Vector2i(x, y))
+	var reaching := square.duplicate()
+	reaching.append_array([Vector2i(2, 0), Vector2i(-2, 0), Vector2i(0, 2), Vector2i(0, -2)])
+	var across := int(FIREFLY_MIDDLE.x) * 2 + 1
+	var sheet := Image.create(across * 3, across, false, Image.FORMAT_RGBA8)
+	var pictures: Array = [[square, true], [reaching, true], [cross, false]]
+	for index in pictures.size():
+		var middle := Vector2i(FIREFLY_MIDDLE) + Vector2i(index * across, 0)
+		var glow: Array[Vector2i] = pictures[index][0]
+		# The outline one pixel round the glow, the glow, and its light at the middle while it's lit.
+		for pixel in glow:
+			for beside: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				sheet.set_pixelv(middle + pixel + beside, Palette.OUTLINE)
+		for pixel in glow:
+			sheet.set_pixelv(middle + pixel, Palette.FIREFLY_GLOW)
+		if pictures[index][1]:
+			sheet.set_pixelv(middle, Palette.FIREFLY)
+	return sheet
 
 
 ## What's lying about from the fight: spent cases glinting, scorch fading from black to earth, and

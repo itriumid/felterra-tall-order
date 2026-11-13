@@ -82,8 +82,10 @@ const BLOOD := Color8(150, 30, 36)
 const BLOOD_DRY := Color8(92, 28, 30)
 const SPARK := Color8(255, 230, 150)
 ## A firefly's light, and the glow round it.
+## Yellow-green, a firefly's own color and nothing else's here: not the horde's tans, the mud, the
+## brass of a spent case or the company's orange, so one reads at a glance among the fallen.
 const FIREFLY := Color8(255, 255, 240)
-const FIREFLY_GLOW := Color8(255, 222, 92, 235)
+const FIREFLY_GLOW := Color8(226, 255, 96)
 const SMOKE := Color8(180, 176, 166)
 
 # Interface: Itrium's Rhodonite, and the neutral surfaces around it: a panel's shadow and its lit
