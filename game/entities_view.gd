@@ -205,6 +205,24 @@ func _draw() -> void:
 	draw_milliseconds = (Time.get_ticks_usec() - started) / 1000.0
 
 
+## What stands, put in order of depth, nearest the top of the screen first. Each one's depth and
+## its place in the list go into one whole number, and the numbers are sorted, which costs far less
+## than asking a function about every pair of several hundred; what's level stays in the order it
+## came, so nothing flickers.
+func _by_depth(standing: Array[Array]) -> Array[Array]:
+	var count := standing.size()
+	var keys := PackedInt64Array()
+	keys.resize(count)
+	for index in count:
+		keys[index] = int(float(standing[index][0]) * 4096.0) * 65536 + index
+	keys.sort()
+	var ordered: Array[Array] = []
+	ordered.resize(count)
+	for index in count:
+		ordered[index] = standing[keys[index] & 65535]
+	return ordered
+
+
 func _draw_all() -> void:
 	var standing: Array[Array] = []
 	for creature in arena.creatures:
@@ -243,7 +261,7 @@ func _draw_all() -> void:
 		if cat.charm != null:
 			standing.append([cat.charm.body.position.y, cat.charm])
 	_more_standing(standing)
-	standing.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
+	standing = _by_depth(standing)
 	for stain in _stains:
 		draw_rect(Rect2(World.to_screen(stain.position), Vector2.ONE), Palette.BLOOD if stain.age < STAIN_DRIES else Palette.BLOOD_DRY)
 	_draw_drains()
@@ -776,11 +794,30 @@ func _draw_guardian_shadow(guardian: Guardian) -> void:
 			angle += 0.07
 
 
+## The rats' sheet, and the one flashed white for a hit, looked up once; and where each picture is
+## on them, by stride, the way it faces and whether it's fallen, so a rat's drawing asks nothing
+## it has to work out.
+var _rat_sheet := {}
+var _rat_flashed := {}
+var _rat_regions: Array[Rect2] = []
+
+
+func _picture_rats() -> void:
+	_rat_sheet = Sprites.sheet(Sprites.RAT_STRIDES)
+	_rat_flashed = Sprites.sheet(Sprites.flashed(Sprites.RAT_STRIDES))
+	for frame in Sprites.RAT_STRIDES.size():
+		for facing_left in [false, true]:
+			for fallen in [false, true]:
+				_rat_regions.append(_rat_sheet.regions["%d|%s|%s" % [frame, facing_left, fallen]])
+
+
 func _draw_rat(body: Body, frame: int, fallen: bool) -> void:
 	var facing_left := body.velocity.x < 0.0
 	# The fallen lie belly up. Every rat comes off the one sheet, so the horde is drawn together.
-	var sheet := Sprites.sheet(Sprites.flashed(Sprites.RAT_STRIDES) if not fallen and _just_hit(body.position) else Sprites.RAT_STRIDES)
-	var region: Rect2 = sheet.regions["%d|%s|%s" % [frame, facing_left, fallen]]
+	if _rat_regions.is_empty():
+		_picture_rats()
+	var sheet: Dictionary = _rat_flashed if not fallen and not _hit_spots.is_empty() and _just_hit(body.position) else _rat_sheet
+	var region: Rect2 = _rat_regions[frame * 4 + (2 if facing_left else 0) + (1 if fallen else 0)]
 	var feet := Sprites.RAT_FEET
 	if facing_left:
 		feet.x = region.size.x - 1 - feet.x

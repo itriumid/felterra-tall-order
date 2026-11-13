@@ -801,7 +801,9 @@ away pixel by pixel rather than vanishing.
 
 **A slow machine plays it too.** The horde, the fallen and the growth are each drawn off one
 sheet, and the jungle's edge and the canopy are put together into one picture when a place is
-painted, so a full fight is a few dozen draw calls, not a thousand. The world steps 60 times a
+painted, so a full fight is a few dozen draw calls, not a thousand. What stands is put in depth order by
+sorting one whole number each, and a rat's place on its sheet is looked up once, not worked out
+for every rat every frame. The world steps 60 times a
 second; a frame that runs late catches up at most three steps, so a machine too slow to keep
 up sees the world slow a little rather than stutter.
 
