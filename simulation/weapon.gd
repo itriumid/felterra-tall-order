@@ -88,6 +88,21 @@ var broken_for := 0.0
 ## How long poison, slowing and fire last once they take.
 const AFFLICTION_TIME := 3.0
 const RESHARPEN_TIME := 3.0
+## The most of the wait between swings that a swing itself may take.
+const SWING_SHARE := 0.8
+## What an evolution's bonus gives: shares of damage, speed, reach, width and knockback; a chance
+## of a critical hit; and each element, as damage a second, seconds down, or a share slower.
+const BONUS_DAMAGE := 0.3
+const BONUS_SPEED := 0.25
+const BONUS_REACH := 0.2
+const BONUS_WIDTH := 0.3
+const BONUS_KNOCKBACK := 0.5
+const BONUS_CRIT := 0.1
+const BONUS_BURN := 1.5
+const BONUS_POISON := 1.0
+const BONUS_BLEED := 1.5
+const BONUS_DAZE := 0.5
+const BONUS_SLOW := 0.4
 
 ## The arsenal: each weapon's numbers and traits, over a blade's or a gun's to start with.
 const ARSENAL := {
@@ -222,17 +237,17 @@ func swinging() -> bool:
 func take_bonus(bonus: String, nickname := true) -> void:
 	bonuses.append(bonus)
 	match bonus:
-		"damage": power += 0.3
-		"speed": tempo += 0.25
-		"reach": reach *= 1.2
+		"damage": power += BONUS_DAMAGE
+		"speed": tempo += BONUS_SPEED
+		"reach": reach *= 1.0 + BONUS_REACH
 		"arc":
 			if kind == Kind.MELEE:
-				arc *= 1.3
+				arc *= 1.0 + BONUS_WIDTH
 			else:
-				blast *= 1.3
-				fire_patch *= 1.3
-		"knockback": knock *= 1.5
-		"crit": crit += 0.1
+				blast *= 1.0 + BONUS_WIDTH
+				fire_patch *= 1.0 + BONUS_WIDTH
+		"knockback": knock *= 1.0 + BONUS_KNOCKBACK
+		"crit": crit += BONUS_CRIT
 		"pierce": pierce += 1
 		"more":
 			# One more of what it throws: a pop, a bounce, or a round.
@@ -242,11 +257,11 @@ func take_bonus(bonus: String, nickname := true) -> void:
 				ricochet += 1
 			else:
 				pellets += 1
-		"burn": burn += 1.5
-		"poison": poison += 1.0
-		"bleed": bleed += 1.5
-		"daze": trips = maxf(trips, 0.5)
-		"slow": slow = maxf(slow, 0.4)
+		"burn": burn += BONUS_BURN
+		"poison": poison += BONUS_POISON
+		"bleed": bleed += BONUS_BLEED
+		"daze": trips = maxf(trips, BONUS_DAZE)
+		"slow": slow = maxf(slow, BONUS_SLOW)
 	if nickname:
 		if evolved <= 1:
 			nickname_first = Upgrades.BONUSES[bonus].first

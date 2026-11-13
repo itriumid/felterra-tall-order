@@ -532,6 +532,12 @@ Level-ups arrive as **cards**. A card offers a choice of three; you hold it unti
   on its own when a run ends, ready to start again. Its see-through panel is a checkerboard of
   palette pixels, not a blend.
 - **Card text is short.** If a card needs a paragraph, the upgrade is too complicated.
+- **A card says what a thing does, in numbers.** A new weapon's card gives how it's used and its
+  reach, its damage and how often, and what sets it apart ("Swung, 0.6 m reach", "2.8 damage,
+  2.2 a second", "Trips 1.2 s"), written from the weapon itself so it can't be wrong; that it's
+  new, and its level, are on the ribbon. An evolution's bonus says what it does to this weapon
+  ("Bleeds: 1.5 a second, 3 s", "One more bounce", "Arc 30% wider"), and Tab explains each trait
+  and element in a line.
 
 ### What a card can offer
 
