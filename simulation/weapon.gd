@@ -67,6 +67,8 @@ var aim := Vector2.RIGHT
 # Melee: the arc the blade sweeps, in radians, and how long a swing takes.
 var arc := deg_to_rad(110.0)
 var swing_time := 0.14
+## How long the swing in progress takes: swing_time, or less once it swings faster than that.
+var _swing_takes := 0.14
 ## The blade's height above the ground, from paw to tip.
 var blade_low := 0.0
 var blade_high := 0.3
@@ -284,7 +286,9 @@ func reach_for(cat: Cat) -> float:
 ## Fires at what's in reach, from his paw, or from somewhere else that carries it (a drone, a
 ## turret): from that body, at that height. Returns whether it fired.
 func step(delta: float, cat: Cat, arena: Arena, from: Body = null, muzzle_height := Cat.GUN_HEIGHT) -> bool:
-	ready_in = maxf(ready_in - delta, 0.0)
+	# Time past ready is kept, up to a step's worth, so a fast gun fires at the pace its interval
+	# says and not at the next whole step after it.
+	ready_in = maxf(ready_in - delta, -delta)
 	if kind == Kind.MELEE:
 		if broken_for > 0.0:
 			# Broken: he's sharpening a new one.
@@ -297,7 +301,11 @@ func step(delta: float, cat: Cat, arena: Arena, from: Body = null, muzzle_height
 	var origin := cat.body if from == null else from
 	# A lobbed round goes over what's in the way; a straight one needs to see past it.
 	var target := arena.target_for(origin.position, reach_for(cat), cat.aim_mode, INF if lobbed else origin.height + muzzle_height)
-	if target == null or ready_in > 0.0:
+	if target == null:
+		# Nothing to shoot: it's ready, and no more than ready, when something comes.
+		ready_in = maxf(ready_in, 0.0)
+		return false
+	if ready_in > 0.0:
 		return false
 	ready_in += interval_for(cat)
 	var toward: Vector2 = (target.body.position - origin.position).normalized()
@@ -339,10 +347,16 @@ func _fire(direction: Vector2, distance: float, target: Object, cat: Cat, arena:
 func _swing(delta: float, cat: Cat, arena: Arena) -> void:
 	if not swinging():
 		var target := arena.target_for(cat.body.position, reach_for(cat) + 0.1, cat.aim_mode)
-		if target == null or ready_in > 0.0:
+		if target == null:
+			ready_in = maxf(ready_in, 0.0)
 			return
-		ready_in = interval_for(cat)
-		swinging_for = swing_time
+		if ready_in > 0.0:
+			return
+		ready_in += interval_for(cat)
+		# A swing is never longer than most of the wait for the next, so attack speed past the
+		# swing's own time still shows: the blade just goes round faster.
+		_swing_takes = minf(swing_time, ready_in * SWING_SHARE)
+		swinging_for = _swing_takes
 		# Alternate forehand and backhand, as a blade is swung.
 		swing_direction = -swing_direction
 		swing_start = (target.body.position - cat.body.position).angle() - swing_direction * arc * 0.5
@@ -351,7 +365,7 @@ func _swing(delta: float, cat: Cat, arena: Arena) -> void:
 		_struck.clear()
 	var before := blade_angle
 	swinging_for = maxf(swinging_for - delta, 0.0)
-	var done := 1.0 - swinging_for / swing_time
+	var done := 1.0 - swinging_for / _swing_takes
 	blade_angle = swing_start + swing_direction * arc * done
 	for creature in arena.cut(cat.body.position, cat.body.height, reach_for(cat), self, before, blade_angle):
 		if _struck.has(creature):

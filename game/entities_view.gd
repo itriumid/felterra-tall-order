@@ -57,6 +57,8 @@ var arena: Arena
 var blood := true
 ## How bright each cat's muzzle is right now, 0 to 1, and the rounds counted at the last frame.
 var flash := {}
+## How bright each weapon's own muzzle is, 0 to 1, by weapon.
+var _weapon_flash := {}
 ## Each cat's hurt flicker, the time left of it, and the hits he'd taken when last looked.
 var _hurt := {}
 var _hits_seen := {}
@@ -128,12 +130,16 @@ func take_events(events: Array[Dictionary]) -> void:
 
 func _process(delta: float) -> void:
 	for cat in arena.cats:
-		var fired := 0
+		# Each gun flashes and kicks for its own rounds, so two held together show their own pace;
+		# the cat's flash, for the light on the ground, is the brightest of his.
+		var brightest := 0.0
 		for weapon in cat.weapons:
-			fired += weapon.rounds_fired
-		if fired != _rounds_seen.get(cat, 0):
-			flash[cat] = 1.0
-		_rounds_seen[cat] = fired
+			if weapon.rounds_fired != _rounds_seen.get(weapon, weapon.rounds_fired):
+				_weapon_flash[weapon] = 1.0
+			_rounds_seen[weapon] = weapon.rounds_fired
+			_weapon_flash[weapon] = maxf(_weapon_flash.get(weapon, 0.0) - delta / FLASH_TIME, 0.0)
+			brightest = maxf(brightest, _weapon_flash[weapon])
+		flash[cat] = brightest
 		# A gun throws out its spent case, off to the side, to lie where it lands.
 		for weapon in cat.weapons:
 			if weapon.name in CASED and weapon.rounds_fired != _cases_seen.get(weapon, weapon.rounds_fired) and _droplets.size() < 400:
@@ -141,7 +147,6 @@ func _process(delta: float) -> void:
 				_droplets.append({"position": cat.body.position, "height": Cat.GUN_HEIGHT, "rise": randf_range(0.8, 1.4),
 					"velocity": side * randf_range(0.6, 1.2), "color": Palette.BRASS_LIGHT, "stains": false, "mark": "case"})
 			_cases_seen[weapon] = weapon.rounds_fired
-		flash[cat] = maxf(flash.get(cat, 0.0) - delta / FLASH_TIME, 0.0)
 		if cat.hits_taken != _hits_seen.get(cat, cat.hits_taken):
 			_hurt[cat] = HURT_TIME
 		_hits_seen[cat] = cat.hits_taken
@@ -1532,7 +1537,9 @@ func _pose_holds(cat: Cat, view: String, flip: bool, frame: int, top_left: Vecto
 	var held: Weapon = cat.weapons[0] if not cat.weapons.is_empty() else null
 	if held != null:
 		var pointing := Vector2.from_angle(held.blade_angle) if held.swinging() else cat.aim
-		holds.append({"at": (mouth + pointing * (2.0 if held.swinging() else 0.0)).round(), "weapon": held,
+		# A gun in his mouth jolts back as its own round goes, as the one in his tail does.
+		var kicked := -1.0 if held.kind == Weapon.Kind.RANGED and _weapon_flash.get(held, 0.0) > 0.5 else 0.0
+		holds.append({"at": (mouth + pointing * (2.0 if held.swinging() else kicked)).round(), "weapon": held,
 			"drawing": Sprites.gun_toward(held.name, pointing), "behind": view == "back" or pointing.y < -0.5, "tail": []})
 	# The tail: up and back from its base, then out to what it holds, or swaying.
 	var base := top_left + Sprites.hold(view, flip, "tail")
@@ -1542,7 +1549,7 @@ func _pose_holds(cat: Cat, view: String, flip: bool, frame: int, top_left: Vecto
 	var tip: Vector2
 	if gripped != null:
 		var aimed := Vector2.from_angle(gripped.blade_angle) if gripped.swinging() else cat.aim
-		tip = (curl + aimed * (Sprites.TAIL_REACH - (2.0 if gripped.kind == Weapon.Kind.RANGED and flash.get(cat, 0.0) > 0.5 else 0.0))).round()
+		tip = (curl + aimed * (Sprites.TAIL_REACH - (2.0 if gripped.kind == Weapon.Kind.RANGED and _weapon_flash.get(gripped, 0.0) > 0.5 else 0.0))).round()
 	else:
 		var sway: float = [0.0, 1.0, 0.0, -1.0][frame] + sin(_clock * 2.0)
 		tip = (curl + Vector2(back * 2.0 + sway, -3.0)).round()
@@ -1585,7 +1592,7 @@ func _draw_hold(hold: Dictionary) -> void:
 		draw_rect(Rect2(hold.at.floor() + Vector2(1, 0), Vector2.ONE), Palette.PINK)
 	if weapon.swinging():
 		_draw_smear(weapon, hold.at)
-	elif weapon.kind == Weapon.Kind.RANGED and flash.get(arena.cats[0], 0.0) > 0.0:
+	elif weapon.kind == Weapon.Kind.RANGED and _weapon_flash.get(weapon, 0.0) > 0.0:
 		draw_rect(Rect2(at + drawing.muzzle - Vector2.ONE, Vector2(3, 3)), Palette.SPARK)
 
 

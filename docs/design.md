@@ -227,7 +227,10 @@ in a run:
 | **Crowd** | The thickest cluster: best for spread and explosives |
 
 Melee weapons swing a blade through an arc and hit what the blade passes through, at the height
-it passes. A swing alternates forehand and backhand.
+it passes. A swing alternates forehand and backhand. Each weapon keeps its own pace, and shows
+it: a gun flashes and kicks for its own rounds only, a blade quick enough swings faster than its
+swing first took, and a fast gun fires as often as its interval says, not at the next whole
+step of the world.
 
 ### Arsenal
 
