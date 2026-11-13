@@ -854,61 +854,63 @@ const GUNS := {
 	},
 }
 
-## A rat, running right: four frames of a gallop, stretched, gathered, mid-air, gathered.
+## A rat, running right: an ear, a dark eye and a pink nose at the front, its haunch in shadow and
+## its tail trailing; four frames of a gallop, stretched, gathered, mid-air, gathered.
 const RAT_STRIDES: Array[String] = [
 	"""
 .......kk..
-...kkkkqRk.
-..kqqqqRRkk
-ttkRRRRRRRp
-..krrrrrrk.
-..k......k.
+..kkkkkqqk.
+.kqqqRRRkRk
+tkRRRRRRRRp
+tkrrRRrrrk.
+.kk.....kk.
 """,
 	"""
 .......kk..
-...kkkkqRk.
-..kqqqqRRkk
-ttkRRRRRRRp
-..krrrrrrk.
-....k..k...
+..kkkkkqqk.
+.kqqqRRRkRk
+tkRRRRRRRRp
+tkrrRRrrrk.
+....kk.k...
 """,
 	"""
 .......kk..
-...kkkkqRk.
-..kqqqqRRkk
-ttkRRRRRRRp
-..krrrrrrk.
-...k....k..
+..kkkkkqqk.
+.kqqqRRRkRk
+tkRRRRRRRRp
+tkrrRRrrrk.
+..k.k..k.k.
 """,
 	"""
 .......kk..
-...kkkkqRk.
-..kqqqqRRkk
-ttkRRRRRRRp
-..krrrrrrk.
-....k..k...
+..kkkkkqqk.
+.kqqqRRRkRk
+tkRRRRRRRRp
+tkrrRRrrrk.
+....kk.k...
 """,
 ]
 ## In the gathered frames the rat is off the ground, as a galloping rat is.
 const RAT_LIFT: Array[int] = [0, 1, 1, 1]
 const RAT_FEET := Vector2(6, 5)
 
-## A guard dog, running right, in the company's hi-vis harness: its body, then four frames of a
+## A guard dog, running right, in the company's hi-vis harness: pricked ears, a long muzzle carried
+## forward, a deep chest and a tucked waist; its body, then four frames of a
 ## gallop's legs (stretched, between, gathered and off the ground, between).
 const DOG_UPPER := """
-....................k..k....
-...................kmkkNk...
-..................kNNNNNNk..
-..................kNNNkNNNk.
-..................kNNNNNNNkk
-.................kNNNNNkkkk.
-k.....kkkkkkkkkkkxxNNNk.....
-kk...kmmmmmmmmmmmxsxNNk.....
-.kk.kNNNNNNNNNNNNxxxNNk.....
-..kkNNNNNNNNNNNNNxsxNNk.....
-...kNNNNNNNNNNNNNxxxNk......
-...kNNNNNNNNNNNNNNNNNk......
-...knnnnnnnnnnnnnnnnk.......
+...................k...k....
+..................kmk.kNk...
+..................kNNNNNk...
+.................kNNNNkNNkk.
+.................kNNNNNNmmmk
+................kNNNNNnnkkk.
+k....kkkkkkkkkkkxxNNNNNk....
+kk..kmmmmmmmmmmmxsxNNNNk....
+.kk.kNNNNNNNNNNNxxxNNNk.....
+..kkNNNNNNNNNNNNxsxNNNk.....
+...kNNNNNNNNNNNNxxxNNk......
+...kNNNNnnnnnnnnNNNNNk......
+...knnnnkkkkkkkknnnnk.......
 ....knnk........knnk........
 """
 const DOG_LEGS: Array[String] = [

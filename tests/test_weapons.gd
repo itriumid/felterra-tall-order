@@ -92,3 +92,48 @@ func test_hits_are_reported_for_the_view() -> void:
 		arena.step()
 	check(not arena.events.is_empty(), "a hit wasn't reported")
 	check(arena.events.any(func(event: Dictionary) -> bool: return event.killed), "a kill wasn't reported")
+
+
+## A rat held where it is, too tough to fall, for counting what's fired at it.
+func _fire_for(arena: Arena, cat: Cat, seconds: float, away := 3.0) -> void:
+	var rat := arena.add_creature(cat.body.position + Vector2(away, 0.0))
+	for step in int(seconds * 60.0):
+		rat.health = 1.0e6
+		rat.body.position = cat.body.position + Vector2(away, 0.0)
+		rat.body.velocity = Vector2.ZERO
+		arena.step()
+
+
+func test_two_weapons_held_together_each_keep_their_own_pace() -> void:
+	var setup := _arena_with(["submachine_gun", "ketapel"])
+	var arena: Arena = setup[0]
+	var cat: Cat = setup[1]
+	_fire_for(arena, cat, 6.0)
+	var gun := cat.weapons[0]
+	var sling := cat.weapons[1]
+	check(absf(gun.rounds_fired - 6.0 / gun.interval) <= 2.0, "the submachine gun fired %d rounds in 6 seconds, not about %d" % [gun.rounds_fired, int(6.0 / gun.interval)])
+	check(absf(sling.rounds_fired - 6.0 / sling.interval) <= 2.0, "the slingshot fired %d in 6 seconds, not about %d" % [sling.rounds_fired, int(6.0 / sling.interval)])
+
+
+func test_a_fast_gun_fires_as_often_as_its_interval_says() -> void:
+	# Faster than the world steps evenly into: the time left over from one round counts toward the next.
+	var setup := _arena_with(["submachine_gun"])
+	var arena: Arena = setup[0]
+	var cat: Cat = setup[1]
+	cat.raise("attack_speed", 1.4)
+	var gun := cat.weapons[0]
+	_fire_for(arena, cat, 6.0)
+	var due := 6.0 / gun.interval_for(cat)
+	check(absf(gun.rounds_fired - due) <= 2.0, "at an interval of %.3f it fired %d rounds in 6 seconds, not about %d" % [gun.interval_for(cat), gun.rounds_fired, int(due)])
+
+
+func test_a_blade_swings_faster_than_its_swing_once_it_is_quick_enough() -> void:
+	var setup := _arena_with(["knife"])
+	var arena: Arena = setup[0]
+	var cat: Cat = setup[1]
+	cat.raise("attack_speed", 4.0)
+	var knife := cat.weapons[0]
+	check(knife.interval_for(cat) < knife.swing_time, "the test wants a knife quicker than its own swing")
+	_fire_for(arena, cat, 6.0, 0.35)
+	var due := 6.0 / knife.interval_for(cat)
+	check(absf(knife.swings - due) <= 3.0, "at an interval of %.3f it swung %d times in 6 seconds, not about %d" % [knife.interval_for(cat), knife.swings, int(due)])

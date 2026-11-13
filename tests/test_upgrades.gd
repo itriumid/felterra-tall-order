@@ -141,11 +141,31 @@ func test_adrenaline_gives_back_a_share_of_damage_dealt() -> void:
 	var arena := _quiet()
 	var cat := arena.add_cat(Arena.SIZE / 2.0)
 	cat.health = 5.0
-	cat.raise("adrenaline", 0.5)
+	cat.raise("adrenaline", 0.1)
 	var rat := arena.add_creature(cat.body.position + Vector2(3.0, 0.0))
 	rat.health = 100.0
 	arena.strike(rat, 2.0, Vector2.RIGHT, 0.0, 0.0, "round", cat)
-	check(is_equal_approx(cat.health, 6.0), "dealing 2 at half adrenaline healed to %.2f" % cat.health)
+	check(is_equal_approx(cat.health, 5.2), "dealing 2 at a tenth adrenaline healed to %.2f" % cat.health)
+
+
+func test_adrenaline_gives_back_only_so_much_a_second() -> void:
+	var arena := _quiet()
+	var cat := arena.add_cat(Arena.SIZE / 2.0)
+	cat.health = 1.0
+	cat.raise("adrenaline", 1.0)
+	var rat := arena.add_creature(cat.body.position + Vector2(3.0, 0.0))
+	rat.health = 1000.0
+	for hit in 20:
+		arena.strike(rat, 5.0, Vector2.RIGHT, 0.0, 0.0, "round", cat)
+	var most := cat.max_health * Cat.ADRENALINE_MOST
+	check(is_equal_approx(cat.health, 1.0 + most), "a burst of hits gave back %.2f, not a second's most of %.2f" % [cat.health - 1.0, most])
+	# A second on, it has another second's worth to give.
+	for step in 60:
+		rat.body.position = cat.body.position + Vector2(3.0, 0.0)
+		cat.step(Arena.STEP, arena)
+	var before := cat.health
+	arena.strike(rat, 50.0, Vector2.RIGHT, 0.0, 0.0, "round", cat)
+	check(is_equal_approx(cat.health, before + most), "a second later it gave back %.2f" % (cat.health - before))
 
 
 func _play_levels(cat: Cat, random: RandomNumberGenerator, levels: int) -> Array[int]:
@@ -263,3 +283,50 @@ func test_full_health_never_reads_as_more_than_the_most() -> void:
 	cat.adrenaline = 1.0
 	cat.heal(1000.0)
 	check(cat.health <= cat.max_health, "healing went past the most, to %.2f of %.2f" % [cat.health, cat.max_health])
+
+
+## The room a card has for a line beside its picture, in pixels.
+const CARD_LINE := 110
+
+
+func test_a_weapon_card_says_what_it_does_in_numbers_and_fits() -> void:
+	for weapon_name: String in Upgrades.WEAPON_NAMES:
+		var weapon := Weapon.named(weapon_name)
+		for rarity in Upgrades.RARITY_NAMES.size():
+			var card := Upgrades.describe({"id": "weapon:" + weapon_name, "rarity": rarity})
+			var lines: Array = card.lines
+			check(lines.size() >= 2 and lines.size() <= 3, "the %s's card has %d lines" % [weapon_name, lines.size()])
+			check((lines[0] as String).contains("m reach") and (lines[1] as String).contains("damage"), "the %s's card doesn't give its reach and damage: %s" % [weapon_name, lines])
+			for line: String in lines:
+				check(PixelFont.width(line) <= CARD_LINE, 'the %s\'s card line "%s" is %d pixels wide' % [weapon_name, line, PixelFont.width(line)])
+		# What sets it apart is on the card, and explained when it's read in full.
+		var card := Upgrades.describe({"id": "weapon:" + weapon_name, "rarity": 0})
+		for trait_name in Upgrades.traits_of(weapon):
+			check((card.lines as Array).size() == 3, "the %s's card leaves out what sets it apart" % weapon_name)
+			if trait_name != "two_handed":
+				check(Upgrades.TRAIT_MEANS.has(trait_name), 'nothing explains "%s"' % trait_name)
+
+
+func test_a_card_says_what_a_weapon_s_numbers_are() -> void:
+	var sickle := Upgrades.describe({"id": "weapon:celurit", "rarity": 0})
+	check(sickle.lines == ["Swung, 0.6 m reach", "2.8 damage, 2.2 a second", "Trips 1.2 s"], "the sickle's card says %s" % [sickle.lines])
+	check(sickle.ribbon == "Common, new", 'its ribbon says "%s"' % sickle.ribbon)
+	var found := Upgrades.describe({"id": "weapon:shotgun", "rarity": 2})
+	check(found.lines == ["Shot, 5 m reach", "1.6 damage, 1.1 a second", "Two-handed, 7 pellets"], "the shotgun's card says %s" % [found.lines])
+	check(found.ribbon == "Rare, new, level 3", 'its ribbon says "%s"' % found.ribbon)
+
+
+func test_a_bonus_card_says_what_it_does_to_this_weapon_and_fits() -> void:
+	for weapon_name: String in Upgrades.WEAPON_NAMES:
+		var weapon := Weapon.named(weapon_name)
+		for bonus: String in Upgrades.BONUSES:
+			var line := Upgrades.bonus_line(bonus, weapon)
+			check(PixelFont.width(line) <= CARD_LINE, 'the bonus line "%s" is %d pixels wide' % [line, PixelFont.width(line)])
+	check(Upgrades.bonus_line("more", Weapon.named("petasan")) == "One more pop", "one more, for firecrackers, isn't a pop")
+	check(Upgrades.bonus_line("more", Weapon.named("ketapel")) == "One more bounce", "one more, for a slingshot, isn't a bounce")
+	check(Upgrades.bonus_line("arc", Weapon.named("golok")) == "Arc 30% wider", "wider, for a blade, isn't its arc")
+	check(Upgrades.bonus_line("arc", Weapon.named("lamp_oil")) == "Burst 30% wider", "wider, for lamp oil, isn't where it lands")
+	# What an element does is what the card says it does.
+	var blade := Weapon.named("golok")
+	blade.take_bonus("bleed", false)
+	check(Upgrades.bonus_line("bleed", blade) == "Bleeds: %.1f a second, 3 s" % blade.bleed, "the bleed on the card isn't the bleed it gives")

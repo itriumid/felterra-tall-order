@@ -80,6 +80,8 @@ const GIFT_LINES: Array = [
 const JOGIBOY_TROTS_UP := "A ginger dog trotted up behind the Elder and pushed his nose into Tompel's pack."
 const INTRO: Array = [
 	"We have lived in this forest for as long as anyone remembers.",
+	"The giants have lived beside it just as long. They are very tall, and they have never once looked down.",
+	"Everything below their knees is ours. We call it Felterra.",
 	"Last dry season the figs started dropping before they were ripe, and the stream began to taste of oil.",
 	"The Elder sent Tompel down the river road to find out why. He was gone three months.",
 	{"by": "elder", "mood": "happy", "text": "Tompel! Look at you. Did nobody feed you down there?"},
@@ -87,6 +89,8 @@ const INTRO: Array = [
 	{"by": "elder", "mood": "neutral", "text": "Well? What did you find?"},
 	{"by": "tompel", "mood": "sad", "text": "Nothing, really. I asked everyone. Fishermen, traders, a cat who sells nets at the river mouth."},
 	{"by": "tompel", "mood": "neutral", "text": "Nobody's heard of anything. It's palm trees most of the way to the sea."},
+	{"by": "tompel", "mood": "sad", "text": "Three months, and I've brought you nothing."},
+	{"by": "elder", "mood": "neutral", "text": "You've brought yourself home. That's not nothing."},
 	{"by": "elder", "mood": "worried", "text": "Hmmm..."},
 	JOGIBOY_TROTS_UP,
 	{"by": "tompel", "mood": "surprised", "text": "Uh. Elder?"},
@@ -107,7 +111,7 @@ const INTRO: Array = [
 	{"by": "Granny Whiskers", "mood": "worried", "text": "It's the Keepers, you know. They're angry with us. My grandmother always said..."},
 	{"by": "elder", "mood": "neutral", "text": "Your grandmother blamed the Keepers for her knees."},
 	{"by": "Granny Whiskers", "mood": "determined", "text": "Her knees were right more often than you are."},
-	{"by": "tompel", "mood": "determined", "text": "I'll go. I'll start at the edge."},
+	{"by": "tompel", "mood": "determined", "text": "I'll go. I'm not coming home with nothing twice. I'll start at the edge."},
 	{"by": "elder", "mood": "worried", "text": "With what? Hammer's forge has been cold for weeks."},
 	{"by": "tompel", "mood": "neutral", "text": "I picked up a few things on the way back. They're in my pack."},
 	{"by": "jogiboy", "mood": "happy", "text": "I'll look after the village while you're out."},
@@ -773,6 +777,13 @@ func _arrive(from_the_forest: bool) -> void:
 			if after < Areas.ids().size() and not Areas.ids()[after] in village.liberated:
 				village.tell("board", "On the map: " + (Areas.named(Areas.ids()[after]).name as String).to_lower(), "Choose it here, at the board by the gate.")
 		lines.append_array(village.restored_lines(_just_restored))
+		# Granny Whiskers reads what papers he's brought home, to be heard at her door. And the sign
+		# goes up after all, if the airstrip was freed before she had the words for it: once he's
+		# heard that she has them.
+		village.read_papers()
+		if Village.FIVE_WORDS in village.told and "airstrip" in village.liberated and not Village.SIGN_UP in village.told and not Village.SIGN_LATER in village.told:
+			lines.append_array(Areas.SIGN_LATER)
+			village.told.append(Village.SIGN_LATER)
 		# Home from the first grove, the Great Tiger is at the shrine, with the spirits' gift.
 		if _cleansed and village.give_cub():
 			lines.append_array(GIFT_LINES)
@@ -954,7 +965,7 @@ func _send_off() -> void:
 	var scene := "send_off:" + village.next_run
 	var lines: Array = []
 	if village.next_run != "endless" and not scene in village.told:
-		lines = (Areas.named(village.next_run).get("send_off", []) as Array).duplicate()
+		lines = Areas.send_off_lines(village.next_run, village.can_write())
 	_cutscene = Cutscene.new(lines, settings.get_value("gameplay", "story_waits"))
 	var speakers := lines.filter(func(line: Variant) -> bool: return line is Dictionary).map(func(line: Dictionary) -> String: return line.by)
 	# Out through the gate, or back down the forest path: he comes home the way he went.
@@ -1218,9 +1229,19 @@ func _chapters() -> Array[Dictionary]:
 		if ("intro:" + area.id) in village.told:
 			chapters.append({"name": "%s: going in" % area.name, "lines": area.before})
 		if ("outro:" + area.id) in village.told:
-			chapters.append({"name": "%s: freed" % area.name, "lines": area.after})
+			chapters.append({"name": "%s: freed" % area.name, "lines": Areas.after_lines(area.id, Village.SIGN_UP in village.told)})
 		if ("teach:" + area.id) in village.told:
 			chapters.append({"name": "What %s taught" % _speaker_name(area.teaches.by), "lines": area.teaches.lines + area.get("home", [])})
+	# What the giants' own papers said, as Granny Whiskers read them, and what she made of them.
+	if not village.papers_read.is_empty():
+		var said: Array = []
+		for id in village.papers_read:
+			said.append(Areas.named(id).paper.book)
+		if village.can_write():
+			said.append("Five words, in their own letters: %s" % Areas.SIGN)
+		chapters.append({"name": "What their papers said", "lines": said})
+	if Village.SIGN_LATER in village.told:
+		chapters.append({"name": "The sign", "lines": Areas.SIGN_LATER})
 	if chapters.is_empty():
 		chapters.append({"name": "Nothing written yet", "lines": ["The pages are empty. Go and find out what's wrong."]})
 	return chapters
@@ -1584,7 +1605,7 @@ func _set_up_run(run_kind: String) -> void:
 	# run keeps the same, so a screenshot shows the same thing twice.
 	if _keeping_settings:
 		arena.random.seed = randi()
-	arena.begin_area(run_kind, goal_kept)
+	arena.begin_area(run_kind, goal_kept, village.papers)
 	# He comes in where the area has him stand, unless he's been put somewhere to try something.
 	if not _placed:
 		cat.body.position = area.get("start", arena.size / 2.0)
@@ -1689,6 +1710,10 @@ func _briefed(delta: float) -> void:
 		_music.place = "run"
 
 
+## Whether the ending being told is the one where the cats write back.
+var _written := false
+
+
 ## The boss is beaten: the horde scatters, the ground heals from where the boss fell, and the
 ## first time, the area's story going on is told to its own music. Then it's free.
 func _begin_freeing() -> void:
@@ -1701,7 +1726,9 @@ func _begin_freeing() -> void:
 	if not _run_kind in village.liberated and not area.get("in_the_village", false):
 		_ground.heal(fell_at, area.ground, _area_seed(_run_kind))
 	# What freeing it teaches him is taught at home, by the cat who shows him how.
-	_cutscene = Cutscene.new(area.after if first_time else [], settings.get_value("gameplay", "story_waits"))
+	# With the five words, the airstrip ends with the cats writing back.
+	_written = first_time and village.can_write() and area.has("after_written")
+	_cutscene = Cutscene.new(Areas.after_lines(_run_kind, _written) if first_time else [], settings.get_value("gameplay", "story_waits"))
 	_free_for = FREED_PAUSE
 	_music.place = "freed"
 
@@ -1735,6 +1762,9 @@ func _end_liberation() -> void:
 	var first := village.liberate(_run_kind)
 	if not ("outro:" + _run_kind) in village.told:
 		village.told.append("outro:" + _run_kind)
+	if _written and not Village.SIGN_UP in village.told:
+		village.told.append(Village.SIGN_UP)
+	_written = false
 	_bring_home()
 	_remember_run(true)
 	_overlay.summary = Records.of(arena)

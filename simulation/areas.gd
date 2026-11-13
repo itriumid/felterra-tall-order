@@ -24,6 +24,26 @@ const AGENCY := "the Food Land Acceleration Agency"
 const SLOGAN := "Building a Greener Tomorrow!"
 const BOARD := "From Idle Land to Plenty"
 
+## Writing is the one bridge between the cats and the giants, and it only goes one way: a cat who's
+## eaten enough fish out of newspaper can read what humans write, and no human has ever read
+## anything of a cat's. So each area the company holds has a piece of its writing lying in it, a
+## paper, for him to bring home: Granny Whiskers reads it, and keeps a word from it. With the words
+## from these five she can write, in the giants' own letters, what the cats have to say; the
+## airstrip's own paper is only read after.
+const WRITING: Array[String] = ["deep", "sawpits", "clearing", "slide", "offices"]
+## What the five words say, put in order.
+const SIGN := "NOT IDLE. CATS LIVE HERE."
+## Said at the weaver's hut once she has all five.
+const FIVE_WORDS := "CATS. IDLE. NOT. HERE. LIVE. Granny Whiskers lays them out in a row and moves them about for a long time. \"Patch,\" she says at last. \"How much white paint have we got?\""
+## The sign going up after all, when the airstrip was freed before she had the words for it.
+const SIGN_LATER: Array = [
+	"Patch and Granny Whiskers went out to the airstrip with the white paint, and were gone all day.",
+	"Across the runway, a paw wide, in the giants' own letters: NOT IDLE. CATS LIVE HERE.",
+	{"by": "Granny Whiskers", "mood": "determined", "text": "They'll fly over it sooner or later. Let them say they couldn't read it."},
+	{"by": "tompel", "mood": "happy", "text": "You spelled it right?"},
+	{"by": "Granny Whiskers", "mood": "neutral", "text": "I spelled it twice."},
+]
+
 ## The areas, in the order they're freed. Each: its name; the look of its ground; what spawns there
 ## (a plan like Endless's, only what that place has); its goal, and where the goal's things stand,
 ## in meters; its boss and where it comes from; the story going in and coming home; and what
@@ -105,6 +125,10 @@ const LIST: Array[Dictionary] = [
 			{"by": "tompel", "mood": "neutral", "text": "Sure."},
 			{"by": "Granny Whiskers", "mood": "worried", "text": "He had papers on a board, and he wrote us down. On the same list as the rats."},
 		],
+		"paper": {"at": Vector2(37.0, 22.0), "name": "The Handler's list", "word": "CATS",
+			"found": "A board, with papers on it. He's written us down.",
+			"book": "The Handler's list had us on it, between the rats and what to do about them.",
+			"reads": "\"'Pest count, block four. Rats: 212. Cats: 31. Action: remove.'\" Granny Whiskers reads it twice. \"We're a line on a list, between the rats and what to do about them.\" She copies one word out on a scrap of cloth: CATS. \"So that's how they write us.\""},
 		"send_off": [
 			{"by": "jogiboy", "mood": "worried", "text": "Four cats out there. One of them's Granny. She smells cross."},
 			{"by": "elder", "mood": "worried", "text": "She went out yesterday, on her own. Stubborn old thing. Bring her back, and anyone else you find."},
@@ -159,6 +183,10 @@ const LIST: Array[Dictionary] = [
 			{"by": "Patch", "mood": "neutral", "text": "Took you long enough. I've been under there since the rains."},
 			{"by": "Patch", "mood": "happy", "text": "You know the funny thing? A whole season, and not one of them looked down."},
 		],
+		"paper": {"at": Vector2(34.0, 4.5), "name": "A site board", "word": "IDLE",
+			"found": "A board off their fence. Granny will want this.",
+			"book": "Their site board called the forest idle land.",
+			"reads": "\"'From Idle Land to Plenty.' Idle.\" Granny Whiskers taps the word. \"That's a forest nobody's selling. That's us, having lunch.\" She copies it out: IDLE."},
 		"send_off": [
 			{"by": "Granny Whiskers", "mood": "worried", "text": "Follow the ruts. Whatever made those wasn't small."},
 		],
@@ -204,6 +232,10 @@ const LIST: Array[Dictionary] = [
 			{"by": "tompel", "mood": "neutral", "text": "Rats are rats."},
 			{"by": "Saffron", "mood": "neutral", "text": "If you say so."},
 		],
+		"paper": {"at": Vector2(41.0, 23.0), "name": "A warning sign", "word": "NOT",
+			"found": "A sign off a post, in red letters.",
+			"book": "A sign in the fig grove forbade fires. They had put it up themselves.",
+			"reads": "\"'Danger. Dry peat. Do not light fires.'\" Granny Whiskers frowns at it. \"They put up a sign against fire, in a grove they'd already cut.\" Nobody has an answer for that. She copies out the small word: NOT."},
 		"send_off": [
 			{"by": "Patch", "mood": "neutral", "text": "The machines came up from the east. Mind the big ones. They don't look down, but they don't need to."},
 		],
@@ -254,6 +286,10 @@ const LIST: Array[Dictionary] = [
 			{"by": "Cream", "mood": "happy", "text": "He kept his lunch in a box. We had a plan."},
 			{"by": "Coffee", "mood": "sad", "text": "Then he locked the door and drove off. That wasn't in the plan."},
 		],
+		"paper": {"at": Vector2(21.0, 30.0), "name": "A delivery note", "word": "HERE",
+			"found": "A note from the truck's cab, with a pen on a string.",
+			"book": "The trucks took logs down, and brought drainage pipe back for a partner in the south.",
+			"reads": "\"'Logs, forty. Return load: drainage pipe, to partner site, south. Sign here.'\" \"Pipe,\" says Granny Whiskers. \"Who drains a forest?\" She copies out the last word: HERE."},
 		"send_off": [
 			{"by": "Saffron", "mood": "happy", "text": "Downhill to the river. Don't ride a log. I've tried."},
 		],
@@ -308,6 +344,10 @@ const LIST: Array[Dictionary] = [
 			{"by": "Auntie Clove", "mood": "determined", "text": "Rice from a packet. Tea from a packet. Even the sambal came out of a packet."},
 			{"by": "Auntie Clove", "mood": "worried", "text": "And look at you. When did you last eat anything green?"},
 		],
+		"paper": {"at": Vector2(38.0, 23.0), "name": "The permit", "word": "LIVE",
+			"found": "It was in a frame. It's stamped all over.",
+			"book": "The permit said no persons lived on the land.",
+			"reads": "\"'Concession thirty-nine. No persons live on the land described.'\" Granny Whiskers puts it down, and picks it up again. \"No persons.\" She copies one word out, very neatly: LIVE."},
 		"send_off": [
 			{"by": "Cream", "mood": "happy", "text": "The offices are up the hill. I saw them first."},
 			{"by": "Coffee", "mood": "determined", "text": "You did not."},
@@ -353,9 +393,35 @@ const LIST: Array[Dictionary] = [
 			{"by": "Skipper", "mood": "neutral", "text": "Is that the helicopter?"},
 			{"by": "tompel", "mood": "happy", "text": "It was."},
 			{"by": "Skipper", "mood": "happy", "text": "Good."},
+			"He never saw who did it. A storm, he'll have said. Or rats.",
 			"They'll be back one day. Giants are stubborn.",
-			"But they'll have to take us seriously now.",
+			"And they still don't know we live here. Granny says she hasn't the words for it yet.",
+			"It was a tall order. We aren't done filling it.",
+		],
+		"paper": {"at": Vector2(8.0, 19.0), "name": "The speech", "word": "",
+			"found": "Cards, in a big hand. He dropped them running.",
+			"book": "The speech said that where nothing was, there was now a future.",
+			"reads": "\"'Today, where nothing was, there is a future.'\" Granny Whiskers reads the rest to herself, and puts the cards on the fire. \"He was going to say that standing on our fig grove.\""},
+		"after_written": [
+			"The helicopter came down in the long grass and stayed there.",
+			"The man with the scissors ran for the ribbon anyway. Then he stopped.",
+			"Across the runway, a paw wide, in their own letters: NOT IDLE. CATS LIVE HERE.",
+			{"by": "Granny Whiskers", "mood": "determined", "text": "I spelled it twice. I wasn't having them say they couldn't read it."},
+			"He read it. We watched him read it. Then, slowly, he looked down.",
+			"Tompel was sitting on the end of the ribbon.",
+			{"by": "tompel", "mood": "neutral", "text": "Hello."},
+			"It was only a meow, to him. It was enough.",
+			"He put the scissors in his pocket. The last of them left down the river road, on foot.",
+			"Skipper had been tied up in the hangar with the cargo.",
+			{"by": "Skipper", "mood": "neutral", "text": "Is that the helicopter?"},
+			{"by": "tompel", "mood": "happy", "text": "It was."},
+			{"by": "Skipper", "mood": "happy", "text": "Good."},
+			"They'll be back one day. Giants are stubborn.",
+			"But one of them looked down. They'll have to take us seriously now.",
 			"It was a tall order. We filled it.",
+		],
+		"send_off_written": [
+			{"by": "Granny Whiskers", "mood": "determined", "text": "Patch has the paint, and I have the words. Keep them busy until it's dry."},
 		],
 		"send_off": [
 			"The whole village came to the gate.",
@@ -416,6 +482,7 @@ const LIST: Array[Dictionary] = [
 			{"by": "great_tiger", "mood": "determined", "text": "That smell. It is in every burned grove I have walked through."},
 			{"by": "jogiboy", "mood": "surprised", "text": "...That's rat."},
 			{"by": "tompel", "mood": "surprised", "text": "The rats. Under our feet, the whole time."},
+			{"by": "tompel", "mood": "sad", "text": "I said rats were rats. That's what the giants say about us."},
 			{"by": "elder", "mood": "sad", "text": "Nests. We thought they were nests."},
 			{"by": "Saffron", "mood": "worried", "text": "The lines at night, going south. I told you."},
 			{"by": "tompel", "mood": "sad", "text": "So Burnt Future never burned anything."},
@@ -562,6 +629,21 @@ static func gives(id: String) -> String:
 		if id in area.get("gives", []):
 			return area.id
 	return ""
+
+
+## What's told as an area is freed: the airstrip's has another ending once the cats can write.
+static func after_lines(id: String, written := false) -> Array:
+	var area := named(id)
+	return area.after_written if written and area.has("after_written") else area.after
+
+
+## And as he's seen off to it.
+static func send_off_lines(id: String, written := false) -> Array:
+	var area := named(id)
+	var lines: Array = (area.get("send_off", []) as Array).duplicate()
+	if written:
+		lines.append_array(area.get("send_off_written", []))
+	return lines
 
 
 static func teaches(id: String) -> Array[String]:

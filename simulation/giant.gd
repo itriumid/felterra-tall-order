@@ -65,6 +65,9 @@ var health := MOST_HEALTH
 var most_health := MOST_HEALTH
 var speed := SPEED
 var worth := WORTH
+## How much harder he stomps and cuts than his kind does: more, the later in Endless he came (see
+## Arena.pressure). His health is raised by the same as he comes.
+var might := 1.0
 ## The chainsaw: the angle the sweep is centered on, where the saw is pointing in it, and the
 ## time left revving or sweeping.
 var sweep_center := 0.0

@@ -68,6 +68,8 @@ const SLIPSTREAM_TIME := 2.0
 const CHAIN_SHARE := 0.6
 ## A knock off its feet takes this long to recover from.
 const STAGGER_TIME := 0.25
+## The most adrenaline gives back in a second, as a share of his health.
+const ADRENALINE_MOST := 0.04
 ## Where the gun is held, above the ground.
 const GUN_HEIGHT := 0.2
 
@@ -171,6 +173,8 @@ var _lick_window := 0.0
 var _chained := false
 var _scents: Array[Dictionary] = []
 var _haste := 0.0
+## What adrenaline can still give back, of this second's worth.
+var _rush_left := MOST_HEALTH * ADRENALINE_MOST
 var _hasted_for := 0.0
 
 
@@ -277,6 +281,15 @@ func heal(amount: float) -> void:
 		health = minf(health + amount, max_health)
 
 
+## Adrenaline: a share of what a hit dealt comes back as health, but no more in a second than
+## ADRENALINE_MOST of his health, however fast he's hitting.
+func rush(dealt: float) -> void:
+	var back := minf(dealt * adrenaline, _rush_left)
+	if back > 0.0:
+		_rush_left -= back
+		heal(back)
+
+
 ## Plays a choice from the oldest offer held. Returns false if there's no such choice.
 func play(index: int) -> bool:
 	if offers.is_empty() or index >= (offers[0] as Array).size():
@@ -352,6 +365,7 @@ func step(delta: float, arena: Arena) -> void:
 	if _lick_window <= 0.0:
 		_licked = 0.0
 	_hasted_for = maxf(_hasted_for - delta, 0.0)
+	_rush_left = minf(_rush_left + max_health * ADRENALINE_MOST * delta, max_health * ADRENALINE_MOST)
 	_fade_scents(delta, arena)
 	if not alive():
 		body.slide(delta)

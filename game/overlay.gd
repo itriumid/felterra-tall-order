@@ -773,6 +773,9 @@ func _draw_cage_markers() -> void:
 		for lever in arena.levers:
 			if not lever.pulled:
 				targets.append({"at": lever.position, "icon": "", "color": Palette.BRASS_LIGHT})
+	# The area's paper, until he has it: white, where what the goal asks is brass.
+	if not arena.paper.is_empty() and not arena.paper_found:
+		targets.append({"at": arena.paper.position, "icon": "", "color": Palette.OFF_WHITE})
 	_draw_edge_targets(targets, cat.body.position if cat != null else arena.size / 2.0)
 	# The siege: each burning house, and with no water carried, the well.
 	var burning := false
@@ -1168,22 +1171,25 @@ func _draw_settings() -> void:
 func _draw_title() -> void:
 	var screen := get_viewport_rect().size
 	var heading := "Felterra"
-	var title := "Tall Order"
 	var line := "A crew of cats against giants"
 	var row := PixelFont.LINE_HEIGHT + 3
-	var width := maxf(InterfaceArt.bold_width(title) + 40, PixelFont.width(line) + 24)
+	var width := maxf(InterfaceArt.logo_width() + 16, PixelFont.width(line) + 24)
 	for choice in menu:
 		width = maxf(width, PixelFont.width(choice) + 40)
-	var height := 52 + menu.size() * row + 10
-	var box := Rect2(floorf((screen.x - width) / 2.0), floorf(screen.y * 0.42 - height / 2.0), width, height)
+	var height := 22 + menu.size() * row + 10
+	var box := Rect2(floorf((screen.x - width) / 2.0), floorf(screen.y * 0.52 - height / 2.0), width, height)
 	if not setting_rows.is_empty():
 		return
-	InterfaceArt.panel(self, box)
+	# The name stands over the panel on its own, drawn large; the world's name small above it.
 	var center := box.position.x + box.size.x / 2.0
-	PixelFont.draw(self, Vector2(floorf(center - PixelFont.width(heading) / 2.0), box.position.y + 8), heading, Palette.OFF_WHITE)
-	InterfaceArt.bold(self, Vector2(floorf(center - InterfaceArt.bold_width(title) / 2.0), box.position.y + 20), title, Palette.PINK)
-	PixelFont.draw(self, Vector2(floorf(center - PixelFont.width(line) / 2.0), box.position.y + 33), line, Palette.SMOKE)
-	_draw_choices(Vector2(box.position.x + 6, box.position.y + 52), box.size.x - 12)
+	var logo_at := Vector2(floorf(center - InterfaceArt.logo_width() / 2.0), box.position.y - InterfaceArt.LOGO_HEIGHT - 10)
+	var heading_at := Vector2(floorf(center - PixelFont.width(heading) / 2.0), logo_at.y - PixelFont.LINE_HEIGHT - 3)
+	PixelFont.draw(self, heading_at + Vector2(1, 1), heading, Palette.GRAPHITE)
+	PixelFont.draw(self, heading_at, heading, Palette.OFF_WHITE)
+	InterfaceArt.logo(self, logo_at)
+	InterfaceArt.panel(self, box)
+	PixelFont.draw(self, Vector2(floorf(center - PixelFont.width(line) / 2.0), box.position.y + 7), line, Palette.SMOKE)
+	_draw_choices(Vector2(box.position.x + 6, box.position.y + 22), box.size.x - 12)
 	var keys: Array[String] = ["W S", "choose", "Enter", "take"]
 	var keys_width := InterfaceArt.key_line_width(keys)
 	InterfaceArt.key_line(self, Vector2(floorf((screen.x - keys_width) / 2.0), box.end.y + 6), keys)

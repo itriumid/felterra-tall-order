@@ -116,3 +116,60 @@ static func key_line_width(pairs: Array[String]) -> float:
 	for index in range(0, pairs.size(), 2):
 		width += PixelFont.width(pairs[index]) + 6 + 3 + PixelFont.width(pairs[index + 1]) + 10
 	return width - 10
+
+
+## The game's name as the title shows it, drawn at its own size and not in the font: chunky
+## capitals with the outline everything of the cats' has, lit along their tops, and TALL standing
+## half as tall again as ORDER, the way a giant stands over a cat.
+const LOGO_LETTERS := {
+	"T": ["#####", "..#..", "..#..", "..#..", "..#..", "..#..", "..#.."],
+	"A": [".###.", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"],
+	"L": ["#....", "#....", "#....", "#....", "#....", "#....", "#####"],
+	"O": [".###.", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."],
+	"R": ["####.", "#...#", "#...#", "####.", "#.#..", "#..#.", "#...#"],
+	"D": ["####.", "#...#", "#...#", "#...#", "#...#", "#...#", "####."],
+	"E": ["#####", "#....", "#....", "####.", "#....", "#....", "#####"],
+}
+## Each word, and how many pixels a cell of its letters is: TALL's are taller.
+const LOGO_WORDS: Array = [["TALL", Vector2i(2, 3)], ["ORDER", Vector2i(2, 2)]]
+const LOGO_LETTER_GAP := 2
+const LOGO_WORD_GAP := 8
+const LOGO_HEIGHT := 21
+
+
+static func logo_width() -> int:
+	var width := 0
+	for word: Array in LOGO_WORDS:
+		var letters: String = word[0]
+		width += letters.length() * 5 * (word[1] as Vector2i).x + (letters.length() - 1) * LOGO_LETTER_GAP
+	return width + (LOGO_WORDS.size() - 1) * LOGO_WORD_GAP
+
+
+## Draws it with its top-left corner there: its shadow, its outline, its face, then the light.
+static func logo(canvas: CanvasItem, at: Vector2) -> void:
+	var cells: Array[Rect2] = []
+	var lit: Array[Rect2] = []
+	var x := at.x
+	for word: Array in LOGO_WORDS:
+		var cell: Vector2i = word[1]
+		var top := at.y + LOGO_HEIGHT - 7 * cell.y
+		for letter: String in word[0]:
+			var rows: Array = LOGO_LETTERS[letter]
+			for row in rows.size():
+				for column in 5:
+					if rows[row][column] != "#":
+						continue
+					var box := Rect2(x + column * cell.x, top + row * cell.y, cell.x, cell.y)
+					cells.append(box)
+					if row == 0 or rows[row - 1][column] != "#":
+						lit.append(Rect2(box.position, Vector2(cell.x, 1)))
+			x += 5 * cell.x + LOGO_LETTER_GAP
+		x += LOGO_WORD_GAP - LOGO_LETTER_GAP
+	for box in cells:
+		canvas.draw_rect(Rect2(box.position + Vector2(0, 3), box.size + Vector2(2, 0)), Palette.GROUND_SHADOW)
+	for box in cells:
+		canvas.draw_rect(box.grow(1), Palette.OUTLINE)
+	for box in cells:
+		canvas.draw_rect(box, Palette.PINK)
+	for box in lit:
+		canvas.draw_rect(box, Palette.OFF_WHITE)

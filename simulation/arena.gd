@@ -28,6 +28,19 @@ const CHAINSAW_EVERY := 2
 ## A machine comes out of the jungle from MACHINE_FROM seconds in, and another every
 ## MACHINE_INTERVAL after, one working at a time.
 const MACHINE_FROM := 300.0
+## Endless hardens as it goes: from PRESSURE_FROM seconds in, whatever comes out of the jungle comes
+## tougher and bites harder, by PRESSURE_GROWTH a minute and PRESSURE_CURVE a minute squared, so no
+## build outgrows it for good; and another giant may stand at once every GIANTS_MORE_EVERY seconds,
+## up to GIANTS_MORE more. A liberation area doesn't: its boss is what ends it.
+const PRESSURE_FROM := 240.0
+const PRESSURE_GROWTH := 0.12
+const PRESSURE_CURVE := 0.02
+const GIANTS_MORE_EVERY := 240.0
+const GIANTS_MORE := 3
+## And a dog more in each pack every DOGS_MORE_EVERY seconds, up to DOGS_MORE more, with room for
+## as many more packs' worth at once.
+const DOGS_MORE_EVERY := 180.0
+const DOGS_MORE := 4
 const MACHINE_INTERVAL := 300.0
 ## Cages with cats in them turn up from CAGES_FROM seconds in, one every CAGE_INTERVAL, no more
 ## than MOST_CAGES waiting at once, never closer than CAGE_DISTANCE to him.
@@ -171,6 +184,12 @@ const DAM_REACH := 0.9
 const DAM_TIME := 4.0
 const DAM_SLIPS := 0.2
 var structures: Array[Structure] = []
+## A piece of the company's writing lying in the area, for Granny Whiskers to read at home, as
+## {position}: none where the area has none, or it's been brought home already. And whether he's
+## picked it up this run: it goes home with him, win or lose.
+var paper := {}
+var paper_found := false
+const PAPER_REACH := 0.45
 var goal_cages: Array[Cage] = []
 var levers: Array[Dictionary] = []
 var logs: Array[Dictionary] = []
@@ -253,8 +272,20 @@ func add_cat(where: Vector2) -> Cat:
 	return cat
 
 
+## How much tougher what comes now is than what came at the start: 1 in a liberation area, and in
+## Endless or a grove until PRESSURE_FROM.
+func pressure() -> float:
+	if not area.is_empty():
+		return 1.0
+	var minutes := maxf(time - PRESSURE_FROM, 0.0) / 60.0
+	return 1.0 + PRESSURE_GROWTH * minutes + PRESSURE_CURVE * minutes * minutes
+
+
 func add_giant(where: Vector2, kind := "worker") -> Giant:
 	var giant := Giant.new(kind)
+	giant.might = pressure()
+	giant.most_health *= giant.might
+	giant.health = giant.most_health
 	giant.body.position = where
 	giants.append(giant)
 	return giant
@@ -289,6 +320,8 @@ func drop_salvage(at: Vector2, count: int) -> void:
 
 func add_creature(where: Vector2, kind := "rat") -> Creature:
 	var creature := Creature.new(kind)
+	creature.might = pressure()
+	creature.health *= creature.might
 	creature.body.position = where
 	creatures.append(creature)
 	return creature
@@ -353,6 +386,7 @@ func step() -> void:
 	_pop_crackers()
 	_pick_locks()
 	_pick_up()
+	_find_the_paper()
 	_catch_fireflies()
 	_drift_smoke()
 	_fight_fires()
@@ -368,7 +402,7 @@ func target_for(where: Vector2, reach: float, mode: String, height := EYE) -> Ob
 	var best: Object = null
 	var best_score := -INF
 	var scored: Array = []
-	for target in _targets():
+	for target in (_targets_close(where, reach) if reach <= CLOSE_REACH else _targets()):
 		var distance: float = where.distance_to(target.body.position) - target.body.radius
 		if distance > reach:
 			continue
@@ -403,6 +437,36 @@ func _targets() -> Array:
 		targets.append_array(creatures.filter(func(creature: Creature) -> bool: return not creature.calm))
 	else:
 		targets.append_array(creatures)
+	_add_the_big(targets)
+	return targets
+
+
+## The same, for a short reach (a blade's, a pounce's): of the horde, only what the grid has in
+## the cells round the point, so a blade in a horde of hundreds looks at a handful. The grid is the
+## step's, so one that's fallen since is left out, and the cells are taken a little wide for what
+## has moved and for how big the biggest is.
+const CLOSE_REACH := 1.6
+const CLOSE_MARGIN := 0.5
+
+func _targets_close(where: Vector2, reach: float) -> Array:
+	var targets: Array = []
+	var low := _cell_of(where - Vector2.ONE * (reach + CLOSE_MARGIN))
+	var high := _cell_of(where + Vector2.ONE * (reach + CLOSE_MARGIN))
+	for x in range(low.x, high.x + 1):
+		for y in range(low.y, high.y + 1):
+			var here: Variant = _grid.get(Vector2i(x, y))
+			if here == null:
+				continue
+			for creature: Creature in here:
+				if creature.alive() and not (cleansed and creature.calm):
+					targets.append(creature)
+	_add_the_big(targets)
+	return targets
+
+
+## The giants and machines on their feet, a machine's joint while it's open, and what stands to be
+## broken: few enough to look at every one.
+func _add_the_big(targets: Array) -> void:
 	for giant in giants:
 		if giant.standing():
 			targets.append(giant)
@@ -414,12 +478,17 @@ func _targets() -> Array:
 	for structure in structures:
 		if structure.alive():
 			targets.append(structure)
-	return targets
 
 
 ## Everything there is to fight within reach of a point, counting how big each is.
 func targets_near(where: Vector2, reach: float) -> Array:
 	return _targets().filter(func(target: Object) -> bool: return where.distance_to(target.body.position) <= reach + target.body.radius)
+
+
+## How many of the horde stand within a few cells of a point, as the step began: for the view, to
+## tell when a cat is buried in it.
+func crowding(where: Vector2) -> int:
+	return _crowding(where)
 
 
 ## How many creatures stand within a few cells of a point.
@@ -528,9 +597,9 @@ func stomp(giant: Giant, at: Vector2, crush := Giant.CRUSH_RADIUS, shock := Gian
 	for cat in cats:
 		var apart := cat.body.position - at
 		if apart.length() <= crush + cat.body.radius:
-			cat.hurt(crush_damage, apart.normalized() * Giant.SHOCK_KNOCK)
+			cat.hurt(crush_damage * giant.might, apart.normalized() * Giant.SHOCK_KNOCK)
 		elif apart.length() <= shock:
-			cat.hurt(shock_damage, apart.normalized() * Giant.SHOCK_KNOCK)
+			cat.hurt(shock_damage * giant.might, apart.normalized() * Giant.SHOCK_KNOCK)
 	events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "stomp", "giant": true, "kind": giant.kind, "radius": shock})
 
 
@@ -550,7 +619,7 @@ func saw(giant: Giant, from_angle: float, to_angle: float, reach := Giant.SAW_RE
 	for cat in cats:
 		var offset := cat.body.position - giant.body.position
 		if cat.body.height < height and passes.call(offset, cat.body.radius):
-			if cat.hurt(damage, offset.normalized() * knock):
+			if cat.hurt(damage * giant.might, offset.normalized() * knock):
 				events.append({"position": cat.body.position, "height": 0.2, "direction": offset.normalized(), "killed": false, "by": by, "giant": false, "kind": "cat"})
 
 
@@ -775,7 +844,6 @@ func _build_grid() -> void:
 ## each. The grid keeps it to neighbors, so a big horde costs what its crowding costs: each cell
 ## against itself and the four after it, so every pair is looked at once. A dog is wider than a
 ## cell, so it looks further, on its own.
-const FORWARD: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 1), Vector2i(0, 1), Vector2i(1, 1)]
 ## How far each of a pair standing in each other is pushed, as a share of how far they overlap,
 ## and how many times a step the crowd is gone over: a packed crowd pushing in on him settles only
 ## if it's gone over more than once.
@@ -784,52 +852,91 @@ const PARTINGS := 2
 
 
 func _separate() -> void:
+	_part_the_narrow()
 	for parting in PARTINGS:
-		_part_the_crowd()
+		_part_the_wide()
 
 
-func _part_the_crowd() -> void:
-	var wide: Array[Creature] = []
+## Where each of the horde stands, how wide it is and whether it's left out (wide, or off the
+## ground), by its place in the horde: the parting works on these, not on the creatures themselves,
+## since it looks at every pair in the crush, every step, and this is what makes that cheap.
+var _part_at := PackedVector2Array()
+var _part_radius := PackedFloat32Array()
+var _part_out := PackedByteArray()
+## A cell's key is its column plus its row times this; the four cells after it are these keys on.
+const CELL_ROW := 8192
+const FORWARD_KEYS: Array[int] = [1, CELL_ROW - 1, CELL_ROW, CELL_ROW + 1]
+
+
+func _part_the_narrow() -> void:
+	var count := creatures.size()
+	_part_at.resize(count)
+	_part_radius.resize(count)
+	_part_out.resize(count)
 	var half := CELL / 2.0
-	for cell: Vector2i in _grid:
-		var here: Array = _grid[cell]
-		# The cell's own, then the four after it, gathered once: every pair, once. (Written out
-		# in full, not called: this runs for every pair in the crush, every step.)
-		var near: Array = here.duplicate()
-		for step in FORWARD:
-			near.append_array(_grid.get(cell + step, []))
-		var count := here.size()
-		var all := near.size()
-		for index in count:
-			var creature: Creature = here[index]
-			var body := creature.body
-			if body.radius > half:
-				wide.append(creature)
-				continue
-			if body.height > body.hovers or body.vertical_speed > 0.0:
-				continue
-			for other_index in range(index + 1, all):
-				var other_body: Body = near[other_index].body
-				if other_body.radius > half or other_body.height > other_body.hovers or other_body.vertical_speed > 0.0:
-					continue
-				var apart := body.position - other_body.position
-				var reach := body.radius + other_body.radius
-				var distance_squared := apart.length_squared()
-				if distance_squared >= reach * reach:
-					continue
-				var distance := sqrt(distance_squared)
-				var push := (apart / distance if distance > 0.0001 else Vector2.RIGHT) * (reach - distance) * PART
-				body.position += push
-				other_body.position -= push
-	# The wide ones against everything within two cells, but each other only once.
-	for creature in wide:
-		if creature.body.airborne():
+	var cells := {}
+	for index in count:
+		var body := creatures[index].body
+		var where := body.position
+		_part_at[index] = where
+		_part_radius[index] = body.radius
+		var out := body.radius > half or body.height > body.hovers or body.vertical_speed > 0.0
+		_part_out[index] = 1 if out else 0
+		if out:
+			continue
+		var key := floori(where.x / CELL) + 64 + (floori(where.y / CELL) + 64) * CELL_ROW
+		var here: Variant = cells.get(key)
+		if here == null:
+			cells[key] = [index]
+		else:
+			here.append(index)
+	var at := _part_at
+	var radius := _part_radius
+	for parting in PARTINGS:
+		for key: int in cells:
+			var here: Array = cells[key]
+			# The cell's own, then the four after it, gathered once: every pair, once.
+			var near: Array = here.duplicate()
+			for forward in FORWARD_KEYS:
+				var more: Variant = cells.get(key + forward)
+				if more != null:
+					near.append_array(more)
+			var own := here.size()
+			var all := near.size()
+			for first in own:
+				var index: int = here[first]
+				var where := at[index]
+				var wide := radius[index]
+				for second in range(first + 1, all):
+					var other: int = near[second]
+					var apart := where - at[other]
+					var reach := wide + radius[other]
+					var distance_squared := apart.length_squared()
+					if distance_squared >= reach * reach:
+						continue
+					var distance := sqrt(distance_squared)
+					var push := (apart / distance if distance > 0.0001 else Vector2.RIGHT) * (reach - distance) * PART
+					where += push
+					at[other] -= push
+				at[index] = where
+	for index in count:
+		if _part_out[index] == 0:
+			creatures[index].body.position = at[index]
+	_part_at = at
+
+
+## The wide ones (a dog is wider than a cell) against everything within two cells, but each other
+## only once.
+func _part_the_wide() -> void:
+	var half := CELL / 2.0
+	for creature in creatures:
+		if creature.body.radius <= half or creature.body.airborne():
 			continue
 		var cell := _cell_of(creature.body.position)
 		for x in range(cell.x - 2, cell.x + 3):
 			for y in range(cell.y - 2, cell.y + 3):
 				for other: Creature in _grid.get(Vector2i(x, y), []):
-					if other == creature or (other.body.radius > CELL / 2.0 and other.get_instance_id() < creature.get_instance_id()):
+					if other == creature or (other.body.radius > half and other.get_instance_id() < creature.get_instance_id()):
 						continue
 					_part(creature, other)
 
@@ -868,7 +975,7 @@ func _bite() -> void:
 							or creature.body.height > cat.body.height + Cat.TALL:
 						continue
 					creature.bite_ready_in = creature.stat("bite_interval")
-					if cat.hurt(creature.stat("bite"), apart.normalized() * 0.6):
+					if cat.hurt(creature.stat("bite") * creature.might, apart.normalized() * 0.6):
 						events.append({"position": cat.body.position, "height": 0.15, "direction": apart.normalized(), "killed": false, "by": "bite", "giant": false, "kind": creature.kind})
 						# A tuyul's bite takes a piece of what he's picked up, and he's off with it.
 						if Creature.KINDS[creature.kind].get("steals", false) and creature.carrying == 0 and salvage > 0:
@@ -1256,7 +1363,7 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 		var machine: Machine = target.machine if on_joint else target
 		var through := machine.take(damage, on_joint)
 		if attacker != null:
-			attacker.heal(through * attacker.adrenaline)
+			attacker.rush(through)
 		_tally(attacker, credit, through, not machine.alive())
 		events.append({"position": target.body.position, "height": minf(0.6, target.body.height + 0.2), "direction": direction, "killed": not machine.alive(), "by": by, "giant": true, "kind": "joint" if on_joint else "machine", "damage": through, "tier": tier, "ours": attacker != null, "source": credit})
 		if not machine.alive():
@@ -1269,7 +1376,7 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 		return
 	var dealt: float = minf(damage, target.health)
 	if attacker != null:
-		attacker.heal(dealt * attacker.adrenaline)
+		attacker.rush(dealt)
 	if target is Giant:
 		var giant: Giant = target
 		giant.take(damage, direction)
@@ -1288,7 +1395,8 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 	var creature: Creature = target
 	creature.health -= damage
 	# A push is shared over its mass: a dog takes a hit a rat would fly from.
-	var heft: float = creature.stat("heft")
+	# One that came late in Endless is heavier set, too: it's shoved less, by the root of its might.
+	var heft: float = creature.stat("heft") * sqrt(creature.might)
 	creature.body.push(direction * knock / heft, lift / heft)
 	# Hit hard enough, what can only hop goes over, and struggles a while to get up.
 	if creature.alive() and Creature.KINDS[creature.kind].has("topples") and knock / heft >= creature.stat("topples"):
@@ -1366,6 +1474,30 @@ func _pick_up() -> void:
 		if not taken:
 			lying.append(piece)
 	pickups = lying
+
+
+## A spot clear of what stands, at a point or as near it as there is one: tried there, then round
+## it, a little further out each time.
+func _clear_spot(near: Vector2) -> Vector2:
+	for ring in 8:
+		for turn in (1 if ring == 0 else 8):
+			var spot := (near + Vector2.from_angle(TAU * turn / 8.0) * 0.6 * ring).clamp(Vector2.ONE, size - Vector2.ONE)
+			if not solid_at(spot, 0.3):
+				return spot
+	return near
+
+
+## The area's paper, lying where it lies until a cat walks over it: then it's his to take home, and
+## he says what it is.
+func _find_the_paper() -> void:
+	if paper.is_empty() or paper_found:
+		return
+	for cat in cats:
+		if cat.alive() and cat.body.position.distance_to(paper.position) <= PAPER_REACH:
+			paper_found = true
+			events.append({"position": paper.position, "height": 0.1, "direction": Vector2.ZERO, "killed": false, "by": "paper", "giant": false, "kind": "paper"})
+			calls.append({"by": "Tompel", "text": area.paper.found, "at": cat.body.position, "follow": cat.body, "until": time + CALL_TIME, "human": false})
+			return
 
 
 ## Fireflies near a cat come to him; caught, they count for the crew.
@@ -1486,8 +1618,14 @@ func _get_up(cat: Cat, share: float, where: Vector2) -> void:
 
 
 ## Experience needed to go from this level to the next.
+## What a level takes: a little more each level, and past LEVELS_STEEPEN more again each level, so
+## a long run keeps leveling but never a level every few seconds.
+const LEVELS_STEEPEN := 15
+const LEVELS_STEEPNESS := 0.5
+
 static func experience_needed(at_level: int) -> int:
-	return 4 + at_level * 3
+	var past := maxi(at_level - LEVELS_STEEPEN, 0)
+	return 4 + at_level * 3 + floori(LEVELS_STEEPNESS * past * past)
 
 
 func _gain_experience(amount: int) -> void:
@@ -1619,7 +1757,8 @@ func _spawn() -> void:
 	var giants_plan: Dictionary = plan.get("giants", {})
 	if not giants_plan.is_empty():
 		_since_giant += STEP
-		if _since_giant >= giants_plan.interval and giants.filter(func(giant: Giant) -> bool: return giant.standing()).size() < giants_plan.most:
+		var more_giants := mini(int(maxf(time - PRESSURE_FROM, 0.0) / GIANTS_MORE_EVERY), GIANTS_MORE) if area.is_empty() else 0
+		if _since_giant >= giants_plan.interval and giants.filter(func(giant: Giant) -> bool: return giant.standing()).size() < giants_plan.most + more_giants:
 			_since_giant = 0.0
 			_giants_sent += 1
 			var chainsaw: bool = giants_plan.has("chainsaw_from") and time >= giants_plan.chainsaw_from and _giants_sent % int(giants_plan.chainsaw_every) == 0
@@ -1650,9 +1789,10 @@ func _spawn() -> void:
 		if _since_dogs >= dogs_plan.interval:
 			_since_dogs = 0.0
 			var dogs := creatures.filter(func(creature: Creature) -> bool: return creature.kind == "dog").size()
-			# A pack comes out of the jungle together.
+			# A pack comes out of the jungle together, and in Endless the packs grow as it hardens.
+			var more_dogs := mini(int(maxf(time - PRESSURE_FROM, 0.0) / DOGS_MORE_EVERY), DOGS_MORE) if area.is_empty() else 0
 			var gate := edge_point()
-			for index in mini(dogs_plan.pack, dogs_plan.most - dogs):
+			for index in mini(dogs_plan.pack + more_dogs, dogs_plan.most + more_dogs * DOG_PACK - dogs):
 				add_creature((gate + Vector2(random.randf_range(-0.6, 0.6), random.randf_range(-0.6, 0.6))).clamp(Vector2.ONE * 0.3, size - Vector2.ONE * 0.3), "dog")
 	var packs: Array = plan.get("packs", [])
 	for index in packs.size():
@@ -1832,11 +1972,15 @@ func filling(cat: Cat) -> float:
 
 
 ## Into an area of the forest: its plan for what spawns, and its goal's things where it puts them.
-func begin_area(area_id: String, goal_kept := false) -> void:
+func begin_area(area_id: String, goal_kept := false, papers_home: Array[String] = []) -> void:
 	area = Areas.named(area_id)
 	plan = area.plan
 	lay_out(area.get("size", SIZE), Areas.obstacles(area))
 	_reset_spawning()
+	paper = {}
+	paper_found = false
+	if area.has("paper") and not area_id in papers_home:
+		paper = {"position": _clear_spot(area.paper.at)}
 	if goal_kept:
 		# Done on an earlier run, and it stays done: what was broken stays broken, the caged stay
 		# free. Only the boss is left, once he's had time to grow.

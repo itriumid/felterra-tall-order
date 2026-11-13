@@ -183,6 +183,14 @@ var left_home: Array[String] = []
 var goals_done: Array[String] = []
 ## A tonic from the healer's hut, brewed and waiting for the next run.
 var tonic_ready := false
+## The company's papers he's brought home, by the area each lay in, and those of them Granny
+## Whiskers has read: she reads them at the weaver's hut, once she's home to. What's told once she
+## has the five words, and once the sign they make has gone up.
+var papers: Array[String] = []
+var papers_read: Array[String] = []
+const FIVE_WORDS := "papers:five_words"
+const SIGN_UP := "written:airstrip"
+const SIGN_LATER := "written:later"
 ## The spirits' gift: offerings brought home from the groves, the cub's rank at the shrine (none
 ## until the Great Tiger gives it), the element it fights with, and the elements it has woken.
 var offerings := 0
@@ -439,7 +447,7 @@ func bring_home(arena: Arena) -> void:
 ## picked up, and how long a grove was cleansed for.
 static func earnings_of(arena: Arena) -> Dictionary:
 	return {"rescued": arena.rescued.duplicate(true), "salvage": arena.salvage, "grove": arena.grove, "time": arena.time,
-		"cleansed": arena.cleansed, "crew_came": arena.crew_came}
+		"cleansed": arena.cleansed, "crew_came": arena.crew_came, "paper": arena.area.get("id", "") if arena.paper_found else ""}
 
 
 ## A run's earnings, brought home: the rescued move in, the salvage is stored, the weavers weave,
@@ -448,6 +456,9 @@ func take_earnings(earnings: Dictionary) -> void:
 	cats.append_array(earnings.get("rescued", []))
 	salvage += earnings.get("salvage", 0)
 	cloth += weavers()
+	var paper: String = earnings.get("paper", "")
+	if not paper.is_empty() and not paper in papers:
+		papers.append(paper)
 	if earnings.get("grove", false):
 		offerings += offerings_from(earnings.get("time", 0.0))
 	if earnings.get("cleansed", false):
@@ -458,6 +469,28 @@ func take_earnings(earnings: Dictionary) -> void:
 		tell("shrine", "The Great Tiger", "\"%s\"" % (FRONT_LINES[mini(groves_cleansed, FRONT_LINES.size()) - 1] as String).replace("%d", str(groves_cleansed)))
 	if earnings.get("crew_came", false) and not CREW_SMELLED in told:
 		tell("jogiboy", "Jogiboy", "He sniffs at you for a long time. \"I know that smell. That's where I used to live, with the palm trees.\" He doesn't say anything else for a while.", CREW_SMELLED)
+
+
+## Home, Granny Whiskers reads whatever papers have come in since she last did, each waiting to be
+## heard at her door; and with the last of the five words, she has something to say with them:
+## at the airstrip's ending (SIGN_UP, once it's told that way), or on a later walk home (SIGN_LATER).
+## Nothing's read until she's home to read it.
+func read_papers() -> void:
+	if not is_restored("hut_0"):
+		return
+	for id in papers:
+		if not id in papers_read:
+			papers_read.append(id)
+			var paper: Dictionary = Areas.named(id).paper
+			tell("hut_0", paper.name, paper.reads)
+	if can_write() and not FIVE_WORDS in told and not tidings.any(func(tiding: Dictionary) -> bool: return tiding.get("teaches", "") == FIVE_WORDS):
+		tell("hut_0", "Five words", Areas.FIVE_WORDS, FIVE_WORDS)
+
+
+## Whether the cats can write to the giants yet: Granny Whiskers has read all five papers that
+## give her the words.
+func can_write() -> bool:
+	return Areas.WRITING.all(func(id: String) -> bool: return id in papers_read)
 
 
 ## What a cleansed grove gives besides, in offerings; how many groves have been given back; and
@@ -682,6 +715,8 @@ func save(path := PATH) -> bool:
 	file.set_value("village", "left_home", left_home)
 	file.set_value("village", "goals_done", goals_done)
 	file.set_value("village", "tonic_ready", tonic_ready)
+	file.set_value("village", "papers", papers)
+	file.set_value("village", "papers_read", papers_read)
 	file.set_value("village", "offerings", offerings)
 	file.set_value("village", "groves_cleansed", groves_cleansed)
 	file.set_value("village", "cub_rank", cub_rank)
@@ -726,7 +761,12 @@ func load_from(path := PATH) -> void:
 		known_scenes.append("send_off:" + id)
 		known_scenes.append("teach:" + id)
 	known_scenes.append(PACK_TAUGHT)
+	known_scenes.append(FIVE_WORDS)
+	known_scenes.append(SIGN_UP)
+	known_scenes.append(SIGN_LATER)
 	_names(file, "told", told, known_scenes)
+	_names(file, "papers", papers, Areas.ids())
+	_names(file, "papers_read", papers_read, papers)
 	var saved_next: Variant = file.get_value("village", "next_run", "edge")
 	next_run = saved_next if saved_next is String and (saved_next == "endless" or (saved_next in Areas.ids() and not Areas.named(saved_next).get("in_the_village", false))) else next_area()
 	tonic_ready = file.get_value("village", "tonic_ready", false) == true

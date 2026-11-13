@@ -190,6 +190,37 @@ const BONUS_POOLS := {
 	"lobbed": ["damage", "speed", "reach", "arc", "more", "element"],
 }
 const ELEMENTS: Array[String] = ["burn", "poison", "bleed", "daze", "slow"]
+## How each way of fighting is said on a card.
+const FORM_NAMES := {"swung": "Swung", "thrust": "Thrust", "shot": "Shot", "lobbed": "Thrown"}
+## What a bonus's effect means, for a card read in full: what it does to what's hit, and for how
+## long.
+const BONUS_MEANS := {
+	"burn": "Burning: what it hits burns for 3 seconds, hurt every half second",
+	"poison": "Poisoned: what it hits is hurt every half second, for 3 seconds",
+	"bleed": "Bleeding: hurt every half second for 3 seconds, half as much standing still",
+	"daze": "Dazed: it goes down on its side, and can't run or bite until it's up; not giants",
+	"slow": "Slowed: it runs that much slower for 3 seconds; not giants",
+	"arc": "Wider: a swing covers more round him; a burst or burning oil, more ground",
+	"crit": "Critical: a chance for each hit to land twice as hard, added to his gear's",
+	"pierce": "Piercing: a round goes on through what it hits, into the next",
+}
+## And what a weapon's own traits mean.
+const TRAIT_MEANS := {
+	"trips": "Trips: what it hits goes down on its side, and can't run or bite until it's up; not giants",
+	"hooks": "Pulls them in: what it catches is dragged toward him, into his next swing",
+	"breaks": "Snaps: at that many hits it breaks, and he takes 3 seconds to sharpen another",
+	"pierces": "Pierces: a round goes on through that many, and into the next",
+	"bounces": "Bounces: it glances off what it hits to the nearest other, that many times",
+	"poisons": "Poisons: what it hits is hurt every half second, for 3 seconds",
+	"slows": "Slows: what it hits runs that much slower for 3 seconds; not giants",
+	"oil": "Burning oil: it burns where it lands, setting alight whatever stands in it",
+	"burns": "Burns: what it hits burns for 3 seconds, hurt every half second",
+	"bursts": "Bursts: it hurts and throws everything that close to where it lands",
+	"nails": "Leaves nails: one that misses lies where it lands, for the next foot on it",
+	"pops": "Pops: where they land, each pop hurts and throws what's close",
+	"pellets": "Pellets: that many to a shot, spread in a cone, each doing that damage",
+	"sweeps": "Wide sweep: the swing goes most of the way round him, not only in front",
+}
 
 
 ## How a weapon fights: swung (a blade or a staff round him), thrust (a narrow stab in a line),
@@ -541,8 +572,11 @@ static func _describe(choice: Dictionary) -> Dictionary:
 		# Which evolution it's for says which nickname it earns: a word at the first, a creature at
 		# the second.
 		var second := id.get_slice(":", 3) == "2"
-		card.lines = [BONUSES[bonus].line, 'Earns "%s"' % (BONUSES[bonus].second if second else BONUSES[bonus].first)]
+		card.lines = [bonus_line(bonus, Weapon.named(card.item)), 'Earns "%s"' % (BONUSES[bonus].second if second else BONUSES[bonus].first)]
 		card.explain = ["%s: the bonus its evolution gives the %s, and the nickname it earns it" % [BONUSES[bonus].name, WEAPON_NAMES[card.item].to_lower()]]
+		if BONUS_MEANS.has(bonus):
+			card.explain.append(BONUS_MEANS[bonus])
+			card.unfamiliar = true
 	elif id.begins_with("level:") or id.begins_with("mastery:"):
 		var mastery := id.begins_with("mastery:")
 		var share := MASTERY if mastery else 1.0
@@ -598,9 +632,107 @@ static func _describe(choice: Dictionary) -> Dictionary:
 		card.item = id.trim_prefix("weapon:")
 		card.kind = "weapon"
 		card.name = WEAPON_NAMES[card.item]
-		card.lines = ["A new weapon", "Level %d" % (1 + choice.rarity)]
+		# What it does, in numbers; that it's new, and how well made, on the ribbon.
+		card.lines = weapon_lines(Weapon.named(card.item))
+		if not card.has("ribbon"):
+			card.ribbon = "%s, new%s" % [RARITY_NAMES[choice.rarity], "" if choice.rarity == 0 else ", level %d" % (1 + choice.rarity)]
 		card.explain = ["%s: %s" % [card.name, WEAPON_DOES[card.item]], "Mouth and tail: a weapon takes one; a two-handed one takes both"]
+		for trait_name: String in traits_of(Weapon.named(card.item)):
+			if TRAIT_MEANS.has(trait_name):
+				card.explain.append(TRAIT_MEANS[trait_name])
 	return card
+
+
+## What a bonus gives this weapon, in a line, with its numbers: what "wider" widens and what "one
+## more" is one more of depend on the weapon.
+static func bonus_line(bonus: String, weapon: Weapon) -> String:
+	match bonus:
+		"arc": return ("Arc %d%% wider" if weapon.kind == Weapon.Kind.MELEE else "Burst %d%% wider") % roundi(Weapon.BONUS_WIDTH * 100.0)
+		"more": return "One more pop" if weapon.pops > 0 else ("One more bounce" if weapon.ricochet > 0 else "One more round a shot")
+		"burn": return "Burns: %s a second, %d s" % [_number(Weapon.BONUS_BURN), roundi(Weapon.AFFLICTION_TIME)]
+		"poison": return "Poison: %s a second, %d s" % [_number(Weapon.BONUS_POISON), roundi(Weapon.AFFLICTION_TIME)]
+		"bleed": return "Bleeds: %s a second, %d s" % [_number(Weapon.BONUS_BLEED), roundi(Weapon.AFFLICTION_TIME)]
+		"daze": return "Knocks it down %s s" % _number(Weapon.BONUS_DAZE)
+		"slow": return "Slows it %d%% for %d s" % [roundi(Weapon.BONUS_SLOW * 100.0), roundi(Weapon.AFFLICTION_TIME)]
+	return BONUSES[bonus].line
+
+
+## What a weapon does, in numbers, for its card: how it's used and how far it reaches, what a hit
+## does and how often, and what sets it apart. From the weapon itself, so a card can't be wrong.
+static func weapon_lines(weapon: Weapon) -> Array:
+	var reach := ("%s m reach" % _number(weapon.reach)) if weapon.reach < 2.0 else "%d m reach" % roundi(weapon.reach)
+	var lines := ["%s, %s" % [FORM_NAMES[form_of(weapon)], reach]]
+	lines.append("%s damage, %s a second" % [_number(weapon.damage), _number(1.0 / weapon.interval)])
+	var traits: Array[String] = []
+	for trait_name in traits_of(weapon):
+		traits.append(_trait_text(trait_name, weapon))
+	if not traits.is_empty():
+		var said := ", ".join(traits)
+		lines.append(said[0].to_upper() + said.substr(1))
+	return lines
+
+
+## What sets a weapon apart, by name, most telling first.
+static func traits_of(weapon: Weapon) -> Array[String]:
+	var traits: Array[String] = []
+	if weapon.hands > 1:
+		traits.append("two_handed")
+	if weapon.pellets > 1:
+		traits.append("pellets")
+	if weapon.trips > 0.0:
+		traits.append("trips")
+	if weapon.hooks:
+		traits.append("hooks")
+	if weapon.breaks > 0:
+		traits.append("breaks")
+	if weapon.pierce > 0:
+		traits.append("pierces")
+	if weapon.ricochet > 0:
+		traits.append("bounces")
+	if weapon.poison > 0.0:
+		traits.append("poisons")
+	if weapon.slow > 0.0:
+		traits.append("slows")
+	if weapon.fire_patch > 0.0:
+		traits.append("oil")
+	elif weapon.burn > 0.0:
+		traits.append("burns")
+	if weapon.blast > 0.0:
+		traits.append("bursts")
+	if weapon.nails:
+		traits.append("nails")
+	if weapon.pops > 0:
+		traits.append("pops")
+	if weapon.kind == Weapon.Kind.MELEE and weapon.arc >= deg_to_rad(160.0):
+		traits.append("sweeps")
+	return traits
+
+
+static func _trait_text(trait_name: String, weapon: Weapon) -> String:
+	match trait_name:
+		"two_handed": return "two-handed"
+		"trips": return "trips %s s" % _number(weapon.trips)
+		"hooks": return "pulls them in"
+		"pellets": return "%d pellets" % weapon.pellets
+		"breaks": return "snaps at %d" % weapon.breaks
+		"pierces": return "pierces %d" % weapon.pierce
+		"bounces": return "bounces %d" % weapon.ricochet
+		"poisons": return "poisons"
+		"slows": return "slows %d%%" % roundi(weapon.slow * 100.0)
+		"oil": return "burning oil"
+		"burns": return "burns"
+		"bursts": return "bursts %s m" % _number(weapon.blast)
+		"nails": return "leaves nails"
+		"pops": return "pops %d times" % weapon.pops
+		"sweeps": return "wide sweep"
+	return ""
+
+
+## A number as a card says it: whole if it is, else to one place.
+static func _number(value: float) -> String:
+	if is_equal_approx(value, roundf(value)):
+		return "%d" % roundi(value)
+	return "%.1f" % value
 
 
 ## What a card for a mutation gives, at its rarity's amount, in two short lines: what it does, for

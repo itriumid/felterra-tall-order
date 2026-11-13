@@ -82,6 +82,9 @@ var worth := 1
 ## Where it ambles when there's no cat to run at, or nowhere (INF).
 var wander_to := Vector2.INF
 var bite_ready_in := 0.0
+## How much harder it bites than its kind does: more, the later in Endless it came (see
+## Arena.pressure). Its health is raised by the same as it comes.
+var might := 1.0
 var state := State.RUNNING
 ## The time left in a crouch or a recovery, and the way a crouch will lunge.
 var state_for := 0.0
@@ -102,6 +105,14 @@ var glow := 0
 var torch_in := 2.0
 ## A Keeper come to itself, its grove cleansed: it bites nobody, and makes for the trees.
 var calm := false
+## What its kind says of it that every step asks, read once: its pace, its grip, whether it hops,
+## carries a torch or calls others in, and how far off it lunges from (0 if it doesn't).
+var _speed := 0.0
+var _grip := 0.0
+var _hops := false
+var _torches := false
+var _calls := false
+var _lunge_reach := 0.0
 
 
 func _init(creature_kind := "rat") -> void:
@@ -112,6 +123,12 @@ func _init(creature_kind := "rat") -> void:
 	body.tall = stat("tall")
 	body.kind = kind
 	body.hovers = KINDS[kind].get("hovers", 0.0)
+	_speed = stat("speed")
+	_grip = stat("grip")
+	_hops = KINDS[kind].has("hop_lift")
+	_torches = KINDS[kind].has("torch")
+	_calls = KINDS[kind].has("calls")
+	_lunge_reach = KINDS[kind].get("lunge_reach", 0.0)
 	body.height = body.hovers
 
 
@@ -127,7 +144,7 @@ func spirit() -> bool:
 
 
 func hops() -> bool:
-	return KINDS[kind].has("hop_lift")
+	return _hops
 
 
 func stat(name: String) -> Variant:
@@ -148,6 +165,8 @@ func tripped() -> bool:
 
 ## How much of its pace it has, slowed or not.
 func pace() -> float:
+	if afflictions.is_empty():
+		return 1.0
 	var slowed: Dictionary = afflictions.get("slow", {})
 	return 1.0 - (slowed.share if slowed.get("left", 0.0) > 0.0 else 0.0)
 
@@ -157,12 +176,12 @@ func step(delta: float, prey: Cat, arena: Arena = null) -> void:
 	# A hop's rest is taken on the ground.
 	if not (hops() and body.airborne()):
 		state_for = maxf(state_for - delta, 0.0)
-	if KINDS[kind].has("torch") and arena != null and not calm:
+	if _torches and arena != null and not calm:
 		torch_in -= delta
 		if torch_in <= 0.0:
 			torch_in = stat("torch")
 			arena.set_rat_fire(body.position)
-	if KINDS[kind].has("calls") and arena != null:
+	if _calls and arena != null:
 		call_in -= delta
 		if call_in <= 0.0:
 			call_in = stat("call_interval")
@@ -207,14 +226,14 @@ func _run(delta: float, prey: Cat, arena: Arena) -> void:
 	var wanted := Vector2.ZERO
 	if errand.is_finite():
 		var going: Vector2 = arena.way(body.position, errand) if arena != null else (errand - body.position).normalized()
-		wanted = going * float(stat("speed")) * pace()
+		wanted = going * _speed * pace()
 	elif prey != null and prey.alive():
 		var toward := prey.body.position - body.position
 		# Around whatever stands between, if anything does.
 		var going: Vector2 = arena.way(body.position, prey.body.position) if arena != null else toward.normalized()
-		wanted = going * float(stat("speed")) * pace()
+		wanted = going * _speed * pace()
 		# A dog close enough crouches to lunge, committing to where he is now.
-		if KINDS[kind].has("lunge_reach") and toward.length() < float(stat("lunge_reach")) and bite_ready_in <= 0.0:
+		if _lunge_reach > 0.0 and bite_ready_in <= 0.0 and toward.length() < _lunge_reach:
 			state = State.CROUCHING
 			state_for = stat("crouch_time")
 			lunge_direction = toward.normalized()
@@ -225,7 +244,7 @@ func _run(delta: float, prey: Cat, arena: Arena) -> void:
 		_hop(wanted, delta)
 		return
 	# Feet on the ground: it claws back to the pace it wants, so a knock carries it a way.
-	body.velocity = body.velocity.move_toward(wanted, float(stat("grip")) * delta)
+	body.velocity = body.velocity.move_toward(wanted, _grip * delta)
 
 
 ## Bound up in its shroud, it can only hop: it stops dead where it lands, gathers itself, and goes

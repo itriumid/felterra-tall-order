@@ -4,7 +4,8 @@ extends Node
 ## api.tall-order.felterra.games.itrium.id) for a room, and is given a short code; a guest gives
 ## the code, and the service introduces the two, passing what each needs to reach the other
 ## straight. Then they talk directly, over WebRTC, and the service carries nothing of the game. Each machine finds its own address on the internet
-## through Cloudflare's STUN server.
+## through Cloudflare's STUN server. Two whose networks let nothing through directly play through
+## Cloudflare's relay (TURN), when the service has one to offer: it says so as a guest comes in.
 ##
 ## The host keeps its line to the service open, so guests can join, or come back after a dropped
 ## connection, for as long as it's hosting. A guest's closes once they're through.
@@ -14,6 +15,7 @@ signal joined
 signal failed(reason: String)
 
 const SERVICE := "wss://api.tall-order.felterra.games.itrium.id"
+## The servers a connection is made with unless the service names others: STUN alone, no relay.
 const ICE := {"iceServers": [{"urls": ["stun:stun.cloudflare.com:3478"]}]}
 ## Each code's letters: none that read as another (no I, L or O, no 0 or 1).
 const LETTERS := "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
@@ -35,12 +37,50 @@ var _socket := WebSocketPeer.new()
 var _id := 0
 var _was_open := false
 var _hosting := false
+## The servers the next connection is made with: the service's, once it has sent any.
+var _ice: Dictionary = ICE
 
 
 ## Whether this build can play over WebRTC: without its extension (a build from source that
 ## hasn't fetched it), only by address.
 static func available() -> bool:
 	return WebRTCPeerConnection.new().initialize(ICE) == OK
+
+
+## The servers the service sent, as a connection takes them, kept to what Godot's WebRTC can use:
+## STUN, and TURN over UDP. Its relay over TCP or TLS ("transport=tcp", "turns:") is left out,
+## since the library underneath (libdatachannel, with libjuice) relays over UDP only. With nothing
+## usable sent, it's the game's own: STUN alone.
+static func usable(sent: Variant) -> Dictionary:
+	var servers: Array[Dictionary] = []
+	if sent is Array:
+		for server: Variant in sent:
+			if not (server is Dictionary and server.get("urls") is Array):
+				continue
+			var urls: Array[String] = []
+			var relayed := false
+			for url: Variant in server.get("urls"):
+				if not (url is String):
+					continue
+				var address: String = url
+				if address.begins_with("stun:"):
+					urls.append(address)
+				elif address.begins_with("turn:") and not address.contains("transport=tcp"):
+					urls.append(address)
+					relayed = true
+			if urls.is_empty():
+				continue
+			var kept := {"urls": urls}
+			if relayed:
+				# A relay is no use without its credential.
+				if not (server.get("username") is String and server.get("credential") is String):
+					continue
+				kept["username"] = server.get("username")
+				kept["credential"] = server.get("credential")
+			servers.append(kept)
+	if servers.is_empty():
+		return ICE
+	return {"iceServers": servers}
 
 
 ## A code as typed, put right: capitals, and only its letters.
@@ -108,6 +148,10 @@ func _heard(message: Dictionary) -> void:
 			peer.create_client(_id)
 			joined.emit()
 			_reach(1)
+		"ice_servers":
+			# Sent before "joined" or "peer", when the service has a relay to offer: the connection
+			# made next uses them. Never sent (an older service, or one with no relay), it's ICE.
+			_ice = usable(message.get("servers"))
 		"peer":
 			_reach(int(message.id))
 		"peer_left":
@@ -135,7 +179,7 @@ func _heard(message: Dictionary) -> void:
 ## makes the offer.
 func _reach(id: int) -> void:
 	var connection := WebRTCPeerConnection.new()
-	connection.initialize(ICE)
+	connection.initialize(_ice)
 	connection.session_description_created.connect(func(kind: String, sdp: String) -> void:
 		connection.set_local_description(kind, sdp)
 		_send({"type": kind, "to": id, "sdp": sdp}))

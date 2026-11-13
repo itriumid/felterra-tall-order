@@ -257,3 +257,20 @@ func test_a_run_starts_empty_pawed_and_its_first_level_deals_a_weapon_from_the_p
 	var rerolls := cat.rerolls
 	check(cat.reroll(arena.random) and cat.rerolls == rerolls and cat.first_redraws == 0, "the first redraw spent the run's rerolls")
 	check(cat.play(0) and cat.weapons.size() == 1, "playing the first hand gave him no weapon")
+
+
+func test_the_papers_and_the_endings_fit_the_screen_too() -> void:
+	var lines: Array = Areas.SIGN_LATER.duplicate()
+	for area in Areas.LIST:
+		lines.append_array(area.get("after_written", []))
+		lines.append_array(area.get("send_off_written", []))
+		if area.has("paper"):
+			lines.append(area.paper.book)
+			check(Overlay.wrapped(area.paper.found, Overlay.BUBBLE_WIDTH).size() <= 3, "too long for a bubble: %s" % area.paper.found)
+	for line: Variant in lines:
+		if line is Dictionary:
+			check(Overlay.wrapped(line.text, Overlay.BUBBLE_WIDTH).size() <= 3, "too long for a bubble: %s" % line.text)
+			check(Portraits.has(line.by), "%s speaks, but has no portrait" % line.by)
+		else:
+			check(PixelFont.width(line) <= LINE_WIDTH, "too wide for the screen: %s" % line)
+	check(PixelFont.width("Five words, in their own letters: %s" % Areas.SIGN) <= LINE_WIDTH, "the five words don't fit the book's page")

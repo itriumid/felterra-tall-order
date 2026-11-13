@@ -13,6 +13,28 @@ their forest and moved in with its machines, and doesn't see cats as people at a
 **Felterra** is a world of cats, set in the Nusantara seas. It's shared with other Felterra
 games, but this story stands on its own: nothing here depends on another game's events.
 
+**The world's rule: it's our world, seen from below the knee.** Nothing about Felterra is
+magic. Animals are people to each other, with their own trades, villages and nations (the
+cats, a dog like Jogiboy, the rats' Free Float), and all of it happens at a height the giants
+never look at. Felterra is the cats' name for it: everything below a giant's knee. Humans
+aren't cruel and aren't in on it; they have simply never looked down. That is what keeps the
+cats cats and not people in cat suits: four legs, a mouth and a tail to carry with, things
+built at their own size from what the giants drop, and no place in the giants' world at all.
+
+**Writing is the one bridge, and it goes one way.** A cat can't understand a human's speech,
+and a human hears a meow. But a cat who's eaten enough fish out of newspaper can read what
+humans write, and no human has ever read anything of a cat's. No device translates and no
+spell does: the spirits are the forest's, and what they could bridge is kept for another
+Felterra story. So the story turns on reading: what the company is doing is found out from its
+own papers, and the cats win by writing back in the giants' own letters. Making a giant look
+down is the tall order.
+
+**Nobody looks down.** The giants never looked down at the cats. The cats never looked down at
+the rats ("Rats are rats", Tompel says, the way a giant would say it of him), and blamed the
+Keepers for fires the Keepers were putting out. Every reveal is somebody being seen for the
+first time, and Tompel's part in it is his own: sent away three months to find what was wrong,
+he came home with nothing, because it was underfoot the whole time.
+
 The present day. Cats are a modern people, with their own technology at cat scale. Humans exist
 too, and to humans, cats are animals: pests, if anything. A human company has moved into the
 forest a community of cats lives in, and is clearing it.
@@ -170,7 +192,8 @@ nunchaku, "Go Chuck Purris style", and the handgun, "Go John Whisker style".
 
 After the first draw, experience is in **fireflies**. Whatever falls, one rises from where it
 fell, carrying what it was worth (a big fall rises as a few, a bigger worth a bigger light), and
-hangs there blinking. A cat within a meter and a half draws it in, faster as it comes; caught,
+hangs there blinking: yellow-green, a color nothing else here has, and outlined, as everything
+he can pick up is, so one stands off the fallen it rose from. A cat within a meter and a half draws it in, faster as it comes; caught,
 it counts for the whole crew. Nobody near, it waits for as long as the run lasts: they don't
 merge or fade, so a fight fought at range leaves a field of them to go back for. A tuyul
 swallows any he runs through, goes looking for them when there's no salvage, and once full makes
@@ -227,7 +250,10 @@ in a run:
 | **Crowd** | The thickest cluster: best for spread and explosives |
 
 Melee weapons swing a blade through an arc and hit what the blade passes through, at the height
-it passes. A swing alternates forehand and backhand.
+it passes. A swing alternates forehand and backhand. Each weapon keeps its own pace, and shows
+it: a gun flashes and kicks for its own rounds only, a blade quick enough swings faster than its
+swing first took, and a fast gun fires as often as its interval says, not at the next whole
+step of the world.
 
 ### Arsenal
 
@@ -385,7 +411,30 @@ on: fire and oil, or crewmates who can be downed.
   while he's behind it, and a tree's crown over him thins. The fixed pieces are placed by hand;
   the scattered ones (trees, stumps, bushes) from the area's own seed, the same every time, kept
   clear of where he comes in, the goal's things, the boss's way in, and each other.
+- **The papers.** Each area the company holds (the deep forest to the airstrip) has a piece of
+  its writing lying in it: the Handler's list, a site board, a warning sign, a delivery note,
+  the permit, and at the airstrip the official's speech. It's marked in white, where what the
+  goal asks is brass, with an arrow at the screen's edge. Walking over it takes it, and it goes
+  home with him, win or lose; brought home once, it isn't there again. At the weaver's hut,
+  Granny Whiskers reads each one out under a "!", and each of the first five carries a clue the
+  story used to only say (the sign forbidding fires in a grove already cut; drainage pipe going
+  south to a partner; "no persons live on the land") and gives her one word: CATS, IDLE, NOT,
+  HERE, LIVE. They're kept in the Elder's book.
+- **Two endings at the airstrip.** With all five words read before it's freed, Patch and Granny
+  Whiskers paint them across the runway while he keeps the company busy: NOT IDLE. CATS LIVE
+  HERE. The official reads it, and looks down. Without them, the company still leaves, never
+  knowing who did it, and the book says so: "We aren't done filling it." A freed area can be
+  gone back to for its paper, and once she has the five words the sign goes up on the next walk
+  home.
 - **Endless mode**: the giants never stop coming; factions arrive and start to mix.
+- **Endless hardens.** From four minutes in, whatever comes out of the jungle in Endless or a
+  grove comes tougher, bites harder and is shoved less, a little more each minute and faster as
+  it goes; dog packs grow by a dog every three minutes, up to four more; and another giant may
+  stand at once every four minutes, up to three more. A level takes more experience past level
+  15. And adrenaline gives back no more than 4% of his health a second. Together they're what
+  ends a run: a strong build lasts past twenty minutes, and none lasts for good. A liberation
+  area doesn't harden; its boss ends it. (Tuned against a simple bot; it wants people playing
+  it.)
 - **The siege** comes by itself, never chosen and never on the map: the first time he walks
   home with the airstrip free, once what's new is read, Jogiboy smells smoke, and the spirits are
   at the village. He walks in at the gate to it under attack. Beaten back, he's home, and the
@@ -421,6 +470,10 @@ on: fire and oil, or crewmates who can be downed.
   - **The edge holds.** The Keepers of groves given back tell the others: in every grove after,
     a tenth fewer Keepers come maddened for each grove held, to three tenths at most. It's the
     run's, never a cat's, so it's the same help for one cat or a crew of four.
+- **He's never lost in it.** Hurt, his health shows as a bar under his feet, where the player is
+  already looking, and not only in the corner; whole, nothing's there. Buried under the horde
+  (ten or more of it within half a meter), he's drawn through the pile with a pointer over him,
+  the way he shows through what stands in front of him.
 - **What worked is there to read.** Every hit he lands can show its number, rising off what it
   hit, colored by how hard it landed: white plain, yellow twice as hard, orange three times, red
   four and more (critical past 100% keeps stepping up). Hits on the same thing a moment apart add
@@ -532,6 +585,12 @@ Level-ups arrive as **cards**. A card offers a choice of three; you hold it unti
   on its own when a run ends, ready to start again. Its see-through panel is a checkerboard of
   palette pixels, not a blend.
 - **Card text is short.** If a card needs a paragraph, the upgrade is too complicated.
+- **A card says what a thing does, in numbers.** A new weapon's card gives how it's used and its
+  reach, its damage and how often, and what sets it apart ("Swung, 0.6 m reach", "2.8 damage,
+  2.2 a second", "Trips 1.2 s"), written from the weapon itself so it can't be wrong; that it's
+  new, and its level, are on the ribbon. An evolution's bonus says what it does to this weapon
+  ("Bleeds: 1.5 a second, 3 s", "One more bounce", "Arc 30% wider"), and Tab explains each trait
+  and element in a line.
 
 ### What a card can offer
 
@@ -671,13 +730,18 @@ for the steering it had by then, with only the difference put right.
 - **Room codes:** the game's rooms service (`rooms/`, a Cloudflare Worker at
   api.tall-order.felterra.games.itrium.id) hands the host a six-letter code and introduces each guest who gives it: it passes their WebRTC
   offers, answers and network candidates between them, and nothing else. Then they play directly,
-  over WebRTC; the service never carries the game, and keeps no logs. Each machine finds its own
-  address on the internet through Cloudflare's STUN server. A network strict enough that two
-  machines can't reach each other directly would need a relay (TURN), which isn't built: those
-  players join by address on a home network, or not at all, for now.
+  over WebRTC, whenever they can: each machine finds its own address on the internet through
+  Cloudflare's STUN server, and the service never carries the game, and keeps no logs. When two
+  networks are strict enough that the machines can't reach each other directly, the game goes
+  between them through Cloudflare's relay (TURN) instead: Cloudflare's servers then carry the
+  game's traffic, encrypted between the two players, and see both players' addresses. The service
+  hands a guest and the host a credential for the relay as the guest comes in, good for four
+  hours and for nobody outside a room. The relay is over UDP only: a network that blocks UDP
+  altogether still can't play by room code. With no TURN key set on the service (there is none
+  yet), there is no relay, and those players join by address on a home network.
 - **The pieces:** `game/rooms.gd` plays by room code over WebRTC, `game/session.gd` by address over
   Godot's own networking (on a home network, or a build without WebRTC); a store's lobbies would
-  replace those two and nothing else. `game/online.gd` carries what host and guests say.
+  replace those two and nothing else. `game/online.gd` carries what host and guests say. `rooms/turn.ts` asks Cloudflare for the relay's credential.
   `tools/check_online.gd` plays it from both sides in one process, by address or, against a rooms
   service run locally, by room code.
 
@@ -741,7 +805,9 @@ away pixel by pixel rather than vanishing.
 
 **A slow machine plays it too.** The horde, the fallen and the growth are each drawn off one
 sheet, and the jungle's edge and the canopy are put together into one picture when a place is
-painted, so a full fight is a few dozen draw calls, not a thousand. The world steps 60 times a
+painted, so a full fight is a few dozen draw calls, not a thousand. What stands is put in depth order by
+sorting one whole number each, and a rat's place on its sheet is looked up once, not worked out
+for every rat every frame. The world steps 60 times a
 second; a frame that runs late catches up at most three steps, so a machine too slow to keep
 up sees the world slow a little rather than stutter.
 
@@ -762,7 +828,8 @@ creature, one tile set) to set the standard everything else is matched to.
 ### Type
 
 Our own pixel font from Nine Seas for everything you read: capitals 7 pixels tall, proportional,
-on whole pixels. A larger display face drawn the same way for titles, card names and banners,
+on whole pixels. The title's own name is drawn, not set: chunky outlined capitals, with TALL
+standing half as tall again as ORDER, the way a giant stands over a cat. A larger display face drawn the same way for titles, card names and banners,
 and outlined digits for damage numbers. Outside the game (store page, logo, trailer), Plus
 Jakarta Sans.
 

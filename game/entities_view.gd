@@ -57,6 +57,8 @@ var arena: Arena
 var blood := true
 ## How bright each cat's muzzle is right now, 0 to 1, and the rounds counted at the last frame.
 var flash := {}
+## How bright each weapon's own muzzle is, 0 to 1, by weapon.
+var _weapon_flash := {}
 ## Each cat's hurt flicker, the time left of it, and the hits he'd taken when last looked.
 var _hurt := {}
 var _hits_seen := {}
@@ -128,12 +130,16 @@ func take_events(events: Array[Dictionary]) -> void:
 
 func _process(delta: float) -> void:
 	for cat in arena.cats:
-		var fired := 0
+		# Each gun flashes and kicks for its own rounds, so two held together show their own pace;
+		# the cat's flash, for the light on the ground, is the brightest of his.
+		var brightest := 0.0
 		for weapon in cat.weapons:
-			fired += weapon.rounds_fired
-		if fired != _rounds_seen.get(cat, 0):
-			flash[cat] = 1.0
-		_rounds_seen[cat] = fired
+			if weapon.rounds_fired != _rounds_seen.get(weapon, weapon.rounds_fired):
+				_weapon_flash[weapon] = 1.0
+			_rounds_seen[weapon] = weapon.rounds_fired
+			_weapon_flash[weapon] = maxf(_weapon_flash.get(weapon, 0.0) - delta / FLASH_TIME, 0.0)
+			brightest = maxf(brightest, _weapon_flash[weapon])
+		flash[cat] = brightest
 		# A gun throws out its spent case, off to the side, to lie where it lands.
 		for weapon in cat.weapons:
 			if weapon.name in CASED and weapon.rounds_fired != _cases_seen.get(weapon, weapon.rounds_fired) and _droplets.size() < 400:
@@ -141,7 +147,6 @@ func _process(delta: float) -> void:
 				_droplets.append({"position": cat.body.position, "height": Cat.GUN_HEIGHT, "rise": randf_range(0.8, 1.4),
 					"velocity": side * randf_range(0.6, 1.2), "color": Palette.BRASS_LIGHT, "stains": false, "mark": "case"})
 			_cases_seen[weapon] = weapon.rounds_fired
-		flash[cat] = maxf(flash.get(cat, 0.0) - delta / FLASH_TIME, 0.0)
 		if cat.hits_taken != _hits_seen.get(cat, cat.hits_taken):
 			_hurt[cat] = HURT_TIME
 		_hits_seen[cat] = cat.hits_taken
@@ -200,6 +205,24 @@ func _draw() -> void:
 	draw_milliseconds = (Time.get_ticks_usec() - started) / 1000.0
 
 
+## What stands, put in order of depth, nearest the top of the screen first. Each one's depth and
+## its place in the list go into one whole number, and the numbers are sorted, which costs far less
+## than asking a function about every pair of several hundred; what's level stays in the order it
+## came, so nothing flickers.
+func _by_depth(standing: Array[Array]) -> Array[Array]:
+	var count := standing.size()
+	var keys := PackedInt64Array()
+	keys.resize(count)
+	for index in count:
+		keys[index] = int(float(standing[index][0]) * 4096.0) * 65536 + index
+	keys.sort()
+	var ordered: Array[Array] = []
+	ordered.resize(count)
+	for index in count:
+		ordered[index] = standing[keys[index] & 65535]
+	return ordered
+
+
 func _draw_all() -> void:
 	var standing: Array[Array] = []
 	for creature in arena.creatures:
@@ -238,7 +261,7 @@ func _draw_all() -> void:
 		if cat.charm != null:
 			standing.append([cat.charm.body.position.y, cat.charm])
 	_more_standing(standing)
-	standing.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
+	standing = _by_depth(standing)
 	for stain in _stains:
 		draw_rect(Rect2(World.to_screen(stain.position), Vector2.ONE), Palette.BLOOD if stain.age < STAIN_DRIES else Palette.BLOOD_DRY)
 	_draw_drains()
@@ -357,9 +380,20 @@ func _draw_all() -> void:
 	if arena.together():
 		for cat in arena.cats:
 			_draw_marker(cat)
+	else:
+		# Alone, he's marked only once the horde has buried him: the pile is drawn over him, and a
+		# player who can't find their own cat can't steer it out.
+		for cat in arena.cats:
+			if cat.alive() and arena.crowding(cat.body.position) >= BURIED_UNDER:
+				# He shows through the pile, as he does through what stands in front of him.
+				_draw_cat(cat)
+				_draw_marker(cat)
+	for cat in arena.cats:
+		_draw_health(cat)
 	if _level_up > 0.0:
 		_draw_level_up()
 	_draw_goals()
+	_draw_paper()
 
 
 ## A shot in flight, drawn as what was fired, so each weapon's can be told apart: bullets as
@@ -517,6 +551,21 @@ func _draw_goals() -> void:
 		InterfaceArt.pointer(self, mark + bob, Vector2.DOWN, Palette.BRASS_LIGHT)
 
 
+## The area's paper, lying where it is until he takes it: a sheet with a few lines on it and the
+## company's red stamp, outlined, as what he can pick up is, with a pointer bobbing over it.
+func _draw_paper() -> void:
+	if arena.paper.is_empty() or arena.paper_found:
+		return
+	var at := World.to_screen(arena.paper.position).round() - Vector2(3, 6)
+	draw_rect(Rect2(at - Vector2.ONE, Vector2(8, 9)), Palette.OUTLINE)
+	draw_rect(Rect2(at, Vector2(6, 7)), Palette.OFF_WHITE)
+	for row in 3:
+		draw_rect(Rect2(at + Vector2(1, 1 + row * 2), Vector2(4 if row < 2 else 2, 1)), Palette.STEEL)
+	draw_rect(Rect2(at + Vector2(3, 4), Vector2(2, 2)), Palette.SCARF_RED)
+	var bob := Vector2(0, -1) if fmod(_clock, 0.8) < 0.4 else Vector2.ZERO
+	InterfaceArt.pointer(self, at + Vector2(3, -6) + bob, Vector2.DOWN, Palette.OFF_WHITE)
+
+
 ## How far over a cat's feet its player's marker points down, in pixels: just over its ears.
 const MARKER_ABOVE := 22.0
 
@@ -559,6 +608,22 @@ func _draw_level_up() -> void:
 		for step: Vector2 in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1), Vector2(2, 0)]:
 			InterfaceArt.bold(self, at + step, word, Palette.OUTLINE)
 		InterfaceArt.bold(self, at, word, Palette.BRASS_LIGHT)
+
+
+## His health, under his feet, once he's been hurt: where the player is already looking, so
+## nobody has to look away to the corner of the screen to learn they're about to go down. Nothing's
+## shown while he's whole. It's a bar and its length, never a color alone.
+func _draw_health(cat: Cat) -> void:
+	if not cat.alive() or cat.health >= cat.max_health:
+		return
+	var bar := Rect2(World.to_screen(cat.body.position).round() + Vector2(-8, 3), Vector2(16, 2))
+	draw_rect(bar.grow(1), Palette.OUTLINE)
+	draw_rect(bar, Palette.PANEL_DARK)
+	draw_rect(Rect2(bar.position, Vector2(maxf(roundf(bar.size.x * cat.health / cat.max_health), 1.0), bar.size.y)), Palette.SCARF_RED)
+
+
+## How many of the horde within half a meter or so of him before he counts as buried.
+const BURIED_UNDER := 10
 
 
 ## Playing together, whose cat is whose: a pointer in the player's color over each, and over one
@@ -755,11 +820,30 @@ func _draw_guardian_shadow(guardian: Guardian) -> void:
 			angle += 0.07
 
 
+## The rats' sheet, and the one flashed white for a hit, looked up once; and where each picture is
+## on them, by stride, the way it faces and whether it's fallen, so a rat's drawing asks nothing
+## it has to work out.
+var _rat_sheet := {}
+var _rat_flashed := {}
+var _rat_regions: Array[Rect2] = []
+
+
+func _picture_rats() -> void:
+	_rat_sheet = Sprites.sheet(Sprites.RAT_STRIDES)
+	_rat_flashed = Sprites.sheet(Sprites.flashed(Sprites.RAT_STRIDES))
+	for frame in Sprites.RAT_STRIDES.size():
+		for facing_left in [false, true]:
+			for fallen in [false, true]:
+				_rat_regions.append(_rat_sheet.regions["%d|%s|%s" % [frame, facing_left, fallen]])
+
+
 func _draw_rat(body: Body, frame: int, fallen: bool) -> void:
 	var facing_left := body.velocity.x < 0.0
 	# The fallen lie belly up. Every rat comes off the one sheet, so the horde is drawn together.
-	var sheet := Sprites.sheet(Sprites.flashed(Sprites.RAT_STRIDES) if not fallen and _just_hit(body.position) else Sprites.RAT_STRIDES)
-	var region: Rect2 = sheet.regions["%d|%s|%s" % [frame, facing_left, fallen]]
+	if _rat_regions.is_empty():
+		_picture_rats()
+	var sheet: Dictionary = _rat_flashed if not fallen and not _hit_spots.is_empty() and _just_hit(body.position) else _rat_sheet
+	var region: Rect2 = _rat_regions[frame * 4 + (2 if facing_left else 0) + (1 if fallen else 0)]
 	var feet := Sprites.RAT_FEET
 	if facing_left:
 		feet.x = region.size.x - 1 - feet.x
@@ -1532,7 +1616,9 @@ func _pose_holds(cat: Cat, view: String, flip: bool, frame: int, top_left: Vecto
 	var held: Weapon = cat.weapons[0] if not cat.weapons.is_empty() else null
 	if held != null:
 		var pointing := Vector2.from_angle(held.blade_angle) if held.swinging() else cat.aim
-		holds.append({"at": (mouth + pointing * (2.0 if held.swinging() else 0.0)).round(), "weapon": held,
+		# A gun in his mouth jolts back as its own round goes, as the one in his tail does.
+		var kicked := -1.0 if held.kind == Weapon.Kind.RANGED and _weapon_flash.get(held, 0.0) > 0.5 else 0.0
+		holds.append({"at": (mouth + pointing * (2.0 if held.swinging() else kicked)).round(), "weapon": held,
 			"drawing": Sprites.gun_toward(held.name, pointing), "behind": view == "back" or pointing.y < -0.5, "tail": []})
 	# The tail: up and back from its base, then out to what it holds, or swaying.
 	var base := top_left + Sprites.hold(view, flip, "tail")
@@ -1542,7 +1628,7 @@ func _pose_holds(cat: Cat, view: String, flip: bool, frame: int, top_left: Vecto
 	var tip: Vector2
 	if gripped != null:
 		var aimed := Vector2.from_angle(gripped.blade_angle) if gripped.swinging() else cat.aim
-		tip = (curl + aimed * (Sprites.TAIL_REACH - (2.0 if gripped.kind == Weapon.Kind.RANGED and flash.get(cat, 0.0) > 0.5 else 0.0))).round()
+		tip = (curl + aimed * (Sprites.TAIL_REACH - (2.0 if gripped.kind == Weapon.Kind.RANGED and _weapon_flash.get(gripped, 0.0) > 0.5 else 0.0))).round()
 	else:
 		var sway: float = [0.0, 1.0, 0.0, -1.0][frame] + sin(_clock * 2.0)
 		tip = (curl + Vector2(back * 2.0 + sway, -3.0)).round()
@@ -1585,7 +1671,7 @@ func _draw_hold(hold: Dictionary) -> void:
 		draw_rect(Rect2(hold.at.floor() + Vector2(1, 0), Vector2.ONE), Palette.PINK)
 	if weapon.swinging():
 		_draw_smear(weapon, hold.at)
-	elif weapon.kind == Weapon.Kind.RANGED and flash.get(arena.cats[0], 0.0) > 0.0:
+	elif weapon.kind == Weapon.Kind.RANGED and _weapon_flash.get(weapon, 0.0) > 0.0:
 		draw_rect(Rect2(at + drawing.muzzle - Vector2.ONE, Vector2(3, 3)), Palette.SPARK)
 
 
@@ -1697,6 +1783,10 @@ const FIREFLY_HANGS := 0.35
 
 func _draw_fireflies() -> void:
 	var lights := arena.fireflies
+	if _firefly_sheet == null:
+		_firefly_sheet = ImageTexture.create_from_image(firefly_sheet())
+	var across := FIREFLY_MIDDLE.x * 2.0 + 1.0
+	var size := Vector2(across, across)
 	var seen := get_canvas_transform().affine_inverse() * get_viewport_rect()
 	var area := Rect2(seen.position / World.PIXELS_PER_METER, seen.size / World.PIXELS_PER_METER).grow(1.0)
 	for slot in lights.within(area):
@@ -1708,22 +1798,47 @@ func _draw_fireflies() -> void:
 		var height := FIREFLY_HANGS * (1.0 - (1.0 - risen) * (1.0 - risen))
 		if not coming:
 			height += sin(_clock * 2.3 + phase) * 0.04
-		var spot := World.to_screen(lights.at[slot], height)
+		var spot := World.to_screen(lights.at[slot], height).round()
 		if not coming:
 			spot.x += roundf(sin(_clock * 1.1 + phase * 0.6) * 1.0)
 		draw_rect(Rect2(ground, Vector2.ONE), Palette.GROUND_SHADOW)
-		# The glow round it, a cross dimmed or a square lit (a big one's reaching further), and
-		# the light at its middle while it's lit.
+		# Lit, a square of glow with the light at its middle (a big one's reaching further); dimmed,
+		# a cross of it. Either way outlined, as everything he can pick up is, so it stands off the
+		# fallen it rose from.
 		var bright := coming or sin(_clock * 3.0 + phase) > -0.4
-		if bright:
-			draw_rect(Rect2(spot - Vector2.ONE, Vector2(3, 3)), Palette.FIREFLY_GLOW)
-			if worth >= Fireflies.SPLIT_FROM:
-				draw_rect(Rect2(spot - Vector2(2, 0), Vector2(5, 1)), Palette.FIREFLY_GLOW)
-				draw_rect(Rect2(spot - Vector2(0, 2), Vector2(1, 5)), Palette.FIREFLY_GLOW)
-			draw_rect(Rect2(spot, Vector2.ONE), Palette.FIREFLY)
-		else:
-			draw_rect(Rect2(spot - Vector2(1, 0), Vector2(3, 1)), Palette.FIREFLY_GLOW)
-			draw_rect(Rect2(spot - Vector2(0, 1), Vector2(1, 3)), Palette.FIREFLY_GLOW)
+		var picture := 2 if not bright else (1 if worth >= Fireflies.SPLIT_FROM else 0)
+		draw_texture_rect_region(_firefly_sheet, Rect2(spot - FIREFLY_MIDDLE, size), Rect2(Vector2(picture * across, 0.0), size))
+
+
+## A firefly's three pictures (lit, lit and big, dimmed), drawn once, side by side on one sheet:
+## each firefly is a single draw off it, however many are out.
+const FIREFLY_MIDDLE := Vector2(3, 3)
+var _firefly_sheet: ImageTexture
+
+
+static func firefly_sheet() -> Image:
+	var square: Array[Vector2i] = []
+	var cross: Array[Vector2i] = [Vector2i(0, 0), Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+	for x in range(-1, 2):
+		for y in range(-1, 2):
+			square.append(Vector2i(x, y))
+	var reaching := square.duplicate()
+	reaching.append_array([Vector2i(2, 0), Vector2i(-2, 0), Vector2i(0, 2), Vector2i(0, -2)])
+	var across := int(FIREFLY_MIDDLE.x) * 2 + 1
+	var sheet := Image.create(across * 3, across, false, Image.FORMAT_RGBA8)
+	var pictures: Array = [[square, true], [reaching, true], [cross, false]]
+	for index in pictures.size():
+		var middle := Vector2i(FIREFLY_MIDDLE) + Vector2i(index * across, 0)
+		var glow: Array[Vector2i] = pictures[index][0]
+		# The outline one pixel round the glow, the glow, and its light at the middle while it's lit.
+		for pixel in glow:
+			for beside: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				sheet.set_pixelv(middle + pixel + beside, Palette.OUTLINE)
+		for pixel in glow:
+			sheet.set_pixelv(middle + pixel, Palette.FIREFLY_GLOW)
+		if pictures[index][1]:
+			sheet.set_pixelv(middle, Palette.FIREFLY)
+	return sheet
 
 
 ## What's lying about from the fight: spent cases glinting, scorch fading from black to earth, and
@@ -1931,7 +2046,7 @@ func _bleed(delta: float) -> void:
 					"velocity": Vector2(randf_range(-0.4, 0.4), randf_range(-0.4, 0.4)), "color": Palette.FIREFLY, "stains": false,
 				})
 			continue
-		if event.by == "pickup":
+		if event.by == "pickup" or event.by == "paper":
 			for index in 3:
 				_droplets.append({
 					"position": event.position, "height": 0.15, "rise": randf_range(0.8, 1.4),

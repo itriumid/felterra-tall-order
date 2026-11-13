@@ -67,6 +67,8 @@ var aim := Vector2.RIGHT
 # Melee: the arc the blade sweeps, in radians, and how long a swing takes.
 var arc := deg_to_rad(110.0)
 var swing_time := 0.14
+## How long the swing in progress takes: swing_time, or less once it swings faster than that.
+var _swing_takes := 0.14
 ## The blade's height above the ground, from paw to tip.
 var blade_low := 0.0
 var blade_high := 0.3
@@ -88,6 +90,21 @@ var broken_for := 0.0
 ## How long poison, slowing and fire last once they take.
 const AFFLICTION_TIME := 3.0
 const RESHARPEN_TIME := 3.0
+## The most of the wait between swings that a swing itself may take.
+const SWING_SHARE := 0.8
+## What an evolution's bonus gives: shares of damage, speed, reach, width and knockback; a chance
+## of a critical hit; and each element, as damage a second, seconds down, or a share slower.
+const BONUS_DAMAGE := 0.3
+const BONUS_SPEED := 0.25
+const BONUS_REACH := 0.2
+const BONUS_WIDTH := 0.3
+const BONUS_KNOCKBACK := 0.5
+const BONUS_CRIT := 0.1
+const BONUS_BURN := 1.5
+const BONUS_POISON := 1.0
+const BONUS_BLEED := 1.5
+const BONUS_DAZE := 0.5
+const BONUS_SLOW := 0.4
 
 ## The arsenal: each weapon's numbers and traits, over a blade's or a gun's to start with.
 const ARSENAL := {
@@ -222,17 +239,17 @@ func swinging() -> bool:
 func take_bonus(bonus: String, nickname := true) -> void:
 	bonuses.append(bonus)
 	match bonus:
-		"damage": power += 0.3
-		"speed": tempo += 0.25
-		"reach": reach *= 1.2
+		"damage": power += BONUS_DAMAGE
+		"speed": tempo += BONUS_SPEED
+		"reach": reach *= 1.0 + BONUS_REACH
 		"arc":
 			if kind == Kind.MELEE:
-				arc *= 1.3
+				arc *= 1.0 + BONUS_WIDTH
 			else:
-				blast *= 1.3
-				fire_patch *= 1.3
-		"knockback": knock *= 1.5
-		"crit": crit += 0.1
+				blast *= 1.0 + BONUS_WIDTH
+				fire_patch *= 1.0 + BONUS_WIDTH
+		"knockback": knock *= 1.0 + BONUS_KNOCKBACK
+		"crit": crit += BONUS_CRIT
 		"pierce": pierce += 1
 		"more":
 			# One more of what it throws: a pop, a bounce, or a round.
@@ -242,11 +259,11 @@ func take_bonus(bonus: String, nickname := true) -> void:
 				ricochet += 1
 			else:
 				pellets += 1
-		"burn": burn += 1.5
-		"poison": poison += 1.0
-		"bleed": bleed += 1.5
-		"daze": trips = maxf(trips, 0.5)
-		"slow": slow = maxf(slow, 0.4)
+		"burn": burn += BONUS_BURN
+		"poison": poison += BONUS_POISON
+		"bleed": bleed += BONUS_BLEED
+		"daze": trips = maxf(trips, BONUS_DAZE)
+		"slow": slow = maxf(slow, BONUS_SLOW)
 	if nickname:
 		if evolved <= 1:
 			nickname_first = Upgrades.BONUSES[bonus].first
@@ -269,7 +286,9 @@ func reach_for(cat: Cat) -> float:
 ## Fires at what's in reach, from his paw, or from somewhere else that carries it (a drone, a
 ## turret): from that body, at that height. Returns whether it fired.
 func step(delta: float, cat: Cat, arena: Arena, from: Body = null, muzzle_height := Cat.GUN_HEIGHT) -> bool:
-	ready_in = maxf(ready_in - delta, 0.0)
+	# Time past ready is kept, up to a step's worth, so a fast gun fires at the pace its interval
+	# says and not at the next whole step after it.
+	ready_in = maxf(ready_in - delta, -delta)
 	if kind == Kind.MELEE:
 		if broken_for > 0.0:
 			# Broken: he's sharpening a new one.
@@ -282,7 +301,11 @@ func step(delta: float, cat: Cat, arena: Arena, from: Body = null, muzzle_height
 	var origin := cat.body if from == null else from
 	# A lobbed round goes over what's in the way; a straight one needs to see past it.
 	var target := arena.target_for(origin.position, reach_for(cat), cat.aim_mode, INF if lobbed else origin.height + muzzle_height)
-	if target == null or ready_in > 0.0:
+	if target == null:
+		# Nothing to shoot: it's ready, and no more than ready, when something comes.
+		ready_in = maxf(ready_in, 0.0)
+		return false
+	if ready_in > 0.0:
 		return false
 	ready_in += interval_for(cat)
 	var toward: Vector2 = (target.body.position - origin.position).normalized()
@@ -324,10 +347,16 @@ func _fire(direction: Vector2, distance: float, target: Object, cat: Cat, arena:
 func _swing(delta: float, cat: Cat, arena: Arena) -> void:
 	if not swinging():
 		var target := arena.target_for(cat.body.position, reach_for(cat) + 0.1, cat.aim_mode)
-		if target == null or ready_in > 0.0:
+		if target == null:
+			ready_in = maxf(ready_in, 0.0)
 			return
-		ready_in = interval_for(cat)
-		swinging_for = swing_time
+		if ready_in > 0.0:
+			return
+		ready_in += interval_for(cat)
+		# A swing is never longer than most of the wait for the next, so attack speed past the
+		# swing's own time still shows: the blade just goes round faster.
+		_swing_takes = minf(swing_time, ready_in * SWING_SHARE)
+		swinging_for = _swing_takes
 		# Alternate forehand and backhand, as a blade is swung.
 		swing_direction = -swing_direction
 		swing_start = (target.body.position - cat.body.position).angle() - swing_direction * arc * 0.5
@@ -336,7 +365,7 @@ func _swing(delta: float, cat: Cat, arena: Arena) -> void:
 		_struck.clear()
 	var before := blade_angle
 	swinging_for = maxf(swinging_for - delta, 0.0)
-	var done := 1.0 - swinging_for / swing_time
+	var done := 1.0 - swinging_for / _swing_takes
 	blade_angle = swing_start + swing_direction * arc * done
 	for creature in arena.cut(cat.body.position, cat.body.height, reach_for(cat), self, before, blade_angle):
 		if _struck.has(creature):
