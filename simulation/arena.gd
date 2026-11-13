@@ -485,6 +485,12 @@ func targets_near(where: Vector2, reach: float) -> Array:
 	return _targets().filter(func(target: Object) -> bool: return where.distance_to(target.body.position) <= reach + target.body.radius)
 
 
+## How many of the horde stand within a few cells of a point, as the step began: for the view, to
+## tell when a cat is buried in it.
+func crowding(where: Vector2) -> int:
+	return _crowding(where)
+
+
 ## How many creatures stand within a few cells of a point.
 func _crowding(where: Vector2) -> int:
 	var cell := _cell_of(where)

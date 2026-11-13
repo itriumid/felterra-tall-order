@@ -470,6 +470,10 @@ on: fire and oil, or crewmates who can be downed.
   - **The edge holds.** The Keepers of groves given back tell the others: in every grove after,
     a tenth fewer Keepers come maddened for each grove held, to three tenths at most. It's the
     run's, never a cat's, so it's the same help for one cat or a crew of four.
+- **He's never lost in it.** Hurt, his health shows as a bar under his feet, where the player is
+  already looking, and not only in the corner; whole, nothing's there. Buried under the horde
+  (ten or more of it within half a meter), he's drawn through the pile with a pointer over him,
+  the way he shows through what stands in front of him.
 - **What worked is there to read.** Every hit he lands can show its number, rising off what it
   hit, colored by how hard it landed: white plain, yellow twice as hard, orange three times, red
   four and more (critical past 100% keeps stepping up). Hits on the same thing a moment apart add

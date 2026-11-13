@@ -1171,17 +1171,16 @@ func _draw_settings() -> void:
 func _draw_title() -> void:
 	var screen := get_viewport_rect().size
 	var heading := "Felterra"
-	var title := "Tall Order"
 	var line := "A crew of cats against giants"
 	var row := PixelFont.LINE_HEIGHT + 3
 	var width := maxf(InterfaceArt.logo_width() + 16, PixelFont.width(line) + 24)
 	for choice in menu:
 		width = maxf(width, PixelFont.width(choice) + 40)
-	var height := 52 + menu.size() * row + 10
-	var box := Rect2(floorf((screen.x - width) / 2.0), floorf(screen.y * 0.42 - height / 2.0), width, height)
+	var height := 22 + menu.size() * row + 10
+	var box := Rect2(floorf((screen.x - width) / 2.0), floorf(screen.y * 0.52 - height / 2.0), width, height)
 	if not setting_rows.is_empty():
 		return
-	InterfaceArt.panel(self, box)
+	# The name stands over the panel on its own, drawn large; the world's name small above it.
 	var center := box.position.x + box.size.x / 2.0
 	var logo_at := Vector2(floorf(center - InterfaceArt.logo_width() / 2.0), box.position.y - InterfaceArt.LOGO_HEIGHT - 10)
 	var heading_at := Vector2(floorf(center - PixelFont.width(heading) / 2.0), logo_at.y - PixelFont.LINE_HEIGHT - 3)

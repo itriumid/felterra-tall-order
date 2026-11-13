@@ -380,6 +380,16 @@ func _draw_all() -> void:
 	if arena.together():
 		for cat in arena.cats:
 			_draw_marker(cat)
+	else:
+		# Alone, he's marked only once the horde has buried him: the pile is drawn over him, and a
+		# player who can't find their own cat can't steer it out.
+		for cat in arena.cats:
+			if cat.alive() and arena.crowding(cat.body.position) >= BURIED_UNDER:
+				# He shows through the pile, as he does through what stands in front of him.
+				_draw_cat(cat)
+				_draw_marker(cat)
+	for cat in arena.cats:
+		_draw_health(cat)
 	if _level_up > 0.0:
 		_draw_level_up()
 	_draw_goals()
@@ -598,6 +608,22 @@ func _draw_level_up() -> void:
 		for step: Vector2 in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1), Vector2(2, 0)]:
 			InterfaceArt.bold(self, at + step, word, Palette.OUTLINE)
 		InterfaceArt.bold(self, at, word, Palette.BRASS_LIGHT)
+
+
+## His health, under his feet, once he's been hurt: where the player is already looking, so
+## nobody has to look away to the corner of the screen to learn they're about to go down. Nothing's
+## shown while he's whole. It's a bar and its length, never a color alone.
+func _draw_health(cat: Cat) -> void:
+	if not cat.alive() or cat.health >= cat.max_health:
+		return
+	var bar := Rect2(World.to_screen(cat.body.position).round() + Vector2(-8, 3), Vector2(16, 2))
+	draw_rect(bar.grow(1), Palette.OUTLINE)
+	draw_rect(bar, Palette.PANEL_DARK)
+	draw_rect(Rect2(bar.position, Vector2(maxf(roundf(bar.size.x * cat.health / cat.max_health), 1.0), bar.size.y)), Palette.SCARF_RED)
+
+
+## How many of the horde within half a meter or so of him before he counts as buried.
+const BURIED_UNDER := 10
 
 
 ## Playing together, whose cat is whose: a pointer in the player's color over each, and over one
