@@ -134,6 +134,9 @@ const ENTRANCE := 5.0
 const DOWN_PAUSE := 1.7
 const DOWN_SLOW := 0.35
 const DOWN_THROW := 2.4
+## A walk told over is never slower than this, in meters a second: stretched to last a long story
+## it became a crawl. He gets there before the story's done, and stands to hear the rest.
+const SLOWEST_WALK := 1.1
 ## The most steps of the world one frame catches up: 60 a second down to 20 frames a second.
 const CATCH_UP := 3
 ## After a boss falls, how long before the area's free, even with nothing to tell.
@@ -854,7 +857,7 @@ func _arrive(from_the_forest: bool) -> void:
 	_music.place = "intro" if telling else "village"
 	if not lines.is_empty():
 		# Slow enough that he reaches the spot as the last line ends, if it's left to run.
-		village_map.stroll_speed = minf(village_map.walking_to.distance_to(village_map.cat.body.position) / _cutscene.length(), VillageMap.WALK_IN_SPEED)
+		village_map.stroll_speed = clampf(village_map.walking_to.distance_to(village_map.cat.body.position) / _cutscene.length(), SLOWEST_WALK, VillageMap.WALK_IN_SPEED)
 	_overlay.cutscene = true
 
 
@@ -1018,7 +1021,7 @@ func _send_off() -> void:
 	village_map.see_off(speakers, _went_west)
 	village_map.stroll_speed = VillageMap.WALK_IN_SPEED
 	if not lines.is_empty():
-		village_map.stroll_speed = minf(VillageMap.WALK_IN_SPEED, village_map.cat.body.position.distance_to(village_map.walking_to) / _cutscene.length())
+		village_map.stroll_speed = clampf(village_map.cat.body.position.distance_to(village_map.walking_to) / _cutscene.length(), SLOWEST_WALK, VillageMap.WALK_IN_SPEED)
 	_overlay.cutscene = true
 
 
@@ -1702,7 +1705,7 @@ func _enter() -> void:
 		_cutscene = Cutscene.new([], settings.get_value("gameplay", "story_waits"))
 	_entering_pace = Cat.SPEED
 	if not _cutscene.lines.is_empty():
-		_entering_pace = minf(Cat.SPEED, ENTRANCE / _cutscene.length())
+		_entering_pace = clampf(ENTRANCE / _cutscene.length(), SLOWEST_WALK, Cat.SPEED)
 	_overlay.cutscene = true
 	_camera.position = _run_camera()
 
