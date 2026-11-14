@@ -460,7 +460,8 @@ on: fire and oil, or crewmates who can be downed.
   home with the airstrip free, once what's new is read, Jogiboy smells smoke, and the spirits are
   at the village. He walks in at the gate to it under attack. Beaten back, he's home, and the
   spirits let the village be until he next walks home. It's the village as it stands, every house and prop solid, the forest walling the
-  path in. Two roofs are alight at the start and another catches every 20 seconds, four in all;
+  path in, and it's night: the village in blue dark, lit by its own roofs as they burn, each
+  throwing its light about until it's put out. Two roofs are alight at the start and another catches every 20 seconds, four in all;
   a roof left burning throws out an ember wisp every 6 seconds. Standing at the well fills a
   bucket in a second; standing at a burning house's door with it puts the fire out in a little
   over one. Marks at the screen's edge show the burning houses and, with no water carried, the
