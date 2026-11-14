@@ -198,6 +198,28 @@ func test_a_critical_hit_lands_twice_as_hard() -> void:
 	check(is_equal_approx(rat.health, 1000.0 - 6.0), "a critical hit took %.1f" % (1000.0 - rat.health))
 
 
+func test_a_blade_in_hand_fends_off_some_of_a_bite() -> void:
+	var gun := Cat.new()
+	gun.wear({"weapons": ["handgun"]})
+	var blade := Cat.new()
+	blade.wear({"weapons": ["golok"]})
+	var staff := Cat.new()
+	staff.wear({"weapons": ["rattan_staff"]})
+	check(gun.guard() == 0.0 and is_equal_approx(blade.guard(), Cat.GUARD) and is_equal_approx(staff.guard(), Cat.GUARD * 2.0), "they fend %.2f, %.2f and %.2f" % [gun.guard(), blade.guard(), staff.guard()])
+	var arena := Arena.new(2)
+	arena.spawning = false
+	var cat := arena.add_cat(Arena.SIZE / 2.0)
+	cat.wear({"weapons": ["golok"]})
+	var rat := arena.add_creature(cat.body.position + Vector2(0.3, 0.0), "rat")
+	rat.health = 1.0e9
+	var before := cat.health
+	for step in 120:
+		arena.step()
+		if cat.health < before:
+			break
+	check(is_equal_approx(before - cat.health, rat.stat("bite") * rat.might * (1.0 - Cat.GUARD)), "a bite took %.2f of him" % (before - cat.health))
+
+
 func test_knockback_shoves_harder() -> void:
 	var arena := _arena()
 	var plain := arena.add_cat(Arena.SIZE / 2.0)

@@ -263,6 +263,20 @@ func dodge_damage(base: float, mutation: String) -> float:
 	return base * strength(mutation) * (1.0 + damage_bonus)
 
 
+## What a blade in hand takes off a bite, as a share: fighting at arm's length he's where the
+## horde bites, so what he swings is also what he fends with. A share for each hold a blade
+## takes (a two-handed one, both). Only the horde's bites: nothing fends off a saw or a machine.
+const GUARD := 0.2
+
+
+func guard() -> float:
+	var held := 0
+	for weapon in weapons:
+		if weapon.kind == Weapon.Kind.MELEE:
+			held += weapon.hands
+	return GUARD * mini(held, 2)
+
+
 ## Raises a stat by an amount.
 func raise(stat: String, amount: float) -> void:
 	match stat:

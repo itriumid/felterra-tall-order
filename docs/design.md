@@ -275,6 +275,10 @@ in a run:
 | **Toughest** | The most health left (and, once enemies have armor, defense) |
 | **Crowd** | The thickest cluster: best for spread and explosives |
 
+A blade in hand fends, too: he fights where the horde bites, so its bites land a fifth lighter
+for each hold a blade takes (a two-handed one takes both: two fifths). Only bites; nothing
+fends off a saw, a log or a machine. A blade's card says so when it's read in full.
+
 Melee weapons swing a blade through an arc and hit what the blade passes through, at the height
 it passes. A swing alternates forehand and backhand. Each weapon keeps its own pace, and shows
 it: a gun flashes and kicks for its own rounds only, a blade quick enough swings faster than its

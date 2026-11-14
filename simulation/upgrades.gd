@@ -638,7 +638,9 @@ static func _describe(choice: Dictionary) -> Dictionary:
 		card.lines = weapon_lines(Weapon.named(card.item))
 		if not card.has("ribbon"):
 			card.ribbon = "%s, new%s" % [RARITY_NAMES[choice.rarity], "" if choice.rarity == 0 else ", level %d" % (1 + choice.rarity)]
-		card.explain = ["%s: %s" % [card.name, WEAPON_DOES[card.item]], "Mouth and tail: a weapon takes one; a two-handed one takes both"]
+		card.explain = ["%s: %s" % [card.name, WEAPON_DOES[card.item]], "Mouth and tail: a weapon takes one; a two-handed one takes both, so no second weapon is offered"]
+		if Weapon.named(card.item).kind == Weapon.Kind.MELEE:
+			card.explain.append("Fends: the horde's bites land %d%% lighter while he holds it" % roundi(Cat.GUARD * Weapon.named(card.item).hands * 100.0))
 		for trait_name: String in traits_of(Weapon.named(card.item)):
 			if TRAIT_MEANS.has(trait_name):
 				card.explain.append(TRAIT_MEANS[trait_name])

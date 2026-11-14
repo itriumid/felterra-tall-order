@@ -1007,7 +1007,7 @@ func _bite() -> void:
 							or creature.body.height > cat.body.height + Cat.TALL:
 						continue
 					creature.bite_ready_in = creature.stat("bite_interval")
-					if cat.hurt(creature.stat("bite") * creature.might, apart.normalized() * 0.6, creature.kind):
+					if cat.hurt(creature.stat("bite") * creature.might * (1.0 - cat.guard()), apart.normalized() * 0.6, creature.kind):
 						events.append({"position": cat.body.position, "height": 0.15, "direction": apart.normalized(), "killed": false, "by": "bite", "giant": false, "kind": creature.kind})
 						# A tuyul's bite takes a piece of what he's picked up, and he's off with it.
 						if Creature.KINDS[creature.kind].get("steals", false) and creature.carrying == 0 and salvage > 0:

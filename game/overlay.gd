@@ -926,7 +926,7 @@ func _draw_kit() -> void:
 		["Attack speed", "+%d%%" % roundi(cat.attack_speed_bonus * 100.0)], ["Reach", "+%d%%" % roundi(cat.reach_bonus * 100.0)],
 		["Speed", "+%d%%" % roundi(cat.speed_bonus * 100.0)], ["Luck", "%.1f" % cat.luck],
 		["Critical hits", "%d%%" % roundi(cat.critical * 100.0)], ["Knockback", "+%d%%" % roundi(cat.knockback_bonus * 100.0)],
-		["Gathering", "+%d%%" % roundi(cat.gathering_bonus * 100.0)],
+		["Gathering", "+%d%%" % roundi(cat.gathering_bonus * 100.0)], ["Fending", "%d%%" % roundi(cat.guard() * 100.0)],
 		["Dodge charges", "%d" % cat.most_charges()],
 	]
 	var column := 150.0
