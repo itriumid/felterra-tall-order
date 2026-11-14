@@ -4,6 +4,33 @@ extends RefCounted
 ## and where it fires or points. Each was described once, facing east, and drawn turned at the
 ## others, its lines redrawn at every angle rather than its pixels rotated.
 
+## How long each weapon is as he holds it, in meters, and so how long it's drawn (at 40 pixels a
+## meter, the same as everything else). Everything he holds is cat-sized, one of three ways:
+## - Taken from the company and cut down by Uncle Anvil: the barrel sawn short and the stock cut
+##   to a grip, the length of a sawn-off one. A gun keeps its works, so it's never shorter than
+##   them.
+## - Taken whole: already as short as its kind comes (a pistol, a flare pistol, a nail gun, a
+##   bottle, a string of firecrackers).
+## - The cats' own, made to their size: spears, staff, blowpipe and bow as long as a cat, and blades
+##   no shorter than SHORTEST (the least that reads as a blade at this size), longer by kind.
+## A drawing is this long pointing east and north; on the diagonal, as long along its slant.
+const HELD_LENGTH := {
+	# Cut down by Uncle Anvil.
+	"submachine_gun": 0.28, "rifle": 0.45, "automatic_rifle": 0.45, "assault_rifle": 0.48,
+	"sniper_rifle": 0.53, "shotgun": 0.4, "grenade_launcher": 0.38, "machete": 0.35,
+	# Taken whole.
+	"handgun": 0.2, "flare_gun": 0.28, "nail_gun": 0.3, "lamp_oil": 0.23, "petasan": 0.25,
+	# The cats' own.
+	"knife": 0.2, "kerambit": 0.2, "keris": 0.25, "badik": 0.25, "rencong": 0.3, "golok": 0.33,
+	"celurit": 0.33, "kujang": 0.33, "hammer": 0.33, "mandau": 0.4, "greatsword": 0.5,
+	"nunchaku": 0.43, "ketapel": 0.2, "crossbow": 0.33, "panah": 0.3, "rattan_staff": 0.5,
+	"sumpit": 0.53, "bambu_runcing": 0.53, "tombak": 0.55,
+}
+## The shortest anything held is drawn, in meters: eight pixels.
+const SHORTEST := 0.2
+## The longest, in meters: a little over a cat's own length.
+const LONGEST := 0.6
+
 const WEAPONS := {
 	"nunchaku": {
 		"east": {"art": """
@@ -31,6 +58,8 @@ kBk
 kBk
 kbk
 kbk
+kbk
+.k.
 .h.
 .h.
 .h.
@@ -39,8 +68,9 @@ kBk
 kBk
 kbk
 kbk
+kbk
 .k.
-""", "grip": Vector2(1, 11), "muzzle": Vector2(1, 1)},
+""", "grip": Vector2(1, 14), "muzzle": Vector2(1, 1)},
 	},
 	"machete": {
 		"east": {"art": """
@@ -644,6 +674,7 @@ kak.......
 .kkkkk.
 kSSSSSk
 ksSSSsk
+ksSSSsk
 .kkkkk.
 ..kAk..
 ..kak..
@@ -651,8 +682,9 @@ ksSSSsk
 ..kak..
 ..kAk..
 ..kak..
+..kAk..
 ...k...
-""", "grip": Vector2(3, 8), "muzzle": Vector2(3, 1)},
+""", "grip": Vector2(3, 10), "muzzle": Vector2(3, 1)},
 	},
 	"rattan_staff": {
 		"east": {"art": """

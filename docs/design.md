@@ -843,6 +843,13 @@ These apply to everything, wherever it comes from:
    gradients. Only lighting is smooth.
 6. **Rotations are drawn.** Weapons that aim have hand-drawn angles (8 or 16); rotating pixel
    art in code mangles it.
+7. **What a cat holds is cat-sized**, and drawn as long as it is (40 pixels a meter, as
+   everything): the company's guns and blades cut down by Uncle Anvil, barrels sawn short and
+   stocks cut to a grip, as long as a sawn-off one; what's already as short as its kind comes
+   (a pistol, a flare pistol, a nail gun) taken whole; and the cats' own made to their size,
+   spears and staff about a cat long. Nothing is drawn shorter than 8 pixels, the least that
+   reads, or longer than 0.6 m. A weapon is as long whichever way he aims it. The lengths are in
+   `ArsenalArt.HELD_LENGTH`, and a test holds the drawings to them.
 
 ### Layers
 
