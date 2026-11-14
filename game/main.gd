@@ -818,7 +818,7 @@ func _enter_village(spot: Vector2) -> void:
 	village_map = VillageMap.new(village.at_home(), village.restored)
 	village_map.cat.body.position = spot
 	village_map.cat.coat = village.coat
-	_village_view.banners = village.banners
+	_village_view.dress(village)
 	_village_view.village = village_map
 	_village_view.village_record = village
 	_show_layer(true)
@@ -1263,7 +1263,7 @@ func _shop_rows() -> Array[Dictionary]:
 	else:
 		for id: String in Village.LOOKS:
 			var owned := id in village.looks
-			var worn := (id == "coat:" + village.coat) or (id == "banners:" + village.banners)
+			var worn := village.wearing(id)
 			var state := "worn" if worn else ("owned: wear it?" if owned else "%d cloth" % Village.LOOKS[id].cloth)
 			rows.append({"id": id, "name": Village.LOOKS[id].name, "state": state, "can": owned or village.cloth >= Village.LOOKS[id].cloth})
 	return rows
@@ -1437,7 +1437,7 @@ func _read_shop() -> void:
 		if done:
 			_keep_village()
 			village_map.cat.coat = village.coat
-			_village_view.banners = village.banners
+			_village_view.dress(village)
 	if Input.is_action_just_pressed("move_up") or Input.is_action_just_pressed("move_down") or Input.is_action_just_pressed("move_left") or Input.is_action_just_pressed("move_right"):
 		_overlay.shop_note = ""
 	_overlay.shop_page = _page
@@ -1880,7 +1880,7 @@ func _fight_in_the_village(fighting: bool) -> void:
 	village_map = VillageMap.new([], village.restored)
 	_village_view.village = village_map
 	_village_view.village_record = village
-	_village_view.banners = village.banners
+	_village_view.dress(village)
 	_village_layer.visible = true
 	_arena_layer.visible = false
 	# Night comes on while its story's told: never day one frame and dark the next.

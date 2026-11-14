@@ -627,7 +627,9 @@ on: fire and oil, or crewmates who can be downed.
     new at the board.").
   - **Housed cats weave cloth**: each restored hut houses two rescued cats, and every run brings
     in a cloth for each. The first hut is the weaver's, who sells looks for cloth (his coat, the
-    umbul-umbul's colors), its own currency so a look never competes with forging. The full
+    umbul-umbul's colors, and for the village's houses, curtains in their doorways in batik,
+    ikat or songket, and striped awnings over their doors), its own currency so a look never
+    competes with forging. Everything bought stays bought, to wear or change back for nothing. The full
     list is in the catalog.
   - **What the old cats say.** Every run ends with a saying, under its numbers: something the
   giants say about cats, or something true of them, told the village's way. Nine lives (a cat

@@ -150,7 +150,18 @@ const LOOKS := {
 	"banners:festival": {"name": "Festival banners", "cloth": 0},
 	"banners:rhodonite": {"name": "Rhodonite banners", "cloth": 10},
 	"banners:lagoon": {"name": "Lagoon banners", "cloth": 10},
+	"curtains:door": {"name": "Wooden doors", "cloth": 0},
+	"curtains:batik": {"name": "Batik door curtains", "cloth": 8},
+	"curtains:ikat": {"name": "Ikat door curtains", "cloth": 10},
+	"curtains:songket": {"name": "Songket door curtains", "cloth": 14},
+	"awnings:none": {"name": "No awnings", "cloth": 0},
+	"awnings:red": {"name": "Red-striped awnings", "cloth": 8},
+	"awnings:teal": {"name": "Teal-striped awnings", "cloth": 8},
 }
+## What a look is worn on, by the start of its id, and what's worn there from the start.
+const WORN_FROM_THE_START := {"coat": "tompel", "banners": "festival", "curtains": "door", "awnings": "none"}
+## The looks every village has.
+const FREE_LOOKS: Array[String] = ["coat:tompel", "coat:orange", "banners:festival", "curtains:door", "awnings:none"]
 
 var cats: Array[Dictionary] = []
 var salvage := 0
@@ -167,10 +178,13 @@ var starting_piece := ""
 var tidings: Array[Dictionary] = []
 ## Salvage Jogiboy has dug up and is keeping for him, until he goes and gets it.
 var jogiboy_found := 0
-## The looks bought, by id, and the ones worn: his coat, and the banners' colors.
-var looks: Array[String] = ["coat:tompel", "coat:orange", "banners:festival"]
+## The looks bought, by id, and the ones worn: his coat, the banners' colors, what hangs in the
+## houses' doorways, and the awnings over them.
+var looks: Array[String] = FREE_LOOKS.duplicate()
 var coat := "tompel"
 var banners := "festival"
+var curtains := "door"
+var awnings := "none"
 ## The forest's areas freed, the cutscenes already told (as "intro:<area>" or "outro:<area>"),
 ## and where the next run goes: an area's id, or "endless".
 var liberated: Array[String] = []
@@ -745,15 +759,21 @@ func buy_look(id: String) -> bool:
 	return true
 
 
-## Wears a look he owns: a coat, or the banners' colors.
+## Wears a look he owns: a coat, the banners' colors, the door curtains or the awnings.
 func wear_look(id: String) -> bool:
 	if not id in looks:
 		return false
-	if id.begins_with("coat:"):
-		coat = id.trim_prefix("coat:")
-	else:
-		banners = id.trim_prefix("banners:")
+	var on := id.get_slice(":", 0)
+	if not WORN_FROM_THE_START.has(on):
+		return false
+	set(on, id.get_slice(":", 1))
 	return true
+
+
+## Whether a look is the one worn now.
+func wearing(id: String) -> bool:
+	var on := id.get_slice(":", 0)
+	return WORN_FROM_THE_START.has(on) and get(on) == id.get_slice(":", 1)
 
 
 ## Back to the start: nobody rescued, nothing on the pile, every building in ruins.
@@ -767,9 +787,9 @@ func clear() -> void:
 	starting_piece = ""
 	tidings.clear()
 	jogiboy_found = 0
-	looks.assign(["coat:tompel", "coat:orange", "banners:festival"])
-	coat = "tompel"
-	banners = "festival"
+	looks.assign(FREE_LOOKS)
+	for on: String in WORN_FROM_THE_START:
+		set(on, WORN_FROM_THE_START[on])
 	liberated.clear()
 	told.clear()
 	next_run = "edge"
@@ -798,6 +818,8 @@ func save(path := PATH) -> bool:
 	file.set_value("village", "looks", looks)
 	file.set_value("village", "coat", coat)
 	file.set_value("village", "banners", banners)
+	file.set_value("village", "curtains", curtains)
+	file.set_value("village", "awnings", awnings)
 	file.set_value("village", "liberated", liberated)
 	file.set_value("village", "told", told)
 	file.set_value("village", "next_run", next_run)
@@ -835,7 +857,7 @@ func load_from(path := PATH) -> void:
 	_names(file, "looks", looks, LOOKS.keys())
 	# A village kept before Tompel had his own coat wore orange because it had nothing else.
 	var had_his_coat := "coat:tompel" in looks
-	for kept: String in ["coat:tompel", "coat:orange", "banners:festival"]:
+	for kept: String in FREE_LOOKS:
 		if not kept in looks:
 			looks.append(kept)
 	var piece: Variant = file.get_value("village", "starting_piece", "")
@@ -907,8 +929,9 @@ func load_from(path := PATH) -> void:
 		elements.insert(0, "ember")
 	var saved_element: Variant = file.get_value("village", "cub_element", "ember")
 	cub_element = saved_element if saved_element is String and saved_element in elements else "ember"
-	var saved_banners: Variant = file.get_value("village", "banners", "festival")
-	banners = saved_banners if saved_banners is String and "banners:" + saved_banners in looks else "festival"
+	for on: String in ["banners", "curtains", "awnings"]:
+		var saved: Variant = file.get_value("village", on, WORN_FROM_THE_START[on])
+		set(on, saved if saved is String and on + ":" + saved in looks else WORN_FROM_THE_START[on])
 
 
 ## A count from the file, never below none.
