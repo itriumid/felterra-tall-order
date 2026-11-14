@@ -788,6 +788,12 @@ These apply to everything, wherever it comes from:
 
 ### Layers
 
+**Three tones a material, everywhere.** What's drawn in strokes rather than sprites (a giant's
+limbs, a machine's boom) is lit along its top and left and in shadow along its bottom and right,
+from `Palette.TONES`; a machine's faces catch the light along their top edge and carry seams, its
+cab has glass, and the company's hazard stripes run along the hull's foot. In a portrait, the eyes
+tell two cats in the same coat apart.
+
 Gear is drawn in layers over the body, Stardew-style, and the cost decides how much gear of
 each kind we make:
 
