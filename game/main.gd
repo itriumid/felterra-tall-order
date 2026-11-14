@@ -1573,8 +1573,17 @@ func _glow_on_level_up(delta: float) -> void:
 ## Steps the simulation to catch up with the time passed, and hands its hits to the blood and
 ## the sound. Never more than CATCH_UP steps for one frame: a machine too slow to keep up would
 ## only fall further behind, each frame slower than the last, so the world slows a little instead.
+## How far off a step's time a frame can be, as a share of it, and still count as one step.
+const STEP_SNAP := 0.3
+
+
 func _step_world(delta: float) -> void:
 	_behind = minf(_behind + delta, Arena.STEP * CATCH_UP)
+	# A frame that took about a step's time is a step, exactly. Frames never take quite the same
+	# time, and counted to the microsecond, one frame would step the world twice and the next not at
+	# all: the same frame rate, and everything moving in fits and starts.
+	if absf(_behind - Arena.STEP) < Arena.STEP * STEP_SNAP:
+		_behind = Arena.STEP
 	var started := Time.get_ticks_usec()
 	var steps := 0
 	while _behind >= Arena.STEP:

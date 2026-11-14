@@ -1815,9 +1815,10 @@ func _find_the_ways() -> void:
 			points.append(cat.body.position)
 	if points.is_empty():
 		return
-	_narrow.toward(points)
+	# A little each step: finding a whole way in one stopped the world for most of a frame.
+	_narrow.toward(points, true)
 	if _wide != null and giants.any(func(giant: Giant) -> bool: return giant.standing()) or machines.any(func(machine: Machine) -> bool: return machine.standing()):
-		_wide.toward(points)
+		_wide.toward(points, true)
 
 
 ## Lays out the place: how big, and what stands where.

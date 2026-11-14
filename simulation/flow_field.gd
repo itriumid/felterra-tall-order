@@ -4,7 +4,8 @@ extends RefCounted
 ## is cut into cells, and from the cats' cells outward each cell learns how far it is to walk
 ## from it; a walker goes downhill. Built for walkers of one width: a cell any part of which is too
 ## close to an obstacle for them is a wall, so anywhere in an open cell they fit, and going from
-## one open cell to the next never clips a corner. Rebuilt only when a cat moves into another cell.
+## one open cell to the next never clips a corner. Rebuilt when a cat moves into another cell, a
+## little a step (see toward).
 
 ## How big a cell is, in meters, and what a step costs, straight and on the diagonal: about one
 ## to the square root of two, in whole numbers so the cheapest is always next.
@@ -22,8 +23,9 @@ var rows := 0
 var _blocked := PackedByteArray()
 var _distance := PackedInt32Array()
 var _from: Array[int] = []
-## Which cells see which points straight, as they're asked about.
+## Which cells see which points straight, as they're asked about; and the most of it kept.
 var _seen := {}
+const MOST_SEEN := 200000
 
 
 func _init(size := Vector2.ZERO, obstacles: Array[Obstacle] = [], clearance := 0.0) -> void:
@@ -66,35 +68,73 @@ func blocked(where: Vector2) -> bool:
 
 
 ## Builds the field toward these points, if any of them has moved to another cell since.
-func toward(points: Array[Vector2]) -> void:
+##
+## All at once, unless it's asked for gradually, as a fight asks: then a little each call (WORK
+## cells of it), into a second field that takes over when it's done, so the horde follows the way
+## to where the cats were a moment ago while the way to where they are is found (and before there's
+## any way at all, goes straight).
+## Finding it all in one step, every time a cat crossed into another cell, stopped the world for
+## most of a frame several times a second. A build under way is finished before the next starts,
+## so cats on the move never keep one from finishing.
+func toward(points: Array[Vector2], gradually := false) -> void:
 	var from: Array[int] = []
 	for point in points:
 		var cell := _nearest_open(point)
 		if cell >= 0 and not cell in from:
 			from.append(cell)
 	from.sort()
-	if from == _from:
+	if not gradually:
+		if from != _from:
+			_begin(from)
+			_work(FAR)
 		return
-	_from = from
-	_seen.clear()
-	_distance.fill(FAR)
-	# The cheapest cells first, kept in buckets by cost: no step costs more than DIAGONAL, so the
-	# buckets go round.
-	var buckets: Array = []
+	if _waiting == 0 and from != _from:
+		_begin(from)
+	_work(WORK)
+
+
+## How many cells of a build are worked through in one call.
+const WORK := 700
+## The field being built: its distances, where it's being built toward, and how far it's got (the
+## cells waiting, in buckets by cost, the cheapest first: no step costs more than DIAGONAL, so the
+## buckets go round).
+var _building := PackedInt32Array()
+var _building_toward: Array[int] = []
+var _buckets: Array = []
+var _waiting := 0
+var _cost := 0
+
+
+func _begin(from: Array[int]) -> void:
+	_building_toward = from
+	_building.resize(_distance.size())
+	_building.fill(FAR)
+	_buckets.clear()
 	for index in DIAGONAL + 1:
-		buckets.append([])
-	var waiting := 0
+		_buckets.append([])
+	_waiting = 0
+	_cost = 0
 	for cell in from:
-		_distance[cell] = 0
-		buckets[0].append(cell)
-		waiting += 1
-	var cost := 0
-	while waiting > 0:
-		var bucket: Array = buckets[cost % buckets.size()]
-		buckets[cost % buckets.size()] = []
-		waiting -= bucket.size()
+		_building[cell] = 0
+		_buckets[0].append(cell)
+		_waiting += 1
+	if _waiting == 0:
+		_finish()
+
+
+## Works through up to so many cells of the build under way; done, the new field takes over.
+func _work(most: int) -> void:
+	if _waiting == 0:
+		return
+	var worked := 0
+	var distance := _building
+	while _waiting > 0 and worked < most:
+		var bucket: Array = _buckets[_cost % _buckets.size()]
+		_buckets[_cost % _buckets.size()] = []
+		_waiting -= bucket.size()
+		worked += bucket.size()
 		for cell: int in bucket:
-			if _distance[cell] != cost:
+			if distance[cell] != _cost:
 				continue
 			var x := cell % columns
 			var y := cell / columns
@@ -107,17 +147,27 @@ func toward(points: Array[Vector2]) -> void:
 				var next := next_y * columns + next_x
 				if _blocked[next] == 1:
 					continue
-				var further := cost + STRAIGHT
+				var further := _cost + STRAIGHT
 				if index >= 4:
 					# No cutting a wall's corner.
 					if _blocked[y * columns + next_x] == 1 or _blocked[next_y * columns + x] == 1:
 						continue
-					further = cost + DIAGONAL
-				if further < _distance[next]:
-					_distance[next] = further
-					buckets[further % buckets.size()].append(next)
-					waiting += 1
-		cost += 1
+					further = _cost + DIAGONAL
+				if further < distance[next]:
+					distance[next] = further
+					_buckets[further % _buckets.size()].append(next)
+					_waiting += 1
+		_cost += 1
+	_building = distance
+	if _waiting == 0:
+		_finish()
+
+
+func _finish() -> void:
+	var done := _distance
+	_distance = _building
+	_building = done
+	_from = _building_toward
 
 
 ## Which way a walker at a point should go for prey at another: straight at it when nothing
@@ -176,6 +226,11 @@ func _sees(cell: int, to: Vector2) -> bool:
 	var key := cell * (columns * rows + 1) + _cell(to) + 1
 	if _seen.has(key):
 		return _seen[key]
+	# What sees what depends only on the walls, which never move, so it's kept from one build to
+	# the next: working it all out again after every build was a hitch of its own. Only so much is
+	# kept, though.
+	if _seen.size() > MOST_SEEN:
+		_seen.clear()
 	var corner := Vector2(cell % columns, cell / columns) * CELL
 	var clear := true
 	for from: Vector2 in [corner + Vector2.ONE * CELL * 0.5, corner, corner + Vector2(CELL, 0.0), corner + Vector2(0.0, CELL), corner + Vector2.ONE * CELL]:
