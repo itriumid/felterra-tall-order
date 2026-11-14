@@ -188,6 +188,9 @@ var tonic_ready := false
 ## has the five words, and once the sign they make has gone up.
 var papers: Array[String] = []
 var papers_read: Array[String] = []
+## What the old cats say (Lore.SAYINGS), by title, in the order he's heard them: one at the end of
+## each run, kept in the Elder's book.
+var sayings: Array[String] = []
 const FIVE_WORDS := "papers:five_words"
 const SIGN_UP := "written:airstrip"
 const SIGN_LATER := "written:later"
@@ -487,6 +490,20 @@ func read_papers() -> void:
 		tell("hut_0", "Five words", Areas.FIVE_WORDS, FIVE_WORDS)
 
 
+## The saying this run's end is told: the next he hasn't heard, in their order; once he's heard
+## them all, they come round again from the first. Heard, it's kept.
+func hear_saying() -> Dictionary:
+	for saying in Lore.SAYINGS:
+		if not saying.title in sayings:
+			sayings.append(saying.title)
+			return saying
+	_sayings_round = (_sayings_round + 1) % Lore.SAYINGS.size()
+	return Lore.SAYINGS[_sayings_round]
+
+
+var _sayings_round := -1
+
+
 ## Whether the cats can write to the giants yet: Granny Whiskers has read all five papers that
 ## give her the words.
 func can_write() -> bool:
@@ -715,6 +732,7 @@ func save(path := PATH) -> bool:
 	file.set_value("village", "left_home", left_home)
 	file.set_value("village", "goals_done", goals_done)
 	file.set_value("village", "tonic_ready", tonic_ready)
+	file.set_value("village", "sayings", sayings)
 	file.set_value("village", "papers", papers)
 	file.set_value("village", "papers_read", papers_read)
 	file.set_value("village", "offerings", offerings)
@@ -765,6 +783,7 @@ func load_from(path := PATH) -> void:
 	known_scenes.append(SIGN_UP)
 	known_scenes.append(SIGN_LATER)
 	_names(file, "told", told, known_scenes)
+	_names(file, "sayings", sayings, Lore.SAYINGS.map(func(saying: Dictionary) -> String: return saying.title))
 	_names(file, "papers", papers, Areas.ids())
 	_names(file, "papers_read", papers_read, papers)
 	var saved_next: Variant = file.get_value("village", "next_run", "edge")

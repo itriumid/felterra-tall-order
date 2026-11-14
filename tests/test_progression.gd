@@ -274,3 +274,18 @@ func test_the_papers_and_the_endings_fit_the_screen_too() -> void:
 		else:
 			check(PixelFont.width(line) <= LINE_WIDTH, "too wide for the screen: %s" % line)
 	check(PixelFont.width("Five words, in their own letters: %s" % Areas.SIGN) <= LINE_WIDTH, "the five words don't fit the book's page")
+
+
+func test_what_the_old_cats_say_fits_the_summary_and_is_heard_in_order() -> void:
+	var titles := {}
+	for saying in Lore.SAYINGS:
+		check(not titles.has(saying.title), "two sayings are called %s" % saying.title)
+		titles[saying.title] = true
+		check(Overlay.wrapped(saying.text, 240.0).size() <= 3, "too long for the summary: %s" % saying.text)
+	var village := Village.new()
+	check(village.hear_saying().title == Lore.SAYINGS[0].title and village.hear_saying().title == Lore.SAYINGS[1].title, "the sayings don't come in their order")
+	for index in Lore.SAYINGS.size() - 2:
+		village.hear_saying()
+	check(village.sayings.size() == Lore.SAYINGS.size(), "hearing them all kept %d of %d" % [village.sayings.size(), Lore.SAYINGS.size()])
+	check(village.hear_saying().title == Lore.SAYINGS[0].title, "once they're all heard, they don't come round again")
+	check(village.sayings.size() == Lore.SAYINGS.size(), "a saying heard again was kept twice")

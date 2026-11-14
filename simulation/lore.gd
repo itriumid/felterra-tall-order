@@ -5,6 +5,36 @@ extends RefCounted
 ## the company, and the dodge mutations from the cats who taught them. Text only: what a thing does
 ## lives with the thing.
 
+## What the old cats say: the things every kitten in the village is told, one at the end of each
+## run, and kept in the Elder's book once heard. Each takes something the giants say about cats, or
+## something true of them, and tells it the village's way. The facts under them are real: a cat
+## does right itself in a fall, purr low enough to help bone knit, lack any taste for sweet, and
+## have thirty-two muscles to an ear; ships did carry cats against rats; a luwak is a civet; on
+## these islands a driver who hits a cat is told to stop and bury it; and a candramawa is a cat of
+## Javanese lore whose stare can't be held.
+const SAYINGS: Array[Dictionary] = [
+	{"title": "Nine lives", "text": "The giants say a cat has nine lives. We say a cat has one, and a crew has nine, because it shares them."},
+	{"title": "Landing on your feet", "text": "A falling cat turns over in the air and lands on its feet. It needs room to do it. Fall from high up, or not at all."},
+	{"title": "Curiosity", "text": "The giants say curiosity killed the cat. They leave off the rest: satisfaction brought it back."},
+	{"title": "Whiskers", "text": "A cat's whiskers are as wide as the cat. If the whiskers fit through, so does everything behind them."},
+	{"title": "Purring", "text": "A purr hums low enough to help a bone knit. Auntie Clove calls it the oldest medicine, and charges for the newer ones."},
+	{"title": "Sleep", "text": "A cat sleeps two thirds of its life. The Elder says the other third is for complaining about how it slept."},
+	{"title": "Sweetness", "text": "A cat can't taste sweet. Coffee and Cream sell cake anyway. Jogiboy buys most of it."},
+	{"title": "The dark", "text": "A cat sees by a sixth of the light a giant needs. The night has always been ours."},
+	{"title": "Ears", "text": "A cat's ear has thirty-two muscles and turns half a circle. A dog's has eighteen. Jogiboy says it's rude to count."},
+	{"title": "A good jump", "text": "A cat jumps five times its own height. A giant can't manage one of his."},
+	{"title": "A short run", "text": "A cat outruns a giant for about as long as a giant can count to ten. After that, be somewhere he can't reach."},
+	{"title": "Nose prints", "text": "No two cats have the same nose print. Granny Whiskers keeps the whole village's on a cloth, in case anyone needs proving."},
+	{"title": "A clowder", "text": "A crowd of cats is a clowder. A crowd of kittens is a kindle. A crowd of giants is a company, which explains a great deal."},
+	{"title": "Kneading", "text": "A cat kneads what it loves with its paws. It's left over from being a kitten, and nobody grows out of it."},
+	{"title": "The slow blink", "text": "A slow blink means \"I trust you\". Jogiboy does it with his whole face."},
+	{"title": "Ships", "text": "The giants have taken cats to sea for as long as they've had ships, to keep the rats down. Skipper says nobody asked the rats."},
+	{"title": "Cat coffee", "text": "The giants' famous \"cat coffee\" comes from the luwak, who is a civet, isn't a cat, and is tired of being asked."},
+	{"title": "The road", "text": "On these islands, a giant whose cart strikes a cat must stop and bury it, or bad luck follows him home. It's the one law of theirs we like."},
+	{"title": "Candramawa", "text": "A cat whose stare nobody can hold is called candramawa. Granny Whiskers says she's one. Nobody's held it long enough to check."},
+	{"title": "Tompel", "text": "\"Tompel\" is a birthmark. He's named for the patch by his mouth, and gave up trying to wash it off years ago."},
+]
+
 const STORIES := {
 	"weapon:nunchaku": "The village once watched a kung fu film off a company generator. Nobody has been the same since.",
 	"weapon:knife": "Every cat in the village carries one. Most of them use it on mangoes.",
