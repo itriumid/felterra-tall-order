@@ -156,7 +156,20 @@ A clearing the company has cut in an Indonesian tropical forest.
   movement, and why they're there at all. (That's Endless's clearing; Liberation's areas each
   have their own ground plan, with things standing in the way.) Mud, burnt earth and log skids vary it: they slow you,
   they never stop you.
-- **The jungle is the wall** around the arena: living, thick, impassable.
+- **It's big enough for a crew.** Endless's clearing is 56 by 32 meters, three and a half
+  screens each way (a screen shows 16 by 9 meters), so four cats can spread out and a horde comes
+  in from every side; a grove is 52 to 60 meters across. Grass grows as thick on a big place as on
+  a small one.
+- **The jungle is the wall** around the arena: living, thick, impassable. It's drawn as one:
+  foliage filling everything past the edge, reaching ragged over it, darkest furthest out, with
+  trees and big leaves at its foot. The camera never looks further past the edge than a little
+  of the wall, so there's never nothing to see.
+- **Trees are sized for the side they stand on.** Along the top edge a tree is short, so its
+  crown is in sight, never a bare trunk running off the screen; none stand in the corners, and
+  they're spaced so their crowns don't pile up.
+- **The ground has a grain.** Over its broad patches, whose edges wander the way ground does,
+  grass and moss carry blades (a lit tip over a darker root) and mud carries pebbles (lit, with
+  their shadow below and to the right), over everything painted on it, trails and all.
 - **The canopy hangs overhead**, drawn above everything, with no collision. It's above your
   head, so that's honest, and it gives the forest its depth.
 - **Low growth never blocks**: grass, ferns, leaf litter. It bends and scatters as things move
@@ -579,7 +592,8 @@ Level-ups arrive as **cards**. A card offers a choice of three; you hold it unti
 - **A pause menu exists in both.** Solo, it stops the world. Online, it opens over a world that
   keeps running, and its panel is see-through so you can see what's coming.
 - Held cards can be read in the pause menu, and are only played in action.
-- **The pause menu**: carry on, settings, start again, leave the game. **Settings**: graphics
+- **The pause menu**: carry on, settings, start again, leave the game. In a run, the cards held
+  sit beside it, the two together in the middle of the screen. **Settings**: graphics
   (full screen, window size, vertical sync, how many of the fallen are left lying), audio (overall, music, effects and interface
   volumes, each its own bus) and gameplay (aim mode, blood), kept for next time. It opens
   on its own when a run ends, ready to start again. Its see-through panel is a checkerboard of
@@ -661,7 +675,10 @@ Your left hand never leaves movement.
 | Enter | Go again, once a run has ended |
 | Escape | Pause menu |
 
-Held offers sit as a strip of icons at the bottom of the screen, with a count. Everything can
+Held offers sit along the bottom of the screen as three short cards (the key, the rarity, a
+picture, the name and its first line), kept low so the horde coming from below stays in sight;
+holding Tab stands them up in full, with what each means. More held than the one showing are
+counted beside the keys. Everything can
 be rebound; controllers get the same layout on face buttons and bumpers. The mouse is optional:
 clicking a card works, but nothing needs it.
 
@@ -783,6 +800,12 @@ These apply to everything, wherever it comes from:
    art in code mangles it.
 
 ### Layers
+
+**Three tones a material, everywhere.** What's drawn in strokes rather than sprites (a giant's
+limbs, a machine's boom) is lit along its top and left and in shadow along its bottom and right,
+from `Palette.TONES`; a machine's faces catch the light along their top edge and carry seams, its
+cab has glass, and the company's hazard stripes run along the hull's foot. In a portrait, the eyes
+tell two cats in the same coat apart.
 
 Gear is drawn in layers over the body, Stardew-style, and the cost decides how much gear of
 each kind we make:

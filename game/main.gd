@@ -1661,10 +1661,27 @@ func _run_camera() -> Vector2:
 		highest = highest.max(each.body.position)
 	var at := World.to_screen((lowest + highest) / 2.0)
 	if _village_view.arena == null:
-		return at
+		return _within_the_wall(at)
 	var screen := get_viewport().get_visible_rect().size
 	var size := VillageMap.SIZE * World.PIXELS_PER_METER
 	return Vector2(clampf(at.x, screen.x / 2.0, size.x - screen.x / 2.0), clampf(at.y, screen.y / 2.0, size.y - screen.y / 2.0))
+
+
+## Out on a run, the camera stays over the place: never so far past its edge that it looks out past
+## the jungle wall into nothing. It may show WALL_SHOWN of the wall; a place narrower than the
+## screen, it's centered on, across.
+const WALL_SHOWN := 56.0
+
+
+func _within_the_wall(at: Vector2) -> Vector2:
+	var screen := get_viewport().get_visible_rect().size
+	var size := arena.size * World.PIXELS_PER_METER
+	var kept := at
+	for axis in 2:
+		var low := screen[axis] / 2.0 - WALL_SHOWN
+		var high := size[axis] - screen[axis] / 2.0 + WALL_SHOWN
+		kept[axis] = size[axis] / 2.0 if low > high else clampf(at[axis], low, high)
+	return kept
 
 
 ## Each area's ground is painted from its own seed, so it's the same place every time.

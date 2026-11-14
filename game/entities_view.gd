@@ -1021,8 +1021,8 @@ func _draw_machine(machine: Machine) -> void:
 	var parts: Array[Dictionary] = []
 	for across in [-0.75, 0.75]:
 		parts.append({"box": [machine.point(0.0, across), Machine.LENGTH, 0.5, 0.0, 0.5], "colors": [Palette.STEEL, Palette.STEEL_DARK, Palette.STEEL_DARK], "treads": true})
-	parts.append({"box": [machine.point(0.0, 0.0), 2.6, 1.7, 0.5, 1.05], "colors": [Palette.BRASS_LIGHT, Palette.BRASS_LIGHT, Palette.BRASS]})
-	parts.append({"box": [machine.point(-0.85, 0.0), 0.9, 1.5, 1.05, 1.6], "colors": [Palette.BRASS_LIGHT, Palette.BRASS_LIGHT, Palette.BRASS]})
+	parts.append({"box": [machine.point(0.0, 0.0), 2.6, 1.7, 0.5, 1.05], "colors": [Palette.BRASS_LIGHT, Palette.BRASS, Palette.LEATHER_LIGHT], "stripes": true})
+	parts.append({"box": [machine.point(-0.85, 0.0), 0.9, 1.5, 1.05, 1.6], "colors": [Palette.BRASS_LIGHT, Palette.BRASS, Palette.LEATHER_LIGHT]})
 	parts.append({"box": [machine.point(-1.05, 0.5), 0.15, 0.15, 1.6, 2.0], "colors": [Palette.OUTLINE, Palette.STEEL_DARK, Palette.STEEL_DARK]})
 	parts.append({"box": [machine.point(0.45, -0.35), 1.0, 0.95, 1.05, 2.0], "colors": [Palette.BRASS_LIGHT, Palette.STEEL_LIGHT, Palette.STEEL], "cab": true})
 	# Lower boxes first, so what sits on the deck draws over it; at the same level, far to near.
@@ -1036,7 +1036,7 @@ func _draw_machine(machine: Machine) -> void:
 		if not boom_drawn and part.depth > root_depth:
 			_draw_boom(machine)
 			boom_drawn = true
-		var face := _box(machine, part.box, part.colors, part.get("treads", false))
+		var face := _box(machine, part.box, part.colors, part.get("treads", false), part.get("cab", false), part.get("stripes", false))
 		if part.get("cab", false) and machine.standing() and not face.is_empty():
 			# The operator, in hi-vis, behind the glass of the face turned toward the viewer.
 			var seat := World.to_screen(face.ground, 1.5)
@@ -1076,7 +1076,7 @@ func _draw_boom(machine: Machine) -> void:
 ## One box of the machine: [center over the ground, length along its heading, width across,
 ## bottom, top], in colors [top, lit side, shaded side]. Returns the face most turned toward the
 ## viewer, as {ground: its middle over the ground}, or nothing if none shows.
-func _box(machine: Machine, box: Array, colors: Array, treads := false) -> Dictionary:
+func _box(machine: Machine, box: Array, colors: Array, treads := false, glazed := false, striped := false) -> Dictionary:
 	var center: Vector2 = box[0]
 	var bottom: float = box[3]
 	var top: float = box[4]
@@ -1094,7 +1094,9 @@ func _box(machine: Machine, box: Array, colors: Array, treads := false) -> Dicti
 			nearest_y = outward.normalized().y
 			nearest = {"ground": (a + b) / 2.0}
 		var face := PackedVector2Array([World.to_screen(a, bottom), World.to_screen(b, bottom), World.to_screen(b, top), World.to_screen(a, top)])
-		draw_colored_polygon(face, colors[1] if outward.x < 0.0 else colors[2])
+		var color: Color = colors[1] if outward.x < 0.0 else colors[2]
+		draw_colored_polygon(face, color)
+		_detail_face(a, b, bottom, top, color, glazed, striped)
 		draw_polyline(face + PackedVector2Array([face[0]]), Palette.OUTLINE)
 	var lid := PackedVector2Array()
 	for point in ground:
@@ -1112,6 +1114,38 @@ func _box(machine: Machine, box: Array, colors: Array, treads := false) -> Dicti
 			draw_line(World.to_screen(at - across, top), World.to_screen(at + across, top), Palette.STEEL_DARK)
 			offset += spacing
 	return nearest
+
+
+## What's on a face of a machine besides its paint: a lit edge along its top, where the light from
+## the top left catches it; a seam across a tall one; glass in a cab, dark with a glint; and on the
+## hull, the company's hazard stripes, hi-vis and graphite, along its foot.
+const STRIPE_LENGTH := 0.22
+const STRIPE_HEIGHT := 0.12
+
+
+func _detail_face(a: Vector2, b: Vector2, bottom: float, top: float, color: Color, glazed: bool, striped: bool) -> void:
+	var at := func(along: float, height: float) -> Vector2: return World.to_screen(a.lerp(b, along), height).round()
+	var tones: Array = Palette.TONES.get(color, [])
+	if not tones.is_empty():
+		draw_line(at.call(0.0, top) + Vector2(0, 1), at.call(1.0, top) + Vector2(0, 1), tones[0])
+		if top - bottom >= 0.45 and not glazed:
+			var middle := (bottom + top) / 2.0
+			draw_line(at.call(0.06, middle), at.call(0.94, middle), tones[1])
+	if glazed:
+		var low := lerpf(bottom, top, 0.4)
+		var high := top - 0.1
+		var glass := PackedVector2Array([at.call(0.15, low), at.call(0.85, low), at.call(0.85, high), at.call(0.15, high)])
+		draw_colored_polygon(glass, Palette.STEEL_DARK)
+		draw_polyline(glass + PackedVector2Array([glass[0]]), Palette.OUTLINE)
+		draw_line(at.call(0.25, low + 0.05), at.call(0.4, high - 0.05), Palette.STEEL_LIGHT)
+	if striped:
+		var length := a.distance_to(b)
+		var count := maxi(roundi(length / STRIPE_LENGTH), 1)
+		for index in count:
+			var from := float(index) / count
+			var to := float(index + 1) / count
+			var band := PackedVector2Array([at.call(from, bottom), at.call(to, bottom), at.call(to, bottom + STRIPE_HEIGHT), at.call(from, bottom + STRIPE_HEIGHT)])
+			draw_colored_polygon(band, Palette.HI_VIS if index % 2 == 0 else Palette.GRAPHITE)
 
 
 func _footprint_ground(machine: Machine, center: Vector2, length: float, width: float) -> Array[Vector2]:
@@ -1264,7 +1298,7 @@ func _draw_tracked_body(machine: Machine, top: Color, lit: Color, shaded: Color)
 	var parts: Array[Dictionary] = []
 	for across in [-width * 0.375, width * 0.375]:
 		parts.append({"box": [machine.point(0.0, across), length, width * 0.25, 0.0, 0.5], "colors": [Palette.STEEL, Palette.STEEL_DARK, Palette.STEEL_DARK], "treads": true})
-	parts.append({"box": [machine.point(0.0, 0.0), length * 0.85, width * 0.85, 0.5, 1.05], "colors": [top, lit, shaded]})
+	parts.append({"box": [machine.point(0.0, 0.0), length * 0.85, width * 0.85, 0.5, 1.05], "colors": [top, lit, shaded], "stripes": true})
 	parts.append({"box": [machine.point(-length * 0.28, 0.0), length * 0.3, width * 0.75, 1.05, 1.6], "colors": [top, lit, shaded]})
 	parts.append({"box": [machine.point(-length * 0.35, width * 0.25), 0.15, 0.15, 1.6, 2.0], "colors": [Palette.OUTLINE, Palette.STEEL_DARK, Palette.STEEL_DARK]})
 	parts.append({"box": [machine.point(length * 0.15, -width * 0.18), length * 0.33, width * 0.48, 1.05, 2.0], "colors": [top, Palette.STEEL_LIGHT, Palette.STEEL], "cab": true})
@@ -2161,6 +2195,10 @@ func _draw_giant_shadow(giant: Giant) -> void:
 ## front walking toward the viewer, his back walking away, his side walking across, and
 ## foreshortens as he topples. Parts draw far to near, so the nearer leg covers the further.
 ## Legs stride with the ground he covers; arms swing against them.
+## How far under the rest of a giant his legs are put, in depth.
+const LEGS_UNDER := 10.0
+
+
 func _draw_giant(giant: Giant) -> void:
 	var phase: float = _walked.get(giant, 0.0) / GIANT_STRIDE * TAU
 	var walking := giant.body.velocity.length() > 0.05
@@ -2177,12 +2215,16 @@ func _draw_giant(giant: Giant) -> void:
 	var parts: Array[Dictionary] = []
 	for leg: Array in [[0.12, right_foot, Palette.CLOTH], [-0.12, left_foot, Palette.CLOTH_SHADOW]]:
 		var foot: Array = leg[1]
-		parts.append(_part(giant, [leg[0], hip, 0.0], foot, 6, leg[2]))
-		parts.append(_part(giant, foot, [foot[0], foot[1], foot[2] + 0.14], 5, Palette.LEATHER_LIGHT if leg[0] > 0.0 else Palette.LEATHER))
+		# His legs go under the rest of him, whichever way he faces: the vest hangs over the tops of
+		# his trousers, never the other way about. Between the two legs, the nearer is over.
+		parts.append(_part(giant, [leg[0], hip, 0.0], foot, 6, leg[2], -LEGS_UNDER))
+		parts.append(_part(giant, foot, [foot[0], foot[1], foot[2] + 0.14], 5, Palette.LEATHER_LIGHT if leg[0] > 0.0 else Palette.LEATHER, -LEGS_UNDER))
 	for arm: Array in [[0.25, -1.0, Palette.SKIN], [-0.25, 1.0, Palette.SKIN_SHADOW]]:
 		# With a chainsaw, both hands are on it, held in front of him.
 		var hand: Array = [arm[0] * 0.35, 0.95, 0.35] if giant.has_chainsaw() and giant.standing() else [arm[0] * 1.1, 0.86, stride * 0.6 * arm[1]]
 		parts.append(_part(giant, [arm[0], shoulder, 0.0], hand, 4, arm[2]))
+		# A hand at the end of it, a little wider than the arm, in a work glove.
+		parts.append(_part(giant, hand, hand, 5, Palette.LEATHER_LIGHT if arm[0] > 0.0 else Palette.LEATHER, 0.01))
 	if giant.has_chainsaw():
 		_add_chainsaw(giant, parts)
 		# Ear defenders over the hard hat's straps.
@@ -2191,6 +2233,9 @@ func _draw_giant(giant: Giant) -> void:
 	# A planter's clean green shirt, no reflective band; everyone else's hi-vis vest with one.
 	var planter := giant.kind == "planter"
 	parts.append(_part(giant, [0.0, hip, 0.0], [0.0, shoulder, 0.0], 14, Palette.LEAF if planter else Palette.HI_VIS))
+	# His belt, where his trousers meet the vest, with its buckle in front.
+	parts.append(_part(giant, [0.0, hip + 0.02, 0.0], [0.0, hip + 0.02, 0.0], 14, Palette.LEATHER, 0.01, 2))
+	parts.append(_part(giant, [0.0, hip + 0.02, 0.08], [0.0, hip + 0.02, 0.08], 2, Palette.BRASS_LIGHT, 0.02, 2))
 	if planter:
 		parts.append(_part(giant, [0.06, 1.3, 0.07], [0.06, 1.3, 0.07], 2, Palette.CREAM, 0.02))
 	else:
@@ -2287,7 +2332,17 @@ func _thick(from: Vector2, to: Vector2, width: int, color: Color, dissolve: floa
 	var half := size / 2.0
 	for point in points:
 		draw_rect(Rect2((point - half - Vector2.ONE).round(), size + Vector2(2, 2)), Palette.OUTLINE)
-	for point in points:
-		if dissolve > 0.0 and float(int(point.x * 7 + point.y * 13) % 17) / 17.0 < dissolve:
-			continue
-		draw_rect(Rect2((point - half).round(), size), color)
+	# Three tones, where the material has them and the stroke is wide enough to show them: the
+	# whole of it in shadow, then lit short of its bottom and right edges, then its own color short
+	# of every edge. What's left is lit along the top and left and in shadow along the bottom and
+	# right, over the stroke as a whole and not each step of it.
+	var tones: Array = Palette.TONES.get(color, [])
+	var shaded := not tones.is_empty() and size.x >= 4.0 and size.y >= 4.0
+	var layers: Array = [[color, Vector2.ZERO, Vector2.ZERO]]
+	if shaded:
+		layers = [[tones[1], Vector2.ZERO, Vector2.ZERO], [tones[0], Vector2.ZERO, -Vector2.ONE], [color, Vector2.ONE, -Vector2(2, 2)]]
+	for layer: Array in layers:
+		for point in points:
+			if dissolve > 0.0 and float(int(point.x * 7 + point.y * 13) % 17) / 17.0 < dissolve:
+				continue
+			draw_rect(Rect2((point - half).round() + layer[1], size + layer[2]), layer[0])

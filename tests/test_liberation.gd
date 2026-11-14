@@ -148,7 +148,8 @@ func test_the_logging_truck_charges_then_stalls_with_its_tank_open() -> void:
 
 func test_the_bulldozers_weak_point_is_behind_it() -> void:
 	var arena := _area("offices")
-	var dozer: Bulldozer = arena.add_machine(Arena.SIZE / 2.0 + Vector2(5.0, 0.0), 0.0, "bulldozer")
+	# In the yard, the middle of the offices: not wherever the middle of Endless's clearing falls.
+	var dozer: Bulldozer = arena.add_machine(arena.size / 2.0 + Vector2(5.0, 0.0), 0.0, "bulldozer")
 	arena.step()
 	var behind := dozer.point(-dozer.length * 0.5 - 0.15, 0.0)
 	check(dozer.exposed() and dozer.joint.body.position.distance_to(behind) < 0.01, "the engine isn't open at the back")

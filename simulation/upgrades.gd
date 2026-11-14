@@ -626,7 +626,7 @@ static func _describe(choice: Dictionary) -> Dictionary:
 		card.ribbon = "%s, %s" % [RARITY_NAMES[choice.rarity], WHEN_SHORT[when]]
 		card.explain = ["%s: %s" % [MUTATIONS[mutation].name, MUTATIONS[mutation].explain],
 			"When: %s" % WHEN_LONG[when],
-			"One dodge mutation a run; another card for it makes it stronger"]
+			"One a run: one dodge mutation, and another card for it makes it stronger"]
 		card.unfamiliar = true
 	else:
 		card.item = id.trim_prefix("weapon:")

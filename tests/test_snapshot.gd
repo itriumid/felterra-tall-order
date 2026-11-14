@@ -35,6 +35,11 @@ func _host(held := 0) -> Arena:
 	for step in int(60.0 / Arena.STEP):
 		arena.step()
 		_play_cards(arena, held)
+	# However quickly the horde got to them in that minute, they hold as many hands as asked: the
+	# test is of the snapshot's size with that many held, not of how fast a minute levels them.
+	if held != NEVER_PLAYED:
+		while arena.cats.any(func(cat: Cat) -> bool: return cat.offers.size() < held):
+			arena._gain_experience(Arena.experience_needed(arena.level) - arena.experience)
 	return arena
 
 

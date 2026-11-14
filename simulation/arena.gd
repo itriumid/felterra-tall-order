@@ -4,8 +4,9 @@ extends RefCounted
 ## headless at a fixed step, in meters and seconds.
 
 const STEP := 1.0 / 60.0
-## The clearing, in meters. The jungle beyond it is a wall.
-const SIZE := Vector2(40.0, 24.0)
+## Endless's clearing, in meters: room for a crew of four to spread out and a horde to come in from
+## every side, three and a half screens each way. The jungle beyond it is a wall.
+const SIZE := Vector2(56.0, 32.0)
 ## The horde comes faster as a run goes on, up to this many at once.
 const SPAWN_RATE := 1.5
 const SPAWN_GROWTH := 0.05

@@ -72,6 +72,12 @@ const BARK_LIGHT := Color8(128, 112, 92)
 
 # The human company's workers: realistic, and easy to pick out of a crowd.
 const HI_VIS := Color8(255, 120, 30)
+## The vest lit and in shadow, and skin lit and in its deepest shadow: the giants are drawn in
+## three tones a material, like everything else.
+const HI_VIS_LIGHT := Color8(255, 172, 92)
+const HI_VIS_SHADOW := Color8(200, 78, 22)
+const SKIN_LIGHT := Color8(244, 206, 172)
+const SKIN_DEEP := Color8(146, 98, 72)
 ## Paint for the village's walls, beside the reds, pinks, yellows and blues already here.
 const PAINT_TEAL := Color8(52, 150, 142)
 const SKIN := Color8(226, 176, 138)
@@ -104,13 +110,36 @@ const ALL: Array[Color] = [
 	STEEL_DARK, STEEL, STEEL_LIGHT, RAT_SHADOW, RAT, RAT_LIGHT, RAT_TAIL, DOG_SHADOW, DOG, DOG_LIGHT,
 	MUD_DARK, MUD, MUD_LIGHT, BURNT, JUNGLE_DEEP, JUNGLE_DARK, JUNGLE, LEAF, LEAF_LIGHT,
 	MOSS, DRY_GRASS, BARK, BARK_LIGHT,
-	HI_VIS, PAINT_TEAL, SKIN, SKIN_SHADOW, BLOOD, BLOOD_DRY, SPARK, SMOKE, GRAPHITE, PANEL_DARK, PANEL_LIGHT,
+	HI_VIS, HI_VIS_LIGHT, HI_VIS_SHADOW, SKIN_LIGHT, SKIN_DEEP, PAINT_TEAL, SKIN, SKIN_SHADOW, BLOOD, BLOOD_DRY, SPARK, SMOKE, GRAPHITE, PANEL_DARK, PANEL_LIGHT,
 	OFF_WHITE, PINK,
 ]
 
 ## Each player's color when playing together, from player 0: their marker over their cat, and
 ## their panel.
 const PLAYERS: Array[Color] = [PINK, LEAF_LIGHT, BRASS_LIGHT, CLOTH_LIGHT]
+
+
+## For what's drawn in strokes (a giant's limbs, a machine's arm), each material's color as
+## [lit, shadow]: lit along its top and left edges, in shadow along its bottom and right, since
+## the light comes from the top left. A color not here is drawn flat.
+const TONES := {
+	HI_VIS: [HI_VIS_LIGHT, HI_VIS_SHADOW],
+	SKIN: [SKIN_LIGHT, SKIN_SHADOW],
+	SKIN_SHADOW: [SKIN, SKIN_DEEP],
+	CLOTH: [CLOTH_LIGHT, CLOTH_SHADOW],
+	CLOTH_SHADOW: [CLOTH, STEEL_DARK],
+	LEATHER: [LEATHER_LIGHT, MUD_DARK],
+	LEATHER_LIGHT: [BARK_LIGHT, LEATHER],
+	BRASS: [BRASS_LIGHT, LEATHER_LIGHT],
+	BRASS_LIGHT: [CREAM, BRASS],
+	LEAF: [LEAF_LIGHT, JUNGLE],
+	LEAF_LIGHT: [DRY_GRASS, LEAF],
+	STEEL: [STEEL_LIGHT, STEEL_DARK],
+	STEEL_DARK: [STEEL, OUTLINE],
+	SCARF_RED: [NOSE, BLOOD],
+	BARK: [BARK_LIGHT, MUD_DARK],
+	BARK_LIGHT: [DRY_GRASS, BARK],
+}
 
 
 static func has(color: Color) -> bool:

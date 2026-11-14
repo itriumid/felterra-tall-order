@@ -512,17 +512,17 @@ const LIST: Array[Dictionary] = [
 ## seed: its look, its size, and what stands in it.
 const GROVES: Array[Dictionary] = [
 	{
-		"id": "sick_grove", "name": "A sick grove", "ground": "deep", "size": Vector2(44.0, 28.0),
-		"scatter": [{"kind": "tree", "count": 24, "radius": [0.5, 0.85]}, {"kind": "bush", "count": 12, "radius": [0.5, 0.9]}],
+		"id": "sick_grove", "name": "A sick grove", "ground": "deep", "size": Vector2(52.0, 32.0),
+		"scatter": [{"kind": "tree", "count": 32, "radius": [0.5, 0.85]}, {"kind": "bush", "count": 16, "radius": [0.5, 0.9]}],
 	},
 	{
-		"id": "burned_peat", "name": "The burned peat", "ground": "peat", "size": Vector2(48.0, 28.0),
-		"scatter": [{"kind": "stump", "count": 30, "radius": [0.3, 0.5]}, {"kind": "tree", "count": 6, "radius": [0.45, 0.6]}, {"kind": "rock", "count": 5, "radius": [0.4, 0.7]}],
+		"id": "burned_peat", "name": "The burned peat", "ground": "peat", "size": Vector2(56.0, 32.0),
+		"scatter": [{"kind": "stump", "count": 40, "radius": [0.3, 0.5]}, {"kind": "tree", "count": 8, "radius": [0.45, 0.6]}, {"kind": "rock", "count": 7, "radius": [0.4, 0.7]}],
 	},
 	{
-		"id": "riverbank", "name": "The riverbank", "ground": "riverbank", "size": Vector2(52.0, 24.0),
-		"obstacles": [{"kind": "water", "rect": Rect2(0.0, 24.0 - 1.75, 52.0, 1.75)}],
-		"scatter": [{"kind": "tree", "count": 10, "radius": [0.45, 0.7]}, {"kind": "bush", "count": 16, "radius": [0.45, 0.8]}, {"kind": "rock", "count": 8, "radius": [0.4, 0.8]}],
+		"id": "riverbank", "name": "The riverbank", "ground": "riverbank", "size": Vector2(60.0, 28.0),
+		"obstacles": [{"kind": "water", "rect": Rect2(0.0, 28.0 - 1.75, 60.0, 1.75)}],
+		"scatter": [{"kind": "tree", "count": 13, "radius": [0.45, 0.7]}, {"kind": "bush", "count": 21, "radius": [0.45, 0.8]}, {"kind": "rock", "count": 10, "radius": [0.4, 0.8]}],
 	},
 ]
 ## What comes at him in a grove: its Keepers, maddened by the smoke; the Free Float's peons, still
