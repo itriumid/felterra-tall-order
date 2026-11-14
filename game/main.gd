@@ -749,7 +749,7 @@ func _enter_village(spot: Vector2) -> void:
 	if _online.hosting:
 		_online.run_over({})
 	_village_view.arena = null
-	village_map = VillageMap.new(village.cats, village.restored)
+	village_map = VillageMap.new(village.at_home(), village.restored)
 	village_map.cat.body.position = spot
 	village_map.cat.coat = village.coat
 	_village_view.banners = village.banners
@@ -801,11 +801,10 @@ func _arrive(from_the_forest: bool) -> void:
 		_news.append({"title": "The gate", "text": "Walk out through the gate, on the right, or back down the forest path, on the left, to set out. The board by the gate chooses where."})
 	elif not from_the_forest:
 		for area_id in _lessons_due():
-			var teaches: Dictionary = Areas.named(area_id).teaches
-			lines.append_array(teaches.lines)
+			# What's happened at home is told on the walk in. What its cat teaches waits with them,
+			# a lesson a mutation, to be gone and heard: it was too much to take in on one walk.
 			lines.append_array(Areas.named(area_id).get("home", []))
-			for mutation: String in teaches.mutations:
-				village.tell("elder", Upgrades.MUTATIONS[mutation].name, "A dodge mutation, on your cards from now on. " + Upgrades.MUTATIONS[mutation].explain + ".")
+			village.set_lessons(area_id)
 			var after := Areas.ids().find(area_id) + 1
 			if after < Areas.ids().size() and not Areas.ids()[after] in village.liberated:
 				village.tell("board", "On the map: " + (Areas.named(Areas.ids()[after]).name as String).to_lower(), "Choose it here, at the board by the gate.")
@@ -876,11 +875,17 @@ func _hear(at: String) -> void:
 ## "elder", or "".
 func _beside() -> String:
 	var at := village_map.cat.body.position
+	var near: Array[String] = []
 	if village_map.jogi.body.position.distance_to(at) <= TALK_REACH:
-		return "jogiboy"
+		near.append("jogiboy")
 	if village_map.elder.body.position.distance_to(at) <= TALK_REACH:
-		return "elder"
-	return ""
+		near.append("elder")
+	# Whoever has something for him, first: Jogiboy is always at his heel, and with nothing to say
+	# he was in the way of the Elder, who had.
+	for who in near:
+		if village.has_tidings(who):
+			return who
+	return near[0] if not near.is_empty() else ""
 
 
 ## The areas freed whose lessons haven't been taught yet: they're taught at home, the first time
@@ -1232,7 +1237,8 @@ func _pack_row(id: String) -> Dictionary:
 		row.state = "not learned yet"
 		for area: Dictionary in Areas.LIST:
 			if id.trim_prefix("mutation:") in Areas.teaches(area.id) and village.found(area.id):
-				row.state = "freeing %s teaches it" % (area.name as String).to_lower()
+				var teacher: String = "the Elder" if area.teaches.by == "elder" else area.teaches.by
+				row.state = ("go and hear it from %s" % teacher) if area.id in village.liberated else "freeing %s teaches it" % (area.name as String).to_lower()
 	return row
 
 
@@ -1264,7 +1270,12 @@ func _chapters() -> Array[Dictionary]:
 		if ("outro:" + area.id) in village.told:
 			chapters.append({"name": "%s: freed" % area.name, "lines": Areas.after_lines(area.id, Village.SIGN_UP in village.told)})
 		if ("teach:" + area.id) in village.told:
-			chapters.append({"name": "What %s taught" % _speaker_name(area.teaches.by), "lines": area.teaches.lines + area.get("home", [])})
+			# Home again, and what its cat has taught, as far as he's gone and heard it.
+			var lesson: Array = (area.get("home", []) as Array).duplicate()
+			if Areas.teaches(area.id).any(func(mutation: String) -> bool: return (Village.LEARN + mutation) in village.told):
+				lesson = area.teaches.lines + lesson
+			if not lesson.is_empty():
+				chapters.append({"name": "Home from %s" % (area.name as String).to_lower(), "lines": lesson})
 	# What the old cats say, as far as he's been told.
 	if not village.sayings.is_empty():
 		var said: Array = []
@@ -1925,6 +1936,8 @@ func _end_liberation() -> void:
 ## coat.
 func _from_the_village() -> void:
 	_ran_from_village = true
+	# Nobody caged out there has the name of a cat who's home already.
+	arena.names_home.assign(village.cats.map(func(each: Dictionary) -> String: return each.get("name", "")))
 	cat.coat = village.coat
 	cat.locked.append_array(village.locked_for_run())
 	# A tonic from the healer's hut, drunk on the way out.

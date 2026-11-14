@@ -308,8 +308,29 @@ func add_machine(where: Vector2, heading := 0.0, kind := "feller_buncher") -> Ma
 func add_cage(where: Vector2) -> Cage:
 	var cage := Cage.new(random)
 	cage.body.position = where
+	cage.prisoner.name = _a_name_not_taken(cage.prisoner.name)
 	cages.append(cage)
 	return cage
+
+
+## The names of the cats home already: nobody caged out here has one of them.
+var names_home: Array[String] = []
+
+
+## A name for a caged cat that no cat at home, caged or rescued this run has: the one given if
+## it's free, else the next free one after it. All taken, it's the one given.
+func _a_name_not_taken(wanted: String) -> String:
+	var taken := names_home.duplicate()
+	for cage in cages:
+		taken.append(cage.prisoner.name)
+	for each in rescued:
+		taken.append(each.get("name", ""))
+	var from := maxi(Cage.NAMES.find(wanted), 0)
+	for index in Cage.NAMES.size():
+		var name := Cage.NAMES[(from + index) % Cage.NAMES.size()]
+		if not name in taken:
+			return name
+	return wanted
 
 
 ## Salvage thrown out from a point: each piece flies out and up, and lands where it lands.
@@ -2092,8 +2113,12 @@ func begin_area(area_id: String, goal_kept := false, papers_home: Array[String] 
 		"cages":
 			# Each where the company left it this time: somewhere near its corner, never the same
 			# spot twice running, so the way to them is learned fresh.
-			for spot: Vector2 in goal.at:
-				goal_cages.append(add_cage(_goal_cage_spot(spot)))
+			# The same cats each time he tries: a cage opened on a run that failed holds the cat
+			# it held, who's home already, and isn't housed twice.
+			for index in goal.at.size():
+				var cage := add_cage(_goal_cage_spot(goal.at[index]))
+				cage.prisoner = {"name": Cage.NAMES[(absi(hash(area_id)) + index * 7) % Cage.NAMES.size()], "coat": Cage.COATS[(absi(hash(area_id)) + index) % Cage.COATS.size()]}
+				goal_cages.append(cage)
 		"levers":
 			for spot: Vector2 in goal.at:
 				levers.append({"position": spot, "picked": 0.0, "pulled": false})

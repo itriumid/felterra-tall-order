@@ -80,6 +80,8 @@ func test_what_a_run_brings_home_stays_until_reset() -> void:
 	arena.salvage = 7
 	var village := Village.new()
 	village.bring_home(arena)
+	# Another run, and another cat: the same one brought home twice is housed once.
+	arena.rescued = [{"name": "Belang", "coat": "gray"}]
 	village.bring_home(arena)
 	var path := "user://test_village.cfg"
 	check(village.save(path), "the village didn't save")
@@ -138,3 +140,42 @@ func test_a_fighter_throws_a_firecracker_on_its_way_out() -> void:
 	var freed := _freed("fighter", 3.0, true)
 	var rat: Creature = freed.rat
 	check((freed.cage as Cage).thrown and rat.health < 1000.0, "the fighter's firecracker never hit the rat")
+
+
+func test_a_cat_comes_home_once_under_a_name_of_its_own() -> void:
+	var village := Village.new()
+	village.take_earnings({"rescued": [{"name": "Bean", "coat": "black"}, {"name": "Mochi", "coat": "gray"}]})
+	village.take_earnings({"rescued": [{"name": "Bean", "coat": "orange"}]})
+	check(village.cats.size() == 2, "Bean was housed twice: %s" % [village.cats])
+	# Out on a run, nobody caged has the name of a cat at home, or of another in a cage.
+	var arena := Arena.new()
+	arena.spawning = false
+	arena.names_home.assign(["Bean", "Mochi"])
+	var names := {}
+	for index in 12:
+		var cage := arena.add_cage(Vector2(5.0 + index, 5.0))
+		check(not cage.prisoner.name in ["Bean", "Mochi"], "a cat at home was caged again: %s" % cage.prisoner.name)
+		check(not names.has(cage.prisoner.name), "two cages hold a %s" % cage.prisoner.name)
+		names[cage.prisoner.name] = true
+
+
+func test_an_area_s_caged_are_the_same_cats_each_try() -> void:
+	var first := Arena.new(1)
+	first.begin_area("deep")
+	var second := Arena.new(2)
+	second.begin_area("deep")
+	var names := func(arena: Arena) -> Array: return arena.goal_cages.map(func(cage: Cage) -> String: return cage.prisoner.name)
+	check(names.call(first) == names.call(second), "the deep forest's caged changed between tries: %s, then %s" % [names.call(first), names.call(second)])
+	var all: Array = names.call(first)
+	for name: String in all:
+		check(all.count(name) == 1, "two of the deep forest's caged are called %s" % name)
+
+
+func test_granny_whiskers_is_home_until_she_goes_to_find_the_others() -> void:
+	var village := Village.new()
+	check(village.at_home().any(func(each: Dictionary) -> bool: return each.name == "Granny Whiskers"), "she's in the story's opening and nowhere in the village")
+	village.liberate("edge")
+	village.told.append("teach:edge")
+	check(not village.at_home().any(func(each: Dictionary) -> bool: return each.name == "Granny Whiskers"), "she said she was going, and stayed")
+	village.liberate("deep")
+	check(village.at_home().filter(func(each: Dictionary) -> bool: return each.name == "Granny Whiskers").size() == 1, "freed, she isn't home once")

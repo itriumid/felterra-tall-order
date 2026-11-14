@@ -1298,7 +1298,7 @@ func _draw_summary() -> void:
 	# What freeing the area taught him, the first time.
 	var learned: Array = summary.get("learned", [])
 	if not learned.is_empty():
-		brought.append(["learned", "Learned", ", ".join(learned)])
+		brought.append(["learned", "To learn at home", ", ".join(learned)])
 	var went := [
 		["time", "Survived", "%d:%02d" % [int(summary.get("time", 0.0)) / 60, int(summary.get("time", 0.0)) % 60]],
 		["level", "Level reached", str(summary.get("level", 1))],

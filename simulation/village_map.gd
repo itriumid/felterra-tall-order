@@ -248,6 +248,21 @@ static func standing() -> Array[Obstacle]:
 	return walls
 
 
+## What each of the cast wears, so they're told from the rescued, and from one another, at a
+## glance: the smith his goggles, gloves and belt; the weaver her glasses and lace; the scout a
+## lamp and a scarf; and so on. The rescued wear nothing.
+const CAST_WEARS := {
+	"Uncle Anvil": {"eyes": "goggles", "paws": "gloves", "waist": "tool_belt"},
+	"Granny Whiskers": {"eyes": "safety_glasses", "body": "kebaya"},
+	"Patch": {"neck": "bandana", "paws": "wristbands"},
+	"Saffron": {"eyes": "headlamp", "neck": "scarf"},
+	"Coffee": {"head": "peci"},
+	"Cream": {"body": "batik_shirt"},
+	"Auntie Clove": {"head": "caping", "waist": "jamu_flask"},
+	"Skipper": {"body": "life_jacket"},
+}
+
+
 func _init(rescued: Array = [], restored: Array = [], seed_value := 39) -> void:
 	random.seed = seed_value
 	cat.weapons.clear()
@@ -276,6 +291,7 @@ func _init(rescued: Array = [], restored: Array = [], seed_value := 39) -> void:
 		var villager := Cat.new()
 		villager.weapons.clear()
 		villager.coat = each.get("coat", "orange")
+		villager.gear = (CAST_WEARS.get(each.get("name", ""), {}) as Dictionary).duplicate()
 		villager.body.position = _somewhere_in_the_village()
 		villagers.append(villager)
 		names.append(each.get("name", ""))
