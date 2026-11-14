@@ -22,7 +22,9 @@ extends Node
 ## --villagers=<count> puts that many rescued cats in it, for this run only; --restored=<all, or
 ## names> shows those buildings brought back from ruin; --salvage=<count> and --cloth=<count> give
 ## the village that much to spend; --liberated=<ids> has those areas freed already; --at-door=<building>
-## stands him at its door; --shop opens what that door holds.
+## stands him at its door; --shop opens what that door holds; --minute=<count> starts Endless that
+## many minutes in, as hard as it is by then; --level=<count> starts the crew at that level, its
+## cards played the way Autoplay plays them, for the weapon he starts with.
 
 ## The light under the canopy in the clearing, and at the village, where it's open to the sky.
 const SHADE := Color(0.62, 0.68, 0.62)
@@ -318,6 +320,10 @@ var _besiege_after_news := false
 ## next walks home.
 var _spirits_withdrew := false
 var _force_intro := false
+## For trying the late game without playing to it: the minute an Endless run starts at, and the
+## level the crew starts at.
+var _dev_minute := 0.0
+var _dev_level := 0
 ## Which of the last run's numbers beat the best.
 var _beaten: Array[String] = []
 var settings := Settings.new()
@@ -400,6 +406,10 @@ func _ready() -> void:
 				village.cats.append({"name": Cage.NAMES[index % Cage.NAMES.size()], "coat": Cage.COATS[index % Cage.COATS.size()]})
 		elif argument.begins_with("--seed="):
 			_dev_seed = argument.trim_prefix("--seed=").to_int()
+		elif argument.begins_with("--minute="):
+			_dev_minute = argument.trim_prefix("--minute=").to_float()
+		elif argument.begins_with("--level="):
+			_dev_level = argument.trim_prefix("--level=").to_int()
 		elif argument.begins_with("--offerings="):
 			village.offerings = argument.trim_prefix("--offerings=").to_int()
 		elif argument.begins_with("--salvage="):
@@ -548,6 +558,7 @@ func _ready() -> void:
 		elif not _dev_host:
 			# Endless's clearing as a run has it: its own shape, from --seed if given.
 			_set_up_run("endless")
+		_start_late()
 		if _dev_host:
 			_online.host()
 			if _run_kind.is_empty():
@@ -1479,6 +1490,17 @@ func _process(delta: float) -> void:
 		_end_run()
 	_overlay.goal = arena.goal_progress()
 	_take_screenshot(delta)
+
+
+## The late start: the world as many minutes in as asked, and the crew as many levels up, each
+## card played as Autoplay would, so a late fight can be looked at without playing to it.
+func _start_late() -> void:
+	if _dev_minute > 0.0:
+		arena.time = _dev_minute * 60.0
+	while arena.level < _dev_level:
+		arena._gain_experience(Arena.experience_needed(arena.level) - arena.experience)
+		for each in arena.cats:
+			Autoplay.play_all(each)
 
 
 ## In the siege, each roof alight throws its light about, flickering; put out, it's dark.
