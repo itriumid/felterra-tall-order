@@ -27,6 +27,9 @@ extends Node
 ## The light under the canopy in the clearing, and at the village, where it's open to the sky.
 const SHADE := Color(0.62, 0.68, 0.62)
 const VILLAGE_SHADE := Color(0.82, 0.86, 0.8)
+## The siege comes at night, as the story tells it: the village in blue dark, lit by its own roofs
+## burning and the Keepers' lights, which is all anyone sees by.
+const SIEGE_SHADE := Color(0.38, 0.42, 0.6)
 ## Sun through the canopy's gaps: where it reaches the ground, in meters.
 const SHAFTS: Array[Vector2] = [
 	Vector2(8.0, 6.0), Vector2(19.0, 10.0), Vector2(30.0, 7.0), Vector2(13.0, 17.0), Vector2(27.0, 18.0),
@@ -240,6 +243,9 @@ var _village_view: VillageView
 var _arena_layer: Node2D
 var _village_layer: Node2D
 var _shade: CanvasModulate
+## The burning roofs' light in the siege, one for each roof that can catch.
+var _fire_lights: Array[PointLight2D] = []
+const SIEGE_FIRES := 4
 ## The cutscene playing, if one is: the walk into the village, with or without the opening told
 ## over it.
 var _cutscene: Cutscene
@@ -575,6 +581,16 @@ func _build_scene() -> void:
 	_world.add_child(_village_layer)
 	_village_view = VillageView.new()
 	_village_layer.add_child(_village_view)
+	# A light for each roof that can burn in the siege, out until it does.
+	var fire_texture := _soft_light(Vector2i(260, 220))
+	for index in SIEGE_FIRES:
+		var fire := PointLight2D.new()
+		fire.texture = fire_texture
+		fire.color = Palette.HI_VIS
+		fire.height = 30.0
+		fire.energy = 0.0
+		_village_layer.add_child(fire)
+		_fire_lights.append(fire)
 	_ground = GroundView.new()
 	_arena_layer.add_child(_ground)
 	_entities = EntitiesView.new()
@@ -1456,12 +1472,32 @@ func _process(delta: float) -> void:
 	_muzzle_light.position = World.to_screen(cat.body.position, Cat.GUN_HEIGHT) + cat.aim * 10.0
 	_muzzle_light.energy = 1.6 * _entities.flash.get(cat, 0.0)
 	_glow_on_level_up(delta)
+	_light_the_fires()
 	if arena.liberated and cat.alive():
 		_begin_freeing()
 	elif arena.over():
 		_end_run()
 	_overlay.goal = arena.goal_progress()
 	_take_screenshot(delta)
+
+
+## In the siege, each roof alight throws its light about, flickering; put out, it's dark.
+func _light_the_fires() -> void:
+	for index in _fire_lights.size():
+		var fire := _fire_lights[index]
+		fire.energy = 0.0
+		if index >= arena.roofs.size():
+			continue
+		var roof: Dictionary = arena.roofs[index]
+		if not roof.lit or roof.out:
+			continue
+		var footprint := VillageMap.footprint_of(roof.building)
+		fire.position = World.to_screen(footprint.get_center(), VillageView.FLOOR + VillageView.WALL + VillageView.ROOF)
+		fire.energy = 1.5 + 0.25 * sin(_clock_seconds() * 11.0 + index * 2.0) + 0.15 * sin(_clock_seconds() * 23.0 + index)
+
+
+func _clock_seconds() -> float:
+	return Time.get_ticks_msec() / 1000.0
 
 
 ## Up a level: a glow from him, bright at once and fading.
@@ -1646,7 +1682,7 @@ func _fight_in_the_village(fighting: bool) -> void:
 	_village_view.banners = village.banners
 	_village_layer.visible = true
 	_arena_layer.visible = false
-	_shade.color = VILLAGE_SHADE
+	_shade.color = SIEGE_SHADE
 
 
 ## The cub at his heel, where it walks beside him: while he walks in, the world held still, it
