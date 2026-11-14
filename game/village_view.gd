@@ -66,7 +66,9 @@ func _ready() -> void:
 		for band: Array in [[0.4, VillageMap.PATH_TOP - 0.5], [VillageMap.PATH_BOTTOM + 3.6, VillageMap.SIZE.y + 0.4]]:
 			var y: float = band[0] + random.randf_range(0.0, 0.8)
 			while y < band[1]:
-				_plant_tree(Vector2(x + random.randf_range(-0.3, 0.3), y), random)
+				# Thinning out over its last few meters, so it ends raggedly, never in a column.
+				if random.randf() >= _thinning(x):
+					_plant_tree(Vector2(x + random.randf_range(-0.3, 0.3), y), random)
 				y += random.randf_range(1.4, 2.2)
 		x += random.randf_range(0.9, 1.5)
 	# Around the village, the forest it was cut back from: behind it, past the gate but for the
@@ -86,13 +88,32 @@ func _ready() -> void:
 		if y < VillageMap.PATH_TOP - 0.6 or y > VillageMap.PATH_BOTTOM + 0.8:
 			_plant_tree(Vector2(VillageMap.SIZE.x - random.randf_range(0.0, 0.3), y), random)
 		y += random.randf_range(1.2, 2.0)
+	# Undergrowth where the trees thin out, low clumps on the ground off the path, so the forest's
+	# end has a fringe to it.
+	for index in 36:
+		var spot := Vector2(random.randf_range(VillageMap.VILLAGE_FROM - 3.5, VillageMap.VILLAGE_FROM + 0.3), random.randf_range(0.3, VillageMap.SIZE.y - 0.3))
+		if spot.y > VillageMap.PATH_TOP - 0.6 and spot.y < VillageMap.PATH_BOTTOM + 0.8:
+			continue
+		var clump := EnvironmentArt.leaves(random.randi_range(7, 12), random.randi(), random.randf() < 0.4)
+		_leaves.append({"texture": ImageTexture.create_from_image(clump), "at": (World.to_screen(spot) - Vector2(clump.get_size()) / 2.0).round()})
 	# Leaves overhead: heavy over the forest path, open over the village.
 	for index in 140:
 		var spot := Vector2(random.randf_range(0.0, VillageMap.VILLAGE_FROM - 0.6), random.randf_range(-0.2, VillageMap.SIZE.y + 0.2))
 		if spot.y > VillageMap.PATH_TOP + 0.4 and spot.y < VillageMap.PATH_BOTTOM - 0.4 and random.randf() < 0.7:
 			continue
+		if random.randf() < _thinning(spot.x):
+			continue
 		var picture := EnvironmentArt.leaves(random.randi_range(12, 22), random.randi(), random.randf() < 0.6)
 		_leaves.append({"texture": ImageTexture.create_from_image(picture), "at": (World.to_screen(spot) - Vector2(picture.get_size()) / 2.0).round()})
+
+
+## How thin the forest is at a point along the way in, as the chance a tree or a clump of leaves
+## is left out: none deep in the trees, rising over the last FOREST_THINS meters to the village.
+const FOREST_THINS := 3.0
+
+
+static func _thinning(x: float) -> float:
+	return clampf((x - (VillageMap.VILLAGE_FROM - 0.8 - FOREST_THINS)) / FOREST_THINS, 0.0, 0.85)
 
 
 func _plant_tree(foot: Vector2, random: RandomNumberGenerator) -> void:
@@ -756,6 +777,11 @@ func _draw_palm(footprint: Rect2) -> void:
 ## orange marks where it isn't, and the paths between.
 ## The Great Tiger's shrine: a small candi of old stone, three tiers stepping in, moss in its
 ## joints, a niche where the forest's lights keep, and offerings of flowers at its foot.
+## The shrine's stones: how tall a course is on its top, and how long a block, in pixels.
+const SHRINE_COURSE := 6
+const SHRINE_BLOCK := 14
+
+
 func _draw_shrine(footprint: Rect2) -> void:
 	var tier_height := 12
 	var left := roundi(footprint.position.x * World.PIXELS_PER_METER)
@@ -779,6 +805,25 @@ func _draw_shrine(footprint: Rect2) -> void:
 		draw_rect(Rect2(tier_left, tier_front - lift - tier_height, tier_right - tier_left, tier_height), Palette.STEEL)
 		draw_rect(Rect2(tier_right - 3, tier_front - lift - tier_height, 3, tier_height), Palette.STEEL_DARK)
 		draw_rect(Rect2(tier_left, tier_front - lift - 1, tier_right - tier_left, 1), Palette.STEEL_DARK)
+		# Laid in courses of stone: on its top, joints across every few rows with the blocks
+		# staggered from course to course, lit along the top's back edge; on its face, the blocks'
+		# ends.
+		var top := Rect2(tier_left, tier_back - lift - tier_height, tier_right - tier_left, tier_front - tier_back)
+		draw_rect(Rect2(top.position, Vector2(top.size.x, 1)), Palette.STEEL_LIGHT)
+		var course := 0
+		var row := top.position.y + SHRINE_COURSE
+		while row < top.end.y - 1:
+			draw_rect(Rect2(top.position.x, row, top.size.x, 1), Palette.STEEL)
+			var joint := top.position.x + (SHRINE_BLOCK / 2 if course % 2 == 1 else 0) + SHRINE_BLOCK
+			while joint < top.end.x - 2:
+				draw_rect(Rect2(joint, row - SHRINE_COURSE + 1, 1, SHRINE_COURSE - 1), Palette.STEEL)
+				joint += SHRINE_BLOCK
+			row += SHRINE_COURSE
+			course += 1
+		var end := tier_left + SHRINE_BLOCK - 4 + tier * 3
+		while end < tier_right - 4:
+			draw_rect(Rect2(end, tier_front - lift - tier_height + 1, 1, tier_height - 2), Palette.STEEL_DARK)
+			end += SHRINE_BLOCK
 		# Moss in the joints.
 		for index in 4:
 			var x := tier_left + 3 + ((index * 11 + tier * 5) % maxi(tier_right - tier_left - 6, 1))

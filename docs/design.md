@@ -525,7 +525,10 @@ on: fire and oil, or crewmates who can be downed.
     mat and coconut palms make it a village and not a row of huts. A house below the road shows
     its back wall, and lifts its roof off while he's at its door, so he's never hidden behind
     it. The cats he's rescued live there, each in its own coat, and show their names as he
-    passes.
+    passes. The forest path doesn't stop at a line: its one road runs on into the village's,
+    the trees thin out over their last few meters with undergrowth at their feet, and the
+    village's earth breaks through the forest floor in patches. The shrine is laid in courses of
+    stone.
   - **It starts in ruins.** The company's machines have already been through: his own home, the
     Elder's longhouse, the smithy and five huts all stand wrecked, holed, scorched and
     half-roofed. Restored, the village is bright and lived-in, drawn the cartoon way: chunky stilts,

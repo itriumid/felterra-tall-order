@@ -296,6 +296,10 @@ static func _gravel_pads(picture: Image, healed: bool, cabins: Array[Rect2]) -> 
 
 ## The way into the village: forest floor to the left, deep in leaf litter, the village's
 ## trodden earth to the right, and a path of bare earth running through both. Sizes in pixels.
+## How wide the stretch is where the forest gives way to the village, in pixels.
+const TRANSITION := 140.0
+
+
 static func village_ground(size: Vector2i, seed_value: int, village_from: int, path_top: int, path_bottom: int, worn: Array[Rect2] = []) -> Image:
 	var growth := FastNoiseLite.new()
 	growth.seed = seed_value
@@ -304,6 +308,11 @@ static func village_ground(size: Vector2i, seed_value: int, village_from: int, p
 	var wobble := FastNoiseLite.new()
 	wobble.seed = seed_value + 1
 	wobble.frequency = 0.02
+	# Where the forest gives way to the village: not at a line but over a stretch, the village's
+	# earth breaking through the forest floor in patches, the way a clearing's edge does.
+	var breaking := FastNoiseLite.new()
+	breaking.seed = seed_value + 2
+	breaking.frequency = 0.06
 	var random := RandomNumberGenerator.new()
 	random.seed = seed_value
 	var picture := Image.create_empty(size.x, size.y, false, Image.FORMAT_RGBA8)
@@ -321,16 +330,20 @@ static func village_ground(size: Vector2i, seed_value: int, village_from: int, p
 		for x in size.x:
 			var value := growth.get_noise_2d(x, y) * 0.5 + 0.5 + (0.03 if (x + y) % 2 == 0 else -0.03)
 			var edge := wobble.get_noise_1d(x) * 6.0
-			var in_village := x + wobble.get_noise_1d(y) * 14.0 > village_from
-			# Through the village the path is a worn track, narrower than the way through the trees.
-			var narrowing := 18.0 if in_village else 0.0
+			# How far into the village, from the forest's side of the stretch (0) to the village's (1).
+			var into := clampf((x + wobble.get_noise_1d(y) * 30.0 - village_from + TRANSITION * 0.5) / TRANSITION, 0.0, 1.0)
+			var in_village := into > breaking.get_noise_2d(x, y) * 0.5 + 0.5
+			# Through the village the path is a worn track, narrower than the way through the trees,
+			# and it narrows as it goes in, never in a step.
+			var narrowing := 18.0 * into
 			var on_path := y > path_top + narrowing + edge and y < path_bottom - narrowing + edge
 			var trodden := worn_mask[y * size.x + x] == 1
 			# Grass keeps to the village's edges, where nobody walks.
 			var from_edge := minf(y, size.y - y) / size.y
 			var color: Color
 			if on_path:
-				color = (Palette.MUD if value > 0.45 else Palette.MUD_DARK) if in_village else (Palette.MUD_LIGHT if value > 0.42 else Palette.MUD)
+				# The one road, forest and village alike, so the way in runs straight into it.
+				color = Palette.MUD if value > 0.45 else Palette.MUD_DARK
 			elif trodden:
 				color = Palette.MUD_LIGHT if value > 0.4 else Palette.MUD
 			elif in_village:
