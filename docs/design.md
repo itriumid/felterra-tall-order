@@ -160,6 +160,11 @@ A clearing the company has cut in an Indonesian tropical forest.
   screens each way (a screen shows 16 by 9 meters), so four cats can spread out and a horde comes
   in from every side; a grove is 52 to 60 meters across. Grass grows as thick on a big place as on
   a small one.
+- **It isn't a box.** Along each side the jungle comes in by its own depth, wandering up to
+  three meters (two in a grove), and deepest at the corners, so they're rounded: each run's
+  clearing its own shape, from its seed, so a guest online lays out the same one. The horde
+  comes out of the jungle wherever its edge is, and goes back into it there. The liberation
+  areas, laid out by hand, keep their rectangles.
 - **The jungle is the wall** around the arena: living, thick, impassable. It's drawn as one:
   foliage filling everything past the edge, reaching ragged over it, darkest furthest out, with
   trees and big leaves at its foot. The camera never looks further past the edge than a little

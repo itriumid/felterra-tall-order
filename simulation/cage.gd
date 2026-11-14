@@ -115,19 +115,15 @@ func throw_at(arena: Arena) -> bool:
 	return thrown
 
 
-## The freed cat runs for the nearest edge of the clearing, and is home once it reaches it.
-func run_home(delta: float, size: Vector2) -> void:
+## The freed cat runs for the nearest edge of the clearing, given as the point on it, and is home
+## once it reaches it.
+func run_home(delta: float, nearest: Vector2) -> void:
 	if not opened or home:
 		return
 	freed_for += delta
 	# It has its say first, by the cage.
 	if freed_for < LINGER[temperament]:
 		return
-	var edges := [Vector2(runner.position.x, 0.0), Vector2(runner.position.x, size.y), Vector2(0.0, runner.position.y), Vector2(size.x, runner.position.y)]
-	var nearest: Vector2 = edges[0]
-	for edge: Vector2 in edges:
-		if runner.position.distance_to(edge) < runner.position.distance_to(nearest):
-			nearest = edge
 	runner.velocity = (nearest - runner.position).normalized() * RUN_SPEED
 	runner.position += runner.velocity * delta
 	ran += RUN_SPEED * delta

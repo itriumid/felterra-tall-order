@@ -84,7 +84,7 @@ func paint(theme: String, seed_value: int, healed: bool) -> void:
 	var thickness := meters.x * meters.y / GROWTH_PER
 	for index in int(GROWTH * thickness) * (2 if healed else 1) / (1 if theme in ["clearing", "edge", "deep", "slide"] or healed else 3):
 		var where := Vector2(random.randf() * meters.x, random.randf() * meters.y)
-		if arena != null and arena.solid_at(where):
+		if arena != null and (arena.solid_at(where) or not arena.inside(where)):
 			continue
 		_growth.append({"position": where, "kind": "fern" if random.randf() < 0.25 else "tuft"})
 	_plant_edge(random)
@@ -176,8 +176,8 @@ func _plant_edge(random: RandomNumberGenerator) -> void:
 	var trees: Array[Dictionary] = []
 	var along := random.randf_range(0.0, TREE_SPACING.x)
 	while along < perimeter:
-		var point := _on_edge(along, size)
 		var outward := _outward(along, size)
+		var point := _on_shape(along, size)
 		along += random.randf_range(TREE_SPACING.x, TREE_SPACING.y) * (1.8 if _wrecked else 1.0)
 		if _in_a_corner(point, size):
 			continue
@@ -197,7 +197,7 @@ func _plant_edge(random: RandomNumberGenerator) -> void:
 	along = 0.0
 	while along < perimeter:
 		along += random.randf_range(10.0, 20.0)
-		var point := _on_edge(along, size)
+		var point := _on_shape(along, size)
 		var outward := _outward(along, size)
 		var part: Image
 		if random.randf() < 0.3:
@@ -211,10 +211,30 @@ func _plant_edge(random: RandomNumberGenerator) -> void:
 	_edge_picture = ImageTexture.create_from_image(picture)
 
 
+## A point on the place's edge, so far round it: on its rectangle, brought in to where the jungle
+## comes in to, when the place has a shape of its own.
+func _on_shape(along: float, size: Vector2) -> Vector2:
+	var point := _on_edge(along, size)
+	if arena == null or not arena.shaped():
+		return point
+	var meters_at := point / World.PIXELS_PER_METER
+	var outward := _outward(along, size)
+	var side := 0 if outward == Vector2.UP else (1 if outward == Vector2.DOWN else (2 if outward == Vector2.LEFT else 3))
+	var coordinate := meters_at.x if side < 2 else meters_at.y
+	return point - outward * arena.depth(side, coordinate) * World.PIXELS_PER_METER
+
+
 func _in_a_corner(point: Vector2, size: Vector2) -> bool:
 	var near_x := point.x < CORNER_CLEAR or point.x > size.x - CORNER_CLEAR
 	var near_y := point.y < CORNER_CLEAR or point.y > size.y - CORNER_CLEAR
 	return near_x and near_y
+
+
+## Whether a point, in meters, is inside the place by a margin: its shape, or its rectangle.
+func _in_the_place(where: Vector2, margin: float) -> bool:
+	if arena != null and arena.shaped():
+		return arena.inside(where, margin)
+	return Rect2(Vector2.ZERO, meters).grow(-margin).has_point(where)
 
 
 ## The jungle past the edge, as a wall of leaves: clumps on a jittered grid filling everything
@@ -224,19 +244,19 @@ func _raise_the_wall(picture: Image, size: Vector2, random: RandomNumberGenerato
 	var clumps: Array[Image] = []
 	for index in 12:
 		clumps.append(EnvironmentArt.leaves(random.randi_range(9, 14), random.randi(), index < 8))
-	var place := Rect2(Vector2.ZERO, size)
 	var whole := Vector2(picture.get_size())
 	var y := 0.0
 	while y < whole.y:
 		var x := 0.0
 		while x < whole.x:
 			var at := Vector2(x, y) - Vector2.ONE * EDGE_MARGIN + Vector2(random.randf_range(-5.0, 5.0), random.randf_range(-5.0, 5.0))
-			var inside := place.grow(-WALL_REACH).has_point(at)
-			var reaching := place.has_point(at) and not inside
+			var meters_at := at / World.PIXELS_PER_METER
+			var inside := _in_the_place(meters_at, WALL_REACH / World.PIXELS_PER_METER)
+			var reaching := _in_the_place(meters_at, 0.0) and not inside
 			if not inside and (not reaching or random.randf() < 0.45):
 				var clump: Image = clumps[random.randi_range(0, clumps.size() - 1)]
 				# Further from the place, only the darkest.
-				if place.grow(40.0).has_point(at) == false:
+				if not _in_the_place(meters_at, -1.0):
 					clump = clumps[random.randi_range(0, 7)]
 				picture.blend_rect(clump, Rect2i(Vector2i.ZERO, clump.get_size()), Vector2i((at - Vector2(clump.get_size()) / 2.0).round()) + Vector2i.ONE * EDGE_MARGIN)
 			x += WALL_STEP

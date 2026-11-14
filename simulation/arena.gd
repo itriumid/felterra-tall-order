@@ -1451,7 +1451,7 @@ func _pick_locks() -> void:
 			rescued.append(cage.prisoner)
 			events.append({"position": cage.body.position, "height": 0.2, "direction": Vector2.ZERO, "killed": false, "by": "cage_open", "giant": false, "kind": "cage"})
 		cage.throw_at(self)
-		cage.run_home(STEP, size)
+		cage.run_home(STEP, edge_near(cage.runner.position))
 		if cage.opened and not cage.home:
 			_keep_inside(cage.runner, true)
 	cages = cages.filter(func(cage: Cage) -> bool: return not cage.home)
@@ -1648,10 +1648,7 @@ func _wander() -> void:
 	if fleeing:
 		for walker: Object in creatures + giants:
 			if not walker.wander_to.is_finite():
-				var at: Vector2 = walker.body.position
-				var edges := [Vector2(at.x, -1.0), Vector2(at.x, size.y + 1.0), Vector2(-1.0, at.y), Vector2(size.x + 1.0, at.y)]
-				edges.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.distance_to(at) < b.distance_to(at))
-				walker.wander_to = edges[0]
+				walker.wander_to = edge_near(walker.body.position, 1.0)
 		creatures = creatures.filter(func(creature: Creature) -> bool: return creature.body.position.distance_to(creature.wander_to) > 1.6)
 		giants = giants.filter(func(giant: Giant) -> bool: return not giant.standing() or giant.body.position.distance_to(giant.wander_to) > 1.8)
 		return
@@ -1659,14 +1656,97 @@ func _wander() -> void:
 		return
 	for creature in creatures:
 		if not creature.wander_to.is_finite() or creature.body.position.distance_to(creature.wander_to) < 0.4:
-			creature.wander_to = Vector2(random.randf_range(1.0, size.x - 1.0), random.randf_range(1.0, size.y - 1.0))
+			creature.wander_to = pull_inside(Vector2(random.randf_range(1.0, size.x - 1.0), random.randf_range(1.0, size.y - 1.0)), 1.0)
 	for giant in giants:
 		if not giant.wander_to.is_finite() or giant.body.position.distance_to(giant.wander_to) < 1.0:
-			giant.wander_to = Vector2(random.randf_range(3.0, size.x - 3.0), random.randf_range(3.0, size.y - 3.0))
+			giant.wander_to = pull_inside(Vector2(random.randf_range(3.0, size.x - 3.0), random.randf_range(3.0, size.y - 3.0)), 3.0)
+
+
+## A clearing isn't a box. Along each side the jungle comes in by its own depth, which wanders:
+## bulging in here, falling back there, and deepest at the corners, so they're rounded. Kept as
+## each side's depth every SHAPE_STEP meters along it (top, bottom, left, right), from the run's
+## seed, so a guest online lays out the same clearing. With none, the place is its rectangle: the
+## liberation areas, laid out by hand, are.
+const SHAPE_STEP := 0.5
+## A grove's jungle comes in less: its drains and what stands in it need the room.
+const GROVE_DEEPEST := 2.0
+## How far the jungle comes in, in meters: at most, and at the corners besides.
+const SHAPE_DEEPEST := 3.0
+const SHAPE_CORNER := 3.5
+const SHAPE_CORNER_REACH := 6.0
+var _depths: Array[PackedFloat32Array] = []
+
+
+## Shapes the place from a seed: Endless's clearing and a grove are. How deep the jungle comes in
+## is up to `deepest` meters.
+func shape(seed_value: int, deepest := SHAPE_DEEPEST) -> void:
+	var dice := RandomNumberGenerator.new()
+	dice.seed = seed_value * 7 + 3
+	_depths.clear()
+	for side in 4:
+		var length := size.x if side < 2 else size.y
+		var count := ceili(length / SHAPE_STEP) + 1
+		var depths := PackedFloat32Array()
+		depths.resize(count)
+		var long_wave := dice.randf_range(10.0, 16.0)
+		var short_wave := dice.randf_range(4.0, 7.0)
+		var phases := [dice.randf() * TAU, dice.randf() * TAU]
+		for index in count:
+			var along := index * SHAPE_STEP
+			var wander := 0.5 + 0.3 * sin(along / long_wave * TAU + phases[0]) + 0.2 * sin(along / short_wave * TAU + phases[1])
+			var from_end := minf(along, length - along)
+			var corner := SHAPE_CORNER * pow(maxf(1.0 - from_end / SHAPE_CORNER_REACH, 0.0), 2.0)
+			depths[index] = clampf(wander, 0.0, 1.0) * deepest + corner
+		_depths.append(depths)
+
+
+## Whether the place has a shape of its own, or is its rectangle.
+func shaped() -> bool:
+	return not _depths.is_empty()
+
+
+## How far the jungle comes in on a side (0 top, 1 bottom, 2 left, 3 right) at a point along it.
+func depth(side: int, along: float) -> float:
+	if _depths.is_empty():
+		return 0.0
+	var depths := _depths[side]
+	var at := clampf(along / SHAPE_STEP, 0.0, depths.size() - 1.0)
+	var low := floori(at)
+	var high := mini(low + 1, depths.size() - 1)
+	return lerpf(depths[low], depths[high], at - low)
+
+
+## Whether a point is inside the place, by a margin: inside its shape, not just its rectangle.
+func inside(where: Vector2, margin := 0.0) -> bool:
+	return where.x >= depth(2, where.y) + margin and where.x <= size.x - depth(3, where.y) - margin \
+			and where.y >= depth(0, where.x) + margin and where.y <= size.y - depth(1, where.x) - margin
+
+
+## A point brought inside the place, by a margin, if it isn't.
+func pull_inside(where: Vector2, margin := 0.0) -> Vector2:
+	var low_x := depth(2, where.y) + margin
+	var high_x := size.x - depth(3, where.y) - margin
+	var x := clampf(where.x, low_x, maxf(high_x, low_x))
+	var low_y := depth(0, x) + margin
+	var high_y := size.y - depth(1, x) - margin
+	return Vector2(x, clampf(where.y, low_y, maxf(high_y, low_y)))
+
+
+## The point on the jungle's edge nearest a point, moved along it by `past` meters (out into the
+## jungle if positive, in from it if negative).
+func edge_near(at: Vector2, past := 0.0) -> Vector2:
+	var edges: Array[Vector2] = [
+		Vector2(at.x, depth(0, at.x) - past), Vector2(at.x, size.y - depth(1, at.x) + past),
+		Vector2(depth(2, at.y) - past, at.y), Vector2(size.x - depth(3, at.y) + past, at.y),
+	]
+	edges.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.distance_to(at) < b.distance_to(at))
+	return edges[0]
 
 
 func _keep_inside(body: Body, sidestep := false, big := false) -> void:
 	var inside := body.position.clamp(Vector2.ONE * body.radius, size - Vector2.ONE * body.radius)
+	if not _depths.is_empty():
+		inside = pull_inside(body.position, body.radius)
 	if inside.x != body.position.x:
 		body.velocity.x = 0.0
 	if inside.y != body.position.y:
@@ -1912,7 +1992,7 @@ func _send_on_errands() -> void:
 
 ## The nearest point just inside the edge, where the trees start, that nothing stands on.
 func _nearest_edge(at: Vector2) -> Vector2:
-	var edges: Array[Vector2] = [Vector2(at.x, 0.3), Vector2(at.x, size.y - 0.3), Vector2(0.3, at.y), Vector2(size.x - 0.3, at.y)]
+	var edges: Array[Vector2] = [Vector2(at.x, depth(0, at.x) + 0.3), Vector2(at.x, size.y - depth(1, at.x) - 0.3), Vector2(depth(2, at.y) + 0.3, at.y), Vector2(size.x - depth(3, at.y) - 0.3, at.y)]
 	edges.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.distance_to(at) < b.distance_to(at))
 	for edge in edges:
 		if not solid_at(edge, 0.3):
@@ -2022,7 +2102,14 @@ func begin_grove(seed_value: int) -> void:
 	grove = true
 	plan = Areas.GROVE_PLAN
 	var grove := Areas.grove(seed_value)
-	lay_out(grove.size, Areas.obstacles(grove))
+	size = grove.size
+	shape(seed_value, GROVE_DEEPEST)
+	# What's scattered stands inside the grove, not out in the jungle round it.
+	var standing: Array[Obstacle] = []
+	for obstacle in Areas.obstacles(grove):
+		if obstacle.kind == "water" or inside(obstacle.center, obstacle.radius + 0.5):
+			standing.append(obstacle)
+	lay_out(grove.size, standing)
 	_reset_spawning()
 	cleansed = false
 	drains.clear()
@@ -2036,12 +2123,12 @@ func begin_grove(seed_value: int) -> void:
 func _drain_spot(near: Vector2) -> Vector2:
 	for attempt in 24:
 		var spot := near + Vector2(random.randf_range(-2.5, 2.5), random.randf_range(-2.0, 2.0))
-		if not Rect2(Vector2(3.0, 3.0), size - Vector2(6.0, 6.0)).has_point(spot) or solid_at(spot, 1.0):
+		if not Rect2(Vector2(3.0, 3.0), size - Vector2(6.0, 6.0)).has_point(spot) or not inside(spot, 2.0) or solid_at(spot, 1.0):
 			continue
 		if drains.any(func(drain: Dictionary) -> bool: return (drain.position as Vector2).distance_to(spot) < 6.0):
 			continue
 		return spot
-	return near.clamp(Vector2(3.0, 3.0), size - Vector2(3.0, 3.0))
+	return pull_inside(near.clamp(Vector2(3.0, 3.0), size - Vector2(3.0, 3.0)), 2.0)
 
 
 ## Cats by a drain dam it; with nobody there, the earth slips back. The last one dammed cleanses
@@ -2279,7 +2366,7 @@ func _goal_cage_spot(near: Vector2) -> Vector2:
 func _cage_spot() -> Vector2:
 	for attempt in 12:
 		var spot := Vector2(random.randf_range(3.0, size.x - 3.0), random.randf_range(3.0, size.y - 3.0))
-		if solid_at(spot, 1.0) or (_narrow != null and _narrow.blocked(spot)):
+		if not inside(spot, 1.5) or solid_at(spot, 1.0) or (_narrow != null and _narrow.blocked(spot)):
 			continue
 		if cats.all(func(cat: Cat) -> bool: return cat.body.position.distance_to(spot) >= CAGE_DISTANCE):
 			return spot
@@ -2297,13 +2384,19 @@ func edge_point() -> Vector2:
 
 
 func _edge_point() -> Vector2:
+	# Near a corner, a point on one side's edge can be past the other side's: brought in from both.
+	return pull_inside(_point_on_edge(), 0.2)
+
+
+func _point_on_edge() -> Vector2:
 	var along := random.randf() * 2.0 * (size.x + size.y)
 	if along < size.x:
-		return Vector2(along, 0.2)
+		return Vector2(along, depth(0, along) + 0.2)
 	along -= size.x
 	if along < size.y:
-		return Vector2(size.x - 0.2, along)
+		return Vector2(size.x - depth(3, along) - 0.2, along)
 	along -= size.y
 	if along < size.x:
-		return Vector2(along, size.y - 0.2)
-	return Vector2(0.2, along - size.x)
+		return Vector2(along, size.y - depth(1, along) - 0.2)
+	along -= size.x
+	return Vector2(depth(2, along) + 0.2, along)

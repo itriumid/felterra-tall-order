@@ -539,6 +539,9 @@ func _ready() -> void:
 			if not village.truce():
 				village.liberated.append("siege")
 			_set_up_run("endless")
+		elif not _dev_host:
+			# Endless's clearing as a run has it: its own shape, from --seed if given.
+			_set_up_run("endless")
 		if _dev_host:
 			_online.host()
 			if _run_kind.is_empty():
@@ -1597,6 +1600,10 @@ func _set_up_run(run_kind: String) -> void:
 				_briefing = true
 				_music.place = "intro"
 			return
+		# Not a box: the jungle comes in round it, its own way each run.
+		arena.shape(fresh)
+		if not _placed:
+			cat.body.position = arena.pull_inside(cat.body.position, 2.0)
 		_ground.paint("clearing", fresh, false)
 		return
 	var area := Areas.named(run_kind)
@@ -2511,6 +2518,8 @@ func guest_run_begins(setup: Dictionary) -> void:
 		_ground.paint(grove.ground, setup.seed, false)
 		_overlay.area_name = grove.name
 	else:
+		# The same clearing as the host's, from the same seed.
+		arena.shape(setup.seed)
 		_ground.paint("clearing", setup.seed, false)
 	_truth.clear()
 	_guessed = Vector2.INF
