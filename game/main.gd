@@ -15,7 +15,9 @@ extends Node
 ## --cage=<count> sets that many cages around him, the first right beside him, the rest far off;
 ## --village starts in the village instead of a fight; --intro tells the story's opening again;
 ## --area=<id> starts a liberation run in that area, --freed as if it's been freed already, --boss
-## with its goal done and its boss on the way; --grove starts Endless as cleansing, in a corrupted
+## with its goal done and its boss on the way (--boss-hurt=<share> with that share of its health
+## left, marked by what he starts with; --boss-down-after=<seconds> to see it go down; --watch-boss
+## to keep the camera on it); --grove starts Endless as cleansing, in a corrupted
 ## grove; --cub=<element>[:<rank>] gives the cub, and in a grove it's at his heel (with --village,
 ## it's at the shrine); --offerings=<count> gives that many to spend there; --seed=<number> lays out
 ## an Endless clearing or grove from that seed, the same every time; --horde-kind=<kind> makes the --horde that kind (wisp, tuyul, pocong, sapling, monkey);
@@ -310,6 +312,12 @@ var _grove_told := ""
 var _horde_kind := "rat"
 var _dev_freed := false
 var _dev_boss := false
+## For screenshots: the boss with this share of its health left, as if it's been fought, by the
+## weapon he starts with; and when it goes down, in seconds into the run (below 0, never).
+var _boss_left := 1.0
+## For screenshots: the camera kept on the boss, not on him.
+var _watch_boss := false
+var _boss_down_after := -1.0
 var _at_door := ""
 ## Which forged weapon the start choice's third card shows.
 var _open_shop_first := false
@@ -484,6 +492,15 @@ func _ready() -> void:
 			_dev_freed = true
 		elif argument == "--boss":
 			_dev_boss = true
+		elif argument == "--watch-boss":
+			_dev_boss = true
+			_watch_boss = true
+		elif argument.begins_with("--boss-hurt="):
+			_dev_boss = true
+			_boss_left = argument.trim_prefix("--boss-hurt=").to_float()
+		elif argument.begins_with("--boss-down-after="):
+			_dev_boss = true
+			_boss_down_after = argument.trim_prefix("--boss-down-after=").to_float()
 		elif argument == "--village":
 			_open_village_first = true
 		elif argument == "--intro":
@@ -586,10 +603,15 @@ func _ready() -> void:
 			if _dev_freed:
 				village.liberated.append(_dev_area)
 				village.told.append_array(["intro:" + _dev_area, "outro:" + _dev_area])
+			elif _dev_boss:
+				# With the goal done, the story going in is long told.
+				village.told.append("intro:" + _dev_area)
 			_set_up_run(_dev_area)
 			if _dev_boss:
 				arena.goal_done = true
 				arena._bring_in_the_boss()
+				if _boss_left < 1.0:
+					_wear_the_boss(_boss_left)
 		elif _dev_grove:
 			if not village.truce():
 				village.liberated.append("siege")
@@ -1549,6 +1571,9 @@ func _process(delta: float) -> void:
 	if _down_after >= 0.0 and arena.time >= _down_after:
 		_down_after = -1.0
 		cat.health = 0.0
+	if _boss_down_after >= 0.0 and arena.time >= _boss_down_after and arena.boss != null:
+		_boss_down_after = -1.0
+		_wear_the_boss(0.0)
 	# Once he's down the world runs slow for a moment, before the summary.
 	_step_world(delta * (DOWN_SLOW if _down_for >= 0.0 else 1.0))
 	# On his spot on the ground, not his height: a hop or a throw moves him in the frame.
@@ -1821,6 +1846,23 @@ func _set_up_run(run_kind: String) -> void:
 		_music.place = "intro"
 
 
+## For screenshots: the boss fought down to this share of its health, struck as he'd strike it,
+## from all round, with what he holds (or rounds, with nothing), so it's marked as a fight would mark it.
+func _wear_the_boss(left: float) -> void:
+	var boss: Object = arena.boss
+	var most: float = boss.most_health if "most_health" in boss else Creature.KINDS[boss.kind].health
+	var weapon_name: String = cat.weapons[0].name if not cat.weapons.is_empty() else "handgun"
+	var by := "blade" if Weapon.named(weapon_name).kind == Weapon.Kind.MELEE else "round"
+	# Marked as a fight's hits would mark it, a light hit each, then left as worn as asked.
+	var hits := roundi(24.0 * (1.0 - left))
+	for index in hits:
+		arena.strike(boss, 0.001, Vector2.from_angle(TAU * index / maxi(hits, 1)), 0.0, 0.0, by, null, weapon_name)
+	if left <= 0.0:
+		arena.strike(boss, 1.0e7, Vector2.RIGHT, 0.0, 0.0, by, null, weapon_name)
+	else:
+		boss.health = most * left
+
+
 ## The siege is fought in the village itself: the village's own view draws the fight, among its
 ## houses, and the clearing's views are put away; or back again after.
 func _fight_in_the_village(fighting: bool) -> void:
@@ -1851,6 +1893,8 @@ func _heel_the_cub() -> void:
 ## Where the view looks during a run: at him, or the middle of the crew, but in the village, never
 ## past its edges.
 func _run_camera() -> Vector2:
+	if _watch_boss and arena.boss != null:
+		return _kept_in_view(World.to_screen(arena.boss.body.position))
 	var lowest := cat.body.position
 	var highest := cat.body.position
 	for each in arena.cats:
