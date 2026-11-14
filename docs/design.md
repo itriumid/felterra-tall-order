@@ -753,18 +753,15 @@ for the steering it had by then, with only the difference put right.
 - **Room codes:** the game's rooms service (`rooms/`, a Cloudflare Worker at
   api.tall-order.felterra.games.itrium.id) hands the host a six-letter code and introduces each guest who gives it: it passes their WebRTC
   offers, answers and network candidates between them, and nothing else. Then they play directly,
-  over WebRTC, whenever they can: each machine finds its own address on the internet through
-  Cloudflare's STUN server, and the service never carries the game, and keeps no logs. When two
-  networks are strict enough that the machines can't reach each other directly, the game goes
-  between them through Cloudflare's relay (TURN) instead: Cloudflare's servers then carry the
-  game's traffic, encrypted between the two players, and see both players' addresses. The service
-  hands a guest and the host a credential for the relay as the guest comes in, good for four
-  hours and for nobody outside a room. The relay is over UDP only: a network that blocks UDP
-  altogether still can't play by room code. With no TURN key set on the service (there is none
-  yet), there is no relay, and those players join by address on a home network.
+  over WebRTC; the service never carries the game, and keeps no logs. Each machine finds its own
+  address on the internet through Cloudflare's STUN server. A network strict enough that two
+  machines can't reach each other directly would need a relay (TURN), which isn't built: those
+  players join by address on a home network, or not at all, for now. The relay waits for Steam:
+  its own relay and lobbies come with the game when it goes there, and a paid relay of our own
+  before then isn't worth it.
 - **The pieces:** `game/rooms.gd` plays by room code over WebRTC, `game/session.gd` by address over
   Godot's own networking (on a home network, or a build without WebRTC); a store's lobbies would
-  replace those two and nothing else. `game/online.gd` carries what host and guests say. `rooms/turn.ts` asks Cloudflare for the relay's credential.
+  replace those two and nothing else. `game/online.gd` carries what host and guests say.
   `tools/check_online.gd` plays it from both sides in one process, by address or, against a rooms
   service run locally, by room code.
 
