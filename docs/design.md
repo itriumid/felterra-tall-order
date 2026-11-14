@@ -156,7 +156,20 @@ A clearing the company has cut in an Indonesian tropical forest.
   movement, and why they're there at all. (That's Endless's clearing; Liberation's areas each
   have their own ground plan, with things standing in the way.) Mud, burnt earth and log skids vary it: they slow you,
   they never stop you.
-- **The jungle is the wall** around the arena: living, thick, impassable.
+- **It's big enough for a crew.** Endless's clearing is 56 by 32 meters, three and a half
+  screens each way (a screen shows 16 by 9 meters), so four cats can spread out and a horde comes
+  in from every side; a grove is 52 to 60 meters across. Grass grows as thick on a big place as on
+  a small one.
+- **The jungle is the wall** around the arena: living, thick, impassable. It's drawn as one:
+  foliage filling everything past the edge, reaching ragged over it, darkest furthest out, with
+  trees and big leaves at its foot. The camera never looks further past the edge than a little
+  of the wall, so there's never nothing to see.
+- **Trees are sized for the side they stand on.** Along the top edge a tree is short, so its
+  crown is in sight, never a bare trunk running off the screen; none stand in the corners, and
+  they're spaced so their crowns don't pile up.
+- **The ground has a grain.** Over its broad patches, whose edges wander the way ground does,
+  grass and moss carry blades (a lit tip over a darker root) and mud carries pebbles (lit, with
+  their shadow below and to the right), over everything painted on it, trails and all.
 - **The canopy hangs overhead**, drawn above everything, with no collision. It's above your
   head, so that's honest, and it gives the forest its depth.
 - **Low growth never blocks**: grass, ferns, leaf litter. It bends and scatters as things move

@@ -14,6 +14,7 @@ const EDGE_MARGIN := 200
 ## How many tufts and ferns grow in the clearing, and how close a body must pass to bend one, in
 ## meters.
 const GROWTH := 900
+const GROWTH_PER := 40.0 * 24.0
 const BRUSH_REACH := 0.08
 
 var arena: Arena
@@ -27,7 +28,6 @@ var healing := -1.0
 var _smoldering: Array = []
 var _smoke: Array[Dictionary] = []
 var _growth: Array[Dictionary] = []
-var _edge: Array[Dictionary] = []
 var _edge_picture: ImageTexture
 ## The crowns of the trees at the edge, high overhead: the canopy draws them, over everything.
 var crowns: Array[Dictionary] = []
@@ -78,10 +78,11 @@ func paint(theme: String, seed_value: int, healed: bool) -> void:
 	var random := RandomNumberGenerator.new()
 	random.seed = seed_value + 3
 	_growth.clear()
-	_edge.clear()
 	crowns.clear()
 	# Growth is thin where the company has been, and thick where it's gone.
-	for index in GROWTH * (2 if healed else 1) / (1 if theme in ["clearing", "edge", "deep", "slide"] or healed else 3):
+	# As thick on a big place as on a small one: GROWTH is for 40 by 24 meters.
+	var thickness := meters.x * meters.y / GROWTH_PER
+	for index in int(GROWTH * thickness) * (2 if healed else 1) / (1 if theme in ["clearing", "edge", "deep", "slide"] or healed else 3):
 		var where := Vector2(random.randf() * meters.x, random.randf() * meters.y)
 		if arena != null and arena.solid_at(where):
 			continue
@@ -152,48 +153,94 @@ func _visible_meters() -> Rect2:
 	return Rect2((center - screen / 2.0) / World.PIXELS_PER_METER, screen / World.PIXELS_PER_METER).grow(0.5)
 
 
-## Trees stand just outside the clearing, with big leaves and undergrowth in front of their feet.
+## Trees stand just outside the clearing, with big leaves and undergrowth in front of their feet,
+## all of it against the jungle itself: a wall of foliage filling everything past the edge, so
+## nothing at the edge stands against nothing.
+##
+## Each tree is sized for the side it stands on. Along the top, the trunk's foot is out of sight
+## behind the wall, so it's short, and its crown sits where it can be seen; anywhere else, it rises
+## from its foot in front of the wall. None stand in the corners, where two sides' trees would
+## crowd into one another, and they're spaced so no two crowns sit on top of each other.
+const TREE_SPACING := Vector2(56.0, 96.0)
+const CORNER_CLEAR := 36.0
+const WALL_STEP := 14
+const WALL_REACH := 10
+
+
 func _plant_edge(random: RandomNumberGenerator) -> void:
 	var size := meters * World.PIXELS_PER_METER
+	var picture := Image.create_empty(int(size.x) + EDGE_MARGIN * 2, int(size.y) + EDGE_MARGIN * 2, false, Image.FORMAT_RGBA8)
+	var offset := Vector2i.ONE * EDGE_MARGIN
+	_raise_the_wall(picture, size, random)
 	var perimeter := 2.0 * (size.x + size.y)
-	var along := 0.0
 	var trees: Array[Dictionary] = []
-	var front: Array[Dictionary] = []
+	var along := random.randf_range(0.0, TREE_SPACING.x)
 	while along < perimeter:
-		along += random.randf_range(40.0, 90.0) * (2.2 if _wrecked else 1.0)
 		var point := _on_edge(along, size)
 		var outward := _outward(along, size)
-		var height := random.randi_range(70, 120)
-		var picture := EnvironmentArt.trunk(height, random.randi_range(8, 14), random.randi())
-		var foot := point + outward * random.randf_range(14.0, 40.0)
-		trees.append({"texture": ImageTexture.create_from_image(picture), "at": (foot - Vector2(picture.get_width() / 2, height)).round(), "y": foot.y})
+		along += random.randf_range(TREE_SPACING.x, TREE_SPACING.y) * (1.8 if _wrecked else 1.0)
+		if _in_a_corner(point, size):
+			continue
+		var top := outward == Vector2.UP
+		var height := random.randi_range(36, 54) if top else random.randi_range(70, 116)
+		var foot := point + outward * (random.randf_range(4.0, 12.0) if top else random.randf_range(16.0, 36.0))
+		var trunk := EnvironmentArt.trunk(height, random.randi_range(8, 13), random.randi())
+		trees.append({"picture": trunk, "at": (foot - Vector2(trunk.get_width() / 2, height)).round(), "y": foot.y})
 		# Its crown on top, thinner where the company has been.
-		var crown := EnvironmentArt.crown(random.randi_range(30, 40) if not _wrecked else random.randi_range(20, 26), random.randi())
+		var crown := EnvironmentArt.crown(random.randi_range(28, 38) if not _wrecked else random.randi_range(20, 26), random.randi())
 		crowns.append({"texture": ImageTexture.create_from_image(crown), "at": (foot - Vector2(0, height + 4) - Vector2(crown.get_size()) / 2.0).round()})
+	trees.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.y < b.y)
+	for tree in trees:
+		var part: Image = tree.picture
+		picture.blend_rect(part, Rect2i(Vector2i.ZERO, part.get_size()), Vector2i(tree.at) + offset)
+	# Undergrowth along the foot of the wall, over the trees' feet: big leaves and low clumps.
 	along = 0.0
 	while along < perimeter:
 		along += random.randf_range(10.0, 20.0)
 		var point := _on_edge(along, size)
 		var outward := _outward(along, size)
-		var picture: Image
-		if random.randf() < 0.35:
-			picture = EnvironmentArt.banana_leaf(random.randi_range(26, 40), random.randi())
+		var part: Image
+		if random.randf() < 0.3:
+			part = EnvironmentArt.banana_leaf(random.randi_range(24, 36), random.randi())
 			if random.randf() < 0.5:
-				picture.flip_x()
+				part.flip_x()
 		else:
-			picture = EnvironmentArt.leaves(random.randi_range(9, 16), random.randi(), random.randf() < 0.5)
-		var at := point + outward * random.randf_range(0.0, 12.0)
-		front.append({"texture": ImageTexture.create_from_image(picture), "at": (at - Vector2(picture.get_size()) / 2.0).round(), "y": at.y})
-	trees.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.y < b.y)
-	_edge.append_array(trees)
-	_edge.append_array(front)
-	# None of it moves: it's put together into one picture, drawn at once.
-	var picture := Image.create_empty(int(size.x) + EDGE_MARGIN * 2, int(size.y) + EDGE_MARGIN * 2, false, Image.FORMAT_RGBA8)
-	for piece in _edge:
-		var part: Image = piece.texture.get_image()
-		part.convert(Image.FORMAT_RGBA8)
-		picture.blend_rect(part, Rect2i(Vector2i.ZERO, part.get_size()), Vector2i(piece.at) + Vector2i.ONE * EDGE_MARGIN)
+			part = EnvironmentArt.leaves(random.randi_range(9, 15), random.randi(), random.randf() < 0.5)
+		var at := point + outward * random.randf_range(2.0, 10.0)
+		picture.blend_rect(part, Rect2i(Vector2i.ZERO, part.get_size()), Vector2i((at - Vector2(part.get_size()) / 2.0).round()) + offset)
 	_edge_picture = ImageTexture.create_from_image(picture)
+
+
+func _in_a_corner(point: Vector2, size: Vector2) -> bool:
+	var near_x := point.x < CORNER_CLEAR or point.x > size.x - CORNER_CLEAR
+	var near_y := point.y < CORNER_CLEAR or point.y > size.y - CORNER_CLEAR
+	return near_x and near_y
+
+
+## The jungle past the edge, as a wall of leaves: clumps on a jittered grid filling everything
+## outside the place, darkest furthest out, and reaching a little way over the edge so the line
+## between the place and the wall is ragged, as a forest's edge is, never ruled.
+func _raise_the_wall(picture: Image, size: Vector2, random: RandomNumberGenerator) -> void:
+	var clumps: Array[Image] = []
+	for index in 12:
+		clumps.append(EnvironmentArt.leaves(random.randi_range(9, 14), random.randi(), index < 8))
+	var place := Rect2(Vector2.ZERO, size)
+	var whole := Vector2(picture.get_size())
+	var y := 0.0
+	while y < whole.y:
+		var x := 0.0
+		while x < whole.x:
+			var at := Vector2(x, y) - Vector2.ONE * EDGE_MARGIN + Vector2(random.randf_range(-5.0, 5.0), random.randf_range(-5.0, 5.0))
+			var inside := place.grow(-WALL_REACH).has_point(at)
+			var reaching := place.has_point(at) and not inside
+			if not inside and (not reaching or random.randf() < 0.45):
+				var clump: Image = clumps[random.randi_range(0, clumps.size() - 1)]
+				# Further from the place, only the darkest.
+				if place.grow(40.0).has_point(at) == false:
+					clump = clumps[random.randi_range(0, 7)]
+				picture.blend_rect(clump, Rect2i(Vector2i.ZERO, clump.get_size()), Vector2i((at - Vector2(clump.get_size()) / 2.0).round()) + Vector2i.ONE * EDGE_MARGIN)
+			x += WALL_STEP
+		y += WALL_STEP
 
 
 ## Where the cabins stand, in pixels, for the pads poured under them.

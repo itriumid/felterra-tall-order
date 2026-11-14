@@ -105,6 +105,8 @@ static func area_ground(size: Vector2i, seed_value: int, theme: String, healed: 
 			picture.set_pixelv(at + Vector2i(0, 2), Palette.LEAF)
 		for index in 40:
 			_sapling(picture, Vector2(random.randf() * size.x, random.randf() * size.y))
+	# The grain goes over everything painted, trails and all, so nothing lies on the ground flat.
+	_texture(picture, random)
 	return picture
 
 
@@ -114,13 +116,18 @@ static func _floor(size: Vector2i, seed_value: int, theme: String, healed: bool)
 	growth.seed = seed_value
 	growth.frequency = 0.008
 	growth.fractal_octaves = 3
+	# Finer noise over the broad patches, so their edges wander the way ground does instead of
+	# running in smooth blobs.
+	var detail := FastNoiseLite.new()
+	detail.seed = seed_value + 1
+	detail.frequency = 0.07
 	var random := RandomNumberGenerator.new()
 	random.seed = seed_value
 	# Each place's ground, as its bands from lowest to highest: on a healed one, greener throughout.
 	var bands: Array = {
 		"edge": [Palette.MUD, Palette.MOSS, Palette.JUNGLE, Palette.LEAF],
 		"deep": [Palette.MUD_DARK, Palette.JUNGLE_DARK, Palette.JUNGLE, Palette.MOSS],
-		"sawpits": [Palette.MUD, Palette.MUD_LIGHT, Palette.DRY_GRASS, Palette.BRASS],
+		"sawpits": [Palette.MUD_DARK, Palette.MUD, Palette.MUD_LIGHT, Palette.DRY_GRASS],
 		"clearing": [Palette.MOSS, Palette.JUNGLE, Palette.LEAF, Palette.LEAF_LIGHT],
 		"slide": [Palette.MUD, Palette.MOSS, Palette.JUNGLE, Palette.LEAF],
 		"offices": [Palette.STEEL_DARK, Palette.SMOKE, Palette.STEEL, Palette.MUD_LIGHT],
@@ -134,12 +141,47 @@ static func _floor(size: Vector2i, seed_value: int, theme: String, healed: bool)
 	data.resize(size.x * size.y * 4)
 	for y in size.y:
 		for x in size.x:
-			var value := growth.get_noise_2d(x, y) * 0.5 + 0.5 + (0.03 if (x + y) % 2 == 0 else -0.03)
+			var value := growth.get_noise_2d(x, y) * 0.5 + 0.5 + detail.get_noise_2d(x, y) * 0.09 + (0.03 if (x + y) % 2 == 0 else -0.03)
 			var color: Color = bands[clampi(int(value * bands.size()), 0, bands.size() - 1)]
 			if random.randf() < 0.01:
 				color = Palette.DRY_GRASS if not healed else Palette.LEAF_LIGHT
 			data.encode_u32((y * size.x + x) * 4, color.to_abgr32())
 	return Image.create_from_data(size.x, size.y, false, Image.FORMAT_RGBA8, data)
+
+
+## The ground up close, over its broad patches: blades standing in the grass and the moss, each a
+## lit tip over a darker root, and pebbles in the mud, each lit on top with its shadow below and to
+## the right. One in every so many pixels, so the ground has a grain to it and never reads as flat
+## paint, while the patches still say where it's grass and where it's mud.
+const GRAIN := 0.05
+## What each ground color grows or holds, as [the lit pixel, the one under it].
+const GRAIN_OF := {
+	Palette.LEAF: [Palette.LEAF_LIGHT, Palette.JUNGLE],
+	Palette.LEAF_LIGHT: [Palette.DRY_GRASS, Palette.LEAF],
+	Palette.JUNGLE: [Palette.LEAF, Palette.JUNGLE_DARK],
+	Palette.JUNGLE_DARK: [Palette.JUNGLE, Palette.JUNGLE_DEEP],
+	Palette.MOSS: [Palette.DRY_GRASS, Palette.JUNGLE],
+	Palette.MUD: [Palette.MUD_LIGHT, Palette.MUD_DARK],
+	Palette.MUD_LIGHT: [Palette.BARK_LIGHT, Palette.MUD],
+	Palette.MUD_DARK: [Palette.MUD, Palette.BURNT],
+	Palette.BURNT: [Palette.MUD_DARK, Palette.GRAPHITE],
+	Palette.DRY_GRASS: [Palette.BRASS_LIGHT, Palette.MOSS],
+	Palette.STEEL: [Palette.STEEL_LIGHT, Palette.STEEL_DARK],
+	Palette.SMOKE: [Palette.STEEL_LIGHT, Palette.STEEL],
+}
+
+
+static func _texture(picture: Image, random: RandomNumberGenerator) -> void:
+	var size := picture.get_size()
+	for index in int(size.x * size.y * GRAIN):
+		var at := Vector2i(random.randi_range(0, size.x - 2), random.randi_range(0, size.y - 2))
+		var grain: Array = GRAIN_OF.get(picture.get_pixelv(at), [])
+		if grain.is_empty():
+			continue
+		picture.set_pixelv(at, grain[0])
+		# A blade's root under it; a pebble's shadow under it and to the right.
+		var under := Vector2i(0, 1) if random.randf() < 0.6 else Vector2i(1, 1)
+		picture.set_pixelv(at + under, grain[1])
 
 
 ## A trunk felled and left lying where it dropped, its cut end pale.
@@ -182,13 +224,19 @@ static func _stump(picture: Image, center: Vector2, radius: int, sprouting: bool
 ## Peat burned black, smoldering at its heart.
 static func _scorch(picture: Image, center: Vector2, radius: float, random: RandomNumberGenerator) -> void:
 	# Burned peat isn't a circle: it creeps out in blotches, char at the heart, ash at the edges.
+	# Built from many small blotches rather than a few big ones, so its edge is ragged and it never
+	# reads as a hole in the ground; a fringe of dark earth dithered round it where the char thins.
 	radius *= 0.55
-	for blotch in 9:
-		var at := center + Vector2.from_angle(random.randf() * TAU) * random.randf() * radius
-		_stamp(picture, at, random.randf_range(radius * 0.25, radius * 0.55), Palette.BURNT)
-	for blotch in 4:
-		var at := center + Vector2.from_angle(random.randf() * TAU) * random.randf() * radius * 0.5
-		_stamp(picture, at, random.randf_range(radius * 0.15, radius * 0.3), Palette.GRAPHITE)
+	for blotch in int(radius * radius * 0.16):
+		var at := center + Vector2.from_angle(random.randf() * TAU) * sqrt(random.randf()) * radius
+		_stamp(picture, at, random.randf_range(2.5, 5.0), Palette.BURNT)
+	for blotch in int(radius * radius * 0.06):
+		var at := center + Vector2.from_angle(random.randf() * TAU) * sqrt(random.randf()) * radius * 0.5
+		_stamp(picture, at, random.randf_range(1.0, 2.5), Palette.GRAPHITE)
+	for speck in int(radius * 10.0):
+		var at := Vector2i(center + Vector2.from_angle(random.randf() * TAU) * random.randf_range(radius * 0.85, radius * 1.35))
+		if (at.x + at.y) % 2 == 0:
+			picture.set_pixelv(at.clamp(Vector2i.ZERO, picture.get_size() - Vector2i.ONE), Palette.MUD_DARK)
 	for ash in 40:
 		var at := Vector2i(center + Vector2.from_angle(random.randf() * TAU) * random.randf() * radius * 1.3)
 		picture.set_pixelv(at.clamp(Vector2i.ZERO, picture.get_size() - Vector2i.ONE), Palette.SMOKE)
@@ -296,6 +344,7 @@ static func village_ground(size: Vector2i, seed_value: int, village_from: int, p
 			elif litter < 0.02 and not on_path:
 				color = Palette.LEAF_LIGHT
 			picture.set_pixel(x, y, color)
+	_texture(picture, random)
 	return picture
 
 
@@ -317,7 +366,9 @@ static func _skid_trails(picture: Image, random: RandomNumberGenerator) -> void:
 			var point := start.lerp(end, along) + bend * sin(along * PI)
 			var across := (point - previous).normalized().orthogonal()
 			previous = point
-			var wobble := sin(along * 40.0) * 2.0
+			# Its edges wander, as churned mud does: never a ruled line, and never jumping from one
+			# step to the next, which would leave rings.
+			var wobble := sin(along * 40.0) * 2.0 + sin(along * 151.0 + trail) * 1.5
 			_stamp(picture, point, width * 0.5 + wobble, Palette.MUD)
 			_stamp(picture, point, width * 0.4 + wobble, Palette.MUD_LIGHT)
 			# Two tire tracks, treads every few pixels.
