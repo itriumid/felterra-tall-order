@@ -46,11 +46,14 @@ func test_a_late_rat_is_shoved_less() -> void:
 	check(speeds[1] < speeds[0] * 0.7, "a late rat was thrown at %.2f against an early one's %.2f" % [speeds[1], speeds[0]])
 
 
-func test_a_liberation_area_never_hardens() -> void:
+func test_a_liberation_area_hardens_only_once_it_has_gone_on_far_too_long() -> void:
 	var arena := Arena.new()
 	arena.begin_area("edge")
-	arena.time = Arena.PRESSURE_FROM + 900.0
-	check(is_equal_approx(arena.pressure(), 1.0), "an area's pressure reached %.2f" % arena.pressure())
+	arena.time = Arena.AREA_PRESSURE_FROM
+	check(is_equal_approx(arena.pressure(), 1.0), "an area hardened at %d seconds, before a run there should be over" % arena.time)
+	# Kept going without doing its goal, to farm it, it hardens as Endless does.
+	arena.time = Arena.AREA_PRESSURE_FROM + 600.0
+	check(arena.pressure() > 3.0, "an area farmed for ten minutes past its time only reached %.2f" % arena.pressure())
 
 
 func test_a_grove_hardens_as_endless_does() -> void:
