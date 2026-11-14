@@ -15,7 +15,9 @@ extends Node
 ## --cage=<count> sets that many cages around him, the first right beside him, the rest far off;
 ## --village starts in the village instead of a fight; --intro tells the story's opening again;
 ## --area=<id> starts a liberation run in that area, --freed as if it's been freed already, --boss
-## with its goal done and its boss on the way; --grove starts Endless as cleansing, in a corrupted
+## with its goal done and its boss on the way (--boss-hurt=<share> with that share of its health
+## left, marked by what he starts with; --boss-down-after=<seconds> to see it go down; --watch-boss
+## to keep the camera on it); --grove starts Endless as cleansing, in a corrupted
 ## grove; --cub=<element>[:<rank>] gives the cub, and in a grove it's at his heel (with --village,
 ## it's at the shrine); --offerings=<count> gives that many to spend there; --seed=<number> lays out
 ## an Endless clearing or grove from that seed, the same every time; --horde-kind=<kind> makes the --horde that kind (wisp, tuyul, pocong, sapling, monkey);
@@ -145,6 +147,11 @@ const SLOWEST_WALK := 1.1
 const CATCH_UP := 3
 ## After a boss falls, how long before the area's free, even with nothing to tell.
 const FREED_PAUSE := 2.5
+## The boss down: how long its fall is watched before the story's told, the camera going over to it
+## and back; and for how much of that, how slow the world runs.
+const BOSS_FALLS := 2.6
+const FALL_SLOW_FOR := 0.7
+const FALL_SLOW := 0.35
 
 ## The tabs of the smithy and the pack: what kind of thing each shows, and what it's called.
 const THING_TABS: Array[Array] = [["weapon", "Weapons"], ["gear", "Gear"], ["support", "Support"], ["mutation", "Dodge mutations"]]
@@ -283,6 +290,10 @@ var _entering_to := Vector2.ZERO
 var _entering_pace := Cat.SPEED
 ## How long he's been down, the run over (below 0 while it isn't).
 var _down_for := -1.0
+## How long since the boss went down, freeing the area; and the story to tell once its fall's been
+## watched.
+var _falling_for := 0.0
+var _freed_lines: Array = []
 var _freeing := false
 var _free_for := 0.0
 var _dev_area := ""
@@ -301,6 +312,12 @@ var _grove_told := ""
 var _horde_kind := "rat"
 var _dev_freed := false
 var _dev_boss := false
+## For screenshots: the boss with this share of its health left, as if it's been fought, by the
+## weapon he starts with; and when it goes down, in seconds into the run (below 0, never).
+var _boss_left := 1.0
+## For screenshots: the camera kept on the boss, not on him.
+var _watch_boss := false
+var _boss_down_after := -1.0
 var _at_door := ""
 ## Which forged weapon the start choice's third card shows.
 var _open_shop_first := false
@@ -475,6 +492,15 @@ func _ready() -> void:
 			_dev_freed = true
 		elif argument == "--boss":
 			_dev_boss = true
+		elif argument == "--watch-boss":
+			_dev_boss = true
+			_watch_boss = true
+		elif argument.begins_with("--boss-hurt="):
+			_dev_boss = true
+			_boss_left = argument.trim_prefix("--boss-hurt=").to_float()
+		elif argument.begins_with("--boss-down-after="):
+			_dev_boss = true
+			_boss_down_after = argument.trim_prefix("--boss-down-after=").to_float()
 		elif argument == "--village":
 			_open_village_first = true
 		elif argument == "--intro":
@@ -577,10 +603,15 @@ func _ready() -> void:
 			if _dev_freed:
 				village.liberated.append(_dev_area)
 				village.told.append_array(["intro:" + _dev_area, "outro:" + _dev_area])
+			elif _dev_boss:
+				# With the goal done, the story going in is long told.
+				village.told.append("intro:" + _dev_area)
 			_set_up_run(_dev_area)
 			if _dev_boss:
 				arena.goal_done = true
 				arena._bring_in_the_boss()
+				if _boss_left < 1.0:
+					_wear_the_boss(_boss_left)
 		elif _dev_grove:
 			if not village.truce():
 				village.liberated.append("siege")
@@ -1512,9 +1543,13 @@ func _process(delta: float) -> void:
 		_take_screenshot(delta)
 		return
 	if _freeing:
-		_step_world(delta)
+		_step_world(delta * (FALL_SLOW if _falling_for < FALL_SLOW_FOR else 1.0))
 		_freeing_step(delta)
 		_camera.position = _run_camera()
+		if _falling_for < BOSS_FALLS and arena.boss != null:
+			# Over to where it fell, and back to him as the story begins.
+			var toward := clampf(_falling_for / 0.5, 0.0, 1.0) * clampf((BOSS_FALLS - _falling_for) / 0.6, 0.0, 1.0)
+			_camera.position = _camera.position.lerp(_kept_in_view(World.to_screen(arena.boss.body.position)), toward * toward * (3.0 - 2.0 * toward))
 		_take_screenshot(delta)
 		return
 	_read_controls()
@@ -1536,6 +1571,9 @@ func _process(delta: float) -> void:
 	if _down_after >= 0.0 and arena.time >= _down_after:
 		_down_after = -1.0
 		cat.health = 0.0
+	if _boss_down_after >= 0.0 and arena.time >= _boss_down_after and arena.boss != null:
+		_boss_down_after = -1.0
+		_wear_the_boss(0.0)
 	# Once he's down the world runs slow for a moment, before the summary.
 	_step_world(delta * (DOWN_SLOW if _down_for >= 0.0 else 1.0))
 	# On his spot on the ground, not his height: a hop or a throw moves him in the frame.
@@ -1808,6 +1846,23 @@ func _set_up_run(run_kind: String) -> void:
 		_music.place = "intro"
 
 
+## For screenshots: the boss fought down to this share of its health, struck as he'd strike it,
+## from all round, with what he holds (or rounds, with nothing), so it's marked as a fight would mark it.
+func _wear_the_boss(left: float) -> void:
+	var boss: Object = arena.boss
+	var most: float = boss.most_health if "most_health" in boss else Creature.KINDS[boss.kind].health
+	var weapon_name: String = cat.weapons[0].name if not cat.weapons.is_empty() else "handgun"
+	var by := "blade" if Weapon.named(weapon_name).kind == Weapon.Kind.MELEE else "round"
+	# Marked as a fight's hits would mark it, a light hit each, then left as worn as asked.
+	var hits := roundi(24.0 * (1.0 - left))
+	for index in hits:
+		arena.strike(boss, 0.001, Vector2.from_angle(TAU * index / maxi(hits, 1)), 0.0, 0.0, by, null, weapon_name)
+	if left <= 0.0:
+		arena.strike(boss, 1.0e7, Vector2.RIGHT, 0.0, 0.0, by, null, weapon_name)
+	else:
+		boss.health = most * left
+
+
 ## The siege is fought in the village itself: the village's own view draws the fight, among its
 ## houses, and the clearing's views are put away; or back again after.
 func _fight_in_the_village(fighting: bool) -> void:
@@ -1838,12 +1893,19 @@ func _heel_the_cub() -> void:
 ## Where the view looks during a run: at him, or the middle of the crew, but in the village, never
 ## past its edges.
 func _run_camera() -> Vector2:
+	if _watch_boss and arena.boss != null:
+		return _kept_in_view(World.to_screen(arena.boss.body.position))
 	var lowest := cat.body.position
 	var highest := cat.body.position
 	for each in arena.cats:
 		lowest = lowest.min(each.body.position)
 		highest = highest.max(each.body.position)
-	var at := World.to_screen((lowest + highest) / 2.0)
+	return _kept_in_view(World.to_screen((lowest + highest) / 2.0))
+
+
+## Where the camera can look, for a point it's asked to look at: on a run, within the jungle wall;
+## in the village, within its edges.
+func _kept_in_view(at: Vector2) -> Vector2:
 	if _village_view.arena == null:
 		return _within_the_wall(at)
 	var screen := get_viewport().get_visible_rect().size
@@ -1924,19 +1986,32 @@ func _begin_freeing() -> void:
 	arena.fleeing = true
 	var area := Areas.named(_run_kind)
 	var first_time := not ("outro:" + _run_kind) in village.told
-	var fell_at: Vector2 = arena.boss.body.position if arena.boss != null else cat.body.position
-	if not _run_kind in village.liberated and not area.get("in_the_village", false):
-		_ground.heal(fell_at, area.ground, _area_seed(_run_kind))
 	# What freeing it teaches him is taught at home, by the cat who shows him how.
 	# With the five words, the airstrip ends with the cats writing back.
 	_written = first_time and village.can_write() and area.has("after_written")
-	_cutscene = Cutscene.new(Areas.after_lines(_run_kind, _written) if first_time else [], settings.get_value("gameplay", "story_waits"))
-	_free_for = FREED_PAUSE
+	_freed_lines = Areas.after_lines(_run_kind, _written) if first_time else []
+	# Its fall is watched first: the story, and the ground healing, wait for it.
+	_cutscene = Cutscene.new([], settings.get_value("gameplay", "story_waits"))
+	_falling_for = 0.0
+	_free_for = FREED_PAUSE + BOSS_FALLS
 	_music.place = "freed"
+
+
+## The boss's fall watched, the area's story is told, and the ground heals from where it fell.
+func _tell_the_freeing() -> void:
+	var area := Areas.named(_run_kind)
+	var fell_at: Vector2 = arena.boss.body.position if arena.boss != null else cat.body.position
+	if not _run_kind in village.liberated and not area.get("in_the_village", false):
+		_ground.heal(fell_at, area.ground, _area_seed(_run_kind))
+	_cutscene = Cutscene.new(_freed_lines, settings.get_value("gameplay", "story_waits"))
 
 
 func _freeing_step(delta: float) -> void:
 	_free_for = maxf(_free_for - delta, 0.0)
+	var was_falling := _falling_for < BOSS_FALLS
+	_falling_for += delta
+	if was_falling and _falling_for >= BOSS_FALLS:
+		_tell_the_freeing()
 	# He's still the player's to walk about the freed area, or to leave standing: never left
 	# running on in whatever way he was going when it fell. Any ally stands still.
 	for each in arena.cats:
