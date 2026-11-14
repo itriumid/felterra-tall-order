@@ -380,7 +380,10 @@ on: fire and oil, or crewmates who can be downed.
   what only that place asks, then its boss comes; beat it and the area is free, and the next one
   opens. Held by the company, an area is wrecked (stumps, felled trunks, ruts, oil, litter,
   smoldering peat, fewer trees standing at its edge); freed, it's healed (grassed over, saplings,
-  flowers, clear water), and stays healed on every run after. The first time he goes into an
+  flowers, clear water), and stays healed on every run after. Healed, each place is still
+  itself: the sawpits' sawdust settles into grass, the offices' gravel shows through it, the
+  airstrip's tarmac cracks with grass, the log chute shows only as a trace through the green; the
+  flowers grow in patches of one kind, and the saplings stand lit from the top left. The first time he goes into an
   area its story is told going in, to the opening's mellow music; the first time it's freed, the
   healed ground spreads out from where its boss fell while the story goes on, to music of its
   own. Losing still brings home what he carried; the area stays the company's. But what he did
