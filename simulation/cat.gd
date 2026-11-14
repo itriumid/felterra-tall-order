@@ -90,6 +90,8 @@ var luck := 0.0
 ## The chance a hit lands twice as hard, and how much harder his hits shove.
 var critical := 0.0
 var knockback_bonus := 0.0
+## How much further off fireflies and salvage come to him from, as a share.
+var gathering_bonus := 0.0
 ## Offers from level-ups, held until played, oldest first; each is a list of choices.
 var offers: Array = []
 var rerolls := 2
@@ -277,6 +279,7 @@ func raise(stat: String, amount: float) -> void:
 		"luck": luck += amount
 		"critical": critical += amount
 		"knockback": knockback_bonus += amount
+		"gathering": gathering_bonus += amount
 
 
 func heal(amount: float) -> void:

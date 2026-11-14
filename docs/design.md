@@ -218,7 +218,8 @@ After the first draw, experience is in **fireflies**. Whatever falls, one rises 
 fell, carrying what it was worth (a big fall rises as a few, a bigger worth a bigger light), and
 hangs there blinking: ice blue, a color nothing else here has (yellow-green, as they were, sank
 into the grass), and outlined, as everything he can pick up is, so one stands off the fallen it
-rose from. A cat within a meter and a half draws it in, faster as it comes; caught,
+rose from. A cat within a meter and a half draws it in, faster as it comes, and from further off
+with gathering, the stat the bag of marbles gives (a tuyul can't pass a marble); caught,
 it counts for the whole crew. Nobody near, it waits for as long as the run lasts: they don't
 merge or fade, so a fight fought at range leaves a field of them to go back for. A tuyul
 swallows any he runs through, goes looking for them when there's no salvage, and once full makes

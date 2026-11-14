@@ -1497,7 +1497,7 @@ func _pick_up() -> void:
 			_keep_inside(piece.body)
 		var taken := false
 		for cat in cats:
-			if cat.alive() and piece.body.height < 0.3 and cat.body.position.distance_to(piece.body.position) <= Pickup.REACH:
+			if cat.alive() and piece.body.height < 0.3 and cat.body.position.distance_to(piece.body.position) <= Pickup.REACH * (1.0 + cat.gathering_bonus):
 				salvage += piece.amount
 				taken = true
 				events.append({"position": piece.body.position, "height": 0.1, "direction": Vector2.ZERO, "killed": false, "by": "pickup", "giant": false, "kind": "salvage"})

@@ -224,6 +224,7 @@ level gives. Every piece is forged at the smithy before the cards can offer it.
 | **Rattan bracers** | Built | Paws | Armor, knockback |
 | **Wooden clogs** | Built | Feet | Knockback, damage. Bakiak |
 | **Fighting sash** | Built | Waist | Damage, critical hits. A silat school's |
+| **Bag of marbles** | Built | Waist | Gathering. A tuyul can't pass a marble without stopping to play |
 
 ## Dodge mutations
 
@@ -271,6 +272,7 @@ What gear gives. A card shows the short form; holding Tab explains each one.
 | **Luck** | Built | Rarer cards turn up more often |
 | **Critical hits** | Built | A chance for a hit to land twice as hard; past 100%, every hit lands a step up and the rest is the chance of one more (x3, x4...) |
 | **Knockback** | Built | Every hit shoves harder |
+| **Gathering** | Built | Fireflies and salvage come to him from further off |
 
 ## Buildings
 

@@ -130,7 +130,7 @@ const FORGE := {
 	"gear:rubber_boots": 9, "gear:sandals": 8, "gear:tool_belt": 11, "gear:batik_headcloth": 9,
 	"gear:ear_defenders": 10, "gear:life_jacket": 12, "gear:kebaya": 11, "gear:lanyard": 9,
 	"gear:prayer_beads": 10, "gear:safety_glasses": 8, "gear:gem_rings": 12, "gear:rattan_bracers": 9,
-	"gear:wooden_clogs": 8, "gear:fighting_sash": 11,
+	"gear:wooden_clogs": 8, "gear:fighting_sash": 11, "gear:marble_pouch": 7,
 	"weapon:machete": 10, "weapon:badik": 10, "weapon:rencong": 12, "weapon:celurit": 14,
 	"weapon:kujang": 14, "weapon:mandau": 16, "weapon:tombak": 16, "weapon:sumpit": 14, "weapon:bambu_runcing": 10,
 	"weapon:panah": 16, "weapon:petasan": 14, "weapon:lamp_oil": 15, "weapon:nail_gun": 14,
