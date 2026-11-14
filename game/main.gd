@@ -57,7 +57,7 @@ const PAGES := {
 	"guest_summary": ["stay", "part"],
 	"pause": ["carry_on", "damage", "settings", "start_again", "village", "leave"],
 	"village_pause": ["carry_on", "settings", "history", "title", "leave"],
-	"summary": ["home", "go_again", "leave"],
+	"summary": ["home", "leave"],
 }
 ## What each of the cub's elements is, at the shrine.
 const ELEMENT_STORIES := {
@@ -129,6 +129,11 @@ const INTRO: Array = [
 ]
 ## How far he walks into a run before it starts, in meters.
 const ENTRANCE := 5.0
+## Down, how long the fight is watched before the summary, how slow the world runs meanwhile, and
+## how hard the last hit throws him, in meters a second.
+const DOWN_PAUSE := 1.7
+const DOWN_SLOW := 0.35
+const DOWN_THROW := 2.4
 ## The most steps of the world one frame catches up: 60 a second down to 20 frames a second.
 const CATCH_UP := 3
 ## After a boss falls, how long before the area's free, even with nothing to tell.
@@ -265,6 +270,8 @@ var _briefing := false
 var _entering := false
 var _entering_to := Vector2.ZERO
 var _entering_pace := Cat.SPEED
+## How long he's been down, the run over (below 0 while it isn't).
+var _down_for := -1.0
 var _freeing := false
 var _free_for := 0.0
 var _dev_area := ""
@@ -1499,7 +1506,8 @@ func _process(delta: float) -> void:
 	if _down_after >= 0.0 and arena.time >= _down_after:
 		_down_after = -1.0
 		cat.health = 0.0
-	_step_world(delta)
+	# Once he's down the world runs slow for a moment, before the summary.
+	_step_world(delta * (DOWN_SLOW if _down_for >= 0.0 else 1.0))
 	# On his spot on the ground, not his height: a hop or a throw moves him in the frame.
 	_camera.position = _run_camera()
 	_muzzle_light.position = World.to_screen(cat.body.position, Cat.GUN_HEIGHT) + cat.aim * 10.0
@@ -1510,7 +1518,17 @@ func _process(delta: float) -> void:
 	if arena.liberated and cat.alive():
 		_begin_freeing()
 	elif arena.over():
-		_end_run()
+		# Down: the last hit throws him, he lands on his back, and the fight goes on round him in
+		# slow motion for a moment. Then the summary: never straight to it, out of nowhere.
+		if _down_for < 0.0:
+			_down_for = 0.0
+			for each in arena.cats:
+				if not each.body.airborne():
+					each.body.push(Vector2.ZERO, DOWN_THROW)
+		_down_for += delta
+		if _down_for >= DOWN_PAUSE:
+			_down_for = -1.0
+			_end_run()
 	_overlay.goal = arena.goal_progress()
 	_take_screenshot(delta)
 
@@ -1691,6 +1709,7 @@ func _enter() -> void:
 
 func _set_up_run(run_kind: String) -> void:
 	_run_kind = run_kind
+	_down_for = -1.0
 	_frame_rates.clear()
 	_since_frame_rate = 0.0
 	_freeing = false

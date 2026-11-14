@@ -319,14 +319,17 @@ on: fire and oil, or crewmates who can be downed.
   way, and comes to the gate to say it; any other time he just goes, at his own pace. He walks into every run the same way, from the way
   he came, the world held still until he's in: slowly enough for the area's story to be told
   on the way the first time, at his own pace after. Then the run's under way, and his first
-  level brings his first draw. Coming home, whatever has happened since is told on the walk in: what an
-  area freed teaches him, from the cat who teaches it, and what the story has brought back. Then
+  level brings his first draw. Coming home, whatever has happened since is told on the walk in: what the
+  story has brought back, and a word from whoever's home. What a freed area's cat teaches isn't
+  told on the walk: each dodge mutation waits under a "!" with the cat who teaches it, a lesson
+  of its own in their words, and is learned when he goes and hears it. Then
   a panel sets out what's new, a line each on what it does and where to find it: a building, a
   dodge mutation now on the cards, an area found on the map. When he's down, a summary of the run (time
   survived, level reached, kills, giants felled, machines broken, cats rescued, salvage) marks
-  any new best in words as well as color, and offers Home to the village, Straight back out (a
-  new run at once: "one more run" shouldn't mean a walk across the village every time), or
-  Leave. Giving a run up from the pause menu takes him home with what he's carrying. The best
+  any new best in words as well as color, and offers Home to the village, or Leave: every run ends
+  at home, where what it earned and what it changed are. He doesn't go straight to it, either:
+  down, the last hit throws him, he lands on his back, and the fight goes on round him in slow
+  motion for a moment first. Giving a run up from the pause menu takes him home with what he's carrying. The best
   run is kept beside the settings.
 - **Cutscenes are always the player's to skip,** to follow WCAG AA: Escape skips the whole scene,
   Enter hurries a line along, and both keys are shown on screen while one plays. A setting makes

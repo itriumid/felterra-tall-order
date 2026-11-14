@@ -28,10 +28,7 @@ const STEPS := [
 	# Fewer of the fallen left lying, there and then in the run.
 	["move_down", "settings"], ["move_down", "settings"], ["move_left", "settings", {"arena.most_fallen": 100}],
 	["pause", "pause"], ["pause", ""],
-	# Down, then straight back out: walking in again, skipped.
-	["down", "summary"], ["move_down", "summary"], ["menu_choose", "", {"_place": "run", "_entering": true}],
-	["pause", "", {"_entering": false}], ["pick_2", ""],
-	# Down again, and home to the village; the walk home skipped.
+	# Down, and home to the village (the summary offers nowhere else to go); the walk home skipped.
 	["down", "summary"], ["menu_choose", "", {"_place": "arriving"}], ["pause", "", {"_place": "village"}],
 	# Out again, seen off without a word this time (skipped all the same), and the first area
 	# freed: the boss down, the freeing told and skipped, the area free in the village's record.
@@ -197,6 +194,9 @@ func _process(_delta: float) -> bool:
 			_main.village_map.cat.body.position = VillageMap.door_step(footprint) if action != "to_home" else VillageMap.HOME_SPOT
 		else:
 			Input.action_press(action)
+	elif phase == 2 and action == "down" and _main._down_for >= 0.0:
+		# He's down and the fight's being watched in slow motion: seen to have begun, then hurried.
+		_main._down_for = _main.DOWN_PAUSE
 	elif phase == 1 and action == "join_pad":
 		_main._input(_pad_a(false))
 	elif phase == 1 and action == "join_pad_8":
