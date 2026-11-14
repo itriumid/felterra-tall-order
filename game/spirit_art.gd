@@ -238,29 +238,33 @@ kcxEHxk
 ..kkk..
 """],
 	"tuyul": ["""
-.kk....kk.
-kiik..kiik
-kiQikkiQik
-.kiiiiiik.
-kiegiigeik
-kiiiippiik
-.kiiiiiik.
-..kWWWWk..
-..kWYYWk..
-..kik.kik.
-..kk...kk.
+....kkkkk....
+...kiYYiiUk..
+..kiYiiiiiUk.
+.kiiiiiiiiiUk
+kiiegiiigeUik
+kUiiiiiiiiUUk
+.kiiikpppkUk.
+..kiiiiiiUk..
+..kkiiiiiUkk.
+.kiiikWWWkiik
+..kk.kWWWk.kk
+....kik.kik..
+....kk...kk..
 """, """
-.kk....kk.
-kiik..kiik
-kiQikkiQik
-.kiiiiiik.
-kiegiigeik
-kiiiippiik
-.kiiiiiik.
-..kWWWWk..
-..kWYYWk..
-...kikik..
-...kk.kk..
+....kkkkk....
+...kiYYiiUk..
+..kiYiiiiiUk.
+.kiiiiiiiiiUk
+kiiegiiigeUik
+kUiiiiiiiiUUk
+.kiiikpppkUk.
+..kiiiiiiUk..
+..kkiiiiiUkk.
+.kiiikWWWkiik
+..kk.kWWWk.kk
+.....kikik...
+.....kk.kk...
 """],
 	"sapling": ["""
 ..k...k..k..
@@ -297,28 +301,30 @@ kGkkKKKKkkGk
 """],
 	"monkey": ["""
 ..........kkk..
-.........kMiMk.
-.kk.....kMgMgk.
-kMMk....kMiiMMk
-kMk.kkkkkkiiik.
-kMkkMMMMMMMkk..
-.kMMMMMiMMMMk..
-..kMMiMMiMMMk..
-...kMMMMMMMk...
-...kMk..kMk....
-...kk...kk.....
+.........kiMMk.
+........kMXXXMk
+........kXEXEXk
+..kk....kMXXXUk
+.kMk.....kMMUk.
+.kMk..kkMiMMUUk
+..kMkkMiMMMMUUk
+...kkMMMMMMMUk.
+....kMUk..kMUk.
+....kMk...kMMk.
+....kk....kkkk.
 """, """
 ..........kkk..
-.........kMiMk.
-.kk.....kMgMgk.
-kMMk....kMiiMMk
-kMk.kkkkkkiiik.
-kMkkMMMMMMMkk..
-.kMMMMMiMMMMk..
-..kMMiMMiMMMk..
-...kMMMMMMMk...
-....kMkkMk.....
-....kk.kk......
+.........kiMMk.
+........kMXXXMk
+........kXEXEXk
+..kk....kMXXXUk
+.kMk.....kMMUk.
+.kMk..kkMiMMUUk
+..kMkkMiMMMMUUk
+...kkMMMMMMMUk.
+.....kMUkkMUk..
+.....kMkkMMk...
+.....kk.kkkk...
 """],
 	"pocong": ["""
 ..kk.kk..
@@ -341,7 +347,10 @@ kMkkMMMMMMMkk..
 ..kkkkkk.
 """],
 }
-const FEET := {"wisp": Vector2(3, 7), "tuyul": Vector2(5, 10), "sapling": Vector2(6, 14), "monkey": Vector2(7, 10), "pocong": Vector2(4, 17)}
+## A tuyul is a bald little child-ghost of the old stories: a big round head with ears out at its
+## sides, a grin, and only a loincloth. A smoke monkey is grey as its smoke, long in the arm, with a
+## pale face whose eyes glow like embers.
+const FEET := {"wisp": Vector2(3, 7), "tuyul": Vector2(6, 12), "sapling": Vector2(6, 14), "monkey": Vector2(8, 11), "pocong": Vector2(4, 17)}
 
 
 ## Every picture here, by name, for the palette check and the sprite sheet.
