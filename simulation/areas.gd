@@ -76,6 +76,8 @@ const LIST: Array[Dictionary] = [
 			{"by": "Uncle Anvil", "mood": "determined", "text": "They wanted it. I sat on it for nine days."},
 			{"by": "tompel", "mood": "surprised", "text": "Nine days?"},
 			{"by": "Uncle Anvil", "mood": "sad", "text": "Eight. I lost count. Is there any rice?"},
+			"Nothing grew back that day. The ground was trampled flat, and it smelled of their engines.",
+			{"by": "Uncle Anvil", "mood": "neutral", "text": "Leave it be. It'll come back on its own, a bit more every time you pass."},
 		],
 		"send_off": [
 			{"by": "elder", "mood": "worried", "text": "The rats are worst past the drying racks. Don't be a hero about it."},

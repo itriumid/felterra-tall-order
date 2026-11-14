@@ -1744,7 +1744,7 @@ func _remember_run(freed: bool) -> void:
 
 ## A run out from the village: into the area the map board says, or Endless. Endless is a fresh
 ## clearing every time; an area is the same place each time, wrecked while the company holds it
-## and healed once it's free, and the first time he goes in, its story is told first.
+## and growing back once it's free, and the first time he goes in, its story is told first.
 func _start_run(run_kind: String) -> void:
 	_note("run out to %s" % run_kind)
 	_begin(0, true)
@@ -1799,7 +1799,7 @@ func _set_up_run(run_kind: String) -> void:
 			if village.gifted():
 				cat.charm = Companion.new(village.cub_element, village.cub_rank)
 				_heel_the_cub()
-			_ground.paint(grove.ground, fresh, false)
+			_ground.paint(grove.ground, fresh)
 			_overlay.area_name = grove.name
 			# The first time in each kind of grove, the book's line for it; the first time in any,
 			# the Great Tiger's word on what cleansing it takes.
@@ -1816,7 +1816,7 @@ func _set_up_run(run_kind: String) -> void:
 		arena.shape(fresh)
 		if not _placed:
 			cat.body.position = arena.pull_inside(cat.body.position, 2.0)
-		_ground.paint("clearing", fresh, false)
+		_ground.paint("clearing", fresh)
 		return
 	var area := Areas.named(run_kind)
 	var goal_kept: bool = run_kind in village.goals_done and not run_kind in village.liberated
@@ -1831,7 +1831,7 @@ func _set_up_run(run_kind: String) -> void:
 	if area.get("in_the_village", false):
 		_fight_in_the_village(true)
 	else:
-		_ground.paint(area.ground, _area_seed(run_kind), run_kind in village.liberated)
+		_ground.paint(area.ground, _area_seed(run_kind), village.healed(run_kind), run_kind in village.liberated)
 	_entities._freed_areas = village.liberated
 	_overlay.area_name = area.name
 	# The first time in, its story; back in with its goal done before, a word on what's left.
@@ -1990,19 +1990,19 @@ func _begin_freeing() -> void:
 	# With the five words, the airstrip ends with the cats writing back.
 	_written = first_time and village.can_write() and area.has("after_written")
 	_freed_lines = Areas.after_lines(_run_kind, _written) if first_time else []
-	# Its fall is watched first: the story, and the ground healing, wait for it.
+	# Its fall is watched first: the story waits for it.
 	_cutscene = Cutscene.new([], settings.get_value("gameplay", "story_waits"))
 	_falling_for = 0.0
 	_free_for = FREED_PAUSE + BOSS_FALLS
 	_music.place = "freed"
 
 
-## The boss's fall watched, the area's story is told, and the ground heals from where it fell.
+## The boss's fall watched, the area's story is told, and the fires go out: nothing grows back while
+## he's there to watch.
 func _tell_the_freeing() -> void:
 	var area := Areas.named(_run_kind)
-	var fell_at: Vector2 = arena.boss.body.position if arena.boss != null else cat.body.position
 	if not _run_kind in village.liberated and not area.get("in_the_village", false):
-		_ground.heal(fell_at, area.ground, _area_seed(_run_kind))
+		_ground.put_out()
 	_cutscene = Cutscene.new(_freed_lines, settings.get_value("gameplay", "story_waits"))
 
 
@@ -2065,6 +2065,8 @@ func _end_liberation() -> void:
 ## coat.
 func _from_the_village() -> void:
 	_ran_from_village = true
+	# Days go by on every run, and every freed place grows back a little more.
+	village.time_passes()
 	# Nobody caged out there has the name of a cat who's home already.
 	arena.names_home.assign(village.cats.map(func(each: Dictionary) -> String: return each.get("name", "")))
 	cat.coat = village.coat
@@ -2799,12 +2801,12 @@ func guest_run_begins(setup: Dictionary) -> void:
 	if setup.get("grove", false):
 		arena.begin_grove(setup.seed)
 		var grove := Areas.grove(setup.seed)
-		_ground.paint(grove.ground, setup.seed, false)
+		_ground.paint(grove.ground, setup.seed)
 		_overlay.area_name = grove.name
 	else:
 		# The same clearing as the host's, from the same seed.
 		arena.shape(setup.seed)
-		_ground.paint("clearing", setup.seed, false)
+		_ground.paint("clearing", setup.seed)
 	_truth.clear()
 	_guessed = Vector2.INF
 	_guesses.clear()

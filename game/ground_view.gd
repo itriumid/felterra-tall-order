@@ -2,11 +2,14 @@ class_name GroundView
 extends Node2D
 ## The clearing and the jungle around it: the ground, the grass and ferns growing over it, and
 ## the trees and big leaves at its edge. No outlines: the environment stays behind the
-## characters. Each liberation area has its own ground, wrecked while the company holds it and
-## healed once it's free; freeing it, the healed ground spreads out from where its boss fell.
+## characters. Each liberation area has its own ground, wrecked while the company holds it. Freed,
+## it doesn't heal while he watches: its fires go out, and over the runs after, it grows back in
+## patches, in from the jungle at its edges, until it's whole.
 
-## How fast freed ground spreads, in pixels a second.
-const HEAL_SPEED := 260.0
+## The patches it grows back in, in pixels square: chunky, as pixel art is, not a smooth blend.
+const REGROWTH_PIXEL := 2
+## How much of where a patch grows back is its distance in from the jungle, the rest chance.
+const FROM_THE_EDGE := 0.25
 ## How far past the clearing the jungle is drawn, in pixels; and how far out past it the trees and
 ## leaves at its edge reach, in pixels, all put together in one picture.
 const JUNGLE_DEPTH := 400.0
@@ -19,11 +22,6 @@ const BRUSH_REACH := 0.08
 
 var arena: Arena
 var _ground: ImageTexture
-## The healed ground, while it spreads over the wrecked: from where, and how far it's reached, in
-## pixels (negative while it isn't spreading).
-var _healed: ImageTexture
-var _healing_from := Vector2.ZERO
-var healing := -1.0
 ## Scorched peat still smoldering, in pixels, while the area's held: its smoke rises off it.
 var _smoldering: Array = []
 var _smoke: Array[Dictionary] = []
@@ -67,17 +65,22 @@ func _ready() -> void:
 	paint("clearing", 39, false)
 
 
-## Paints the ground for a place: its look, wrecked or healed, and its growth and its trees from a
-## seed, so a fixed area looks the same every time and Endless's clearing is new each run.
-func paint(theme: String, seed_value: int, healed: bool) -> void:
+## Paints the ground for a place: its look, from as the company left it (0) to grown back whole
+## (1), and its growth and its trees from a seed, so a fixed area looks the same every time and
+## Endless's clearing is new each run. Freed, nothing on it smolders any more.
+func paint(theme: String, seed_value: int, healed := 0.0, freed := false) -> void:
 	meters = arena.size if arena != null else Arena.SIZE
 	var size := Vector2i(meters * World.PIXELS_PER_METER)
 	_smoldering = []
 	_smoke.clear()
-	_ground = ImageTexture.create_from_image(EnvironmentArt.area_ground(size, seed_value, theme, healed, _smoldering, _cabins()))
-	_healed = null
-	healing = -1.0
-	_wrecked = not healed
+	var whole := healed >= 1.0
+	var picture := EnvironmentArt.area_ground(size, seed_value, theme, whole, [] if freed else _smoldering, _cabins())
+	if healed > 0.0 and not whole:
+		var grown := EnvironmentArt.area_ground(size, seed_value, theme, true, [], _cabins())
+		picture.blit_rect_mask(grown, regrowth(size, seed_value, healed), Rect2i(Vector2i.ZERO, size), Vector2i.ZERO)
+	_ground = ImageTexture.create_from_image(picture)
+	# The trees at its edges are the last to come back.
+	_wrecked = not whole
 	var random := RandomNumberGenerator.new()
 	random.seed = seed_value + 3
 	_growth.clear()
@@ -86,7 +89,7 @@ func paint(theme: String, seed_value: int, healed: bool) -> void:
 	# Growth is thin where the company has been, and thick where it's gone.
 	# As thick on a big place as on a small one: GROWTH is for 40 by 24 meters.
 	var thickness := meters.x * meters.y / GROWTH_PER
-	for index in int(GROWTH * thickness) * (2 if healed else 1) / (1 if theme in ["clearing", "edge", "deep", "slide"] or healed else 3):
+	for index in int(GROWTH * thickness * (1.0 + healed) / (1.0 if theme in ["clearing", "edge", "deep", "slide"] or whole else 3.0 - 2.0 * healed)):
 		var where := Vector2(random.randf() * meters.x, random.randf() * meters.y)
 		if arena != null and (arena.solid_at(where) or not arena.inside(where)):
 			continue
@@ -102,19 +105,50 @@ func paint(theme: String, seed_value: int, healed: bool) -> void:
 	planted.emit()
 
 
-## Freeing the area: the healed ground spreads out from a point.
-func heal(from: Vector2, theme: String, seed_value: int) -> void:
-	var size := Vector2i(meters * World.PIXELS_PER_METER)
-	_healed = ImageTexture.create_from_image(EnvironmentArt.area_ground(size, seed_value, theme, true, [], _cabins()))
-	_healing_from = World.to_screen(from)
-	healing = 0.0
-	# The fires go out as it heals.
+## Freeing the area: the fires go out. Nothing grows back while he's there to watch.
+func put_out() -> void:
 	_smoldering.clear()
 
 
+## Where a place has grown back, so far: a mask, opaque where it has. Patches come back where
+## chance has them and first in from the jungle at its edges, where the seeds come from, so
+## the middle of what the company cleared is the last to green. Just the share healed asks: the
+## same place grows back the same way, more of it each time.
+static func regrowth(size: Vector2i, seed_value: int, healed: float) -> Image:
+	var coarse := Vector2i(ceili(size.x / float(REGROWTH_PIXEL)), ceili(size.y / float(REGROWTH_PIXEL)))
+	var noise := FastNoiseLite.new()
+	noise.seed = seed_value
+	noise.frequency = 0.035 * REGROWTH_PIXEL / 4.0
+	noise.fractal_octaves = 3
+	var chance := noise.get_image(coarse.x, coarse.y).get_data()
+	var count := coarse.x * coarse.y
+	var late := PackedFloat32Array()
+	late.resize(count)
+	var reach := minf(coarse.x, coarse.y) / 2.0
+	for y in coarse.y:
+		var from_y := minf(y, coarse.y - 1 - y)
+		for x in coarse.x:
+			var index := y * coarse.x + x
+			# 0 at the jungle, 1 in the middle of it all.
+			var inward := minf(minf(x, coarse.x - 1 - x), from_y) / reach
+			late[index] = chance[index] / 255.0 * (1.0 - FROM_THE_EDGE) + inward * FROM_THE_EDGE
+	# Grown back as far as the share asks: the earliest that share of it.
+	var ranked := late.duplicate()
+	ranked.sort()
+	var cut := ranked[clampi(int(healed * count), 0, count - 1)]
+	var bytes := PackedByteArray()
+	bytes.resize(count * 2)
+	for index in count:
+		bytes[index * 2] = 255
+		bytes[index * 2 + 1] = 255 if late[index] < cut else 0
+	var mask := Image.create_from_data(coarse.x, coarse.y, false, Image.FORMAT_LA8, bytes)
+	mask.resize(coarse.x * REGROWTH_PIXEL, coarse.y * REGROWTH_PIXEL, Image.INTERPOLATE_NEAREST)
+	mask.crop(size.x, size.y)
+	mask.convert(Image.FORMAT_RGBA8)
+	return mask
+
+
 func _process(delta: float) -> void:
-	if healing >= 0.0:
-		healing += HEAL_SPEED * delta
 	# Smoke off the smoldering peat: a wisp now and then, rising and drifting, gone as it thins.
 	for spot: Vector2 in _smoldering:
 		if randf() < delta * 3.0:
@@ -143,15 +177,6 @@ func _draw_ground() -> void:
 	var clearing := Rect2(Vector2.ZERO, meters * World.PIXELS_PER_METER)
 	draw_rect(clearing.grow(JUNGLE_DEPTH), Palette.JUNGLE_DEEP)
 	draw_texture(_ground, Vector2.ZERO)
-	if _healed != null and healing >= 0.0:
-		# The healed ground, row by row inside a growing circle: a hard pixel edge, no blend.
-		var size := _healed.get_size()
-		for y in range(maxi(int(_healing_from.y - healing), 0), mini(int(_healing_from.y + healing), int(size.y))):
-			var half := sqrt(maxf(healing * healing - pow(y - _healing_from.y, 2.0), 0.0))
-			var from_x := clampf(_healing_from.x - half, 0.0, size.x)
-			var to_x := clampf(_healing_from.x + half, 0.0, size.x)
-			if to_x > from_x:
-				draw_texture_rect_region(_healed, Rect2(from_x, y, to_x - from_x, 1), Rect2(from_x, y, to_x - from_x, 1))
 	var view := _visible_meters()
 	var low := Vector2i((view.position / GROWTH_CELL).floor())
 	var high := Vector2i((view.end / GROWTH_CELL).floor())

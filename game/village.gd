@@ -181,6 +181,11 @@ var left_home: Array[String] = []
 ## The areas whose goal he's done, though their boss still stands: done stays done, and the next
 ## run there is for the boss.
 var goals_done: Array[String] = []
+## How many runs have gone by since each freed area was freed, by its id, while it grows back:
+## nothing heals while he watches, and the forest takes it back over HEALS_IN runs, each run days
+## gone by. An area grown back, or freed in a village kept before regrowth was, isn't listed.
+var regrowing := {}
+const HEALS_IN := 4
 ## A tonic from the healer's hut, brewed and waiting for the next run.
 var tonic_ready := false
 ## The company's papers he's brought home, by the area each lay in, and those of them Granny
@@ -471,10 +476,27 @@ func siege_due() -> bool:
 
 ## An area freed for the first time: it's marked free, and brings the village what freeing it
 ## brings, its cats and its salvage. Returns false if it was free already.
+## How far a place has grown back, from 0 (as the company left it) to 1 (whole): none of it while
+## the company holds it.
+func healed(area_id: String) -> float:
+	if not area_id in liberated:
+		return 0.0
+	return clampf(float(regrowing.get(area_id, HEALS_IN)) / HEALS_IN, 0.0, 1.0)
+
+
+## A run's days go by: every freed place grows back a little more, and one grown back is let be.
+func time_passes() -> void:
+	for id: String in regrowing.keys():
+		regrowing[id] = int(regrowing[id]) + 1
+		if regrowing[id] >= HEALS_IN:
+			regrowing.erase(id)
+
+
 func liberate(area_id: String) -> bool:
 	if area_id in liberated:
 		return false
 	liberated.append(area_id)
+	regrowing[area_id] = 0
 	goals_done.erase(area_id)
 	var area := Areas.named(area_id)
 	salvage += area.bonus
@@ -753,6 +775,7 @@ func clear() -> void:
 	next_run = "edge"
 	left_home.clear()
 	goals_done.clear()
+	regrowing.clear()
 	tonic_ready = false
 	offerings = 0
 	groves_cleansed = 0
@@ -780,6 +803,7 @@ func save(path := PATH) -> bool:
 	file.set_value("village", "next_run", next_run)
 	file.set_value("village", "left_home", left_home)
 	file.set_value("village", "goals_done", goals_done)
+	file.set_value("village", "regrowing", regrowing)
 	file.set_value("village", "tonic_ready", tonic_ready)
 	file.set_value("village", "sayings", sayings)
 	file.set_value("village", "papers", papers)
@@ -843,6 +867,13 @@ func load_from(path := PATH) -> void:
 	_names(file, "goals_done", goals_done, Areas.ids())
 	for id in liberated:
 		goals_done.erase(id)
+	regrowing.clear()
+	var saved_regrowing: Variant = file.get_value("village", "regrowing", {})
+	if saved_regrowing is Dictionary:
+		for id: Variant in saved_regrowing:
+			var runs: Variant = saved_regrowing[id]
+			if id is String and id in liberated and (runs is int or runs is float) and runs >= 0 and runs < HEALS_IN:
+				regrowing[id] = int(runs)
 	_names(file, "left_home", left_home, everything())
 	left_home.erase(starting_piece)
 	jogiboy_found = _count(file, "jogiboy_found")

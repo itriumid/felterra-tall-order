@@ -298,3 +298,47 @@ func test_what_the_old_cats_say_fits_the_summary_and_is_heard_in_order() -> void
 	check(village.sayings.size() == Lore.SAYINGS.size(), "hearing them all kept %d of %d" % [village.sayings.size(), Lore.SAYINGS.size()])
 	check(village.hear_saying().title == Lore.SAYINGS[0].title, "once they're all heard, they don't come round again")
 	check(village.sayings.size() == Lore.SAYINGS.size(), "a saying heard again was kept twice")
+
+
+## Freed, a place doesn't heal while he watches: it grows back a quarter a run, wherever the runs
+## go, and is whole in four. One freed in a village kept before regrowth was is whole.
+func test_a_freed_place_grows_back_over_runs_and_is_kept() -> void:
+	var village := Village.new()
+	check(village.healed("edge") == 0.0, "the company's ground has grown back")
+	village.liberate("edge")
+	check(village.healed("edge") == 0.0, "the edge grew back the moment it was freed")
+	village.time_passes()
+	check(is_equal_approx(village.healed("edge"), 0.25), "a run on, the edge has grown back %.2f" % village.healed("edge"))
+	var path := "user://test_village_regrowing.cfg"
+	village.save(path)
+	var loaded := Village.new()
+	loaded.load_from(path)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	check(is_equal_approx(loaded.healed("edge"), 0.25), "kept, the edge came back %.2f grown" % loaded.healed("edge"))
+	for run in Village.HEALS_IN:
+		loaded.time_passes()
+	check(loaded.healed("edge") == 1.0 and loaded.regrowing.is_empty(), "four runs on, the edge is %.2f grown and still listed" % loaded.healed("edge"))
+	var older := Village.new()
+	older.liberated.append("deep")
+	check(older.healed("deep") == 1.0, "a place freed before regrowth isn't whole")
+	loaded.clear()
+	check(loaded.regrowing.is_empty(), "a reset kept what's growing back")
+
+
+func test_regrowth_is_the_share_it_asks_for_and_grows_on_from_where_it_was() -> void:
+	var size := Vector2i(400, 240)
+	var quarter := GroundView.regrowth(size, 5, 0.25)
+	var half := GroundView.regrowth(size, 5, 0.5)
+	var grown_quarter := 0
+	var grown_half := 0
+	var lost := 0
+	for y in range(0, size.y, 2):
+		for x in range(0, size.x, 2):
+			var early := quarter.get_pixel(x, y).a > 0.5
+			var later := half.get_pixel(x, y).a > 0.5
+			grown_quarter += 1 if early else 0
+			grown_half += 1 if later else 0
+			lost += 1 if early and not later else 0
+	var cells := (size.x / 2) * (size.y / 2)
+	check(absf(grown_quarter / float(cells) - 0.25) < 0.02 and absf(grown_half / float(cells) - 0.5) < 0.02, "grew back %.2f and %.2f" % [grown_quarter / float(cells), grown_half / float(cells)])
+	check(lost == 0, "%d patches grown back by a quarter were bare again at a half" % lost)

@@ -399,15 +399,20 @@ on: fire and oil, or crewmates who can be downed.
   Endless lies off the map's corner, until there's peace with the forest: then it's through the shrine. Each area is a fixed, hand-made place and one run: push in through what holds it, do
   what only that place asks, then its boss comes; beat it and the area is free, and the next one
   opens. Held by the company, an area is wrecked (stumps, felled trunks, ruts, oil, litter,
-  smoldering peat, fewer trees standing at its edge); freed, it's healed (grassed over, saplings,
-  flowers, clear water), and stays healed on every run after. Healed, each place is still
+  smoldering peat, fewer trees standing at its edge); freed, it grows back (grassed over,
+  saplings, flowers, clear water), and stays grown back on every run after. Nothing heals while
+  he watches: freeing it, the fires go out and that's all. Each run after, wherever it goes, is
+  days going by, and every freed place grows back a quarter more, in patches, scattered and
+  thicker in from the jungle at its edges, where the seeds come from, until in four runs it's
+  whole (`Village.regrowing`); the trees at its edges are the last to come back. Uncle Anvil
+  says so the first time. Grown back, each place is still
   itself: the sawpits' sawdust settles into grass, the offices' gravel shows through it, the
   airstrip's tarmac cracks with grass, the log chute shows only as a trace through the green; the
   flowers grow in patches of one kind, and the saplings stand lit from the top left. The first time he goes into an
-  area its story is told going in, to the opening's mellow music; the first time it's freed, the
-  healed ground spreads out from where its boss fell while the story goes on, to music of its
-  own. Its fall is watched first: the world runs slow for a moment, the camera goes over to it,
-  and only once it's down do the story and the healing start, the horde already scattering.
+  area its story is told going in, to the opening's mellow music; the first time it's freed, its
+  story is told to music of its own. Its boss's fall is watched first: the world runs slow for a
+  moment, the camera goes over to it, and only once it's down does the story start, the horde
+  already scattering.
 - **Bosses show the fight.** Every hit on a giant or a machine leaves its mark where it landed, in
   the kind of what landed it: rounds punch holes, blades cut (bare steel on a machine; a tear
   showing skin on a giant's vest, blood with blood on), blunt weapons and stones dent, fire and
