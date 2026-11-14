@@ -190,7 +190,20 @@ func _draw_hits() -> void:
 		PixelFont.draw(self, at, text, color)
 
 
+## How long the fight, the ground and this interface each took to set out last frame, in
+## milliseconds, for the numbers on screen.
+var fight_milliseconds := 0.0
+var ground_milliseconds := 0.0
+var interface_milliseconds := 0.0
+
+
 func _draw() -> void:
+	var started := Time.get_ticks_usec()
+	_draw_interface()
+	interface_milliseconds = (Time.get_ticks_usec() - started) / 1000.0
+
+
+func _draw_interface() -> void:
 	_draw_online_status()
 	if page in ["title", "together", "join", "waiting"]:
 		_draw_title()
@@ -586,8 +599,9 @@ func _draw_shop() -> void:
 		draw_rect(Rect2(box.position.x + 6, story_top - 3, box.size.x - 12, 1), Palette.PANEL_LIGHT)
 		# What it does, then where it came from.
 		# With a picture, what it does is under the picture: here, only its story.
+		# A weapon's picture has its numbers under it, so what it does in words is here too.
 		var does: Array[String] = []
-		if not previewing:
+		if not previewing or Upgrades.WEAPON_NAMES.has(shop_rows[shop_choice].get("item", "")):
 			does = wrapped(shop_rows[shop_choice].get("does", ""), box.size.x - 24)
 		var lines := wrapped(shop_rows[shop_choice].get("story", ""), box.size.x - 24)
 		for index in mini(does.size() + lines.size(), story_lines):
@@ -632,7 +646,8 @@ func _draw_thing(box: Rect2, entry: Dictionary) -> void:
 			for part in wrapped(line, box.size.x - 12):
 				PixelFont.draw(self, Vector2(x, y), part, Palette.OFF_WHITE)
 				y += PixelFont.LINE_HEIGHT
-		y += 4
+		# Its numbers take the room here; what it does in words goes below, with its story.
+		return
 	for line in wrapped(entry.get("does", ""), box.size.x - 12):
 		if y + PixelFont.LINE_HEIGHT > box.end.y:
 			break
@@ -954,8 +969,10 @@ func _draw_score() -> void:
 
 func _draw_numbers() -> void:
 	var lines: Array[String] = [
-		"%d frames a second, a step takes %.2f ms" % [Engine.get_frames_per_second(), step_milliseconds],
+		"%d frames a second: a frame's work takes %.1f ms of %.1f" % [Engine.get_frames_per_second(), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, 1000.0 / maxf(Engine.max_fps if Engine.max_fps > 0 else DisplayServer.screen_get_refresh_rate(), 1.0)],
+		"a step %.1f ms, the fight %.1f, the ground %.1f, this %.1f" % [step_milliseconds, fight_milliseconds, ground_milliseconds, interface_milliseconds],
 		"%d in the horde, %d fallen, %d rounds in the air" % [arena.creatures.size(), arena.fallen.size(), arena.shots.size()],
+		"%d things drawn in %d calls" % [Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME), Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)],
 	]
 	var width := 0
 	for line in lines:
@@ -1298,9 +1315,14 @@ func _draw_summary() -> void:
 		if not damage.is_empty():
 			sections.append(["Damage dealt", damage])
 	var row_height := PixelFont.LINE_HEIGHT + 2
-	var width := 260.0 if not learned.is_empty() else 220.0
+	var width := 260.0
+	# What the old cats say, under the numbers: its name, and what's said, wrapped to the panel.
+	var saying: Dictionary = summary.get("saying", {})
+	var said: Array[String] = wrapped(saying.get("text", ""), width - 20) if not saying.is_empty() else ([] as Array[String])
 	# The heading, each section's heading and rows and a gap, the choices, and the margin below.
 	var height := 26 + 8 + menu.size() * (PixelFont.LINE_HEIGHT + 3) + 2
+	if not said.is_empty():
+		height += (said.size() + 1) * PixelFont.LINE_HEIGHT + 8
 	for section: Array in sections:
 		height += ((section[1] as Array).size() + 1) * row_height + 6
 	var box := Rect2(floorf((screen.x - width) / 2.0), floorf((screen.y - height) / 2.0), width, height)
@@ -1317,6 +1339,15 @@ func _draw_summary() -> void:
 		y += row_height
 		rows = section[1]
 		y = _draw_summary_rows(rows, box, y, row_height)
+	if not said.is_empty():
+		y += 6
+		draw_rect(Rect2(box.position.x + 6, y - 2, box.size.x - 12, 1), Palette.PANEL_LIGHT)
+		y += 2
+		InterfaceArt.bold(self, Vector2(box.position.x + 10, y), "The old cats say: %s" % (saying.title as String).to_lower(), Palette.BRASS_LIGHT)
+		y += PixelFont.LINE_HEIGHT
+		for line in said:
+			PixelFont.draw(self, Vector2(box.position.x + 10, y), line, Palette.CREAM)
+			y += PixelFont.LINE_HEIGHT
 	_draw_choices(Vector2(box.position.x + 6, y + 8), box.size.x - 12)
 
 

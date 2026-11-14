@@ -21,6 +21,12 @@ aren't cruel and aren't in on it; they have simply never looked down. That is wh
 cats cats and not people in cat suits: four legs, a mouth and a tail to carry with, things
 built at their own size from what the giants drop, and no place in the giants' world at all.
 
+**Everyone below the knee talks to everyone else.** Cats, dogs and rats share a speech, each
+with their own way of it: that's how Jogiboy, a dog, has his say in a village of cats, how the
+Rat Baron gives his orders where a cat can hear them, and why the company's guard dogs could
+talk and aren't asked to. The Elder says so in the opening, when Tompel is surprised a dog
+talks like them. The giants are the only ones who never learned it; to them it's all noise.
+
 **Writing is the one bridge, and it goes one way.** A cat can't understand a human's speech,
 and a human hears a meow. But a cat who's eaten enough fish out of newspaper can read what
 humans write, and no human has ever read anything of a cat's. No device translates and no
@@ -592,7 +598,13 @@ on: fire and oil, or crewmates who can be downed.
     in a cloth for each. The first hut is the weaver's, who sells looks for cloth (his coat, the
     umbul-umbul's colors), its own currency so a look never competes with forging. The full
     list is in the catalog.
-  - **The run log, for playtesters.** A setting, off unless turned on, keeps a line for every run
+  - **What the old cats say.** Every run ends with a saying, under its numbers: something the
+  giants say about cats, or something true of them, told the village's way. Nine lives (a cat
+  has one; a crew has nine, because it shares them), landing on your feet, curiosity, whiskers,
+  purring, ships' cats, the luwak who isn't a cat, the candramawa's stare. Twenty of them, in
+  order, each kept in the Elder's book once heard, and round again after the last. The facts
+  under them are real; `simulation/lore.gd` says which.
+- **The run log, for playtesters.** A setting, off unless turned on, keeps a line for every run
   that ends in a file on the player's own computer: where, how long, what level, what got him,
   what he carried, what did the damage, and how smoothly it ran. Nothing is sent: a playtester
   who wants to help finds the file through "Show the run log's folder" in the settings and sends

@@ -104,6 +104,8 @@ const INTRO: Array = [
 	{"by": "elder", "mood": "neutral", "text": "He won't say where he came from."},
 	{"by": "elder", "mood": "happy", "text": "He's been sleeping in your house. Under it, mostly, since the roof went."},
 	{"by": "jogiboy", "mood": "happy", "text": "It smells like you in there. So I already know you."},
+	{"by": "tompel", "mood": "surprised", "text": "He talks like us."},
+	{"by": "elder", "mood": "neutral", "text": "Everyone below the knee does. Dogs, rats, the lot. It's only the giants who never learned."},
 	{"by": "tompel", "mood": "neutral", "text": "...Okay. Hi, Jogiboy."},
 	{"by": "jogiboy", "mood": "neutral", "text": "You've been near the palm trees."},
 	{"by": "tompel", "mood": "surprised", "text": "How did you..."},
@@ -1263,6 +1265,13 @@ func _chapters() -> Array[Dictionary]:
 			chapters.append({"name": "%s: freed" % area.name, "lines": Areas.after_lines(area.id, Village.SIGN_UP in village.told)})
 		if ("teach:" + area.id) in village.told:
 			chapters.append({"name": "What %s taught" % _speaker_name(area.teaches.by), "lines": area.teaches.lines + area.get("home", [])})
+	# What the old cats say, as far as he's been told.
+	if not village.sayings.is_empty():
+		var said: Array = []
+		for saying in Lore.SAYINGS:
+			if saying.title in village.sayings:
+				said.append("%s. %s" % [saying.title, saying.text])
+		chapters.append({"name": "What the old cats say", "lines": said})
 	# What the giants' own papers said, as Granny Whiskers read them, and what she made of them.
 	if not village.papers_read.is_empty():
 		var said: Array = []
@@ -1583,6 +1592,8 @@ func _step_world(delta: float) -> void:
 	_audio.take_events(events)
 	if steps > 0:
 		_overlay.step_milliseconds = (Time.get_ticks_usec() - started) / 1000.0 / steps
+	_overlay.fight_milliseconds = _entities.draw_milliseconds
+	_overlay.ground_milliseconds = _ground.draw_milliseconds
 
 
 ## He's down: the run's numbers go into the records, and its summary opens.
@@ -1597,6 +1608,8 @@ func _end_run() -> void:
 	_bring_home()
 	_remember_run(false)
 	_overlay.summary = Records.of(arena)
+	# Every run ends with something the old cats say.
+	_overlay.summary.saying = village.hear_saying()
 	_overlay.summary.rescued = arena.rescued.size()
 	_overlay.summary.salvage = arena.salvage
 	if arena.grove:
@@ -1884,6 +1897,8 @@ func _end_liberation() -> void:
 	_bring_home()
 	_remember_run(true)
 	_overlay.summary = Records.of(arena)
+	# Every run ends with something the old cats say.
+	_overlay.summary.saying = village.hear_saying()
 	_overlay.summary.rescued = arena.rescued.size()
 	_overlay.summary.salvage = arena.salvage
 	_overlay.summary.freed = Areas.named(_run_kind).name
@@ -1939,8 +1954,8 @@ func _take_screenshot(delta: float) -> void:
 	if _screenshot_after <= 0.0:
 		if _frames_saved == 0:
 			print("sounds played: ", _audio.played)
-			print("%d frames a second, %.2f ms a step, %.2f ms drawing the fight, %.2f ms a frame's processing, %d in the horde, %d fallen" % [
-				Engine.get_frames_per_second(), _overlay.step_milliseconds, _entities.draw_milliseconds,
+			print("%d frames a second, %.2f ms a step, %.2f ms drawing the fight, %.2f the ground, %.2f the interface, %.2f ms a frame's processing, %d in the horde, %d fallen" % [
+				Engine.get_frames_per_second(), _overlay.step_milliseconds, _entities.draw_milliseconds, _ground.draw_milliseconds, _overlay.interface_milliseconds,
 				Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, arena.creatures.size(), arena.fallen.size()])
 		_frames_saved += 1
 		var path := _screenshot_path if _frames == 1 else _screenshot_path.replace(".png", "_%d.png" % _frames_saved)
