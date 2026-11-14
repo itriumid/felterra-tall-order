@@ -143,8 +143,9 @@ const SETTING_ROWS: Array[Array] = [
 	["audio", "master", "Volume"], ["audio", "music", "Music"], ["audio", "effects", "Effects"],
 	["audio", "interface", "Interface"],
 	["gameplay", "aim", "Aim"], ["gameplay", "blood", "Blood"], ["gameplay", "story_waits", "Story lines"],
-	["gameplay", "damage_numbers", "Damage numbers"],
+	["gameplay", "damage_numbers", "Damage numbers"], ["gameplay", "run_log", "Run log"],
 	["online", "updates", "Check for updates"],
+	["progress", "show_log", "Show the run log's folder"],
 	["progress", "reset", "Reset all progress"],
 	["", "back", "Back"],
 ]
@@ -1484,6 +1485,7 @@ func _process(delta: float) -> void:
 	_muzzle_light.energy = 1.6 * _entities.flash.get(cat, 0.0)
 	_glow_on_level_up(delta)
 	_light_the_fires()
+	_sample_frame_rate(delta)
 	if arena.liberated and cat.alive():
 		_begin_freeing()
 	elif arena.over():
@@ -1501,6 +1503,32 @@ func _start_late() -> void:
 		arena._gain_experience(Arena.experience_needed(arena.level) - arena.experience)
 		for each in arena.cats:
 			Autoplay.play_all(each)
+
+
+## How smoothly the run went, for the run log: the frames a second, sampled once a second from
+## the fifth on (the first are loading), the lowest and the average.
+var _frame_rates := PackedFloat32Array()
+var _since_frame_rate := 0.0
+
+
+func _sample_frame_rate(delta: float) -> void:
+	_since_frame_rate += delta
+	if _since_frame_rate < 1.0:
+		return
+	_since_frame_rate -= 1.0
+	if arena.time >= 5.0:
+		_frame_rates.append(Engine.get_frames_per_second())
+
+
+func _smoothness() -> Dictionary:
+	if _frame_rates.is_empty():
+		return {}
+	var lowest := INF
+	var total := 0.0
+	for rate in _frame_rates:
+		lowest = minf(lowest, rate)
+		total += rate
+	return {"lowest": lowest, "average": snappedf(total / _frame_rates.size(), 0.1)}
 
 
 ## In the siege, each roof alight throws its light about, flickering; put out, it's dark.
@@ -1589,6 +1617,9 @@ func _remember_run(freed: bool) -> void:
 	records.remember(Records.entry_of(arena, cat, where, freed))
 	if _keeping_settings:
 		records.save()
+		# A playtester's log, if they've turned it on: never from a development run.
+		if settings.get_value("gameplay", "run_log"):
+			RunLog.append(RunLog.entry_of(arena, cat, where, freed, _run_seed, _smoothness()))
 
 
 ## A run out from the village: into the area the map board says, or Endless. Endless is a fresh
@@ -1626,6 +1657,8 @@ func _enter() -> void:
 
 func _set_up_run(run_kind: String) -> void:
 	_run_kind = run_kind
+	_frame_rates.clear()
+	_since_frame_rate = 0.0
 	_freeing = false
 	_fight_in_the_village(false)
 	if run_kind == "endless" or run_kind.is_empty():
@@ -2119,6 +2152,10 @@ func _read_settings() -> void:
 		if Input.is_action_just_pressed("menu_choose"):
 			_reset_progress()
 		return
+	if row[1] == "show_log":
+		if Input.is_action_just_pressed("menu_choose"):
+			_show_run_log()
+		return
 	settings.step(row[0], row[1], direction)
 	_settings_changed()
 	_audio.interface("menu_choose" if direction > 0 else "menu_back")
@@ -2127,6 +2164,14 @@ func _read_settings() -> void:
 ## Reset all progress: the first press asks, the second does it. The village and the best run go
 ## back to nothing; the settings stay as they are. Choosing any other row first takes the
 ## question back.
+## The folder the run log is in, opened for the player to find the file and send it. Never from a
+## headless run: there's nobody to see it, and a check of the menus shouldn't open windows.
+func _show_run_log() -> void:
+	_audio.interface("menu_choose")
+	if DisplayServer.get_name() != "headless":
+		OS.shell_open(ProjectSettings.globalize_path(RunLog.PATH.get_base_dir()))
+
+
 func _reset_progress() -> void:
 	if _reset_state != "asking":
 		_reset_state = "asking"
@@ -2180,6 +2225,9 @@ func _setting_lines() -> Array[Dictionary]:
 		if row[1] == "reset":
 			line.action = true
 			line.value = {"": "", "asking": "Press again: it can't be undone", "done": "Done"}[_reset_state]
+		elif row[1] == "show_log":
+			line.action = true
+			line.value = "" if FileAccess.file_exists(RunLog.PATH) else "Nothing in it yet"
 		elif row[1] != "back":
 			var value: Variant = settings.get_value(row[0], row[1])
 			match row[1]:
@@ -2189,6 +2237,7 @@ func _setting_lines() -> Array[Dictionary]:
 				"aim": line.value = {"nearest": "Nearest", "toughest": "Toughest first", "crowd": "Thickest crowd"}[value]
 				"blood": line.value = "On" if value else "Off: dust and fur instead"
 				"story_waits": line.value = "Wait for Enter" if value else "Move on by themselves"
+				"run_log": line.value = "On: kept on this computer" if value else "Off"
 				_:
 					if value is bool:
 						line.value = "On" if value else "Off"

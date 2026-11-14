@@ -589,7 +589,12 @@ on: fire and oil, or crewmates who can be downed.
     in a cloth for each. The first hut is the weaver's, who sells looks for cloth (his coat, the
     umbul-umbul's colors), its own currency so a look never competes with forging. The full
     list is in the catalog.
-  - **Progress can be reset** from the settings: it asks once more, then the village and the
+  - **The run log, for playtesters.** A setting, off unless turned on, keeps a line for every run
+  that ends in a file on the player's own computer: where, how long, what level, what got him,
+  what he carried, what did the damage, and how smoothly it ran. Nothing is sent: a playtester
+  who wants to help finds the file through "Show the run log's folder" in the settings and sends
+  it themselves. It's how Endless gets tuned against people, not only against a simple bot.
+- **Progress can be reset** from the settings: it asks once more, then the village and the
     best run go back to nothing, and the settings stay.
 - Maps push deeper into the camp: the clearings, the sawpits, the log slide to the river, the
   company's offices, the airstrip.
