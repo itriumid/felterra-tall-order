@@ -723,6 +723,8 @@ const GUN_NORTH := """
 .ksk.
 .ksk.
 .ksk.
+.ksk.
+kSSSk
 kSSSk
 kdSdk
 kddkk
@@ -749,6 +751,7 @@ const HANDGUN_NORTH := """
 .k..
 ksk.
 ksk.
+ksk.
 kSkk
 kddk
 kdk.
@@ -761,11 +764,12 @@ kbbkSssk
 kkkkkkk.
 """
 const KNIFE_NORTHEAST := """
-...kk
-..ksk
-.kSk.
-kbk..
-kk...
+....kk
+...ksk
+..ksk.
+.kSk..
+kbk...
+kk....
 """
 const KNIFE_NORTH := """
 .k.
@@ -773,6 +777,7 @@ ksk
 ksk
 kSk
 kkk
+kbk
 kbk
 kkk
 """
@@ -797,9 +802,10 @@ ksk
 .kSk
 ksk
 .kSk
+ksk
 kkk
-khk
 kbk
+khk
 kkk
 """
 ## The kerambit: curved like a claw, with a ring for the finger.
@@ -810,17 +816,20 @@ kbkkSkk.
 kkkk....
 """
 const KERAMBIT_NORTHEAST := """
-..kk
-.ksk
-kSk.
-kbk.
-kk..
+..kk..
+...sk.
+..ksk.
+.kSk..
+kbk...
+kk....
 """
 const KERAMBIT_NORTH := """
 kk.
 .sk
+ksk
 kSk
 kkk
+kbk
 kbk
 kkk
 """
@@ -829,28 +838,28 @@ kkk
 const GUNS := {
 	"knife": {
 		"east": {"art": KNIFE_EAST, "grip": Vector2(1, 1), "muzzle": Vector2(7, 1)},
-		"northeast": {"art": KNIFE_NORTHEAST, "grip": Vector2(1, 3), "muzzle": Vector2(4, 0)},
-		"north": {"art": KNIFE_NORTH, "grip": Vector2(1, 5), "muzzle": Vector2(1, 0)},
+		"northeast": {"art": KNIFE_NORTHEAST, "grip": Vector2(1, 4), "muzzle": Vector2(5, 0)},
+		"north": {"art": KNIFE_NORTH, "grip": Vector2(1, 6), "muzzle": Vector2(1, 0)},
 	},
 	"submachine_gun": {
 		"east": {"art": GUN_EAST, "grip": Vector2(3, 3), "muzzle": Vector2(11, 1)},
 		"northeast": {"art": GUN_NORTHEAST, "grip": Vector2(2, 6), "muzzle": Vector2(8, 0)},
-		"north": {"art": GUN_NORTH, "grip": Vector2(2, 7), "muzzle": Vector2(2, 0)},
+		"north": {"art": GUN_NORTH, "grip": Vector2(2, 9), "muzzle": Vector2(2, 0)},
 	},
 	"keris": {
 		"east": {"art": KERIS_EAST, "grip": Vector2(1, 1), "muzzle": Vector2(9, 1)},
 		"northeast": {"art": KERIS_NORTHEAST, "grip": Vector2(1, 5), "muzzle": Vector2(5, 0)},
-		"north": {"art": KERIS_NORTH, "grip": Vector2(1, 7), "muzzle": Vector2(1, 0)},
+		"north": {"art": KERIS_NORTH, "grip": Vector2(1, 8), "muzzle": Vector2(1, 0)},
 	},
 	"kerambit": {
 		"east": {"art": KERAMBIT_EAST, "grip": Vector2(1, 2), "muzzle": Vector2(6, 0)},
-		"northeast": {"art": KERAMBIT_NORTHEAST, "grip": Vector2(1, 3), "muzzle": Vector2(3, 0)},
-		"north": {"art": KERAMBIT_NORTH, "grip": Vector2(1, 4), "muzzle": Vector2(0, 0)},
+		"northeast": {"art": KERAMBIT_NORTHEAST, "grip": Vector2(1, 4), "muzzle": Vector2(2, 0)},
+		"north": {"art": KERAMBIT_NORTH, "grip": Vector2(1, 6), "muzzle": Vector2(0, 0)},
 	},
 	"handgun": {
 		"east": {"art": HANDGUN_EAST, "grip": Vector2(1, 3), "muzzle": Vector2(7, 1)},
 		"northeast": {"art": HANDGUN_NORTHEAST, "grip": Vector2(1, 4), "muzzle": Vector2(5, 0)},
-		"north": {"art": HANDGUN_NORTH, "grip": Vector2(1, 5), "muzzle": Vector2(1, 0)},
+		"north": {"art": HANDGUN_NORTH, "grip": Vector2(1, 6), "muzzle": Vector2(1, 0)},
 	},
 }
 

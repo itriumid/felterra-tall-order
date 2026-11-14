@@ -886,7 +886,7 @@ func _arrive(from_the_forest: bool) -> void:
 func _teach_packing_when_due() -> void:
 	if village.is_restored("smithy") and not Village.PACK_TAUGHT in village.told:
 		village.tell("smithy", "Uncle Anvil, at the smithy",
-			"\"Whatever's in your pack, you'll be grabbing it without looking once it starts: three to pick from, at the first level. So don't pack anything you can't use. Anything I forge goes in the pack too.\"",
+			"\"Whatever's in your pack, you'll be grabbing it without looking once it starts: three to pick from, at the first level. So don't pack anything you can't use. Anything I forge goes in the pack too. And what the giants drop, I cut down first: everything of theirs is twice your length. Not the pistols. There's no gun shorter than a pistol.\"",
 			Village.PACK_TAUGHT)
 
 

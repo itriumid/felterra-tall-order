@@ -84,3 +84,22 @@ func test_a_carriage_return_does_not_widen_the_art() -> void:
 	var unix := Sprites.image("\nkk\nkk\n").get_size()
 	var windows := Sprites.image("\r\nkk\r\nkk\r\n").get_size()
 	check(unix == windows, "art with Windows line endings is %s, not %s" % [windows, unix])
+
+
+## Every weapon is drawn as long as it is in his paws (ArsenalArt.HELD_LENGTH), between the shortest
+## that reads and a little over a cat; and as long whichever way he aims it, so it doesn't grow or
+## shrink as he turns.
+func test_every_weapon_is_cat_sized_and_the_same_length_every_way() -> void:
+	var art := Sprites.held_art()
+	for weapon: String in art:
+		check(ArsenalArt.HELD_LENGTH.has(weapon), "how long the %s is in his paws isn't written down" % weapon)
+		var length: float = ArsenalArt.HELD_LENGTH.get(weapon, 0.0)
+		check(length >= ArsenalArt.SHORTEST and length <= ArsenalArt.LONGEST, "the %s is %.2f m long, outside what a cat holds" % [weapon, length])
+		var east := Sprites.image(art[weapon].east.art).get_used_rect().size
+		var north := Sprites.image(art[weapon].north.art).get_used_rect().size
+		var slant := Sprites.image(art[weapon].northeast.art).get_used_rect().size
+		check(east.x == roundi(length * World.PIXELS_PER_METER), "the %s is drawn %d pixels long, not %.2f m" % [weapon, east.x, length])
+		check(north.y == east.x, "the %s is %d pixels long aimed north and %d aimed east" % [weapon, north.y, east.x])
+		check(maxi(slant.x, slant.y) >= roundi(east.x * 0.7) and maxi(slant.x, slant.y) <= east.x, "the %s is %s aimed on the slant, for %d aimed east" % [weapon, slant, east.x])
+	for weapon: String in ArsenalArt.HELD_LENGTH:
+		check(art.has(weapon), "a length for %s, which isn't held" % weapon)
