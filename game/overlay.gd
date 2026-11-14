@@ -144,6 +144,10 @@ func _process(delta: float) -> void:
 
 ## The hits of a step, for their numbers: only what he and his crew dealt, and only with the
 ## numbers on.
+## Past this many numbers up, only the hits worth noticing add another.
+const CROWDED_NUMBERS := 12
+
+
 func take_hits(events: Array[Dictionary]) -> void:
 	if not damage_numbers:
 		return
@@ -153,6 +157,10 @@ func take_hits(events: Array[Dictionary]) -> void:
 			continue
 		var at := World.to_screen(event.position, event.height)
 		var tier: int = event.get("tier", 0)
+		# With numbers enough up already, an ordinary hit on one of the horde adds none: in a crush
+		# they'd pile over him and hide him. A critical hit, or one on a giant or a machine, still shows.
+		if _hits.size() >= CROWDED_NUMBERS and tier == 0 and not event.get("giant", false):
+			continue
 		var merged := false
 		for hit in _hits:
 			if hit.age < HIT_MERGE_TIME and hit.at.distance_to(at) <= HIT_MERGE_PIXELS:
@@ -1156,34 +1164,48 @@ func _draw_held(at: Vector2) -> void:
 func _draw_settings() -> void:
 	var screen := get_viewport_rect().size
 	var row_height := PixelFont.LINE_HEIGHT + 2
-	var sections := {}
-	for row in setting_rows:
-		if row.section != "":
-			sections[row.section] = true
-	var width := 260.0
-	# Rows, a heading and a gap for each section, a gap before Back, the title and the margins.
-	var height := setting_rows.size() * row_height + sections.size() * (row_height + 4) + 4 + 30
-	var box := Rect2(floorf((screen.x - width) / 2.0), floorf((screen.y - height) / 2.0), width, height)
+	# Two columns, the way the settings fall: how it looks and sounds on the left, how it plays and
+	# the rest on the right. One column grew taller than the screen. Up and down still go through
+	# them in order, down the left and on down the right.
+	var column_width := 236.0
+	var gap := 8.0
+	var spots: Array[Vector2] = []
+	var headings: Array[Array] = []
+	var heights := [0.0, 0.0]
+	var column := 0
+	var section := "none"
+	for index in setting_rows.size():
+		var row: Dictionary = setting_rows[index]
+		if row.section == SECOND_COLUMN_FROM:
+			column = 1
+		if row.section != section:
+			section = row.section
+			heights[column] += 4
+			if section != "":
+				headings.append([column, heights[column], section.capitalize()])
+				heights[column] += row_height
+		spots.append(Vector2(column, heights[column]))
+		heights[column] += row_height
+	var width := column_width * 2.0 + gap
+	var height := maxf(heights[0], heights[1]) + 30.0
+	var box := Rect2(floorf((screen.x - width) / 2.0), floorf((screen.y - height) / 2.0) - 6, width, height)
 	InterfaceArt.panel(self, box)
 	InterfaceArt.bold(self, box.position + Vector2(10, 7), "Settings", Palette.PINK)
 	var version := version_text()
 	PixelFont.draw(self, Vector2(box.end.x - 10 - PixelFont.width(version), box.position.y + 7), version, Palette.SMOKE)
-	var y := box.position.y + 24
-	var section := "none"
+	var top := box.position.y + 24
+	for heading: Array in headings:
+		PixelFont.draw(self, Vector2(box.position.x + heading[0] * (column_width + gap) + 10, top + heading[1]), heading[2], Palette.PINK)
 	for index in setting_rows.size():
 		var row: Dictionary = setting_rows[index]
-		if row.section != section:
-			section = row.section
-			y += 4
-			if section != "":
-				PixelFont.draw(self, Vector2(box.position.x + 10, y), section.capitalize(), Palette.PINK)
-				y += row_height
+		var left: float = box.position.x + spots[index].x * (column_width + gap)
+		var y: float = top + spots[index].y
 		var chosen := index == setting_choice
 		var ink := Palette.GRAPHITE if chosen else Palette.OFF_WHITE
 		if chosen:
-			draw_rect(Rect2(box.position.x + 6, y - 2, box.size.x - 12, row_height), Palette.PINK)
-		PixelFont.draw(self, Vector2(box.position.x + 16, y), row.name, ink)
-		var right := box.end.x - 14
+			draw_rect(Rect2(left + 6, y - 2, column_width - 8, row_height), Palette.PINK)
+		PixelFont.draw(self, Vector2(left + 16, y), row.name, ink)
+		var right := left + column_width - 8
 		if row.volume >= 0:
 			var bar_x: float = right - 10 * 6 - (12 if chosen else 0)
 			for step in 10:
@@ -1195,10 +1217,13 @@ func _draw_settings() -> void:
 		elif row.value != "":
 			var value: String = ("← %s →" % row.value) if chosen and not row.get("action", false) else String(row.value)
 			PixelFont.draw(self, Vector2(right - PixelFont.width(value), y), value, ink)
-		y += row_height
 	var keys: Array[String] = ["W S", "choose", "A D", "change", "Esc", "back"]
 	var line_width := InterfaceArt.key_line_width(keys)
 	InterfaceArt.key_line(self, Vector2(floorf((screen.x - line_width) / 2.0), box.end.y + 6), keys)
+
+
+## The settings' first section in the right-hand column.
+const SECOND_COLUMN_FROM := "gameplay"
 
 
 ## The title: the game's name over the clearing, and its choices.
