@@ -223,15 +223,36 @@ func _by_depth(standing: Array[Array]) -> Array[Array]:
 	return ordered
 
 
+## What's on screen, in meters, grown by a margin: only what's in it is drawn. The clearing is a
+## few screens each way, so most of the horde, the fallen and what's spattered about is off screen
+## at any moment, and drawing it all cost far more than drawing what can be seen.
+const SEEN_MARGIN := 1.5
+## Tall things (a giant, a machine's boom, a tree) reach further into view from off it.
+const SEEN_MARGIN_TALL := 6.0
+var _seen := Rect2()
+var _seen_tall := Rect2()
+
+
+func _look() -> void:
+	var view := get_canvas_transform().affine_inverse() * get_viewport_rect()
+	var meters := Rect2(view.position / World.PIXELS_PER_METER, view.size / World.PIXELS_PER_METER)
+	_seen = meters.grow(SEEN_MARGIN)
+	_seen_tall = meters.grow(SEEN_MARGIN_TALL)
+
+
 func _draw_all() -> void:
+	_look()
 	var standing: Array[Array] = []
 	for creature in arena.creatures:
-		standing.append([creature.body.position.y, creature])
+		if _seen.has_point(creature.body.position):
+			standing.append([creature.body.position.y, creature])
 	# The fallen lying still are flat on the ground, under everything standing: drawn first, all
 	# together, not sorted in among the rest, so a field of them costs little. Only those still
 	# flying are sorted in.
 	var lying: Array = []
 	for body in arena.fallen:
+		if not _seen.has_point(body.position):
+			continue
 		if body.resting():
 			lying.append(body)
 		else:
@@ -239,13 +260,16 @@ func _draw_all() -> void:
 	for cat in arena.cats:
 		standing.append([cat.body.position.y, cat])
 	for giant in arena.giants:
-		standing.append([giant.body.position.y, giant])
+		if _seen_tall.has_point(giant.body.position):
+			standing.append([giant.body.position.y, giant])
 	for machine in arena.machines:
-		standing.append([machine.body.position.y, machine])
+		if _seen_tall.has_point(machine.body.position):
+			standing.append([machine.body.position.y, machine])
 	for structure in arena.structures:
 		standing.append([structure.body.position.y, structure])
 	for obstacle in arena.obstacles:
-		standing.append([obstacle.center.y if obstacle.is_round() else obstacle.rect.end.y, obstacle])
+		if _seen_tall.intersects(obstacle.rect):
+			standing.append([obstacle.center.y if obstacle.is_round() else obstacle.rect.end.y, obstacle])
 	for lever in arena.levers:
 		standing.append([lever.position.y, {"lever": lever}])
 	for rolling in arena.logs:
@@ -260,16 +284,19 @@ func _draw_all() -> void:
 				standing.append([support.body.position.y, support])
 		if cat.charm != null:
 			standing.append([cat.charm.body.position.y, cat.charm])
+	# Salvage and cages sorted in with the rest, so a giant in front of one stands in front of it.
+	for piece in arena.pickups:
+		if _seen.has_point(piece.body.position):
+			standing.append([piece.body.position.y, piece])
+	for cage in arena.cages:
+		standing.append([cage.body.position.y if not cage.opened else cage.runner.position.y, cage])
 	_more_standing(standing)
 	standing = _by_depth(standing)
 	for stain in _stains:
-		draw_rect(Rect2(World.to_screen(stain.position), Vector2.ONE), Palette.BLOOD if stain.age < STAIN_DRIES else Palette.BLOOD_DRY)
+		if _seen.has_point(stain.position):
+			draw_rect(Rect2(World.to_screen(stain.position), Vector2.ONE), Palette.BLOOD if stain.age < STAIN_DRIES else Palette.BLOOD_DRY)
 	_draw_drains()
 	_draw_marks()
-	for piece in arena.pickups:
-		standing.append([piece.body.position.y, piece])
-	for cage in arena.cages:
-		standing.append([cage.body.position.y if not cage.opened else cage.runner.position.y, cage])
 	for cat in arena.cats:
 		var mines: Support = cat.supports.get("set_down")
 		if mines != null:
@@ -280,7 +307,8 @@ func _draw_all() -> void:
 	_draw_ground_hazards()
 	_draw_reaches()
 	for remains in arena.fading:
-		_draw_remains(remains)
+		if _seen.has_point((remains.body as Body).position):
+			_draw_remains(remains)
 	for body: Body in lying:
 		_draw_lying(body)
 	_draw_props()
@@ -354,10 +382,12 @@ func _draw_all() -> void:
 		else:
 			_draw_remains(entry[1])
 	for speck in _dust:
-		draw_rect(Rect2(World.to_screen(speck.position, speck.height), Vector2.ONE), Palette.SMOKE)
+		if _seen.has_point(speck.position):
+			draw_rect(Rect2(World.to_screen(speck.position, speck.height), Vector2.ONE), Palette.SMOKE)
 	_draw_smoke()
 	for droplet in _droplets:
-		draw_rect(Rect2(World.to_screen(droplet.position, droplet.height), Vector2.ONE), droplet.color)
+		if _seen.has_point(droplet.position):
+			draw_rect(Rect2(World.to_screen(droplet.position, droplet.height), Vector2.ONE), droplet.color)
 	_draw_fireflies()
 	for shot in arena.shots:
 		if shot.weapon != null and shot.weapon.name == "net_drone":
@@ -1879,6 +1909,8 @@ static func firefly_sheet() -> Image:
 ## arrows, bolts, nails and darts stuck where they struck, their ends out.
 func _draw_marks() -> void:
 	for mark in _marks:
+		if not _seen.has_point(mark.position):
+			continue
 		var kind: String = mark.kind
 		var at := World.to_screen(mark.position, mark.height)
 		if kind == "case":
