@@ -95,19 +95,40 @@ static func area_ground(size: Vector2i, seed_value: int, theme: String, healed: 
 		# Healed: stumps sprouting, and flowers through the grass.
 		for index in {"deep": 30, "sawpits": 36, "clearing": 24}.get(theme, 8) as int:
 			_stump(picture, Vector2(random.randf() * size.x, random.randf() * size.y), random.randi_range(4, 6), true)
-		# Flowers in little clumps, and saplings: the forest coming back.
-		for index in 420:
-			var at := Vector2i(random.randi_range(2, size.x - 3), random.randi_range(2, size.y - 3))
+		# Flowers in clumps, each clump one kind, so they read as patches of flowers and not as
+		# confetti; and saplings: the forest coming back.
+		var area_scale := size.x * size.y / (1600.0 * 960.0)
+		for clump in int(220 * area_scale):
+			var middle := Vector2(random.randi_range(8, size.x - 9), random.randi_range(8, size.y - 9))
 			var color: Color = [Palette.PINK, Palette.BRASS_LIGHT, Palette.CREAM, Palette.SCARF_RED][random.randi_range(0, 3)]
-			for petal in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)]:
-				if random.randf() < 0.8:
+			for bloom in random.randi_range(4, 9):
+				var at := Vector2i(middle + Vector2.from_angle(random.randf() * TAU) * random.randf() * 9.0)
+				# A bloom of five petals round its heart, on a stem with a leaf.
+				picture.set_pixelv(at + Vector2i(0, 3), Palette.JUNGLE)
+				picture.set_pixelv(at + Vector2i(0, 2), Palette.LEAF)
+				picture.set_pixelv(at + Vector2i(1, 2), Palette.LEAF_LIGHT)
+				for petal: Vector2i in [Vector2i(-1, 0), Vector2i(1, 0), Vector2i(0, -1), Vector2i(0, 1), Vector2i(1, -1)]:
 					picture.set_pixelv(at + petal, color)
-			picture.set_pixelv(at + Vector2i(0, 2), Palette.LEAF)
-		for index in 40:
-			_sapling(picture, Vector2(random.randf() * size.x, random.randf() * size.y))
+				picture.set_pixelv(at, Palette.BRASS_LIGHT if color != Palette.BRASS_LIGHT else Palette.SCARF_RED)
+		for index in int(60 * area_scale):
+			_sapling(picture, Vector2(random.randf_range(6.0, size.x - 6.0), random.randf_range(12.0, size.y - 4.0)))
 	# The grain goes over everything painted, trails and all, so nothing lies on the ground flat.
 	_texture(picture, random)
 	return picture
+
+
+## Each place's ground once it's freed: greener, but still itself, so a healed place is told from
+## another at a glance. The sawpits' sawdust settles into grass; the offices' gravel shows through
+## it; the airstrip's dry grass comes back green at the edges; the deep forest stays shaded.
+const HEALED_BANDS := {
+	"deep": [Palette.JUNGLE_DARK, Palette.JUNGLE, Palette.MOSS, Palette.LEAF],
+	"sawpits": [Palette.MUD_LIGHT, Palette.DRY_GRASS, Palette.MOSS, Palette.LEAF],
+	"offices": [Palette.SMOKE, Palette.MOSS, Palette.JUNGLE, Palette.LEAF],
+	"airstrip": [Palette.DRY_GRASS, Palette.MOSS, Palette.JUNGLE, Palette.LEAF],
+	"slide": [Palette.MUD, Palette.MOSS, Palette.JUNGLE, Palette.LEAF],
+	"edge": [Palette.MOSS, Palette.JUNGLE, Palette.LEAF, Palette.LEAF_LIGHT],
+	"clearing": [Palette.MOSS, Palette.JUNGLE, Palette.LEAF, Palette.LEAF_LIGHT],
+}
 
 
 ## The floor of a place, before anything is done to it.
@@ -136,7 +157,7 @@ static func _floor(size: Vector2i, seed_value: int, theme: String, healed: bool)
 		"riverbank": [Palette.MUD, Palette.MUD_LIGHT, Palette.MOSS, Palette.JUNGLE],
 	}.get(theme, [Palette.MUD, Palette.MOSS, Palette.JUNGLE, Palette.LEAF])
 	if healed:
-		bands = [Palette.MOSS, Palette.JUNGLE, Palette.LEAF, Palette.LEAF_LIGHT] if theme != "deep" else [Palette.JUNGLE_DARK, Palette.JUNGLE, Palette.MOSS, Palette.LEAF]
+		bands = HEALED_BANDS.get(theme, [Palette.MOSS, Palette.JUNGLE, Palette.LEAF, Palette.LEAF_LIGHT])
 	var data := PackedByteArray()
 	data.resize(size.x * size.y * 4)
 	for y in size.y:
@@ -206,9 +227,12 @@ static func _oil(picture: Image, center: Vector2, random: RandomNumberGenerator)
 
 ## A sapling: a young tree's crown of leaves on a thin stem.
 static func _sapling(picture: Image, at: Vector2) -> void:
-	picture.fill_rect(Rect2i(Vector2i(at) + Vector2i(0, -3), Vector2i(1, 4)), Palette.BARK)
-	_stamp(picture, at + Vector2(0, -6), 3.0, Palette.LEAF)
-	_stamp(picture, at + Vector2(-1, -7), 1.5, Palette.LEAF_LIGHT)
+	# Its shadow, a stem, and a crown of three tones lit from the top left.
+	picture.fill_rect(Rect2i(Vector2i(at) + Vector2i(0, 1), Vector2i(5, 1)), Palette.JUNGLE_DARK)
+	picture.fill_rect(Rect2i(Vector2i(at) + Vector2i(0, -5), Vector2i(1, 6)), Palette.BARK)
+	_stamp(picture, at + Vector2(0, -8), 4.0, Palette.JUNGLE)
+	_stamp(picture, at + Vector2(-0.5, -8.5), 3.0, Palette.LEAF)
+	_stamp(picture, at + Vector2(-1.5, -9.5), 1.5, Palette.LEAF_LIGHT)
 
 
 ## A stump: rings of bark, cut flat; healed, a sprout coming up out of it.
@@ -264,7 +288,15 @@ static func _chute(picture: Image, healed: bool, random: RandomNumberGenerator) 
 	var left := size.x / 2 - 200
 	for y in range(0, size.y - 70):
 		var wobble := int(sin(y * 0.02) * 12.0)
-		picture.fill_rect(Rect2i(left + wobble, y, 400, 1), Palette.MUD if not healed else Palette.MOSS)
+		if not healed:
+			picture.fill_rect(Rect2i(left + wobble, y, 400, 1), Palette.MUD)
+		else:
+			# Grassed over: only a trace of it shows, the old mud dithered through the grass, thinning
+			# toward its edges, never a block of one color.
+			for x in range(left + wobble, left + wobble + 400):
+				var from_middle := absf(x - (left + wobble + 200)) / 200.0
+				if (x + y) % 2 == 0 and random.randf() > from_middle:
+					picture.set_pixel(clampi(x, 0, size.x - 1), y, Palette.MOSS)
 		if y % 6 == 0 and not healed:
 			picture.fill_rect(Rect2i(left + wobble + random.randi_range(0, 380), y, 18, 1), Palette.MUD_DARK)
 
@@ -296,6 +328,10 @@ static func _gravel_pads(picture: Image, healed: bool, cabins: Array[Rect2]) -> 
 
 ## The way into the village: forest floor to the left, deep in leaf litter, the village's
 ## trodden earth to the right, and a path of bare earth running through both. Sizes in pixels.
+## How wide the stretch is where the forest gives way to the village, in pixels.
+const TRANSITION := 140.0
+
+
 static func village_ground(size: Vector2i, seed_value: int, village_from: int, path_top: int, path_bottom: int, worn: Array[Rect2] = []) -> Image:
 	var growth := FastNoiseLite.new()
 	growth.seed = seed_value
@@ -304,6 +340,11 @@ static func village_ground(size: Vector2i, seed_value: int, village_from: int, p
 	var wobble := FastNoiseLite.new()
 	wobble.seed = seed_value + 1
 	wobble.frequency = 0.02
+	# Where the forest gives way to the village: not at a line but over a stretch, the village's
+	# earth breaking through the forest floor in patches, the way a clearing's edge does.
+	var breaking := FastNoiseLite.new()
+	breaking.seed = seed_value + 2
+	breaking.frequency = 0.06
 	var random := RandomNumberGenerator.new()
 	random.seed = seed_value
 	var picture := Image.create_empty(size.x, size.y, false, Image.FORMAT_RGBA8)
@@ -321,16 +362,20 @@ static func village_ground(size: Vector2i, seed_value: int, village_from: int, p
 		for x in size.x:
 			var value := growth.get_noise_2d(x, y) * 0.5 + 0.5 + (0.03 if (x + y) % 2 == 0 else -0.03)
 			var edge := wobble.get_noise_1d(x) * 6.0
-			var in_village := x + wobble.get_noise_1d(y) * 14.0 > village_from
-			# Through the village the path is a worn track, narrower than the way through the trees.
-			var narrowing := 18.0 if in_village else 0.0
+			# How far into the village, from the forest's side of the stretch (0) to the village's (1).
+			var into := clampf((x + wobble.get_noise_1d(y) * 30.0 - village_from + TRANSITION * 0.5) / TRANSITION, 0.0, 1.0)
+			var in_village := into > breaking.get_noise_2d(x, y) * 0.5 + 0.5
+			# Through the village the path is a worn track, narrower than the way through the trees,
+			# and it narrows as it goes in, never in a step.
+			var narrowing := 18.0 * into
 			var on_path := y > path_top + narrowing + edge and y < path_bottom - narrowing + edge
 			var trodden := worn_mask[y * size.x + x] == 1
 			# Grass keeps to the village's edges, where nobody walks.
 			var from_edge := minf(y, size.y - y) / size.y
 			var color: Color
 			if on_path:
-				color = (Palette.MUD if value > 0.45 else Palette.MUD_DARK) if in_village else (Palette.MUD_LIGHT if value > 0.42 else Palette.MUD)
+				# The one road, forest and village alike, so the way in runs straight into it.
+				color = Palette.MUD if value > 0.45 else Palette.MUD_DARK
 			elif trodden:
 				color = Palette.MUD_LIGHT if value > 0.4 else Palette.MUD
 			elif in_village:

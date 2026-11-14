@@ -380,7 +380,10 @@ on: fire and oil, or crewmates who can be downed.
   what only that place asks, then its boss comes; beat it and the area is free, and the next one
   opens. Held by the company, an area is wrecked (stumps, felled trunks, ruts, oil, litter,
   smoldering peat, fewer trees standing at its edge); freed, it's healed (grassed over, saplings,
-  flowers, clear water), and stays healed on every run after. The first time he goes into an
+  flowers, clear water), and stays healed on every run after. Healed, each place is still
+  itself: the sawpits' sawdust settles into grass, the offices' gravel shows through it, the
+  airstrip's tarmac cracks with grass, the log chute shows only as a trace through the green; the
+  flowers grow in patches of one kind, and the saplings stand lit from the top left. The first time he goes into an
   area its story is told going in, to the opening's mellow music; the first time it's freed, the
   healed ground spreads out from where its boss fell while the story goes on, to music of its
   own. Losing still brings home what he carried; the area stays the company's. But what he did
@@ -525,7 +528,10 @@ on: fire and oil, or crewmates who can be downed.
     mat and coconut palms make it a village and not a row of huts. A house below the road shows
     its back wall, and lifts its roof off while he's at its door, so he's never hidden behind
     it. The cats he's rescued live there, each in its own coat, and show their names as he
-    passes.
+    passes. The forest path doesn't stop at a line: its one road runs on into the village's,
+    the trees thin out over their last few meters with undergrowth at their feet, and the
+    village's earth breaks through the forest floor in patches. The shrine is laid in courses of
+    stone.
   - **It starts in ruins.** The company's machines have already been through: his own home, the
     Elder's longhouse, the smithy and five huts all stand wrecked, holed, scorched and
     half-roofed. Restored, the village is bright and lived-in, drawn the cartoon way: chunky stilts,
