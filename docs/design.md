@@ -454,7 +454,8 @@ on: fire and oil, or crewmates who can be downed.
   stand at once every four minutes, up to three more. A level takes more experience past level
   15. And adrenaline gives back no more than 4% of his health a second. Together they're what
   ends a run: a strong build lasts past twenty minutes, and none lasts for good. A liberation
-  area doesn't harden; its boss ends it. (Tuned against a simple bot; it wants people playing
+  area's boss ends it long before then, but a run there that never does the goal, to farm the
+  area, hardens the same way from ten minutes in. (Tuned against a simple bot; it wants people playing
   it.)
 - **The siege** comes by itself, never chosen and never on the map: the first time he walks
   home with the airstrip free, once what's new is read, Jogiboy smells smoke, and the spirits are
@@ -499,7 +500,9 @@ on: fire and oil, or crewmates who can be downed.
 - **What worked is there to read.** Every hit he lands can show its number, rising off what it
   hit, colored by how hard it landed: white plain, yellow twice as hard, orange three times, red
   four and more (critical past 100% keeps stepping up). Hits on the same thing a moment apart add
-  into one number, and only forty show at once; a setting turns them off for when they'd bury
+  into one number, and only forty show at once; with a dozen up, an ordinary hit on the horde adds
+  no more, so in a crush they don't bury him (a critical, or a hit on a giant or a machine, still
+  shows); a setting turns them off for when they'd bury
   the screen. Every hit is also tallied to what landed it, a weapon, a mutation, the cub, fire:
   the pause menu's damage table sets each out (its damage, share, damage a second and kills), the
   summary shows the top few, and the last twenty runs are kept in the run history, from the
@@ -721,7 +724,8 @@ One to four players, **online and on one screen**.
   A on another gamepad joins as an ally, in a coat nobody's wearing; each ally chooses their coat
   and what they start with on their own buttons (a weapon forged at the smithy too, as player one
   can). While Endless's start is chosen, the run waits for all of them.
-- **Dropping in:** an ally can join a run under way, on one screen or online. They choose while it
+- **Dropping in:** "A on another gamepad drops in" is shown only while a gamepad is plugged in that
+  no ally has taken. An ally can join a run under way, on one screen or online. They choose while it
   goes on, out of it; then they come in beside a crewmate who's standing, a few seconds out of
   harm's way, dealt the cards the crew's level-ups have handed out so far, one a level, so nobody
   joins behind.

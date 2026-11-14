@@ -1470,7 +1470,8 @@ func _process(delta: float) -> void:
 			# Something to look back over: this run as it stands, kept for the page only.
 			records.remember(Records.entry_of(arena, cat, "Endless"))
 	_overlay.choosing = _choosing()
-	_overlay.joining = _can_join()
+	# Said only when there's a gamepad to join with: one plugged in that no ally has taken.
+	_overlay.joining = _can_join() and _spare_gamepad()
 	if _choosing():
 		_camera.position = _run_camera()
 		_take_screenshot(delta)
@@ -2311,6 +2312,12 @@ func _under_way() -> bool:
 
 ## Allies join Endless only, on one screen: Liberation is one village's story, so it's his alone.
 ## They can join as its start is chosen, or drop in once it's under way.
+## Whether a gamepad is plugged in that no ally has taken: someone who could drop in with it.
+func _spare_gamepad() -> bool:
+	var taken := _allies.map(func(ally: Dictionary) -> int: return ally.get("device", -1))
+	return Input.get_connected_joypads().any(func(device: int) -> bool: return not device in taken)
+
+
 func _can_join() -> bool:
 	return _place == "run" and _run_kind == "endless" and _page.is_empty() and not _entering and not _briefing \
 		and _allies.size() < MOST_PLAYERS - 1 and not _online.guesting and not arena.over()

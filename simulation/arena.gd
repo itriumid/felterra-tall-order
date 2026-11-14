@@ -34,6 +34,7 @@ const MACHINE_FROM := 300.0
 ## build outgrows it for good; and another giant may stand at once every GIANTS_MORE_EVERY seconds,
 ## up to GIANTS_MORE more. A liberation area doesn't: its boss is what ends it.
 const PRESSURE_FROM := 240.0
+const AREA_PRESSURE_FROM := 600.0
 const PRESSURE_GROWTH := 0.12
 const PRESSURE_CURVE := 0.02
 const GIANTS_MORE_EVERY := 240.0
@@ -43,6 +44,8 @@ const GIANTS_MORE := 3
 const DOGS_MORE_EVERY := 180.0
 const DOGS_MORE := 4
 const MACHINE_INTERVAL := 300.0
+## How far from the last one's wreck the next machine drives in, if it can.
+const WRECKS_APART := 10.0
 ## Cages with cats in them turn up from CAGES_FROM seconds in, one every CAGE_INTERVAL, no more
 ## than MOST_CAGES waiting at once, never closer than CAGE_DISTANCE to him.
 const CAGES_FROM := 40.0
@@ -273,12 +276,12 @@ func add_cat(where: Vector2) -> Cat:
 	return cat
 
 
-## How much tougher what comes now is than what came at the start: 1 in a liberation area, and in
-## Endless or a grove until PRESSURE_FROM.
+## How much tougher what comes now is than what came at the start: 1 in Endless or a grove until
+## PRESSURE_FROM, and in a liberation area until AREA_PRESSURE_FROM. An area's boss ends it long
+## before then; but a run that never does the goal, to farm the area instead, hardens too.
 func pressure() -> float:
-	if not area.is_empty():
-		return 1.0
-	var minutes := maxf(time - PRESSURE_FROM, 0.0) / 60.0
+	var from := AREA_PRESSURE_FROM if not area.is_empty() else PRESSURE_FROM
+	var minutes := maxf(time - from, 0.0) / 60.0
 	return 1.0 + PRESSURE_GROWTH * minutes + PRESSURE_CURVE * minutes * minutes
 
 
@@ -1858,8 +1861,13 @@ func _spawn() -> void:
 		_since_machine += STEP
 		if _since_machine >= machines_plan.interval and not machines.any(func(machine: Machine) -> bool: return machine.standing()):
 			_since_machine = 0.0
-			# It drives in out of the jungle, facing the clearing.
+			# It drives in out of the jungle, facing the clearing, and away from the wrecks of those
+			# before it, so they don't end up stacked on one another.
 			var gate := edge_point()
+			for attempt in 8:
+				if machines.all(func(machine: Machine) -> bool: return machine.body.position.distance_to(gate) >= WRECKS_APART):
+					break
+				gate = edge_point()
 			add_machine(gate.clamp(Vector2.ONE * 1.6, size - Vector2.ONE * 1.6), (size / 2.0 - gate).angle(), machines_plan.kind)
 	var cages_plan: Dictionary = plan.get("cages", {})
 	if not cages_plan.is_empty():

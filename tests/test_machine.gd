@@ -176,3 +176,18 @@ func test_a_machine_driving_moves_as_one_piece_on_screen() -> void:
 			break
 		last = offset
 	check(World.snap == Vector2.ZERO, "the snap stayed on after drawing")
+
+
+func test_the_next_machine_comes_in_away_from_the_last_one_s_wreck() -> void:
+	var arena := Arena.new(3)
+	arena.add_cat(arena.size / 2.0)
+	var wrecked := arena.add_machine(arena.edge_point())
+	wrecked.health = 0.0
+	wrecked.state = Machine.State.BROKEN
+	arena.time = Arena.MACHINE_FROM + Arena.MACHINE_INTERVAL - Arena.STEP
+	arena._since_machine = Arena.MACHINE_INTERVAL
+	arena.step()
+	check(arena.machines.size() == 2, "no second machine came")
+	if arena.machines.size() == 2:
+		var apart := arena.machines[1].body.position.distance_to(wrecked.body.position)
+		check(apart >= Arena.WRECKS_APART - 3.0, "the next machine came in %.1f m from the last one's wreck" % apart)
