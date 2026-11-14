@@ -579,7 +579,8 @@ Level-ups arrive as **cards**. A card offers a choice of three; you hold it unti
 - **A pause menu exists in both.** Solo, it stops the world. Online, it opens over a world that
   keeps running, and its panel is see-through so you can see what's coming.
 - Held cards can be read in the pause menu, and are only played in action.
-- **The pause menu**: carry on, settings, start again, leave the game. **Settings**: graphics
+- **The pause menu**: carry on, settings, start again, leave the game. In a run, the cards held
+  sit beside it, the two together in the middle of the screen. **Settings**: graphics
   (full screen, window size, vertical sync, how many of the fallen are left lying), audio (overall, music, effects and interface
   volumes, each its own bus) and gameplay (aim mode, blood), kept for next time. It opens
   on its own when a run ends, ready to start again. Its see-through panel is a checkerboard of
@@ -661,7 +662,10 @@ Your left hand never leaves movement.
 | Enter | Go again, once a run has ended |
 | Escape | Pause menu |
 
-Held offers sit as a strip of icons at the bottom of the screen, with a count. Everything can
+Held offers sit along the bottom of the screen as three short cards (the key, the rarity, a
+picture, the name and its first line), kept low so the horde coming from below stays in sight;
+holding Tab stands them up in full, with what each means. More held than the one showing are
+counted beside the keys. Everything can
 be rebound; controllers get the same layout on face buttons and bumpers. The mouse is optional:
 clicking a card works, but nothing needs it.
 

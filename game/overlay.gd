@@ -5,6 +5,10 @@ extends Node2D
 
 const CARD_FRAMES: Array[Color] = [Palette.OFF_WHITE, Palette.LEAF_LIGHT, Palette.CLOTH_LIGHT, Palette.BRASS_LIGHT]
 const CARD_SIZE := Vector2(150, 70)
+## Held in a fight, a card is only this tall: its ribbon, its picture, its name and its first line.
+## The fight goes on under the cards, so they keep to the bottom of the screen and leave the horde
+## coming from below in sight; holding Tab stands them up in full.
+const CARD_HELD_HEIGHT := 40.0
 ## What each boss is called on its health bar.
 const BOSS_NAMES := {
 	"feller_buncher": "Feller buncher", "log_loader": "Log loader", "logging_truck": "Logging truck",
@@ -614,6 +618,13 @@ func _draw_thing(box: Rect2, entry: Dictionary) -> void:
 		y += PixelFont.LINE_HEIGHT
 	PixelFont.draw(self, Vector2(x, y), entry.get("kind", ""), Palette.SMOKE)
 	y += PixelFont.LINE_HEIGHT + 4
+	# A weapon's numbers, as its card gives them, so what's forged is chosen on what it does.
+	if Upgrades.WEAPON_NAMES.has(item):
+		for line: String in Upgrades.weapon_lines(Weapon.named(item)):
+			for part in wrapped(line, box.size.x - 12):
+				PixelFont.draw(self, Vector2(x, y), part, Palette.OFF_WHITE)
+				y += PixelFont.LINE_HEIGHT
+		y += 4
 	for line in wrapped(entry.get("does", ""), box.size.x - 12):
 		if y + PixelFont.LINE_HEIGHT > box.end.y:
 			break
@@ -954,12 +965,13 @@ func _draw_cards() -> void:
 	var gap := 8.0
 	var total := offer.size() * CARD_SIZE.x + (offer.size() - 1) * gap
 	var x := floorf((screen.x - total) / 2.0)
-	var y := screen.y - CARD_SIZE.y - 6
+	var height := CARD_SIZE.y if reading else CARD_HELD_HEIGHT
+	var y := screen.y - height - 6
 	var explained: Array[String] = []
 	for index in offer.size():
 		var choice: Dictionary = offer[index]
 		var card := Upgrades.describe(choice)
-		_draw_card(Rect2(x, y, CARD_SIZE.x, CARD_SIZE.y), str(index + 1), choice.rarity, card)
+		_draw_card(Rect2(x, y, CARD_SIZE.x, height), str(index + 1), choice.rarity, card, not reading)
 		for line: String in card.explain:
 			if not line in explained:
 				explained.append(line)
@@ -979,7 +991,7 @@ func _draw_cards() -> void:
 
 ## One card: the rarity's ribbon, frame and pips; the key that plays it; a picture of what it is;
 ## its name, and what it gives.
-func _draw_card(box: Rect2, key: String, rarity: int, card: Dictionary) -> void:
+func _draw_card(box: Rect2, key: String, rarity: int, card: Dictionary, held := false) -> void:
 	var color: Color = CARD_FRAMES[rarity]
 	InterfaceArt.panel(self, box)
 	_rarity_frame(box, rarity)
@@ -1000,11 +1012,18 @@ func _draw_card(box: Rect2, key: String, rarity: int, card: Dictionary) -> void:
 	var preview := Sprites.preview(card.item)
 	draw_texture(preview, (picture.position + (picture.size - preview.get_size()) / 2.0).floor())
 	var text_x := picture.end.x + 5
-	InterfaceArt.bold(self, Vector2(text_x, box.position.y + 18), card.name, Palette.OFF_WHITE)
-	for index in (card.lines as Array).size():
-		PixelFont.draw(self, Vector2(text_x, box.position.y + 30 + index * PixelFont.LINE_HEIGHT), card.lines[index], Palette.LEAF_LIGHT)
+	InterfaceArt.bold(self, Vector2(text_x, box.position.y + 16 if held else box.position.y + 18), card.name, Palette.OFF_WHITE)
+	var lines: Array = card.lines
+	if held:
+		# Only its first line: the rest are for reading, with Tab.
+		lines = lines.slice(0, 1)
+	for index in lines.size():
+		PixelFont.draw(self, Vector2(text_x, box.position.y + (27 if held else 30) + index * PixelFont.LINE_HEIGHT), lines[index], Palette.LEAF_LIGHT)
 	if card.unfamiliar:
-		PixelFont.draw(self, Vector2(box.end.x - 9, box.end.y - 13), "?", Palette.PINK)
+		# Worth reading in full: a "?" in the picture's corner, clear of the lines however long.
+		var mark := Vector2(picture.end.x - 5, picture.position.y)
+		draw_rect(Rect2(mark - Vector2(1, 0), Vector2(6, PixelFont.LINE_HEIGHT)), Palette.PANEL_DARK)
+		PixelFont.draw(self, mark, "?", Palette.PINK)
 
 
 ## Rarity in the frame's shape, not just its color: common plain, uncommon with its corners cut,
@@ -1052,11 +1071,20 @@ func _draw_start() -> void:
 
 
 ## The see-through panel behind the menu: a checkerboard of palette pixels, not a blend.
+## Made once, as a texture the size of the screen, and drawn in one go: as single pixels it was a
+## hundred thousand draws a frame, every frame the menu was up.
 func _dither() -> void:
-	var screen := get_viewport_rect().size
-	for y in int(screen.y):
-		for x in range(y % 2, int(screen.x), 2):
-			draw_rect(Rect2(x, y, 1, 1), Palette.GRAPHITE)
+	var screen := Vector2i(get_viewport_rect().size)
+	if _dithered == null or _dithered.get_size() != Vector2(screen):
+		var picture := Image.create(screen.x, screen.y, false, Image.FORMAT_RGBA8)
+		for y in screen.y:
+			for x in range(y % 2, screen.x, 2):
+				picture.set_pixel(x, y, Palette.GRAPHITE)
+		_dithered = ImageTexture.create_from_image(picture)
+	draw_texture(_dithered, Vector2.ZERO)
+
+
+var _dithered: ImageTexture
 
 
 ## The pause menu, and beside it the cards he's holding, to read but not to play. In the
@@ -1069,8 +1097,10 @@ func _draw_menu() -> void:
 		width = maxi(width, PixelFont.width(line) + 14)
 	var row := PixelFont.LINE_HEIGHT + 3
 	var held_width := _held_width() if cat != null else 0.0
-	var left := screen.x - held_width - 12 if cat != null else screen.x
-	var box := Rect2(floorf(left / 2.0 - width / 2.0) - 10, floorf(screen.y / 2.0 - (menu.size() * row + 24) / 2.0), width + 20, menu.size() * row + 28)
+	# The menu and the cards beside it, as one pair in the middle: never the cards off on their own
+	# at the screen's edge.
+	var pair := width + 20 + (held_width + HELD_GAP if cat != null else 0.0)
+	var box := Rect2(floorf((screen.x - pair) / 2.0), floorf(screen.y / 2.0 - (menu.size() * row + 24) / 2.0), width + 20, menu.size() * row + 28)
 	InterfaceArt.panel(self, box)
 	InterfaceArt.bold(self, box.position + Vector2(10, 7), title, Palette.PINK)
 	for index in menu.size():
@@ -1083,7 +1113,11 @@ func _draw_menu() -> void:
 		else:
 			PixelFont.draw(self, at + Vector2(12, 0), menu[index], Palette.OFF_WHITE)
 	if cat != null:
-		_draw_held(Vector2(screen.x - held_width - 6, box.position.y))
+		_draw_held(Vector2(box.end.x + HELD_GAP, box.position.y))
+
+
+## Between the pause menu and the cards beside it, in pixels.
+const HELD_GAP := 6.0
 
 
 func _held_lines() -> Array[String]:
