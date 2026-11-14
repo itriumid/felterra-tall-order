@@ -144,7 +144,7 @@ nothing lying when it falls, and nothing that bleeds: it goes out in embers.
 
 | Role | Who |
 |---|---|
-| **The horde** | Ember wisps floating off the burned peat, tuyul who run off with salvage and fireflies, pocong who can only hop, smoke monkeys who leap and hide in their own smoke |
+| **The horde** | Ember wisps floating off the burned peat, tuyul who run off with salvage and fireflies (bald little child-ghosts, all head and grin, in a loincloth), pocong who can only hop, smoke monkeys who leap and hide in their own smoke (grey as it, long in the arm, with ember eyes in a pale face) |
 | **Heavies** | Charred saplings, walking on their roots in groups |
 | **The guardian** | The Great Tiger, the great tiger: its pounce lands where he stood (the spot is marked), its paw sweeps (the arc is marked), and its roar throws him back and calls embers out of the trees. Gathering itself after a pounce, hits land double |
 
