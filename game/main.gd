@@ -24,7 +24,7 @@ extends Node
 ## an Endless clearing or grove from that seed, the same every time; --horde-kind=<kind> makes the --horde that kind (wisp, tuyul, pocong, sapling, monkey);
 ## --villagers=<count> puts that many rescued cats in it, for this run only; --restored=<all, or
 ## names> shows those buildings brought back from ruin; --salvage=<count> and --cloth=<count> give
-## the village that much to spend; --liberated=<ids> has those areas freed already; --at-door=<building>
+## the village that much to spend; --looks=<ids> wears those looks, as if bought; --liberated=<ids> has those areas freed already; --at-door=<building>
 ## stands him at its door; --shop opens what that door holds; --minute=<count> starts Endless that
 ## many minutes in, as hard as it is by then; --level=<count> starts the crew at that level, its
 ## cards played the way Autoplay plays them, for the weapon he starts with.
@@ -474,6 +474,13 @@ func _ready() -> void:
 			_dev_tidings = true
 		elif argument.begins_with("--report="):
 			_dev_report = argument.trim_prefix("--report=")
+		elif argument.begins_with("--looks="):
+			# Worn, as if bought: a coat, the banners, the door curtains, the awnings.
+			for id in argument.trim_prefix("--looks=").split(",", false):
+				if Village.LOOKS.has(id):
+					if not id in village.looks:
+						village.looks.append(id)
+					village.wear_look(id)
 		elif argument.begins_with("--restored="):
 			var names := argument.trim_prefix("--restored=")
 			village.restored.assign(VillageMap.building_names() if names == "all" else Array(names.split(",", false)))
