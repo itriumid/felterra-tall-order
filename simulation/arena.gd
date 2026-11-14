@@ -152,7 +152,9 @@ var pickups: Array[Pickup] = []
 var rescued: Array[Dictionary] = []
 var salvage := 0
 ## Fire burning on the ground, as {position, radius, left, dps, by}; hazards left lying, nails,
-## caltrops and spike beds, as {position, radius, damage, left, kind, by, ready}; firecrackers still to pop, as
+## caltrops and spike beds, as {position, radius, damage, until, kind, by, ready} (until a time,
+## not counting down: one lying still is the same from step to step, so a guest is sent it
+## once); firecrackers still to pop, as
 ## {position, left, count, damage, by}; and decoys the horde goes for instead of him.
 var fires: Array[Dictionary] = []
 var hazards: Array[Dictionary] = []
@@ -1125,7 +1127,7 @@ func _landed(shot: Shot, at: Vector2) -> void:
 		fires.append({"position": at, "radius": weapon.fire_patch, "left": FIRE_TIME, "dps": weapon.burn, "by": shot.shooter})
 		events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "ignite", "giant": false, "kind": weapon.name})
 	if weapon.nails:
-		hazards.append({"position": at, "radius": 0.08, "damage": shot.damage, "left": NAIL_TIME, "kind": "nail", "by": shot.shooter, "ready": {}})
+		hazards.append({"position": at, "radius": 0.08, "damage": shot.damage, "until": time + NAIL_TIME, "kind": "nail", "by": shot.shooter, "ready": {}})
 	if weapon.pops > 0:
 		crackers.append({"position": at, "left": 0.0, "count": weapon.pops, "damage": shot.damage, "by": shot.shooter})
 
@@ -1245,7 +1247,6 @@ func _hold_nets() -> void:
 func _spring_hazards() -> void:
 	var lying: Array[Dictionary] = []
 	for hazard in hazards:
-		hazard.left -= STEP
 		var used := false
 		for creature in _near(hazard.position, hazard.radius + 0.25):
 			if not creature.alive() or creature.body.airborne() or creature.body.position.distance_to(hazard.position) > hazard.radius + creature.body.radius:
@@ -1261,7 +1262,7 @@ func _spring_hazards() -> void:
 				hazard.ready[creature] = time + TICK
 				creature.afflictions.slow = {"share": 0.5, "left": 0.6}
 				strike(creature, hazard.damage, Vector2.ZERO, 0.0, 0.0, "spikes", hazard.by)
-		if not used and hazard.left > 0.0:
+		if not used and hazard.until > time:
 			lying.append(hazard)
 		elif hazard.kind == "spikes":
 			events.append({"position": hazard.position, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "trampled", "giant": false, "kind": "ranjau_bambu"})

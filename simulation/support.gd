@@ -335,7 +335,7 @@ func _spikes(delta: float, cat: Cat, arena: Arena) -> void:
 		return
 	deployed = true
 	body.position = cat.body.position
-	_bed = {"position": body.position, "radius": SPIKES_RADIUS, "damage": hit_for(cat), "left": SPIKES_LAST * (1.0 + tempo), "kind": "spikes", "by": cat, "ready": {}}
+	_bed = {"position": body.position, "radius": SPIKES_RADIUS, "damage": hit_for(cat), "until": arena.time + SPIKES_LAST * (1.0 + tempo), "kind": "spikes", "by": cat, "ready": {}}
 	arena.hazards.append(_bed)
 	arena.events.append({"position": body.position, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "set_down", "giant": false, "kind": name})
 

@@ -452,7 +452,7 @@ func _start_roll(arena: Arena) -> void:
 		var across := _dodge_direction.orthogonal()
 		for index in CALTROPS:
 			var spread := (index - (CALTROPS - 1) / 2.0) * 0.25
-			arena.hazards.append({"position": from - _dodge_direction * 0.2 + across * spread, "radius": 0.08, "damage": dodge_damage(CALTROP_DAMAGE, "caltrops"), "left": CALTROP_LAST, "kind": "caltrop", "by": self, "ready": {}})
+			arena.hazards.append({"position": from - _dodge_direction * 0.2 + across * spread, "radius": 0.08, "damage": dodge_damage(CALTROP_DAMAGE, "caltrops"), "until": arena.time + CALTROP_LAST, "kind": "caltrop", "by": self, "ready": {}})
 	if has("dust_cloud"):
 		arena.dust(from, DUST_RADIUS, DUST_TIME * strength("dust_cloud"))
 	if has("scent_trail"):

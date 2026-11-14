@@ -230,6 +230,20 @@ class Receiver:
 			for item: Variant in edit[1]:
 				list.append(_decode(item, null))
 			return list
+		if value is Dictionary and value.has("~-") and value.size() == 1:
+			var edit: Array = value["~-"]
+			var gone: PackedInt32Array = edit[0]
+			var list := []
+			if existing is Array:
+				var at := 0
+				for place in (existing as Array).size():
+					if at < gone.size() and gone[at] == place:
+						at += 1
+					else:
+						list.append(existing[place])
+			for item: Variant in edit[1]:
+				list.append(_decode(item, null))
+			return list
 		if value is Array:
 			var list := []
 			for index in (value as Array).size():
@@ -351,7 +365,8 @@ static func _holds_an_object(value: Variant) -> bool:
 
 
 ## A changed field, to send: a list that has only lost some from its front and grown at its end
-## goes as {"~": [how many lost, what was added]}; anything else goes whole.
+## goes as {"~": [how many lost, what was added]}; one that lost a few from anywhere, as
+## {"~-": [their places, what was added]}; anything else goes whole.
 static func _edit(was: Variant, now: Variant) -> Variant:
 	if not (was is Array and now is Array) or (was as Array).size() < 2:
 		return now
@@ -361,6 +376,17 @@ static func _edit(was: Variant, now: Variant) -> Variant:
 		var kept := before.size() - lost
 		if kept <= after.size() and after.slice(0, kept) == before.slice(lost):
 			return {"~": [lost, after.slice(kept)]}
+	# Or lost a few from anywhere in it (nails trodden on, wherever they lay): their places, then
+	# what was added. What's kept is kept in order, and everything after the last kept is new.
+	var gone := PackedInt32Array()
+	var next := 0
+	for place in before.size():
+		if next < after.size() and before[place] == after[next]:
+			next += 1
+		else:
+			gone.append(place)
+	if gone.size() * 2 <= before.size():
+		return {"~-": [gone, after.slice(next)]}
 	return now
 
 

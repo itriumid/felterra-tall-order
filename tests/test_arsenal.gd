@@ -121,7 +121,7 @@ func test_lamp_oil_burns_where_it_lands() -> void:
 func test_nails_stay_where_they_land_for_the_next_foot() -> void:
 	var arena := _arena()
 	var cat := _cat(arena, "nail_gun")
-	arena.hazards.append({"position": cat.body.position + Vector2(1.0, 0.0), "radius": 0.08, "damage": 1.0, "left": 5.0, "kind": "nail", "by": cat, "ready": {}})
+	arena.hazards.append({"position": cat.body.position + Vector2(1.0, 0.0), "radius": 0.08, "damage": 1.0, "until": arena.time + 5.0, "kind": "nail", "by": cat, "ready": {}})
 	cat.weapons.clear()
 	var rat := _rat(arena, cat.body.position + Vector2(1.0, 0.0))
 	_hold_and_step(arena, [rat], 2)
