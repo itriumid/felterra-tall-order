@@ -406,7 +406,8 @@ on: fire and oil, or crewmates who can be downed.
   flowers grow in patches of one kind, and the saplings stand lit from the top left. The first time he goes into an
   area its story is told going in, to the opening's mellow music; the first time it's freed, the
   healed ground spreads out from where its boss fell while the story goes on, to music of its
-  own.
+  own. Its fall is watched first: the world runs slow for a moment, the camera goes over to it,
+  and only once it's down do the story and the healing start, the horde already scattering.
 - **Bosses show the fight.** Every hit on a giant or a machine leaves its mark where it landed, in
   the kind of what landed it: rounds punch holes, blades cut (bare steel on a machine; a tear
   showing skin on a giant's vest, blood with blood on), blunt weapons and stones dent, fire and

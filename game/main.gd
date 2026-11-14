@@ -145,6 +145,11 @@ const SLOWEST_WALK := 1.1
 const CATCH_UP := 3
 ## After a boss falls, how long before the area's free, even with nothing to tell.
 const FREED_PAUSE := 2.5
+## The boss down: how long its fall is watched before the story's told, the camera going over to it
+## and back; and for how much of that, how slow the world runs.
+const BOSS_FALLS := 2.6
+const FALL_SLOW_FOR := 0.7
+const FALL_SLOW := 0.35
 
 ## The tabs of the smithy and the pack: what kind of thing each shows, and what it's called.
 const THING_TABS: Array[Array] = [["weapon", "Weapons"], ["gear", "Gear"], ["support", "Support"], ["mutation", "Dodge mutations"]]
@@ -283,6 +288,10 @@ var _entering_to := Vector2.ZERO
 var _entering_pace := Cat.SPEED
 ## How long he's been down, the run over (below 0 while it isn't).
 var _down_for := -1.0
+## How long since the boss went down, freeing the area; and the story to tell once its fall's been
+## watched.
+var _falling_for := 0.0
+var _freed_lines: Array = []
 var _freeing := false
 var _free_for := 0.0
 var _dev_area := ""
@@ -1512,9 +1521,13 @@ func _process(delta: float) -> void:
 		_take_screenshot(delta)
 		return
 	if _freeing:
-		_step_world(delta)
+		_step_world(delta * (FALL_SLOW if _falling_for < FALL_SLOW_FOR else 1.0))
 		_freeing_step(delta)
 		_camera.position = _run_camera()
+		if _falling_for < BOSS_FALLS and arena.boss != null:
+			# Over to where it fell, and back to him as the story begins.
+			var toward := clampf(_falling_for / 0.5, 0.0, 1.0) * clampf((BOSS_FALLS - _falling_for) / 0.6, 0.0, 1.0)
+			_camera.position = _camera.position.lerp(_kept_in_view(World.to_screen(arena.boss.body.position)), toward * toward * (3.0 - 2.0 * toward))
 		_take_screenshot(delta)
 		return
 	_read_controls()
@@ -1843,7 +1856,12 @@ func _run_camera() -> Vector2:
 	for each in arena.cats:
 		lowest = lowest.min(each.body.position)
 		highest = highest.max(each.body.position)
-	var at := World.to_screen((lowest + highest) / 2.0)
+	return _kept_in_view(World.to_screen((lowest + highest) / 2.0))
+
+
+## Where the camera can look, for a point it's asked to look at: on a run, within the jungle wall;
+## in the village, within its edges.
+func _kept_in_view(at: Vector2) -> Vector2:
 	if _village_view.arena == null:
 		return _within_the_wall(at)
 	var screen := get_viewport().get_visible_rect().size
@@ -1924,19 +1942,32 @@ func _begin_freeing() -> void:
 	arena.fleeing = true
 	var area := Areas.named(_run_kind)
 	var first_time := not ("outro:" + _run_kind) in village.told
-	var fell_at: Vector2 = arena.boss.body.position if arena.boss != null else cat.body.position
-	if not _run_kind in village.liberated and not area.get("in_the_village", false):
-		_ground.heal(fell_at, area.ground, _area_seed(_run_kind))
 	# What freeing it teaches him is taught at home, by the cat who shows him how.
 	# With the five words, the airstrip ends with the cats writing back.
 	_written = first_time and village.can_write() and area.has("after_written")
-	_cutscene = Cutscene.new(Areas.after_lines(_run_kind, _written) if first_time else [], settings.get_value("gameplay", "story_waits"))
-	_free_for = FREED_PAUSE
+	_freed_lines = Areas.after_lines(_run_kind, _written) if first_time else []
+	# Its fall is watched first: the story, and the ground healing, wait for it.
+	_cutscene = Cutscene.new([], settings.get_value("gameplay", "story_waits"))
+	_falling_for = 0.0
+	_free_for = FREED_PAUSE + BOSS_FALLS
 	_music.place = "freed"
+
+
+## The boss's fall watched, the area's story is told, and the ground heals from where it fell.
+func _tell_the_freeing() -> void:
+	var area := Areas.named(_run_kind)
+	var fell_at: Vector2 = arena.boss.body.position if arena.boss != null else cat.body.position
+	if not _run_kind in village.liberated and not area.get("in_the_village", false):
+		_ground.heal(fell_at, area.ground, _area_seed(_run_kind))
+	_cutscene = Cutscene.new(_freed_lines, settings.get_value("gameplay", "story_waits"))
 
 
 func _freeing_step(delta: float) -> void:
 	_free_for = maxf(_free_for - delta, 0.0)
+	var was_falling := _falling_for < BOSS_FALLS
+	_falling_for += delta
+	if was_falling and _falling_for >= BOSS_FALLS:
+		_tell_the_freeing()
 	# He's still the player's to walk about the freed area, or to leave standing: never left
 	# running on in whatever way he was going when it fell. Any ally stands still.
 	for each in arena.cats:
