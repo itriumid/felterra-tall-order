@@ -532,7 +532,7 @@ on: fire and oil, or crewmates who can be downed.
   join, the smith forges better gear. That growth is the progress that carries over, and it's
   the story moving forward.
   - **A run brings home rescued cats and salvage.** To the company, cats are pests, and its
-    traps turn up in the clearing from 40 seconds in, one every 75 seconds, never close to him.
+    traps turn up in the clearing from 40 seconds in, one every 75 seconds, always somewhere out of his sight: found, never seen to appear.
     Standing by a cage, within the ring of dashes round it on the ground, picks its lock over
     three seconds, the ring filling in as it goes; leaving lets the pick slip back. The
     cat inside, with its own name and coat, has its say in a bubble, each its own way, then runs

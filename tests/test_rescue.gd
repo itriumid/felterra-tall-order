@@ -56,7 +56,8 @@ func test_cages_turn_up_away_from_her() -> void:
 	for step in 60:
 		arena.step()
 	check(arena.cages.size() == 1, "%d cages turned up" % arena.cages.size())
-	check(arena.cages[0].body.position.distance_to(cat.body.position) >= Arena.CAGE_DISTANCE - 0.5, "a cage turned up right by him")
+	var off := (arena.cages[0].body.position - cat.body.position).abs()
+	check(off.x >= Arena.CAGE_OUT_OF_SIGHT.x - 0.5 or off.y >= Arena.CAGE_OUT_OF_SIGHT.y - 0.5, "a cage turned up where he could see it, %s from him" % off)
 
 
 func test_breaking_things_throws_out_salvage_and_walking_over_it_takes_it() -> void:

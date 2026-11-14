@@ -47,11 +47,13 @@ const MACHINE_INTERVAL := 300.0
 ## How far from the last one's wreck the next machine drives in, if it can.
 const WRECKS_APART := 10.0
 ## Cages with cats in them turn up from CAGES_FROM seconds in, one every CAGE_INTERVAL, no more
-## than MOST_CAGES waiting at once, never closer than CAGE_DISTANCE to him.
+## than MOST_CAGES waiting at once, never within CAGE_OUT_OF_SIGHT of him.
 const CAGES_FROM := 40.0
 const CAGE_INTERVAL := 75.0
 const MOST_CAGES := 2
-const CAGE_DISTANCE := 6.0
+## How far off a trap turns up, across and up: past the edge of what a cat's player sees (16 by 9
+## meters, him in the middle), with a little over.
+const CAGE_OUT_OF_SIGHT := Vector2(9.0, 5.5)
 ## The salvage what he breaks throws out: a giant, a chainsaw worker, a machine.
 const SALVAGE := {
 	"worker": 2, "chainsaw": 4, "handler": 8, "feller_buncher": 12, "log_loader": 14, "logging_truck": 16,
@@ -2403,12 +2405,14 @@ func _goal_cage_spot(near: Vector2) -> Vector2:
 	return near
 
 
+## Somewhere for a trap nobody's looking at: one turning up in plain sight came out of nowhere. A
+## place too small or too crowded to have such a spot gets none until it has.
 func _cage_spot() -> Vector2:
-	for attempt in 12:
+	for attempt in 24:
 		var spot := Vector2(random.randf_range(3.0, size.x - 3.0), random.randf_range(3.0, size.y - 3.0))
 		if not inside(spot, 1.5) or solid_at(spot, 1.0) or (_narrow != null and _narrow.blocked(spot)):
 			continue
-		if cats.all(func(cat: Cat) -> bool: return cat.body.position.distance_to(spot) >= CAGE_DISTANCE):
+		if cats.all(func(cat: Cat) -> bool: return absf(cat.body.position.x - spot.x) >= CAGE_OUT_OF_SIGHT.x or absf(cat.body.position.y - spot.y) >= CAGE_OUT_OF_SIGHT.y):
 			return spot
 	return Vector2.INF
 
