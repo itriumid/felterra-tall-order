@@ -54,6 +54,9 @@ const ELDER_MEETS := 1.0
 ## How far behind Tompel Jogiboy keeps, and how fast he trots to catch up.
 const JOGI_HEEL := 0.9
 const JOGI_SPEED := 3.0
+## More than this far behind Tompel, in meters, he runs at this pace to catch up.
+const JOGI_BEHIND := 1.5
+const JOGI_CATCH_UP := 4.2
 ## How far from his spot he lets Tompel get before setting off, and how close he comes to settle.
 const JOGI_SET_OFF := 1.2
 const JOGI_SETTLE := 0.25
@@ -511,7 +514,14 @@ func _step_jogi(delta: float) -> void:
 		# Keeping pace: going the way Tompel goes, as fast, and closing on his spot a little more
 		# for every step behind, never past a trot.
 		_jogi_trotting = true
-		_move(jogi, (cat.body.velocity + toward * 2.0).limit_length(JOGI_SPEED), delta)
+		var way := _jogi_way_to(goal)
+		# Well behind, he runs to catch up: a dog's faster than a cat when he means it.
+		var pace := JOGI_CATCH_UP if toward.length() > JOGI_BEHIND else JOGI_SPEED
+		if way.dot(toward.normalized()) > 0.95:
+			_move(jogi, (cat.body.velocity + toward * 2.0).limit_length(pace), delta)
+		else:
+			# A house between them: round it, not into its wall after him.
+			_move(jogi, way * pace, delta)
 		return
 	if not jogi_playing.is_empty():
 		_jogi_play(delta)
@@ -531,8 +541,23 @@ func _step_jogi(delta: float) -> void:
 		if _jogi_idle >= _jogi_bored_after and not seeing_off:
 			_start_playing()
 		return
-	# Coming up to him: slowing as he arrives, not stopping dead.
-	_move(jogi, toward.normalized() * minf(JOGI_SPEED, maxf(toward.length() * 3.0, 0.8)), delta)
+	# Coming up to him: slowing as he arrives, not stopping dead, and round whatever's between.
+	_move(jogi, _jogi_way_to(goal) * minf(JOGI_SPEED, maxf(toward.length() * 3.0, 0.8)), delta)
+
+
+## The way Jogiboy goes to get to a spot by Tompel: straight at it when nothing stands between,
+## and round the houses and props when something does. The way to Tompel is kept up as he moves, a
+## little a step.
+var _jogi_way: FlowField
+
+
+func _jogi_way_to(goal: Vector2) -> Vector2:
+	if _jogi_way == null:
+		_jogi_way = FlowField.sharing(_plan())
+	var toward: Array[Vector2] = [cat.body.position]
+	_jogi_way.toward(toward, true)
+	var way := _jogi_way.way(jogi.body.position, goal)
+	return way if way.is_finite() and way != Vector2.ZERO else (goal - jogi.body.position).normalized()
 
 
 ## Jogiboy leading him to what's new: a little way ahead along the way there, then waiting by it,
