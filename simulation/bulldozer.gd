@@ -92,4 +92,4 @@ func _shove(delta: float, arena: Arena) -> void:
 			cat.body.position += facing() * RAM_SPEED * delta
 			if not _shoved.has(cat):
 				_shoved[cat] = true
-				cat.hurt(BLADE_HURT, facing() * 2.5)
+				cat.hurt(BLADE_HURT, facing() * 2.5, "bulldozer")
