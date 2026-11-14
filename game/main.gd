@@ -32,6 +32,10 @@ const VILLAGE_SHADE := Color(0.82, 0.86, 0.8)
 ## The siege comes at night, as the story tells it: the village in blue dark, lit by its own roofs
 ## burning and the Keepers' lights, which is all anyone sees by.
 const SIEGE_SHADE := Color(0.38, 0.42, 0.6)
+## How long night takes to come on over the village, in seconds.
+const NIGHTFALL := 4.0
+## How long the mouse's pointer shows after it's moved, in seconds.
+const POINTER_SHOWS := 2.0
 ## Sun through the canopy's gaps: where it reaches the ground, in meters.
 const SHAFTS: Array[Vector2] = [
 	Vector2(8.0, 6.0), Vector2(19.0, 10.0), Vector2(30.0, 7.0), Vector2(13.0, 17.0), Vector2(27.0, 18.0),
@@ -57,7 +61,7 @@ const PAGES := {
 	"guest_summary": ["stay", "part"],
 	"pause": ["carry_on", "damage", "settings", "start_again", "village", "leave"],
 	"village_pause": ["carry_on", "settings", "history", "title", "leave"],
-	"summary": ["home", "go_again", "leave"],
+	"summary": ["home", "leave"],
 }
 ## What each of the cub's elements is, at the shrine.
 const ELEMENT_STORIES := {
@@ -129,6 +133,14 @@ const INTRO: Array = [
 ]
 ## How far he walks into a run before it starts, in meters.
 const ENTRANCE := 5.0
+## Down, how long the fight is watched before the summary, how slow the world runs meanwhile, and
+## how hard the last hit throws him, in meters a second.
+const DOWN_PAUSE := 1.7
+const DOWN_SLOW := 0.35
+const DOWN_THROW := 2.4
+## A walk told over is never slower than this, in meters a second: stretched to last a long story
+## it became a crawl. He gets there before the story's done, and stands to hear the rest.
+const SLOWEST_WALK := 1.1
 ## The most steps of the world one frame catches up: 60 a second down to 20 frames a second.
 const CATCH_UP := 3
 ## After a boss falls, how long before the area's free, even with nothing to tell.
@@ -248,6 +260,10 @@ var _village_view: VillageView
 var _arena_layer: Node2D
 var _village_layer: Node2D
 var _shade: CanvasModulate
+## Puts the mouse's pointer away again, a moment after it last moved.
+var _pointer_away: Timer
+## Night coming on over the village, while it does.
+var _nightfall: Tween
 ## The burning roofs' light in the siege, one for each roof that can catch.
 var _fire_lights: Array[PointLight2D] = []
 const SIEGE_FIRES := 4
@@ -265,6 +281,8 @@ var _briefing := false
 var _entering := false
 var _entering_to := Vector2.ZERO
 var _entering_pace := Cat.SPEED
+## How long he's been down, the run over (below 0 while it isn't).
+var _down_for := -1.0
 var _freeing := false
 var _free_for := 0.0
 var _dev_area := ""
@@ -369,6 +387,15 @@ var _screenshot_after := 4.0
 
 func _ready() -> void:
 	InputActions.register()
+	# Nothing here is pointed at: the pointer's put away, and comes back for a moment when the
+	# mouse is moved, so it can be found to take somewhere else.
+	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
+	_pointer_away = Timer.new()
+	_pointer_away.one_shot = true
+	_pointer_away.wait_time = POINTER_SHOWS
+	_pointer_away.process_mode = Node.PROCESS_MODE_ALWAYS
+	_pointer_away.timeout.connect(func() -> void: Input.mouse_mode = Input.MOUSE_MODE_HIDDEN)
+	add_child(_pointer_away)
 	var horde := 0
 	var spawning := true
 	for argument in OS.get_cmdline_user_args():
@@ -749,7 +776,7 @@ func _enter_village(spot: Vector2) -> void:
 	if _online.hosting:
 		_online.run_over({})
 	_village_view.arena = null
-	village_map = VillageMap.new(village.cats, village.restored)
+	village_map = VillageMap.new(village.at_home(), village.restored)
 	village_map.cat.body.position = spot
 	village_map.cat.coat = village.coat
 	_village_view.banners = village.banners
@@ -771,6 +798,9 @@ func _enter_village(spot: Vector2) -> void:
 func _show_layer(village_showing: bool) -> void:
 	_village_layer.visible = village_showing
 	_arena_layer.visible = not village_showing
+	if _nightfall != null:
+		_nightfall.kill()
+		_nightfall = null
 	_shade.color = VILLAGE_SHADE if village_showing else SHADE
 	_overlay.place = "village" if village_showing else "run"
 	if not village_showing:
@@ -801,11 +831,10 @@ func _arrive(from_the_forest: bool) -> void:
 		_news.append({"title": "The gate", "text": "Walk out through the gate, on the right, or back down the forest path, on the left, to set out. The board by the gate chooses where."})
 	elif not from_the_forest:
 		for area_id in _lessons_due():
-			var teaches: Dictionary = Areas.named(area_id).teaches
-			lines.append_array(teaches.lines)
+			# What's happened at home is told on the walk in. What its cat teaches waits with them,
+			# a lesson a mutation, to be gone and heard: it was too much to take in on one walk.
 			lines.append_array(Areas.named(area_id).get("home", []))
-			for mutation: String in teaches.mutations:
-				village.tell("elder", Upgrades.MUTATIONS[mutation].name, "A dodge mutation, on your cards from now on. " + Upgrades.MUTATIONS[mutation].explain + ".")
+			village.set_lessons(area_id)
 			var after := Areas.ids().find(area_id) + 1
 			if after < Areas.ids().size() and not Areas.ids()[after] in village.liberated:
 				village.tell("board", "On the map: " + (Areas.named(Areas.ids()[after]).name as String).to_lower(), "Choose it here, at the board by the gate.")
@@ -848,7 +877,7 @@ func _arrive(from_the_forest: bool) -> void:
 	_music.place = "intro" if telling else "village"
 	if not lines.is_empty():
 		# Slow enough that he reaches the spot as the last line ends, if it's left to run.
-		village_map.stroll_speed = minf(village_map.walking_to.distance_to(village_map.cat.body.position) / _cutscene.length(), VillageMap.WALK_IN_SPEED)
+		village_map.stroll_speed = clampf(village_map.walking_to.distance_to(village_map.cat.body.position) / _cutscene.length(), SLOWEST_WALK, VillageMap.WALK_IN_SPEED)
 	_overlay.cutscene = true
 
 
@@ -876,11 +905,17 @@ func _hear(at: String) -> void:
 ## "elder", or "".
 func _beside() -> String:
 	var at := village_map.cat.body.position
+	var near: Array[String] = []
 	if village_map.jogi.body.position.distance_to(at) <= TALK_REACH:
-		return "jogiboy"
+		near.append("jogiboy")
 	if village_map.elder.body.position.distance_to(at) <= TALK_REACH:
-		return "elder"
-	return ""
+		near.append("elder")
+	# Whoever has something for him, first: Jogiboy is always at his heel, and with nothing to say
+	# he was in the way of the Elder, who had.
+	for who in near:
+		if village.has_tidings(who):
+			return who
+	return near[0] if not near.is_empty() else ""
 
 
 ## The areas freed whose lessons haven't been taught yet: they're taught at home, the first time
@@ -901,6 +936,7 @@ func _arriving(delta: float) -> void:
 	if village_map.jogi_held and (skip or _cutscene.done() or _cutscene.line >= INTRO.find(JOGIBOY_TROTS_UP)):
 		village_map.jogi_held = false
 	_overlay.intro = _cutscene.written()
+	_overlay.intro_whole = _cutscene.whole()
 	_overlay.speaker = _cutscene.speaker()
 	_overlay.mood = _cutscene.mood()
 	if _cutscene.done() or _cutscene.lines.is_empty():
@@ -1006,7 +1042,7 @@ func _send_off() -> void:
 	village_map.see_off(speakers, _went_west)
 	village_map.stroll_speed = VillageMap.WALK_IN_SPEED
 	if not lines.is_empty():
-		village_map.stroll_speed = minf(VillageMap.WALK_IN_SPEED, village_map.cat.body.position.distance_to(village_map.walking_to) / _cutscene.length())
+		village_map.stroll_speed = clampf(village_map.cat.body.position.distance_to(village_map.walking_to) / _cutscene.length(), SLOWEST_WALK, VillageMap.WALK_IN_SPEED)
 	_overlay.cutscene = true
 
 
@@ -1016,6 +1052,7 @@ func _leaving(delta: float) -> void:
 	var skip := Input.is_action_just_pressed("pause")
 	_cutscene.step(delta, Input.is_action_just_pressed("menu_choose"), skip)
 	_overlay.intro = _cutscene.written()
+	_overlay.intro_whole = _cutscene.whole()
 	_overlay.speaker = _cutscene.speaker()
 	_overlay.mood = _cutscene.mood()
 	if _cutscene.done():
@@ -1212,11 +1249,14 @@ func _forge_row(id: String) -> Dictionary:
 		row.state = "carried from the start"
 	elif Areas.gives(id) != "":
 		row.state = "Uncle Anvil's" if id in village.given() else "freeing %s brings it" % (Areas.named(Areas.gives(id)).name as String).to_lower()
+		if not id in village.given():
+			row.hint = "Uncle Anvil will have it once %s is free. The rest of it he'll tell you then." % (Areas.named(Areas.gives(id)).name as String).to_lower()
 	elif id in village.forged:
 		row.state = "forged"
 	else:
 		row.state = "%d salvage" % Village.FORGE[id]
 		row.can = village.salvage >= Village.FORGE[id]
+		row.hint = "Not forged yet: %d salvage. Its numbers and where it came from, Uncle Anvil tells once it's made." % Village.FORGE[id]
 	return row
 
 
@@ -1230,9 +1270,12 @@ func _pack_row(id: String) -> Dictionary:
 		row.state = "worn from the start" if village.starting_piece == id else ("left home" if id in village.left_home else "taking it")
 	else:
 		row.state = "not learned yet"
+		row.hint = "Not learned yet. Somebody out there still caged knows it."
 		for area: Dictionary in Areas.LIST:
 			if id.trim_prefix("mutation:") in Areas.teaches(area.id) and village.found(area.id):
-				row.state = "freeing %s teaches it" % (area.name as String).to_lower()
+				var teacher: String = "the Elder" if area.teaches.by == "elder" else area.teaches.by
+				row.state = ("go and hear it from %s" % teacher) if area.id in village.liberated else "freeing %s teaches it" % (area.name as String).to_lower()
+				row.hint = ("%s is waiting to teach it: look for the \"!\" at home." % teacher) if area.id in village.liberated else "Whoever's held in %s teaches it, once it's free." % (area.name as String).to_lower()
 	return row
 
 
@@ -1264,7 +1307,12 @@ func _chapters() -> Array[Dictionary]:
 		if ("outro:" + area.id) in village.told:
 			chapters.append({"name": "%s: freed" % area.name, "lines": Areas.after_lines(area.id, Village.SIGN_UP in village.told)})
 		if ("teach:" + area.id) in village.told:
-			chapters.append({"name": "What %s taught" % _speaker_name(area.teaches.by), "lines": area.teaches.lines + area.get("home", [])})
+			# Home again, and what its cat has taught, as far as he's gone and heard it.
+			var lesson: Array = (area.get("home", []) as Array).duplicate()
+			if Areas.teaches(area.id).any(func(mutation: String) -> bool: return (Village.LEARN + mutation) in village.told):
+				lesson = area.teaches.lines + lesson
+			if not lesson.is_empty():
+				chapters.append({"name": "Home from %s" % (area.name as String).to_lower(), "lines": lesson})
 	# What the old cats say, as far as he's been told.
 	if not village.sayings.is_empty():
 		var said: Array = []
@@ -1488,7 +1536,8 @@ func _process(delta: float) -> void:
 	if _down_after >= 0.0 and arena.time >= _down_after:
 		_down_after = -1.0
 		cat.health = 0.0
-	_step_world(delta)
+	# Once he's down the world runs slow for a moment, before the summary.
+	_step_world(delta * (DOWN_SLOW if _down_for >= 0.0 else 1.0))
 	# On his spot on the ground, not his height: a hop or a throw moves him in the frame.
 	_camera.position = _run_camera()
 	_muzzle_light.position = World.to_screen(cat.body.position, Cat.GUN_HEIGHT) + cat.aim * 10.0
@@ -1499,7 +1548,17 @@ func _process(delta: float) -> void:
 	if arena.liberated and cat.alive():
 		_begin_freeing()
 	elif arena.over():
-		_end_run()
+		# Down: the last hit throws him, he lands on his back, and the fight goes on round him in
+		# slow motion for a moment. Then the summary: never straight to it, out of nowhere.
+		if _down_for < 0.0:
+			_down_for = 0.0
+			for each in arena.cats:
+				if not each.body.airborne():
+					each.body.push(Vector2.ZERO, DOWN_THROW)
+		_down_for += delta
+		if _down_for >= DOWN_PAUSE:
+			_down_for = -1.0
+			_end_run()
 	_overlay.goal = arena.goal_progress()
 	_take_screenshot(delta)
 
@@ -1573,8 +1632,17 @@ func _glow_on_level_up(delta: float) -> void:
 ## Steps the simulation to catch up with the time passed, and hands its hits to the blood and
 ## the sound. Never more than CATCH_UP steps for one frame: a machine too slow to keep up would
 ## only fall further behind, each frame slower than the last, so the world slows a little instead.
+## How far off a step's time a frame can be, as a share of it, and still count as one step.
+const STEP_SNAP := 0.3
+
+
 func _step_world(delta: float) -> void:
 	_behind = minf(_behind + delta, Arena.STEP * CATCH_UP)
+	# A frame that took about a step's time is a step, exactly. Frames never take quite the same
+	# time, and counted to the microsecond, one frame would step the world twice and the next not at
+	# all: the same frame rate, and everything moving in fits and starts.
+	if absf(_behind - Arena.STEP) < Arena.STEP * STEP_SNAP:
+		_behind = Arena.STEP
 	var started := Time.get_ticks_usec()
 	var steps := 0
 	while _behind >= Arena.STEP:
@@ -1664,13 +1732,14 @@ func _enter() -> void:
 		_cutscene = Cutscene.new([], settings.get_value("gameplay", "story_waits"))
 	_entering_pace = Cat.SPEED
 	if not _cutscene.lines.is_empty():
-		_entering_pace = minf(Cat.SPEED, ENTRANCE / _cutscene.length())
+		_entering_pace = clampf(ENTRANCE / _cutscene.length(), SLOWEST_WALK, Cat.SPEED)
 	_overlay.cutscene = true
 	_camera.position = _run_camera()
 
 
 func _set_up_run(run_kind: String) -> void:
 	_run_kind = run_kind
+	_down_for = -1.0
 	_frame_rates.clear()
 	_since_frame_rate = 0.0
 	_freeing = false
@@ -1751,7 +1820,10 @@ func _fight_in_the_village(fighting: bool) -> void:
 	_village_view.banners = village.banners
 	_village_layer.visible = true
 	_arena_layer.visible = false
-	_shade.color = SIEGE_SHADE
+	# Night comes on while its story's told: never day one frame and dark the next.
+	_shade.color = VILLAGE_SHADE
+	_nightfall = create_tween()
+	_nightfall.tween_property(_shade, "color", SIEGE_SHADE, NIGHTFALL)
 
 
 ## The cub at his heel, where it walks beside him: while he walks in, the world held still, it
@@ -1807,6 +1879,7 @@ func _briefed(delta: float) -> void:
 	var skip := Input.is_action_just_pressed("pause")
 	_cutscene.step(delta, Input.is_action_just_pressed("menu_choose"), skip)
 	_overlay.intro = _cutscene.written()
+	_overlay.intro_whole = _cutscene.whole()
 	_overlay.speaker = _cutscene.speaker()
 	_overlay.mood = _cutscene.mood()
 	_overlay.cutscene = true
@@ -1874,6 +1947,7 @@ func _freeing_step(delta: float) -> void:
 	var skip := Input.is_action_just_pressed("pause")
 	_cutscene.step(delta, Input.is_action_just_pressed("menu_choose"), skip)
 	_overlay.intro = _cutscene.written()
+	_overlay.intro_whole = _cutscene.whole()
 	_overlay.speaker = _cutscene.speaker()
 	_overlay.mood = _cutscene.mood()
 	_overlay.cutscene = not _cutscene.lines.is_empty() and not _cutscene.done()
@@ -1916,6 +1990,8 @@ func _end_liberation() -> void:
 ## coat.
 func _from_the_village() -> void:
 	_ran_from_village = true
+	# Nobody caged out there has the name of a cat who's home already.
+	arena.names_home.assign(village.cats.map(func(each: Dictionary) -> String: return each.get("name", "")))
 	cat.coat = village.coat
 	cat.locked.append_array(village.locked_for_run())
 	# A tonic from the healer's hut, drunk on the way out.
@@ -2339,6 +2415,10 @@ func _can_join() -> bool:
 
 
 func _input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		_pointer_away.start()
+		return
 	# The room's code typed in, in capitals, or a host's address with its dots; Backspace takes one
 	# back.
 	if _page == "join" and event is InputEventKey and event.pressed:

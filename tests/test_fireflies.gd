@@ -42,6 +42,19 @@ func test_a_cat_near_draws_it_in_and_the_crew_has_it() -> void:
 	check(arena.experience == Creature.KINDS.dog.worth, "the crew has %d experience" % arena.experience)
 
 
+func test_gathering_draws_them_in_from_further_off() -> void:
+	var out_of_reach := Arena.SIZE / 2.0 + Vector2(Fireflies.PULL * 1.2, 0.0)
+	var without := _arena()
+	_kill(without, out_of_reach, "dog")
+	_steps(without, 90)
+	check(without.fireflies.count() == 1, "a firefly past his pull came anyway")
+	var with_marbles := _arena()
+	with_marbles.cats[0].raise("gathering", Upgrades.GEAR.marble_pouch.stats.gathering)
+	_kill(with_marbles, out_of_reach, "dog")
+	_steps(with_marbles, 90)
+	check(with_marbles.fireflies.count() == 0, "the bag of marbles didn't draw it in")
+
+
 func test_a_big_fall_rises_as_a_few_and_loses_nothing() -> void:
 	var arena := _arena()
 	_kill(arena, Arena.SIZE / 2.0 + Vector2(6.0, 0.0), "rat_baron")

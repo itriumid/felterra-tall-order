@@ -939,7 +939,7 @@ func _rat_corner(body: Body, texture: Texture2D, facing_left: bool) -> Vector2:
 func _draw_cat(cat: Cat) -> void:
 	var feet := World.to_screen(cat.body.position, cat.body.height)
 	var top_left := feet - Sprites.CAT_FEET
-	if cat.downed:
+	if cat.downed or not cat.alive():
 		# Down: on his back, paws in the air, until a crewmate gets him up.
 		draw_texture(Sprites.lit(Sprites.coat(Sprites.cat_body_art("side", 0), cat.coat, "side"), cat.facing.x < 0.0, true), top_left + Vector2(0, 4))
 		return

@@ -60,6 +60,12 @@ func written() -> String:
 	return text.left(mini(int(showing_for * LETTERS), text.length()))
 
 
+## The line on now, whole: what its place on screen is sized to, so that doesn't grow as it's
+## written.
+func whole() -> String:
+	return "" if done() else lines[line].text
+
+
 ## Whether the line on now has been written out in full.
 func finished_writing() -> bool:
 	return done() or showing_for * LETTERS >= (lines[line].text as String).length()

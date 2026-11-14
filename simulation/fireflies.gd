@@ -172,7 +172,7 @@ func step(delta: float, cats: Array[Cat]) -> Array[Dictionary]:
 		if cat.alive():
 			standing.append(cat)
 	for cat in standing:
-		for slot in hanging_near(cat.body.position, PULL):
+		for slot in hanging_near(cat.body.position, PULL * (1.0 + cat.gathering_bonus)):
 			_start_coming(slot)
 	var caught: Array[Dictionary] = []
 	if standing.is_empty() or _coming.is_empty():

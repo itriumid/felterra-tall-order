@@ -98,6 +98,7 @@ const STORIES := {
 	"gear:gem_rings": "Batu akik: rings of polished stone, the craze of a whole country one year. Lucky, says everyone selling one.",
 	"gear:rattan_bracers": "Woven rattan around his forearms, the way the old fighters wore it.",
 	"gear:wooden_clogs": "Bakiak, the clattering wooden clogs. Racing in pairs on one long pair is a festival game; kicking in them is not.",
+	"gear:marble_pouch": "A tuyul can't pass a marble without stopping to play. Whatever he'd carried off rolls to whoever's holding the bag.",
 	"gear:fighting_sash": "The sash of a silat school, tied by the teacher who said he'd never need it.",
 	"support:gun_drone": "A survey drone that mapped our forest for the company. It has new loyalties.",
 	"support:net_drone": "Built to net birds for the city markets. The nets catch rats now.",

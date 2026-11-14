@@ -30,9 +30,10 @@ const STATS := {
 	"luck": {"name": "Luck", "explain": "Rarer cards turn up more often", "format": "+%.1f luck"},
 	"critical": {"name": "Critical hits", "explain": "A chance for a hit to land twice as hard", "format": "+%d%% critical"},
 	"knockback": {"name": "Knockback", "explain": "Every hit shoves harder", "format": "+%d%% knockback"},
+	"gathering": {"name": "Gathering", "explain": "Fireflies and salvage come to him from further off", "format": "+%d%% gathering"},
 }
 ## Stats that most players won't know: a card marks them as worth reading in full.
-const UNFAMILIAR: Array[String] = ["adrenaline", "regeneration", "luck", "critical"]
+const UNFAMILIAR: Array[String] = ["adrenaline", "regeneration", "luck", "critical", "gathering"]
 ## Gear, by id: the slot it's worn in, and what a common level of it gives.
 const GEAR := {
 	"vest": {"name": "Vest", "slot": "body", "stats": {"armor": 0.4, "health": 2.0}},
@@ -66,6 +67,7 @@ const GEAR := {
 	"rattan_bracers": {"name": "Rattan bracers", "slot": "paws", "stats": {"armor": 0.2, "knockback": 0.12}},
 	"wooden_clogs": {"name": "Wooden clogs", "slot": "feet", "stats": {"knockback": 0.15, "damage": 0.04}},
 	"fighting_sash": {"name": "Fighting sash", "slot": "waist", "stats": {"damage": 0.06, "critical": 0.02}},
+	"marble_pouch": {"name": "Bag of marbles", "slot": "waist", "stats": {"gathering": 0.35}},
 }
 const SLOTS: Array[String] = ["head", "body", "neck", "eyes", "paws", "feet", "waist"]
 ## Weapons a card can hand him, if he has his mouth or his tail free for them.
@@ -636,7 +638,9 @@ static func _describe(choice: Dictionary) -> Dictionary:
 		card.lines = weapon_lines(Weapon.named(card.item))
 		if not card.has("ribbon"):
 			card.ribbon = "%s, new%s" % [RARITY_NAMES[choice.rarity], "" if choice.rarity == 0 else ", level %d" % (1 + choice.rarity)]
-		card.explain = ["%s: %s" % [card.name, WEAPON_DOES[card.item]], "Mouth and tail: a weapon takes one; a two-handed one takes both"]
+		card.explain = ["%s: %s" % [card.name, WEAPON_DOES[card.item]], "Mouth and tail: a weapon takes one; a two-handed one takes both, so no second weapon is offered"]
+		if Weapon.named(card.item).kind == Weapon.Kind.MELEE:
+			card.explain.append("Fends: the horde's bites land %d%% lighter while he holds it" % roundi(Cat.GUARD * Weapon.named(card.item).hands * 100.0))
 		for trait_name: String in traits_of(Weapon.named(card.item)):
 			if TRAIT_MEANS.has(trait_name):
 				card.explain.append(TRAIT_MEANS[trait_name])

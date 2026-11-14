@@ -32,7 +32,12 @@ const SAYS := {
 const LINGER := {"grateful": 0.9, "chatty": 3.6, "fighter": 1.3}
 const THROW_AT := 0.5
 ## The cats a cage might hold: their names, and their coats.
-const NAMES: Array[String] = ["Pepper", "Biscuit", "Mittens", "Smudge", "Socks", "Pickle", "Button", "Mochi", "Clover", "Bean", "Tumble"]
+const NAMES: Array[String] = [
+	"Pepper", "Biscuit", "Mittens", "Smudge", "Socks", "Pickle", "Button", "Mochi", "Clover", "Bean", "Tumble",
+	"Nutmeg", "Ginger", "Pebble", "Noodle", "Peanut", "Dumpling", "Sesame", "Tofu", "Mango", "Papaya",
+	"Coconut", "Cinnamon", "Pandan", "Tempeh", "Durian", "Rambutan", "Kopi", "Susu", "Madu", "Kecap",
+	"Sambal", "Ketupat", "Bakso", "Lontong", "Onde", "Klepon", "Cendol", "Putu", "Serabi", "Dodol",
+]
 const COATS: Array[String] = ["orange", "gray", "black", "cream"]
 
 var body := Body.new()

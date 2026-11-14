@@ -111,6 +111,27 @@ func test_a_busy_fight_is_small_enough_to_send() -> void:
 
 
 ## Players who let their hands stack up: a level-up resends every hand they hold.
+func test_a_nail_trodden_on_is_all_a_guest_is_sent_of_the_nails() -> void:
+	var host := Arena.new(3)
+	host.spawning = false
+	var cat := host.add_cat(Arena.SIZE / 2.0)
+	cat.weapons.clear()
+	for index in 30:
+		host.hazards.append({"position": cat.body.position + Vector2(3.0 + index * 0.3, 2.0), "radius": 0.08, "damage": 1.0, "until": 60.0, "kind": "nail", "by": cat, "ready": {}})
+	var guest := Arena.new()
+	var sender := Snapshot.Sender.new()
+	var receiver := Snapshot.Receiver.new()
+	_send(host, sender, receiver, guest)
+	host.step()
+	var lying_still := sender.delta(Snapshot.take(host, [])).size()
+	# One from the middle of them, gone.
+	host.hazards.remove_at(12)
+	var sent := sender.delta(Snapshot.take(host, []))
+	receiver.apply(sent, guest)
+	check(guest.hazards.size() == 29 and guest.hazards[12].position == host.hazards[12].position and guest.hazards[28].position == host.hazards[28].position, "the guest has %d nails, or not the host's" % guest.hazards.size())
+	check(sent.size() < lying_still + 60, "a nail gone took %d bytes, %d with them lying still" % [sent.size(), lying_still])
+
+
 func test_a_busy_fight_is_small_enough_with_five_hands_held() -> void:
 	_check_a_second_of_snapshots(5)
 

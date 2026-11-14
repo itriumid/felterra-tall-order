@@ -47,11 +47,13 @@ const MACHINE_INTERVAL := 300.0
 ## How far from the last one's wreck the next machine drives in, if it can.
 const WRECKS_APART := 10.0
 ## Cages with cats in them turn up from CAGES_FROM seconds in, one every CAGE_INTERVAL, no more
-## than MOST_CAGES waiting at once, never closer than CAGE_DISTANCE to him.
+## than MOST_CAGES waiting at once, never within CAGE_OUT_OF_SIGHT of him.
 const CAGES_FROM := 40.0
 const CAGE_INTERVAL := 75.0
 const MOST_CAGES := 2
-const CAGE_DISTANCE := 6.0
+## How far off a trap turns up, across and up: past the edge of what a cat's player sees (16 by 9
+## meters, him in the middle), with a little over.
+const CAGE_OUT_OF_SIGHT := Vector2(9.0, 5.5)
 ## The salvage what he breaks throws out: a giant, a chainsaw worker, a machine.
 const SALVAGE := {
 	"worker": 2, "chainsaw": 4, "handler": 8, "feller_buncher": 12, "log_loader": 14, "logging_truck": 16,
@@ -152,7 +154,9 @@ var pickups: Array[Pickup] = []
 var rescued: Array[Dictionary] = []
 var salvage := 0
 ## Fire burning on the ground, as {position, radius, left, dps, by}; hazards left lying, nails,
-## caltrops and spike beds, as {position, radius, damage, left, kind, by, ready}; firecrackers still to pop, as
+## caltrops and spike beds, as {position, radius, damage, until, kind, by, ready} (until a time,
+## not counting down: one lying still is the same from step to step, so a guest is sent it
+## once); firecrackers still to pop, as
 ## {position, left, count, damage, by}; and decoys the horde goes for instead of him.
 var fires: Array[Dictionary] = []
 var hazards: Array[Dictionary] = []
@@ -308,8 +312,29 @@ func add_machine(where: Vector2, heading := 0.0, kind := "feller_buncher") -> Ma
 func add_cage(where: Vector2) -> Cage:
 	var cage := Cage.new(random)
 	cage.body.position = where
+	cage.prisoner.name = _a_name_not_taken(cage.prisoner.name)
 	cages.append(cage)
 	return cage
+
+
+## The names of the cats home already: nobody caged out here has one of them.
+var names_home: Array[String] = []
+
+
+## A name for a caged cat that no cat at home, caged or rescued this run has: the one given if
+## it's free, else the next free one after it. All taken, it's the one given.
+func _a_name_not_taken(wanted: String) -> String:
+	var taken := names_home.duplicate()
+	for cage in cages:
+		taken.append(cage.prisoner.name)
+	for each in rescued:
+		taken.append(each.get("name", ""))
+	var from := maxi(Cage.NAMES.find(wanted), 0)
+	for index in Cage.NAMES.size():
+		var name := Cage.NAMES[(from + index) % Cage.NAMES.size()]
+		if not name in taken:
+			return name
+	return wanted
 
 
 ## Salvage thrown out from a point: each piece flies out and up, and lands where it lands.
@@ -984,7 +1009,7 @@ func _bite() -> void:
 							or creature.body.height > cat.body.height + Cat.TALL:
 						continue
 					creature.bite_ready_in = creature.stat("bite_interval")
-					if cat.hurt(creature.stat("bite") * creature.might, apart.normalized() * 0.6, creature.kind):
+					if cat.hurt(creature.stat("bite") * creature.might * (1.0 - cat.guard()), apart.normalized() * 0.6, creature.kind):
 						events.append({"position": cat.body.position, "height": 0.15, "direction": apart.normalized(), "killed": false, "by": "bite", "giant": false, "kind": creature.kind})
 						# A tuyul's bite takes a piece of what he's picked up, and he's off with it.
 						if Creature.KINDS[creature.kind].get("steals", false) and creature.carrying == 0 and salvage > 0:
@@ -1104,7 +1129,7 @@ func _landed(shot: Shot, at: Vector2) -> void:
 		fires.append({"position": at, "radius": weapon.fire_patch, "left": FIRE_TIME, "dps": weapon.burn, "by": shot.shooter})
 		events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "ignite", "giant": false, "kind": weapon.name})
 	if weapon.nails:
-		hazards.append({"position": at, "radius": 0.08, "damage": shot.damage, "left": NAIL_TIME, "kind": "nail", "by": shot.shooter, "ready": {}})
+		hazards.append({"position": at, "radius": 0.08, "damage": shot.damage, "until": time + NAIL_TIME, "kind": "nail", "by": shot.shooter, "ready": {}})
 	if weapon.pops > 0:
 		crackers.append({"position": at, "left": 0.0, "count": weapon.pops, "damage": shot.damage, "by": shot.shooter})
 
@@ -1224,7 +1249,6 @@ func _hold_nets() -> void:
 func _spring_hazards() -> void:
 	var lying: Array[Dictionary] = []
 	for hazard in hazards:
-		hazard.left -= STEP
 		var used := false
 		for creature in _near(hazard.position, hazard.radius + 0.25):
 			if not creature.alive() or creature.body.airborne() or creature.body.position.distance_to(hazard.position) > hazard.radius + creature.body.radius:
@@ -1240,7 +1264,7 @@ func _spring_hazards() -> void:
 				hazard.ready[creature] = time + TICK
 				creature.afflictions.slow = {"share": 0.5, "left": 0.6}
 				strike(creature, hazard.damage, Vector2.ZERO, 0.0, 0.0, "spikes", hazard.by)
-		if not used and hazard.left > 0.0:
+		if not used and hazard.until > time:
 			lying.append(hazard)
 		elif hazard.kind == "spikes":
 			events.append({"position": hazard.position, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "trampled", "giant": false, "kind": "ranjau_bambu"})
@@ -1475,7 +1499,7 @@ func _pick_up() -> void:
 			_keep_inside(piece.body)
 		var taken := false
 		for cat in cats:
-			if cat.alive() and piece.body.height < 0.3 and cat.body.position.distance_to(piece.body.position) <= Pickup.REACH:
+			if cat.alive() and piece.body.height < 0.3 and cat.body.position.distance_to(piece.body.position) <= Pickup.REACH * (1.0 + cat.gathering_bonus):
 				salvage += piece.amount
 				taken = true
 				events.append({"position": piece.body.position, "height": 0.1, "direction": Vector2.ZERO, "killed": false, "by": "pickup", "giant": false, "kind": "salvage"})
@@ -1815,9 +1839,10 @@ func _find_the_ways() -> void:
 			points.append(cat.body.position)
 	if points.is_empty():
 		return
-	_narrow.toward(points)
+	# A little each step: finding a whole way in one stopped the world for most of a frame.
+	_narrow.toward(points, true)
 	if _wide != null and giants.any(func(giant: Giant) -> bool: return giant.standing()) or machines.any(func(machine: Machine) -> bool: return machine.standing()):
-		_wide.toward(points)
+		_wide.toward(points, true)
 
 
 ## Lays out the place: how big, and what stands where.
@@ -2091,8 +2116,12 @@ func begin_area(area_id: String, goal_kept := false, papers_home: Array[String] 
 		"cages":
 			# Each where the company left it this time: somewhere near its corner, never the same
 			# spot twice running, so the way to them is learned fresh.
-			for spot: Vector2 in goal.at:
-				goal_cages.append(add_cage(_goal_cage_spot(spot)))
+			# The same cats each time he tries: a cage opened on a run that failed holds the cat
+			# it held, who's home already, and isn't housed twice.
+			for index in goal.at.size():
+				var cage := add_cage(_goal_cage_spot(goal.at[index]))
+				cage.prisoner = {"name": Cage.NAMES[(absi(hash(area_id)) + index * 7) % Cage.NAMES.size()], "coat": Cage.COATS[(absi(hash(area_id)) + index) % Cage.COATS.size()]}
+				goal_cages.append(cage)
 		"levers":
 			for spot: Vector2 in goal.at:
 				levers.append({"position": spot, "picked": 0.0, "pulled": false})
@@ -2376,12 +2405,14 @@ func _goal_cage_spot(near: Vector2) -> Vector2:
 	return near
 
 
+## Somewhere for a trap nobody's looking at: one turning up in plain sight came out of nowhere. A
+## place too small or too crowded to have such a spot gets none until it has.
 func _cage_spot() -> Vector2:
-	for attempt in 12:
+	for attempt in 24:
 		var spot := Vector2(random.randf_range(3.0, size.x - 3.0), random.randf_range(3.0, size.y - 3.0))
 		if not inside(spot, 1.5) or solid_at(spot, 1.0) or (_narrow != null and _narrow.blocked(spot)):
 			continue
-		if cats.all(func(cat: Cat) -> bool: return cat.body.position.distance_to(spot) >= CAGE_DISTANCE):
+		if cats.all(func(cat: Cat) -> bool: return absf(cat.body.position.x - spot.x) >= CAGE_OUT_OF_SIGHT.x or absf(cat.body.position.y - spot.y) >= CAGE_OUT_OF_SIGHT.y):
 			return spot
 	return Vector2.INF
 

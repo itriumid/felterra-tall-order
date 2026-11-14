@@ -90,6 +90,8 @@ var luck := 0.0
 ## The chance a hit lands twice as hard, and how much harder his hits shove.
 var critical := 0.0
 var knockback_bonus := 0.0
+## How much further off fireflies and salvage come to him from, as a share.
+var gathering_bonus := 0.0
 ## Offers from level-ups, held until played, oldest first; each is a list of choices.
 var offers: Array = []
 var rerolls := 2
@@ -261,6 +263,20 @@ func dodge_damage(base: float, mutation: String) -> float:
 	return base * strength(mutation) * (1.0 + damage_bonus)
 
 
+## What a blade in hand takes off a bite, as a share: fighting at arm's length he's where the
+## horde bites, so what he swings is also what he fends with. A share for each hold a blade
+## takes (a two-handed one, both). Only the horde's bites: nothing fends off a saw or a machine.
+const GUARD := 0.2
+
+
+func guard() -> float:
+	var held := 0
+	for weapon in weapons:
+		if weapon.kind == Weapon.Kind.MELEE:
+			held += weapon.hands
+	return GUARD * mini(held, 2)
+
+
 ## Raises a stat by an amount.
 func raise(stat: String, amount: float) -> void:
 	match stat:
@@ -277,6 +293,7 @@ func raise(stat: String, amount: float) -> void:
 		"luck": luck += amount
 		"critical": critical += amount
 		"knockback": knockback_bonus += amount
+		"gathering": gathering_bonus += amount
 
 
 func heal(amount: float) -> void:
@@ -452,7 +469,7 @@ func _start_roll(arena: Arena) -> void:
 		var across := _dodge_direction.orthogonal()
 		for index in CALTROPS:
 			var spread := (index - (CALTROPS - 1) / 2.0) * 0.25
-			arena.hazards.append({"position": from - _dodge_direction * 0.2 + across * spread, "radius": 0.08, "damage": dodge_damage(CALTROP_DAMAGE, "caltrops"), "left": CALTROP_LAST, "kind": "caltrop", "by": self, "ready": {}})
+			arena.hazards.append({"position": from - _dodge_direction * 0.2 + across * spread, "radius": 0.08, "damage": dodge_damage(CALTROP_DAMAGE, "caltrops"), "until": arena.time + CALTROP_LAST, "kind": "caltrop", "by": self, "ready": {}})
 	if has("dust_cloud"):
 		arena.dust(from, DUST_RADIUS, DUST_TIME * strength("dust_cloud"))
 	if has("scent_trail"):

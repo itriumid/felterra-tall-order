@@ -308,3 +308,14 @@ func test_jogiboys_words_agree_with_whos_meant_and_start_with_capitals() -> void
 	for count in 12:
 		lines[JogiboySays.line("nearing", Village.TELLERS.smithy, count)] = true
 	check(lines.size() >= 4, "Jogiboy said the same few things over and over")
+
+
+func test_jogiboy_goes_round_a_house_to_follow() -> void:
+	var map := VillageMap.new()
+	# Tompel in front of the longhouse, walking off along it; Jogiboy behind it, the house between.
+	map.cat.body.position = Vector2(VillageMap.LONGHOUSE.get_center().x, VillageMap.LONGHOUSE.end.y + 0.8)
+	map.jogi.body.position = Vector2(VillageMap.LONGHOUSE.get_center().x, VillageMap.LONGHOUSE.position.y - 0.6)
+	for step in 60 * 12:
+		map.cat.steering = Vector2.RIGHT if step < 60 * 2 else Vector2.ZERO
+		map.step(Arena.STEP)
+	check(map.cat.body.position.distance_to(map.jogi.body.position) < 1.6, "Jogiboy never got round the longhouse: he's %.1f m off, at %s" % [map.cat.body.position.distance_to(map.jogi.body.position), map.jogi.body.position])

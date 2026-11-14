@@ -216,8 +216,10 @@ nunchaku, "Go Chuck Purris style", and the handgun, "Go John Whisker style".
 
 After the first draw, experience is in **fireflies**. Whatever falls, one rises from where it
 fell, carrying what it was worth (a big fall rises as a few, a bigger worth a bigger light), and
-hangs there blinking: yellow-green, a color nothing else here has, and outlined, as everything
-he can pick up is, so one stands off the fallen it rose from. A cat within a meter and a half draws it in, faster as it comes; caught,
+hangs there blinking: ice blue, a color nothing else here has (yellow-green, as they were, sank
+into the grass), and outlined, as everything he can pick up is, so one stands off the fallen it
+rose from. A cat within a meter and a half draws it in, faster as it comes, and from further off
+with gathering, the stat the bag of marbles gives (a tuyul can't pass a marble); caught,
 it counts for the whole crew. Nobody near, it waits for as long as the run lasts: they don't
 merge or fade, so a fight fought at range leaves a field of them to go back for. A tuyul
 swallows any he runs through, goes looking for them when there's no salvage, and once full makes
@@ -273,6 +275,10 @@ in a run:
 | **Toughest** | The most health left (and, once enemies have armor, defense) |
 | **Crowd** | The thickest cluster: best for spread and explosives |
 
+A blade in hand fends, too: he fights where the horde bites, so its bites land a fifth lighter
+for each hold a blade takes (a two-handed one takes both: two fifths). Only bites; nothing
+fends off a saw, a log or a machine. A blade's card says so when it's read in full.
+
 Melee weapons swing a blade through an arc and hit what the blade passes through, at the height
 it passes. A swing alternates forehand and backhand. Each weapon keeps its own pace, and shows
 it: a gun flashes and kicks for its own rounds only, a blade quick enough swings faster than its
@@ -319,14 +325,17 @@ on: fire and oil, or crewmates who can be downed.
   way, and comes to the gate to say it; any other time he just goes, at his own pace. He walks into every run the same way, from the way
   he came, the world held still until he's in: slowly enough for the area's story to be told
   on the way the first time, at his own pace after. Then the run's under way, and his first
-  level brings his first draw. Coming home, whatever has happened since is told on the walk in: what an
-  area freed teaches him, from the cat who teaches it, and what the story has brought back. Then
+  level brings his first draw. Coming home, whatever has happened since is told on the walk in: what the
+  story has brought back, and a word from whoever's home. What a freed area's cat teaches isn't
+  told on the walk: each dodge mutation waits under a "!" with the cat who teaches it, a lesson
+  of its own in their words, and is learned when he goes and hears it. Then
   a panel sets out what's new, a line each on what it does and where to find it: a building, a
   dodge mutation now on the cards, an area found on the map. When he's down, a summary of the run (time
   survived, level reached, kills, giants felled, machines broken, cats rescued, salvage) marks
-  any new best in words as well as color, and offers Home to the village, Straight back out (a
-  new run at once: "one more run" shouldn't mean a walk across the village every time), or
-  Leave. Giving a run up from the pause menu takes him home with what he's carrying. The best
+  any new best in words as well as color, and offers Home to the village, or Leave: every run ends
+  at home, where what it earned and what it changed are. He doesn't go straight to it, either:
+  down, the last hit throws him, he lands on his back, and the fight goes on round him in slow
+  motion for a moment first. Giving a run up from the pause menu takes him home with what he's carrying. The best
   run is kept beside the settings.
 - **Cutscenes are always the player's to skip,** to follow WCAG AA: Escape skips the whole scene,
   Enter hurries a line along, and both keys are shown on screen while one plays. A setting makes
@@ -468,7 +477,9 @@ on: fire and oil, or crewmates who can be downed.
   at the village. He walks in at the gate to it under attack. Beaten back, he's home, and the
   spirits let the village be until he next walks home. It's the village as it stands, every house and prop solid, the forest walling the
   path in, and it's night: the village in blue dark, lit by its own roofs as they burn, each
-  throwing its light about until it's put out. Two roofs are alight at the start and another catches every 20 seconds, four in all;
+  throwing its light about until it's put out. Night comes on over four seconds as its story
+  opens, which says it got dark on the way back and that the Elder has everyone in the
+  longhouse: nothing goes dark, and nobody vanishes, without a word. Two roofs are alight at the start and another catches every 20 seconds, four in all;
   a roof left burning throws out an ember wisp every 6 seconds. Standing at the well fills a
   bucket in a second; standing at a burning house's door with it puts the fire out in a little
   over one. Marks at the screen's edge show the burning houses and, with no water carried, the
@@ -523,7 +534,7 @@ on: fire and oil, or crewmates who can be downed.
   join, the smith forges better gear. That growth is the progress that carries over, and it's
   the story moving forward.
   - **A run brings home rescued cats and salvage.** To the company, cats are pests, and its
-    traps turn up in the clearing from 40 seconds in, one every 75 seconds, never close to him.
+    traps turn up in the clearing from 40 seconds in, one every 75 seconds, always somewhere out of his sight: found, never seen to appear.
     Standing by a cage, within the ring of dashes round it on the ground, picks its lock over
     three seconds, the ring filling in as it goes; leaving lets the pick slip back. The
     cat inside, with its own name and coat, has its say in a bubble, each its own way, then runs
@@ -579,6 +590,9 @@ on: fire and oil, or crewmates who can be downed.
   - **Everything has its story**, read on a card with Tab and at the smithy and the pack: where
     it came from, as the cats tell it. The smithy and the pack show the chosen thing's picture
     beside the list: a weapon on its own, large, and on him, in his mouth and on his tail.
+    What he doesn't have yet keeps most of itself back: its picture, its name and what it does
+    in a line, and in place of its numbers and its story, how it's come by (what it costs to
+    forge, which area's freeing brings it, who's waiting to teach it).
   - **What's new waits where it's told**, under a "!": a building restored at its door, a dodge
     mutation with the Elder, the next area at the board, the cub at the shrine, and what Jogiboy
     dug up with him, kept until he goes and asks. Walking up and pressing Enter hears it. Only
@@ -711,8 +725,9 @@ Held offers sit along the bottom of the screen as three short cards (the key, th
 picture, the name and its first line), kept low so the horde coming from below stays in sight;
 holding Tab stands them up in full, with what each means. More held than the one showing are
 counted beside the keys. Everything can
-be rebound; controllers get the same layout on face buttons and bumpers. The mouse is optional:
-clicking a card works, but nothing needs it.
+be rebound; controllers get the same layout on face buttons and bumpers. The mouse isn't
+used, so its pointer is put away, and shows for two seconds whenever the mouse is moved, to be
+found and taken elsewhere.
 
 ## Playing together
 

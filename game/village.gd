@@ -130,7 +130,7 @@ const FORGE := {
 	"gear:rubber_boots": 9, "gear:sandals": 8, "gear:tool_belt": 11, "gear:batik_headcloth": 9,
 	"gear:ear_defenders": 10, "gear:life_jacket": 12, "gear:kebaya": 11, "gear:lanyard": 9,
 	"gear:prayer_beads": 10, "gear:safety_glasses": 8, "gear:gem_rings": 12, "gear:rattan_bracers": 9,
-	"gear:wooden_clogs": 8, "gear:fighting_sash": 11,
+	"gear:wooden_clogs": 8, "gear:fighting_sash": 11, "gear:marble_pouch": 7,
 	"weapon:machete": 10, "weapon:badik": 10, "weapon:rencong": 12, "weapon:celurit": 14,
 	"weapon:kujang": 14, "weapon:mandau": 16, "weapon:tombak": 16, "weapon:sumpit": 14, "weapon:bambu_runcing": 10,
 	"weapon:panah": 16, "weapon:petasan": 14, "weapon:lamp_oil": 15, "weapon:nail_gun": 14,
@@ -222,8 +222,53 @@ func learned() -> Array[String]:
 	var ids: Array[String] = []
 	for area_id in liberated:
 		for mutation in Areas.teaches(area_id):
-			ids.append("mutation:" + mutation)
+			if (LEARN + mutation) in told:
+				ids.append("mutation:" + mutation)
 	return ids
+
+
+## Each dodge mutation is learned from the cat who teaches it, at their door, when he goes and
+## hears it: kept as LEARN and its id. A lesson is a tiding of its own, one a mutation, so each is
+## heard, explained and unlocked by itself, never all at once on the walk home.
+const LEARN := "learn:"
+## Where each teacher is found: their own door, or the Elder's side for one with no door.
+const TEACHES_AT := {
+	"elder": "elder", "Granny Whiskers": "hut_0", "Patch": "longhouse", "Saffron": "watchtower",
+	"Coffee": "market", "Auntie Clove": "healer", "Skipper": "elder",
+}
+
+
+## An area's lessons, set waiting where its teacher is: each mutation with the teacher's own words
+## for it, and what it does.
+func set_lessons(area_id: String) -> void:
+	var teaches: Dictionary = Areas.named(area_id).get("teaches", {})
+	var mutations: Array = teaches.get("mutations", [])
+	if mutations.is_empty():
+		return
+	var said: Array = (teaches.get("lines", []) as Array).map(func(line: Variant) -> String: return line.text if line is Dictionary else str(line))
+	var who: String = teaches.by
+	var teacher := "The Elder" if who == "elder" else who
+	# Their lines shared out, in order: more lines than mutations, and the first gets the extra.
+	var extra := maxi(said.size() - mutations.size(), 0)
+	for index in mutations.size():
+		var mutation: String = mutations[index]
+		if (LEARN + mutation) in told:
+			continue
+		var from := 0 if index == 0 else index + extra
+		var to := (extra + 1) if index == 0 else from + 1
+		var words := " ".join(said.slice(from, mini(to, said.size())))
+		tell(TEACHES_AT.get(who, "elder"), "%s teaches: %s" % [teacher, (Upgrades.MUTATIONS[mutation].name as String).to_lower()],
+			"\"%s\" %s. It's a dodge mutation: on your cards from now on." % [words, Upgrades.MUTATIONS[mutation].explain], LEARN + mutation)
+
+
+## Who's home, as the village shows them: the rescued, and until the village's edge is freed and
+## she goes off to find the others, Granny Whiskers, who's in the story from its first page.
+func at_home() -> Array:
+	var home: Array = cats.duplicate()
+	if not "edge" in liberated or not ("teach:edge" in told or "deep" in liberated):
+		if not home.any(func(each: Dictionary) -> bool: return each.get("name", "") == "Granny Whiskers"):
+			home.append({"name": "Granny Whiskers", "coat": "gray"})
+	return home
 
 
 ## What the story has handed him: Uncle Anvil's hammer, once the village's edge is free.
@@ -456,7 +501,11 @@ static func earnings_of(arena: Arena) -> Dictionary:
 ## A run's earnings, brought home: the rescued move in, the salvage is stored, the weavers weave,
 ## and a grove's offerings go to the shrine.
 func take_earnings(earnings: Dictionary) -> void:
-	cats.append_array(earnings.get("rescued", []))
+	# Each cat comes home once, under a name of their own: one already home isn't housed twice,
+	# however many times the same cage was opened on the way to freeing a place.
+	for rescued: Dictionary in earnings.get("rescued", []):
+		if not cats.any(func(each: Dictionary) -> bool: return each.get("name", "") == rescued.get("name", "")):
+			cats.append(rescued)
 	salvage += earnings.get("salvage", 0)
 	cloth += weavers()
 	var paper: String = earnings.get("paper", "")
@@ -778,6 +827,8 @@ func load_from(path := PATH) -> void:
 		known_scenes.append("outro:" + id)
 		known_scenes.append("send_off:" + id)
 		known_scenes.append("teach:" + id)
+		for mutation in Areas.teaches(id):
+			known_scenes.append(LEARN + mutation)
 	known_scenes.append(PACK_TAUGHT)
 	known_scenes.append(FIVE_WORDS)
 	known_scenes.append(SIGN_UP)
@@ -804,6 +855,19 @@ func load_from(path := PATH) -> void:
 				if each.get("teaches") is String and each.teaches in known_scenes:
 					tiding.teaches = each.teaches
 				tidings.append(tiding)
+	# A village from before lessons were heard one by one: what its freed areas taught on the walk
+	# home, he knows.
+	for id in liberated:
+		if ("teach:" + id) in told:
+			for mutation in Areas.teaches(id):
+				if not (LEARN + mutation) in told and not tidings.any(func(tiding: Dictionary) -> bool: return tiding.get("teaches", "") == LEARN + mutation):
+					told.append(LEARN + mutation)
+	# And one that housed the same cat twice keeps one of each.
+	var housed := {}
+	cats = cats.filter(func(each: Dictionary) -> bool:
+		var fresh := not housed.has(each.get("name", ""))
+		housed[each.get("name", "")] = true
+		return fresh)
 	offerings = _count(file, "offerings")
 	groves_cleansed = _count(file, "groves_cleansed")
 	cub_rank = mini(_count(file, "cub_rank"), Companion.MOST_RANK) if truce() else 0
