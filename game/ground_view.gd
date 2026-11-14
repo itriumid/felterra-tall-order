@@ -28,6 +28,9 @@ var healing := -1.0
 var _smoldering: Array = []
 var _smoke: Array[Dictionary] = []
 var _growth: Array[Dictionary] = []
+## The growth by the cell of ground it's in, GROWTH_CELL meters across.
+var _growth_cells := {}
+const GROWTH_CELL := 4.0
 var _edge_picture: ImageTexture
 ## The crowns of the trees at the edge, high overhead: the canopy draws them, over everything.
 var crowns: Array[Dictionary] = []
@@ -78,6 +81,7 @@ func paint(theme: String, seed_value: int, healed: bool) -> void:
 	var random := RandomNumberGenerator.new()
 	random.seed = seed_value + 3
 	_growth.clear()
+	_growth_cells.clear()
 	crowns.clear()
 	# Growth is thin where the company has been, and thick where it's gone.
 	# As thick on a big place as on a small one: GROWTH is for 40 by 24 meters.
@@ -86,7 +90,13 @@ func paint(theme: String, seed_value: int, healed: bool) -> void:
 		var where := Vector2(random.randf() * meters.x, random.randf() * meters.y)
 		if arena != null and (arena.solid_at(where) or not arena.inside(where)):
 			continue
-		_growth.append({"position": where, "kind": "fern" if random.randf() < 0.25 else "tuft"})
+		var plant := {"position": where, "kind": "fern" if random.randf() < 0.25 else "tuft"}
+		_growth.append(plant)
+		# Kept by where it grows, so a frame looks only at what's near the screen.
+		var cell := Vector2i((where / GROWTH_CELL).floor())
+		if not _growth_cells.has(cell):
+			_growth_cells[cell] = []
+		_growth_cells[cell].append(plant)
 	_plant_edge(random)
 	_crown_trees(random)
 	planted.emit()
@@ -119,7 +129,17 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 
+## How long the last frame's ground took to set out, in milliseconds, for the numbers on screen.
+var draw_milliseconds := 0.0
+
+
 func _draw() -> void:
+	var started := Time.get_ticks_usec()
+	_draw_ground()
+	draw_milliseconds = (Time.get_ticks_usec() - started) / 1000.0
+
+
+func _draw_ground() -> void:
 	var clearing := Rect2(Vector2.ZERO, meters * World.PIXELS_PER_METER)
 	draw_rect(clearing.grow(JUNGLE_DEPTH), Palette.JUNGLE_DEEP)
 	draw_texture(_ground, Vector2.ZERO)
@@ -133,13 +153,17 @@ func _draw() -> void:
 			if to_x > from_x:
 				draw_texture_rect_region(_healed, Rect2(from_x, y, to_x - from_x, 1), Rect2(from_x, y, to_x - from_x, 1))
 	var view := _visible_meters()
-	for plant in _growth:
-		var where: Vector2 = plant.position
-		if not view.has_point(where):
-			continue
-		var lean := arena.brushing(where, BRUSH_REACH) if arena != null else 0
-		var region: Rect2 = _growth_regions["%s%d" % [plant.kind, lean]]
-		draw_texture_rect_region(_growth_sheet, Rect2(World.to_screen(where) - Vector2(floorf(region.size.x / 2.0), region.size.y - 1), region.size), region)
+	var low := Vector2i((view.position / GROWTH_CELL).floor())
+	var high := Vector2i((view.end / GROWTH_CELL).floor())
+	for cell_x in range(low.x, high.x + 1):
+		for cell_y in range(low.y, high.y + 1):
+			for plant: Dictionary in _growth_cells.get(Vector2i(cell_x, cell_y), []):
+				var where: Vector2 = plant.position
+				if not view.has_point(where):
+					continue
+				var lean := arena.brushing(where, BRUSH_REACH) if arena != null else 0
+				var region: Rect2 = _growth_regions["%s%d" % [plant.kind, lean]]
+				draw_texture_rect_region(_growth_sheet, Rect2(World.to_screen(where) - Vector2(floorf(region.size.x / 2.0), region.size.y - 1), region.size), region)
 	for wisp in _smoke:
 		draw_rect(Rect2(wisp.at.round(), Vector2(2, 1) if wisp.life > 1.0 else Vector2.ONE), Palette.SMOKE)
 	if _edge_picture != null:
