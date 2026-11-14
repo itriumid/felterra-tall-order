@@ -141,6 +141,9 @@ var player := 0
 ## Hits that have landed on him, and dodges, counted, so the view and the sound know when one
 ## does.
 var hits_taken := 0
+## What last landed a hit on him, by name ("rat", "worker", "chainsaw", "feller_buncher", "fire"):
+## what got him, once he's down.
+var last_hurt_by := ""
 var dodges := 0
 ## His tally for the run: the damage each thing he fights with has done (a weapon by its name, else
 ## what it was: "pounce", "cub", "fire", "mines"...), and what each has finished off.
@@ -333,7 +336,7 @@ func banish(index: int, random: RandomNumberGenerator) -> bool:
 	return true
 
 
-func hurt(damage: float, knock: Vector2) -> bool:
+func hurt(damage: float, knock: Vector2, by := "") -> bool:
 	if not alive():
 		return false
 	if safe_for > 0.0:
@@ -344,6 +347,8 @@ func hurt(damage: float, knock: Vector2) -> bool:
 	# Armor takes a flat amount off each hit, but never all of it.
 	health = maxf(health - maxf(damage - armor, damage * 0.2), 0.0)
 	hits_taken += 1
+	if not by.is_empty():
+		last_hurt_by = by
 	# Knocked off his feet only from his feet: a cat already in the air isn't thrown higher.
 	if not body.airborne():
 		body.push(knock, 0.8)

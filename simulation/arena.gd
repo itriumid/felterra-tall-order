@@ -598,9 +598,9 @@ func stomp(giant: Giant, at: Vector2, crush := Giant.CRUSH_RADIUS, shock := Gian
 	for cat in cats:
 		var apart := cat.body.position - at
 		if apart.length() <= crush + cat.body.radius:
-			cat.hurt(crush_damage * giant.might, apart.normalized() * Giant.SHOCK_KNOCK)
+			cat.hurt(crush_damage * giant.might, apart.normalized() * Giant.SHOCK_KNOCK, _named(giant))
 		elif apart.length() <= shock:
-			cat.hurt(shock_damage * giant.might, apart.normalized() * Giant.SHOCK_KNOCK)
+			cat.hurt(shock_damage * giant.might, apart.normalized() * Giant.SHOCK_KNOCK, _named(giant))
 	events.append({"position": at, "height": 0.0, "direction": Vector2.ZERO, "killed": false, "by": "stomp", "giant": true, "kind": giant.kind, "radius": shock})
 
 
@@ -620,8 +620,13 @@ func saw(giant: Giant, from_angle: float, to_angle: float, reach := Giant.SAW_RE
 	for cat in cats:
 		var offset := cat.body.position - giant.body.position
 		if cat.body.height < height and passes.call(offset, cat.body.radius):
-			if cat.hurt(damage * giant.might, offset.normalized() * knock):
+			if cat.hurt(damage * giant.might, offset.normalized() * knock, _named(giant)):
 				events.append({"position": cat.body.position, "height": 0.2, "direction": offset.normalized(), "killed": false, "by": by, "giant": false, "kind": "cat"})
+
+
+## What a giant is called when he's what got a cat: the Great Tiger by name, the rest by kind.
+func _named(giant: Giant) -> String:
+	return "great_tiger" if giant is Guardian else giant.kind
 
 
 ## A feller buncher's jaws shutting on a point: what's between them is cut, cats, giants and its
@@ -637,7 +642,7 @@ func jaws(machine: Machine, at: Vector2, radius := Machine.JAW_RADIUS, by := "ja
 	for cat in cats:
 		var apart := cat.body.position - at
 		if apart.length() <= radius + cat.body.radius and cat.body.height < 0.6:
-			cat.hurt(Machine.BITE_DAMAGE, (apart.normalized() if apart.length() > 0.001 else Vector2.DOWN) * Machine.BITE_KNOCK)
+			cat.hurt(Machine.BITE_DAMAGE, (apart.normalized() if apart.length() > 0.001 else Vector2.DOWN) * Machine.BITE_KNOCK, machine.kind)
 
 
 ## Whether anything is standing on a point: a creature on the ground, or a giant's boot.
@@ -793,7 +798,7 @@ func land(giant: Giant) -> void:
 		var closest := Geometry2D.get_closest_point_to_segment(cat.body.position, feet, head)
 		var apart := cat.body.position - closest
 		if apart.length() <= Giant.FALLEN_WIDTH:
-			cat.hurt(Giant.FALL_DAMAGE, (apart.normalized() if apart.length() > 0.001 else giant.fall_direction.orthogonal()) * Giant.SHOCK_KNOCK)
+			cat.hurt(Giant.FALL_DAMAGE, (apart.normalized() if apart.length() > 0.001 else giant.fall_direction.orthogonal()) * Giant.SHOCK_KNOCK, "falling " + _named(giant))
 	events.append({"position": (feet + head) / 2.0, "height": 0.0, "direction": giant.fall_direction, "killed": false, "by": "fall", "giant": true})
 
 
@@ -976,7 +981,7 @@ func _bite() -> void:
 							or creature.body.height > cat.body.height + Cat.TALL:
 						continue
 					creature.bite_ready_in = creature.stat("bite_interval")
-					if cat.hurt(creature.stat("bite") * creature.might, apart.normalized() * 0.6):
+					if cat.hurt(creature.stat("bite") * creature.might, apart.normalized() * 0.6, creature.kind):
 						events.append({"position": cat.body.position, "height": 0.15, "direction": apart.normalized(), "killed": false, "by": "bite", "giant": false, "kind": creature.kind})
 						# A tuyul's bite takes a piece of what he's picked up, and he's off with it.
 						if Creature.KINDS[creature.kind].get("steals", false) and creature.carrying == 0 and salvage > 0:
@@ -1170,7 +1175,7 @@ func _burn_fires() -> void:
 				fire.tick = RAT_FIRE_EVERY
 				for cat in cats:
 					if cat.alive() and not cat.body.airborne() and cat.body.position.distance_to(fire.position) <= fire.radius + cat.body.radius:
-						cat.hurt(fire.dps, Vector2.ZERO)
+						cat.hurt(fire.dps, Vector2.ZERO, "torchbearer's fire")
 			if fire.left > 0.0:
 				burning.append(fire)
 			continue
@@ -2332,7 +2337,7 @@ func _roll_logs() -> void:
 				strike(target, LOG_DAMAGE, Vector2.DOWN, 0.0, 0.0, "log")
 		for cat in cats:
 			if not log.struck.has(cat) and cat.body.height < LOG_RADIUS * 2.0 and crushing.call(cat.body.position, cat.body.radius):
-				if cat.hurt(LOG_HURT, Vector2.DOWN * 3.0):
+				if cat.hurt(LOG_HURT, Vector2.DOWN * 3.0, "rolling log"):
 					log.struck[cat] = true
 		if log.y < size.y + 1.0:
 			rolling.append(log)

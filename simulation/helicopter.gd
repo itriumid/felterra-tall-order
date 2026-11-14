@@ -130,5 +130,5 @@ func _strafe(arena: Arena) -> void:
 			arena.strike(creature, 100.0, Vector2.ZERO, 0.0, 0.0, "strafe")
 	for cat in arena.cats:
 		if cat.alive() and not _strafed.has(cat) and cat.body.position.distance_to(under) <= STRAFE_WIDTH + cat.body.radius:
-			if cat.hurt(STRAFE_HURT, (cat.body.position - under).normalized() * 1.5):
+			if cat.hurt(STRAFE_HURT, (cat.body.position - under).normalized() * 1.5, "helicopter"):
 				_strafed[cat] = true
