@@ -406,7 +406,18 @@ on: fire and oil, or crewmates who can be downed.
   flowers grow in patches of one kind, and the saplings stand lit from the top left. The first time he goes into an
   area its story is told going in, to the opening's mellow music; the first time it's freed, the
   healed ground spreads out from where its boss fell while the story goes on, to music of its
-  own. Losing still brings home what he carried; the area stays the company's. But what he did
+  own.
+- **Bosses show the fight.** Every hit on a giant or a machine leaves its mark where it landed, in
+  the kind of what landed it: rounds punch holes, blades cut (bare steel on a machine; a tear
+  showing skin on a giant's vest, blood with blood on), blunt weapons and stones dent, fire and
+  blasts scorch, and bolts, arrows, darts and nails stay in, sticking out the way they came. A
+  machine's marks are on its hull, on the face turned toward the hit, and turn with it. The
+  tiger, a spirit, scars and singes and never bleeds. Worn down, a machine smokes harder and
+  darker, throws sparks, cracks its cab glass, and past three quarters gone catches fire; a giant
+  loses his hard hat, knocked off to land where it lands. A machine breaking bursts in black
+  smoke and sparks, throws its pieces in its own paint to lie where they come down, and burns as
+  a wreck for a while. The marks are the view's alone, from the hits it's handed (each hit names
+  what it struck), so nothing more is sent online. Losing still brings home what he carried; the area stays the company's. But what he did
   there stays done: a goal finished before its boss beat him is kept, so the next run in starts
   with it done (a word on the way in says so) and the boss comes after 45 seconds, time for him to
   grow into the fight from the first level. The first time

@@ -1398,7 +1398,7 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 		if attacker != null:
 			attacker.rush(through)
 		_tally(attacker, credit, through, not machine.alive())
-		events.append({"position": target.body.position, "height": minf(0.6, target.body.height + 0.2), "direction": direction, "killed": not machine.alive(), "by": by, "giant": true, "kind": "joint" if on_joint else "machine", "damage": through, "tier": tier, "ours": attacker != null, "source": credit})
+		events.append({"position": target.body.position, "height": minf(0.6, target.body.height + 0.2), "direction": direction, "killed": not machine.alive(), "by": by, "giant": true, "kind": "joint" if on_joint else "machine", "damage": through, "tier": tier, "ours": attacker != null, "source": credit, "on": machine})
 		if not machine.alive():
 			kills += 1
 			machines_broken += 1
@@ -1416,7 +1416,7 @@ func strike(target: Object, damage: float, direction: Vector2, knock: float, lif
 		# A push is shared over his mass: a round that throws a rat barely moves him.
 		giant.body.velocity += direction * knock / Giant.HEFT
 		_tally(attacker, credit, dealt, not giant.alive())
-		events.append({"position": giant.body.position, "height": minf(0.3, Giant.TALL), "direction": direction, "killed": not giant.alive(), "by": by, "giant": true, "damage": dealt, "tier": tier, "ours": attacker != null, "source": credit})
+		events.append({"position": giant.body.position, "height": minf(0.3, Giant.TALL), "direction": direction, "killed": not giant.alive(), "by": by, "giant": true, "damage": dealt, "tier": tier, "ours": attacker != null, "source": credit, "on": giant})
 		if not giant.alive():
 			kills += 1
 			giants_felled += 1

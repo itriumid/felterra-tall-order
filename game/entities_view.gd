@@ -100,6 +100,18 @@ var _freed_areas: Array[String] = []
 ## Chainsaw bars running this frame: their teeth are drawn moving along them.
 var _running_chain: Array[Dictionary] = []
 var _stains: Array[Dictionary] = []
+## What the fight's left on the giants and machines, for the arena it was left in, and the
+## giants whose hard hats have been knocked off.
+var _wear := Wear.new()
+var _worn_for: Arena
+var _hatless := {}
+## A giant's hard hat goes once he's down to this share of his health.
+const HAT_OFF := 0.5
+## A machine catches fire once it's down to this share; and a wreck burns this long, in seconds.
+const BURNS_BELOW := 0.25
+const WRECK_BURNS := 18.0
+## How long a hat and a machine's pieces lie where they land, in seconds: the rest of the fight.
+const LIES_FOR := 900.0
 const MOST_STAINS := 900
 const STAIN_DRIES := 15.0
 const STAIN_LASTS := 45.0
@@ -174,6 +186,14 @@ func _process(delta: float) -> void:
 		_exhaust(machine, delta)
 	_clock += delta
 	_settle_dust(delta)
+	if _worn_for != arena:
+		_wear = Wear.new()
+		_hatless = {}
+		_worn_for = arena
+	_wear.take(_pending, arena, _clock)
+	_wear.keep_only(arena)
+	for giant in arena.giants:
+		_knock_the_hat_off_when_due(giant)
 	_bleed(delta)
 	_pace()
 	queue_redraw()
@@ -339,6 +359,7 @@ func _draw_all() -> void:
 				_draw_helicopter(thing)
 			else:
 				_draw_machine(thing)
+			_draw_machine_wear(thing)
 			World.unsnap()
 		elif thing is Cage:
 			_draw_cage(thing)
@@ -360,6 +381,7 @@ func _draw_all() -> void:
 			_draw_guardian(thing)
 		elif thing is Giant:
 			_draw_giant(thing)
+			_draw_giant_wear(thing)
 			_draw_afflictions(thing, 0.4, false, 6)
 		elif thing is Creature:
 			# Tripped, it's down on its side, drawn as the fallen are until it's up.
@@ -387,7 +409,9 @@ func _draw_all() -> void:
 	_draw_smoke()
 	for droplet in _droplets:
 		if _seen.has_point(droplet.position):
-			draw_rect(Rect2(World.to_screen(droplet.position, droplet.height), Vector2.ONE), droplet.color)
+			# Most are a pixel; a hat or a piece of a machine flies as itself.
+			var size: Vector2 = droplet.get("size", Vector2.ONE)
+			draw_rect(Rect2(World.to_screen(droplet.position, droplet.height) - (size / 2.0).floor(), size), droplet.color)
 	_draw_fireflies()
 	for shot in arena.shots:
 		if shot.weapon != null and shot.weapon.name == "net_drone":
@@ -820,6 +844,12 @@ func _draw_guardian(guardian: Guardian) -> void:
 		feet.x = texture.get_width() - 1 - feet.x
 	var rearing := 2.0 if guardian.move in [Guardian.Move.RAISING, Guardian.Move.ROARING] else 0.0
 	draw_texture(texture, World.to_screen(guardian.body.position, guardian.body.height) - feet - Vector2(0, rearing))
+	# The fight on him: fur singed and cut. A spirit doesn't bleed.
+	# A cut shows pale against the stripes, a scar; fire singes the fur dark.
+	var middle := World.to_screen(guardian.body.position, guardian.body.height) + Vector2(0, -17.0 - rearing)
+	for mark: Dictionary in _wear.of(guardian):
+		var shown := {"kind": "scorch" if mark.kind in ["scorch", "blast"] else "scar", "angle": mark.angle}
+		_draw_wear_mark((middle + Vector2(mark.off * 2.0, (mark.along - 0.5) * 4.0)).floor(), shown, true, Vector2.LEFT, false)
 	if guardian.move == Guardian.Move.ROARING:
 		# The roar going out: rings widening off it.
 		var ring := 1.0 - guardian.move_for / Guardian.ROAR_TIME
@@ -1072,6 +1102,7 @@ func _draw_machine(machine: Machine) -> void:
 			var seat := World.to_screen(face.ground, 1.5)
 			draw_rect(Rect2(seat + Vector2(-2, -5), Vector2(4, 4)), Palette.SKIN)
 			draw_rect(Rect2(seat + Vector2(-3, -1), Vector2(6, 5)), Palette.HI_VIS)
+			_crack_the_glass(machine, seat)
 	if not boom_drawn:
 		_draw_boom(machine)
 
@@ -1194,14 +1225,238 @@ func _footprint(machine: Machine, center: Vector2, length: float, width: float, 
 ## Exhaust out of the stack while it works: thicker and darker once it's broken, then thinning out.
 func _exhaust(machine: Machine, delta: float) -> void:
 	var working := machine.standing()
-	var rate := 6.0 if working else 14.0 * clampf(1.0 - machine.broken_for / 20.0, 0.0, 1.0)
-	if randf() > rate * delta:
+	var share := machine.health / maxf(machine.most_health, 0.001)
+	# Running, it smokes more and darker the worse it's hurt; broken, black, thinning as it burns out.
+	var rate := 14.0 * clampf(1.0 - machine.broken_for / 20.0, 0.0, 1.0)
+	var color := Palette.BURNT
+	if working:
+		rate = 6.0 if share > 0.7 else (12.0 if share > 0.4 else 22.0)
+		color = Palette.SMOKE if share > 0.4 else (Palette.GRAPHITE if share > BURNS_BELOW else Palette.BURNT)
+	var stack := _stack(machine)
+	if randf() < rate * delta:
+		# Hurt, it pours out thick: bigger puffs, grey among the black so they show on the jungle.
+		var thick := not working or share <= 0.4
+		_droplets.append({
+			"position": stack[0], "height": stack[1], "rise": randf_range(0.4, 1.0),
+			"velocity": Vector2(randf_range(-0.2, 0.2), randf_range(-0.3, -0.1)),
+			"color": (Palette.SMOKE if randf() < 0.4 else color) if thick else color, "stains": false, "floats": true,
+			"life": randf_range(1.0, 2.0) * (1.6 if thick else 1.0), "size": Vector2(2, 2) if thick else Vector2.ONE,
+		})
+	# Badly hurt and still going, it throws sparks off its hull now and then.
+	if working and share <= 0.4 and randf() < 3.0 * delta:
+		var hull := Wear.hull(machine)
+		_droplets.append({
+			"position": machine.point(hull.along + randf_range(-0.4, 0.4) * hull.length, randf_range(-0.4, 0.4) * hull.width),
+			"height": hull.top + machine.body.height, "rise": randf_range(0.8, 1.6),
+			"velocity": Vector2.from_angle(randf() * TAU) * randf_range(0.3, 1.0), "color": Palette.SPARK, "stains": false,
+		})
+
+
+## Where a machine's smoke comes out, as [point on the ground, height]: its exhaust stack, the
+## truck's cab roof, or the helicopter's engine.
+func _stack(machine: Machine) -> Array:
+	if machine is Helicopter:
+		return [machine.point(-0.3, 0.0), machine.body.height + 1.25]
+	if machine is LoggingTruck:
+		return [machine.point(1.4, 0.5), 1.9]
+	if machine is LogLoader or machine is Bulldozer:
+		return [machine.point(-machine.length * 0.35, machine.width * 0.25), 2.05]
+	return [machine.point(-1.05, 0.5), 2.05]
+
+
+## A machine's marks, where they show, and fire once it's badly hurt or broken: on its engine
+## while it's going, all over the wreck for a while after.
+func _draw_machine_wear(machine: Machine) -> void:
+	var lifted := machine.body.height
+	# A truck tipped over and a helicopter down on its side aren't the shape their marks were on.
+	if machine.standing() or not (machine is LoggingTruck or machine is Helicopter):
+		for mark: Dictionary in _wear.of(machine):
+			if Wear.shows(machine, mark):
+				var forward := machine.facing()
+				var face: Vector2 = mark.face
+				var out := forward * face.x + forward.orthogonal() * face.y
+				_draw_wear_mark(World.to_screen(machine.point(mark.along, mark.across), mark.up + lifted).floor(), mark, false,
+					Vector2(out.x, out.y * 0.5).normalized() if face != Vector2.ZERO else Vector2.UP)
+	var hull := Wear.hull(machine)
+	var share := machine.health / maxf(machine.most_health, 0.001)
+	if machine.standing() and share < BURNS_BELOW:
+		_draw_fire(machine.point(hull.along - hull.length * 0.25, hull.width * 0.1), hull.top + lifted, 13)
+	elif not machine.standing() and machine.broken_for < WRECK_BURNS:
+		var dying := 1.0 - machine.broken_for / WRECK_BURNS
+		for spot in [-0.3, 0.05, 0.3]:
+			_draw_fire(machine.point(hull.along + hull.length * spot, hull.width * 0.15 * signf(spot)), hull.top * 0.7 + lifted, maxi(roundi(11.0 * dying), 3))
+
+
+## A cab's glass cracked once the machine's half gone: a star of cracks off one side of the
+## operator, more as it gets worse.
+func _crack_the_glass(machine: Machine, seat: Vector2) -> void:
+	var share := machine.health / maxf(machine.most_health, 0.001)
+	if share >= 0.5:
 		return
+	var center := seat + Vector2(4, -6)
+	var arms := 3 if share >= BURNS_BELOW else 5
+	for arm in arms:
+		var way := Vector2.from_angle(TAU * arm / arms + 0.4)
+		for step in range(1, 4):
+			draw_rect(Rect2((center + way * step).round(), Vector2.ONE), Palette.OFF_WHITE if step < 3 else Palette.STEEL_LIGHT)
+	draw_rect(Rect2(center, Vector2.ONE), Palette.OFF_WHITE)
+
+
+## A fire burning on something: tongues of flame, tallest in the middle, flickering, red at the
+## root, then orange and yellow, sparks at the tips. Palette pixels, like every effect.
+func _draw_fire(at: Vector2, height: float, width: int) -> void:
+	var base := World.to_screen(at, height).floor()
+	var half := width / 2
+	# What it's burning on, scorched black under it, so the flames show on any paint.
+	draw_rect(Rect2(base + Vector2(-half - 1, -1), Vector2(width + 2, 3)), Palette.BURNT)
+	draw_rect(Rect2(base + Vector2(-half, -2), Vector2(width, 1)), Palette.GRAPHITE)
+	for x in range(-half, half + 1):
+		var flicker := (int(_clock * 11.0) + x * 5 + absi(int(at.x * 7.0))) % 4
+		var tall := int((width * 0.9 + flicker * 2.0) * (1.0 - absf(x) / (half + 1.0)) + 1.5)
+		for y in tall:
+			var color := Palette.SCARF_RED
+			if y < maxi(tall / 4, 1) or x == -half or x == half:
+				color = Palette.SCARF_RED
+			elif y >= tall - 1:
+				color = Palette.SPARK if flicker % 2 == 0 else Palette.BRASS_LIGHT
+			elif y >= tall * 3 / 4:
+				color = Palette.BRASS_LIGHT
+			else:
+				color = Palette.HI_VIS
+			draw_rect(Rect2(base + Vector2(x, -y - 1), Vector2.ONE), color)
+
+
+## A machine breaking: a burst of black smoke and sparks, its pieces thrown off to come down where
+## they come down and lie there, scorched ground round it, and its hull blackened as it burns out.
+func _break_up(machine: Machine) -> void:
+	var hull := Wear.hull(machine)
+	var middle := machine.point(hull.along, 0.0)
+	var height: float = hull.top + machine.body.height
+	for index in 36:
+		_droplets.append({
+			"position": middle + Vector2.from_angle(randf() * TAU) * randf() * 0.6, "height": height * randf_range(0.4, 1.0),
+			"rise": randf_range(0.6, 1.6), "velocity": Vector2.from_angle(randf() * TAU) * randf_range(0.3, 1.2),
+			"color": Palette.BURNT if index % 3 else Palette.GRAPHITE, "stains": false, "floats": true, "life": randf_range(1.6, 3.0),
+		})
+	for index in 18:
+		_droplets.append({
+			"position": middle, "height": height, "rise": randf_range(1.0, 3.0),
+			"velocity": Vector2.from_angle(randf() * TAU) * randf_range(1.0, 3.5), "color": Palette.SPARK if index % 2 else Palette.HI_VIS, "stains": false,
+		})
+	var paint: Array = PAINT.get(machine.kind, [Palette.STEEL, Palette.STEEL_DARK])
+	for index in 9:
+		_droplets.append({
+			"position": middle + Vector2.from_angle(randf() * TAU) * 0.4, "height": height, "rise": randf_range(2.0, 4.0),
+			"velocity": Vector2.from_angle(randf() * TAU) * randf_range(1.2, 3.0), "color": paint[index % paint.size()],
+			"stains": false, "mark": "piece", "lies_for": LIES_FOR, "size": [Vector2(2, 1), Vector2(3, 2), Vector2(2, 2)][index % 3],
+		})
+	_mark(machine.body.position, 0.0, "scorch", Vector2(hull.length * 0.6, 0.0), 40.0)
+	_wear.burn_out(machine)
+
+
+## Each machine's own paint, for the pieces it throws when it breaks.
+const PAINT := {
+	"feller_buncher": [Palette.BRASS, Palette.STEEL, Palette.STEEL_DARK],
+	"log_loader": [Palette.HI_VIS, Palette.SCARF_RED, Palette.STEEL],
+	"logging_truck": [Palette.HI_VIS, Palette.STEEL_DARK, Palette.BARK_LIGHT],
+	"bulldozer": [Palette.BRASS_LIGHT, Palette.STEEL, Palette.STEEL_DARK],
+	"helicopter": [Palette.CREAM, Palette.HI_VIS, Palette.STEEL],
+}
+
+
+## A giant's marks on his vest, along it from hip to shoulder however he's standing or fallen.
+func _draw_giant_wear(giant: Giant) -> void:
+	if giant.fallen_for > Arena.FELLED_LASTS - 1.5:
+		return
+	var hip := _giant_point(giant, 0.0, 0.95, 0.0)
+	var shoulder := _giant_point(giant, 0.0, 1.38, 0.0)
+	var up := shoulder - hip
+	var across := up.normalized().orthogonal() if up.length() > 1.0 else Vector2.RIGHT
+	for mark: Dictionary in _wear.of(giant):
+		var from: Vector2 = mark.get("from", Vector2.ZERO)
+		_draw_wear_mark((hip.lerp(shoulder, mark.along) + across * mark.off).floor(), mark, true,
+			Vector2(from.x, from.y * 0.5).normalized() if from != Vector2.ZERO else Vector2.LEFT)
+
+
+## His hard hat knocked off once he's badly hurt, or as he goes down: thrown off his head, it
+## comes down where it comes down and lies there.
+func _knock_the_hat_off_when_due(giant: Giant) -> void:
+	if giant is Guardian or _hatless.has(giant):
+		return
+	if giant.standing() and giant.health > giant.most_health * HAT_OFF:
+		return
+	_hatless[giant] = true
+	var falling := giant.fall_direction if not giant.standing() else Vector2.from_angle(randf() * TAU)
 	_droplets.append({
-		"position": machine.point(-1.05, 0.5), "height": 2.05, "rise": randf_range(0.4, 1.0),
-		"velocity": Vector2(randf_range(-0.2, 0.2), randf_range(-0.3, -0.1)),
-		"color": Palette.SMOKE if working else Palette.BURNT, "stains": false, "floats": true, "life": randf_range(1.0, 2.0),
+		"position": _giant_ground(giant, 0.0, 1.68, 0.02), "height": 1.68 * cos(giant.fall_angle), "rise": randf_range(1.6, 2.4),
+		"velocity": falling * randf_range(0.8, 1.6), "color": _hat_color(giant), "stains": false,
+		"mark": "piece", "lies_for": LIES_FOR, "size": Vector2(5, 2),
 	})
+
+
+func _hat_color(giant: Giant) -> Color:
+	if giant.kind == "handler":
+		return Palette.CLOTH_SHADOW
+	return Palette.LEAF_LIGHT if giant.kind == "planter" else Palette.BRASS_LIGHT
+
+
+## One mark: on a machine's paint, bare steel where it's cut or dented, a dark hole lit at its
+## lower edge where a round went in, soot where it burned; on cloth, a tear showing skin, a hole,
+## dirt, soot. What stuck in it sticks out the way it came, `out` on the screen.
+func _draw_wear_mark(at: Vector2, mark: Dictionary, cloth: bool, out: Vector2, bleeds := true) -> void:
+	match mark.kind:
+		"hole":
+			# Punched in: dark, its rim lit along the lower edge where the metal's pushed in.
+			draw_rect(Rect2(at, Vector2(2, 2)), Palette.OUTLINE)
+			if not cloth:
+				draw_rect(Rect2(at + Vector2(0, 2), Vector2(2, 1)), Palette.STEEL_LIGHT)
+		"dent":
+			if cloth:
+				draw_rect(Rect2(at, Vector2(3, 2)), Palette.MUD_LIGHT)
+				draw_rect(Rect2(at + Vector2(1, 1), Vector2(1, 1)), Palette.MUD)
+			else:
+				# The paint knocked off: bare steel, shaded in the hollow.
+				draw_rect(Rect2(at, Vector2(3, 2)), Palette.STEEL)
+				draw_rect(Rect2(at + Vector2(0, 0), Vector2(3, 1)), Palette.STEEL_DARK)
+				draw_rect(Rect2(at + Vector2(1, 1), Vector2(1, 1)), Palette.STEEL_LIGHT)
+		"gash":
+			var step := Vector2.from_angle(snappedf(mark.angle, PI / 4.0)).round()
+			if step == Vector2.ZERO:
+				step = Vector2.RIGHT
+			for index in 4:
+				draw_rect(Rect2(at + step * index, Vector2.ONE), Palette.OUTLINE if cloth else Palette.STEEL_LIGHT)
+			if not cloth:
+				# The scratch's shadow side, so it reads as cut into the paint.
+				for index in 4:
+					draw_rect(Rect2(at + step * index + Vector2(0, 1), Vector2.ONE), Palette.STEEL_DARK)
+			elif bleeds:
+				draw_rect(Rect2(at + step, Vector2(1, 1)), Palette.SKIN)
+				draw_rect(Rect2(at + step * 2, Vector2(1, 1)), Palette.SKIN)
+				if blood:
+					draw_rect(Rect2(at + step + Vector2(0, 1), Vector2.ONE), Palette.BLOOD)
+		"scorch", "blast":
+			var reach := 2 if mark.kind == "scorch" else 3
+			for x in range(-reach, reach + 1):
+				for y in range(-1, 2):
+					if absi(x) + absi(y) <= reach:
+						draw_rect(Rect2(at + Vector2(x, y), Vector2.ONE), Palette.BURNT if (x + y) % 2 == 0 else Palette.GRAPHITE)
+			if mark.kind == "blast" and not cloth:
+				draw_rect(Rect2(at + Vector2(-1, 0), Vector2(3, 1)), Palette.OUTLINE)
+		"scar":
+			var across := Vector2.from_angle(snappedf(mark.angle, PI / 4.0)).round()
+			if across == Vector2.ZERO:
+				across = Vector2.RIGHT
+			for index in 3:
+				draw_rect(Rect2(at + across * index, Vector2.ONE), Palette.CREAM)
+		"nail":
+			draw_rect(Rect2(at, Vector2.ONE), Palette.OUTLINE)
+			draw_rect(Rect2((at + out).round(), Vector2.ONE), Palette.STEEL_LIGHT)
+			draw_rect(Rect2((at + out * 2.0).round(), Vector2.ONE), Palette.STEEL)
+		"shaft":
+			draw_rect(Rect2(at, Vector2.ONE), Palette.OUTLINE)
+			for index in range(1, 5):
+				draw_rect(Rect2((at + out * index).round(), Vector2.ONE), Palette.BARK_LIGHT)
+			draw_rect(Rect2((at + out * 5.0).round(), Vector2.ONE), Palette.CLOTH_LIGHT)
 
 
 ## A cage: the cat inside seen through its bars, a padlock on the front, and while the lock is
@@ -1346,6 +1601,7 @@ func _draw_parts(machine: Machine, parts: Array[Dictionary]) -> void:
 			var seat := World.to_screen(face.ground, float(part.box[3]) + 0.45)
 			draw_rect(Rect2(seat + Vector2(-2, -5), Vector2(4, 4)), Palette.SKIN)
 			draw_rect(Rect2(seat + Vector2(-3, -1), Vector2(6, 5)), Palette.HI_VIS)
+			_crack_the_glass(machine, seat)
 
 
 ## A machine's weak joint: red hoses, flashing while it's open to hits.
@@ -1832,8 +2088,8 @@ func _form(weapon_name: String) -> String:
 
 
 ## Something left lying a while, or sticking out of where it struck.
-func _mark(position: Vector2, height: float, kind: String, way: Vector2, life: float) -> void:
-	_marks.append({"position": position, "height": height, "kind": kind, "way": way, "age": 0.0, "life": life})
+func _mark(position: Vector2, height: float, kind: String, way: Vector2, life: float, color := Palette.OUTLINE, size := Vector2.ONE) -> void:
+	_marks.append({"position": position, "height": height, "kind": kind, "way": way, "age": 0.0, "life": life, "color": color, "size": size})
 	if _marks.size() > MOST_MARKS:
 		_marks.pop_front()
 
@@ -1915,6 +2171,12 @@ func _draw_marks() -> void:
 		var at := World.to_screen(mark.position, mark.height)
 		if kind == "case":
 			draw_rect(Rect2(at, Vector2.ONE), Palette.BRASS_LIGHT if mark.age < 1.0 else Palette.BRASS)
+		elif kind == "piece":
+			# A hard hat knocked off, or a piece of a machine, lying where it came down.
+			var size: Vector2 = mark.size
+			var box := Rect2((at - (size / 2.0).floor()), size)
+			draw_rect(box.grow(1), Palette.OUTLINE)
+			draw_rect(box, mark.color)
 		elif kind.begins_with("scorch"):
 			var radius: float = mark.way.x * World.PIXELS_PER_METER
 			var color := Palette.BURNT if mark.age < mark.life * 0.6 else Palette.MUD_DARK
@@ -2087,6 +2349,10 @@ func _bleed(delta: float) -> void:
 					"color": [Palette.DRY_GRASS, Palette.MUD_LIGHT, Palette.BARK_LIGHT][index % 3], "stains": false,
 				})
 			continue
+		if (event.get("kind", "") == "machine" or event.get("kind", "") == "joint") and event.killed:
+			var broken := Wear.target_of(event, arena) as Machine
+			if broken != null:
+				_break_up(broken)
 		if event.get("kind", "") == "machine" or event.get("kind", "") == "joint":
 			# Steel throws sparks, not blood; the open joint bleeds dark hydraulic fluid.
 			var fluid: bool = event.kind == "joint"
@@ -2163,7 +2429,7 @@ func _bleed(delta: float) -> void:
 		elif droplet.stains:
 			_stains.append({"position": droplet.position, "age": 0.0})
 		elif droplet.has("mark") and droplet.height <= 0.0:
-			_mark(droplet.position, 0.0, droplet.mark, Vector2.RIGHT, 6.0)
+			_mark(droplet.position, 0.0, droplet.mark, Vector2.RIGHT, droplet.get("lies_for", 6.0), droplet.color, droplet.get("size", Vector2.ONE))
 	_droplets = flying
 	for mark in _marks:
 		mark.age += delta
@@ -2273,9 +2539,12 @@ func _draw_giant(giant: Giant) -> void:
 	else:
 		parts.append(_part(giant, [0.0, 1.15, 0.0], [0.0, 1.15, 0.0], 14, Palette.STEEL_LIGHT, 0.01, 2))
 	parts.append(_part(giant, [0.0, 1.5, 0.02], [0.0, 1.62, 0.02], 9, Palette.SKIN, 0.02))
-	var hat := Palette.CLOTH_SHADOW if giant.kind == "handler" else (Palette.LEAF_LIGHT if planter else Palette.BRASS_LIGHT)
-	parts.append(_part(giant, [0.0, 1.66, 0.02], [0.0, 1.7, 0.02], 11, hat, 0.03, 5))
-	parts.append(_part(giant, [0.0, 1.64, -0.06], [0.0, 1.64, 0.16], 3, Palette.CLOTH if giant.kind == "handler" else Palette.BRASS, 0.04))
+	if not _hatless.has(giant):
+		parts.append(_part(giant, [0.0, 1.66, 0.02], [0.0, 1.7, 0.02], 11, _hat_color(giant), 0.03, 5))
+		parts.append(_part(giant, [0.0, 1.64, -0.06], [0.0, 1.64, 0.16], 3, Palette.CLOTH if giant.kind == "handler" else Palette.BRASS, 0.04))
+	else:
+		# Bare-headed: his hair.
+		parts.append(_part(giant, [0.0, 1.64, 0.0], [0.0, 1.66, 0.0], 9, Palette.CLOTH_SHADOW, 0.03, 3))
 	if giant.kind == "handler":
 		# The whistle on its cord at his chest.
 		parts.append(_part(giant, [0.0, 1.4, 0.12], [0.0, 1.32, 0.12], 2, Palette.STEEL_LIGHT, 0.05))
