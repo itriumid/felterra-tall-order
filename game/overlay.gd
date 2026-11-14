@@ -95,6 +95,8 @@ var intro := ""
 var cutscene := false
 var speaker := ""
 var mood := "neutral"
+## The line being written out, whole.
+var intro_whole := ""
 ## What's new since he last walked in, as {title, text}, while it's set out.
 var news: Array[Dictionary] = []
 ## In the village: what's kept there (for its counts), what Enter does at the door he's at, a
@@ -325,7 +327,7 @@ func _draw_cutscene() -> void:
 	if not intro.is_empty() and not speaker.is_empty() and Portraits.has(speaker):
 		_dialog(speaker, mood, intro)
 	elif not intro.is_empty():
-		_shadowed(intro, 46, Palette.OFF_WHITE)
+		_narrate(intro)
 	var keys: Array[String] = ["Esc", "skip"]
 	if not intro.is_empty():
 		keys = ["Enter", "next", "Esc", "skip"]
@@ -346,10 +348,7 @@ func _draw_village() -> void:
 		elif not intro.is_empty() and talking != null:
 			_bubble(talking.body.position, SPEAKER_NAMES.get(speaker, speaker), intro)
 		elif not intro.is_empty():
-			# Written over the scene, a shadow under each letter so it reads on leaves or earth.
-			var at := Vector2(floorf((screen.x - PixelFont.width(intro)) / 2.0), 46)
-			PixelFont.draw(self, at + Vector2(1, 1), intro, Palette.GRAPHITE)
-			PixelFont.draw(self, at, intro, Palette.OFF_WHITE)
+			_narrate(intro)
 		var keys: Array[String] = ["Esc", "skip"]
 		if not intro.is_empty():
 			keys = ["Enter", "next", "Esc", "skip"]
@@ -519,6 +518,33 @@ func _name_over(feet: Vector2, tall: float, name: String) -> void:
 
 
 ## Text over the scene, centered, with a shadow under it so it reads on leaves or earth.
+## The story's own voice, nobody's line: on a dark strip across the scene, ruled in brass above
+## and below with a leaf at each end, so it reads as the telling and can't be missed on leaves or
+## earth the way bare letters were. The strip is as wide as its whole line from the first letter.
+func _narrate(text: String) -> void:
+	var screen := get_viewport_rect().size
+	var full := intro_whole if intro_whole.begins_with(text) else text
+	var wide := minf(PixelFont.width(full) + 44.0, screen.x - 16.0)
+	var strip := Rect2(floorf((screen.x - wide) / 2.0), NARRATION_TOP, wide, PixelFont.LINE_HEIGHT + 12)
+	draw_rect(strip, Color(Palette.PANEL_DARK, NARRATION_INK))
+	for rule_y: float in [strip.position.y, strip.end.y - 1]:
+		draw_rect(Rect2(strip.position.x + 10, rule_y, strip.size.x - 20, 1), Palette.BRASS)
+		for end_x: float in [strip.position.x + 6, strip.end.x - 8]:
+			draw_rect(Rect2(end_x, rule_y, 2, 1), Palette.BRASS_LIGHT)
+	var middle := strip.position.y + floorf(strip.size.y / 2.0)
+	for side: float in [-1.0, 1.0]:
+		# A leaf: three pixels and its stem, pointing in at the line.
+		var tip := Vector2(strip.get_center().x + side * (wide / 2.0 - 10.0), middle)
+		draw_rect(Rect2(tip + Vector2(-1, -1), Vector2(2, 2)), Palette.LEAF_LIGHT)
+		draw_rect(Rect2(tip + Vector2(-side * 2.0 - (0.0 if side < 0.0 else 1.0), 0), Vector2(1, 1)), Palette.BRASS_LIGHT)
+	PixelFont.draw(self, Vector2(floorf((screen.x - PixelFont.width(full)) / 2.0), strip.position.y + 6), text, Palette.OFF_WHITE)
+
+
+const NARRATION_TOP := 38.0
+## How much of the scene the strip under a narrated line hides.
+const NARRATION_INK := 0.82
+
+
 func _shadowed(text: String, y: float, color: Color) -> void:
 	if text.is_empty():
 		return
@@ -600,13 +626,16 @@ func _draw_shop() -> void:
 		# What it does, then where it came from.
 		# With a picture, what it does is under the picture: here, only its story.
 		# A weapon's picture has its numbers under it, so what it does in words is here too.
+		# What isn't had yet says only what it does (under its picture) and how it's come by: its
+		# story and its numbers are for whoever has it.
+		var withheld: bool = shop_rows[shop_choice].has("hint")
 		var does: Array[String] = []
-		if not previewing or Upgrades.WEAPON_NAMES.has(shop_rows[shop_choice].get("item", "")):
+		if not withheld and (not previewing or Upgrades.WEAPON_NAMES.has(shop_rows[shop_choice].get("item", ""))):
 			does = wrapped(shop_rows[shop_choice].get("does", ""), box.size.x - 24)
-		var lines := wrapped(shop_rows[shop_choice].get("story", ""), box.size.x - 24)
+		var lines := wrapped(shop_rows[shop_choice].get("hint" if withheld else "story", ""), box.size.x - 24)
 		for index in mini(does.size() + lines.size(), story_lines):
 			var line: String = does[index] if index < does.size() else lines[index - does.size()]
-			PixelFont.draw(self, Vector2(box.position.x + 12, story_top + 2 + index * PixelFont.LINE_HEIGHT), line, Palette.LEAF_LIGHT if index < does.size() else Palette.CREAM)
+			PixelFont.draw(self, Vector2(box.position.x + 12, story_top + 2 + index * PixelFont.LINE_HEIGHT), line, Palette.LEAF_LIGHT if index < does.size() else (Palette.BRASS_LIGHT if withheld else Palette.CREAM))
 	if not shop_note.is_empty():
 		InterfaceArt.bold(self, Vector2(box.end.x - 10 - InterfaceArt.bold_width(shop_note), box.position.y + 7), shop_note, Palette.PINK)
 	var keys: Array[String] = ["W S", "choose", "Enter", "take", "Esc", "back"]
@@ -640,8 +669,9 @@ func _draw_thing(box: Rect2, entry: Dictionary) -> void:
 		y += PixelFont.LINE_HEIGHT
 	PixelFont.draw(self, Vector2(x, y), entry.get("kind", ""), Palette.SMOKE)
 	y += PixelFont.LINE_HEIGHT + 4
-	# A weapon's numbers, as its card gives them, so what's forged is chosen on what it does.
-	if Upgrades.WEAPON_NAMES.has(item):
+	# A weapon's numbers, as its card gives them, so what's forged is chosen on what it does. One
+	# not had yet keeps them to itself: only what it does, in a line.
+	if Upgrades.WEAPON_NAMES.has(item) and not entry.has("hint"):
 		for line: String in Upgrades.weapon_lines(Weapon.named(item)):
 			for part in wrapped(line, box.size.x - 12):
 				PixelFont.draw(self, Vector2(x, y), part, Palette.OFF_WHITE)

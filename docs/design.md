@@ -477,7 +477,9 @@ on: fire and oil, or crewmates who can be downed.
   at the village. He walks in at the gate to it under attack. Beaten back, he's home, and the
   spirits let the village be until he next walks home. It's the village as it stands, every house and prop solid, the forest walling the
   path in, and it's night: the village in blue dark, lit by its own roofs as they burn, each
-  throwing its light about until it's put out. Two roofs are alight at the start and another catches every 20 seconds, four in all;
+  throwing its light about until it's put out. Night comes on over four seconds as its story
+  opens, which says it got dark on the way back and that the Elder has everyone in the
+  longhouse: nothing goes dark, and nobody vanishes, without a word. Two roofs are alight at the start and another catches every 20 seconds, four in all;
   a roof left burning throws out an ember wisp every 6 seconds. Standing at the well fills a
   bucket in a second; standing at a burning house's door with it puts the fire out in a little
   over one. Marks at the screen's edge show the burning houses and, with no water carried, the
@@ -588,6 +590,9 @@ on: fire and oil, or crewmates who can be downed.
   - **Everything has its story**, read on a card with Tab and at the smithy and the pack: where
     it came from, as the cats tell it. The smithy and the pack show the chosen thing's picture
     beside the list: a weapon on its own, large, and on him, in his mouth and on his tail.
+    What he doesn't have yet keeps most of itself back: its picture, its name and what it does
+    in a line, and in place of its numbers and its story, how it's come by (what it costs to
+    forge, which area's freeing brings it, who's waiting to teach it).
   - **What's new waits where it's told**, under a "!": a building restored at its door, a dodge
     mutation with the Elder, the next area at the board, the cub at the shrine, and what Jogiboy
     dug up with him, kept until he goes and asks. Walking up and pressing Enter hears it. Only
@@ -720,8 +725,9 @@ Held offers sit along the bottom of the screen as three short cards (the key, th
 picture, the name and its first line), kept low so the horde coming from below stays in sight;
 holding Tab stands them up in full, with what each means. More held than the one showing are
 counted beside the keys. Everything can
-be rebound; controllers get the same layout on face buttons and bumpers. The mouse is optional:
-clicking a card works, but nothing needs it.
+be rebound; controllers get the same layout on face buttons and bumpers. The mouse isn't
+used, so its pointer is put away, and shows for two seconds whenever the mouse is moved, to be
+found and taken elsewhere.
 
 ## Playing together
 

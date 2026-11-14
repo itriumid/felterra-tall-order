@@ -460,6 +460,8 @@ const LIST: Array[Dictionary] = [
 			"roofs": ["longhouse", "healer", "hut_0", "market"], "lit_at_start": 2, "light_every": 20.0},
 		"boss": {"kind": "guardian", "type": "tiger", "at": Vector2(25.5, 1.4), "tip": "Its pounce lands where you stood: move, then hit it while it gathers itself"},
 		"before": [
+			"We were on the path out when Jogiboy stopped, and turned his nose back the way we'd come.",
+			"By the time we were home it was dark, and the Elder had called everyone into the longhouse.",
 			"The edge was burning. Not the trees: the ground, smoking up through the dirt where the mounds had been.",
 			"Then the lights came out of the trees, low and orange, and drifted over the huts.",
 			"We had always been told the Keepers' lights meant fire.",

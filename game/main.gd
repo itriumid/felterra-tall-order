@@ -32,6 +32,10 @@ const VILLAGE_SHADE := Color(0.82, 0.86, 0.8)
 ## The siege comes at night, as the story tells it: the village in blue dark, lit by its own roofs
 ## burning and the Keepers' lights, which is all anyone sees by.
 const SIEGE_SHADE := Color(0.38, 0.42, 0.6)
+## How long night takes to come on over the village, in seconds.
+const NIGHTFALL := 4.0
+## How long the mouse's pointer shows after it's moved, in seconds.
+const POINTER_SHOWS := 2.0
 ## Sun through the canopy's gaps: where it reaches the ground, in meters.
 const SHAFTS: Array[Vector2] = [
 	Vector2(8.0, 6.0), Vector2(19.0, 10.0), Vector2(30.0, 7.0), Vector2(13.0, 17.0), Vector2(27.0, 18.0),
@@ -256,6 +260,10 @@ var _village_view: VillageView
 var _arena_layer: Node2D
 var _village_layer: Node2D
 var _shade: CanvasModulate
+## Puts the mouse's pointer away again, a moment after it last moved.
+var _pointer_away: Timer
+## Night coming on over the village, while it does.
+var _nightfall: Tween
 ## The burning roofs' light in the siege, one for each roof that can catch.
 var _fire_lights: Array[PointLight2D] = []
 const SIEGE_FIRES := 4
@@ -379,6 +387,15 @@ var _screenshot_after := 4.0
 
 func _ready() -> void:
 	InputActions.register()
+	# Nothing here is pointed at: the pointer's put away, and comes back for a moment when the
+	# mouse is moved, so it can be found to take somewhere else.
+	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
+	_pointer_away = Timer.new()
+	_pointer_away.one_shot = true
+	_pointer_away.wait_time = POINTER_SHOWS
+	_pointer_away.process_mode = Node.PROCESS_MODE_ALWAYS
+	_pointer_away.timeout.connect(func() -> void: Input.mouse_mode = Input.MOUSE_MODE_HIDDEN)
+	add_child(_pointer_away)
 	var horde := 0
 	var spawning := true
 	for argument in OS.get_cmdline_user_args():
@@ -781,6 +798,9 @@ func _enter_village(spot: Vector2) -> void:
 func _show_layer(village_showing: bool) -> void:
 	_village_layer.visible = village_showing
 	_arena_layer.visible = not village_showing
+	if _nightfall != null:
+		_nightfall.kill()
+		_nightfall = null
 	_shade.color = VILLAGE_SHADE if village_showing else SHADE
 	_overlay.place = "village" if village_showing else "run"
 	if not village_showing:
@@ -916,6 +936,7 @@ func _arriving(delta: float) -> void:
 	if village_map.jogi_held and (skip or _cutscene.done() or _cutscene.line >= INTRO.find(JOGIBOY_TROTS_UP)):
 		village_map.jogi_held = false
 	_overlay.intro = _cutscene.written()
+	_overlay.intro_whole = _cutscene.whole()
 	_overlay.speaker = _cutscene.speaker()
 	_overlay.mood = _cutscene.mood()
 	if _cutscene.done() or _cutscene.lines.is_empty():
@@ -1031,6 +1052,7 @@ func _leaving(delta: float) -> void:
 	var skip := Input.is_action_just_pressed("pause")
 	_cutscene.step(delta, Input.is_action_just_pressed("menu_choose"), skip)
 	_overlay.intro = _cutscene.written()
+	_overlay.intro_whole = _cutscene.whole()
 	_overlay.speaker = _cutscene.speaker()
 	_overlay.mood = _cutscene.mood()
 	if _cutscene.done():
@@ -1227,11 +1249,14 @@ func _forge_row(id: String) -> Dictionary:
 		row.state = "carried from the start"
 	elif Areas.gives(id) != "":
 		row.state = "Uncle Anvil's" if id in village.given() else "freeing %s brings it" % (Areas.named(Areas.gives(id)).name as String).to_lower()
+		if not id in village.given():
+			row.hint = "Uncle Anvil will have it once %s is free. The rest of it he'll tell you then." % (Areas.named(Areas.gives(id)).name as String).to_lower()
 	elif id in village.forged:
 		row.state = "forged"
 	else:
 		row.state = "%d salvage" % Village.FORGE[id]
 		row.can = village.salvage >= Village.FORGE[id]
+		row.hint = "Not forged yet: %d salvage. Its numbers and where it came from, Uncle Anvil tells once it's made." % Village.FORGE[id]
 	return row
 
 
@@ -1245,10 +1270,12 @@ func _pack_row(id: String) -> Dictionary:
 		row.state = "worn from the start" if village.starting_piece == id else ("left home" if id in village.left_home else "taking it")
 	else:
 		row.state = "not learned yet"
+		row.hint = "Not learned yet. Somebody out there still caged knows it."
 		for area: Dictionary in Areas.LIST:
 			if id.trim_prefix("mutation:") in Areas.teaches(area.id) and village.found(area.id):
 				var teacher: String = "the Elder" if area.teaches.by == "elder" else area.teaches.by
 				row.state = ("go and hear it from %s" % teacher) if area.id in village.liberated else "freeing %s teaches it" % (area.name as String).to_lower()
+				row.hint = ("%s is waiting to teach it: look for the \"!\" at home." % teacher) if area.id in village.liberated else "Whoever's held in %s teaches it, once it's free." % (area.name as String).to_lower()
 	return row
 
 
@@ -1793,7 +1820,10 @@ func _fight_in_the_village(fighting: bool) -> void:
 	_village_view.banners = village.banners
 	_village_layer.visible = true
 	_arena_layer.visible = false
-	_shade.color = SIEGE_SHADE
+	# Night comes on while its story's told: never day one frame and dark the next.
+	_shade.color = VILLAGE_SHADE
+	_nightfall = create_tween()
+	_nightfall.tween_property(_shade, "color", SIEGE_SHADE, NIGHTFALL)
 
 
 ## The cub at his heel, where it walks beside him: while he walks in, the world held still, it
@@ -1849,6 +1879,7 @@ func _briefed(delta: float) -> void:
 	var skip := Input.is_action_just_pressed("pause")
 	_cutscene.step(delta, Input.is_action_just_pressed("menu_choose"), skip)
 	_overlay.intro = _cutscene.written()
+	_overlay.intro_whole = _cutscene.whole()
 	_overlay.speaker = _cutscene.speaker()
 	_overlay.mood = _cutscene.mood()
 	_overlay.cutscene = true
@@ -1916,6 +1947,7 @@ func _freeing_step(delta: float) -> void:
 	var skip := Input.is_action_just_pressed("pause")
 	_cutscene.step(delta, Input.is_action_just_pressed("menu_choose"), skip)
 	_overlay.intro = _cutscene.written()
+	_overlay.intro_whole = _cutscene.whole()
 	_overlay.speaker = _cutscene.speaker()
 	_overlay.mood = _cutscene.mood()
 	_overlay.cutscene = not _cutscene.lines.is_empty() and not _cutscene.done()
@@ -2383,6 +2415,10 @@ func _can_join() -> bool:
 
 
 func _input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		_pointer_away.start()
+		return
 	# The room's code typed in, in capitals, or a host's address with its dots; Backspace takes one
 	# back.
 	if _page == "join" and event is InputEventKey and event.pressed:
