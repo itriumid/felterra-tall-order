@@ -88,18 +88,11 @@ func _ready() -> void:
 		if y < VillageMap.PATH_TOP - 0.6 or y > VillageMap.PATH_BOTTOM + 0.8:
 			_plant_tree(Vector2(VillageMap.SIZE.x - random.randf_range(0.0, 0.3), y), random)
 		y += random.randf_range(1.2, 2.0)
-	# Undergrowth where the trees thin out, low clumps on the ground off the path, so the forest's
-	# end has a fringe to it.
-	for index in 36:
-		var spot := Vector2(random.randf_range(VillageMap.VILLAGE_FROM - 3.5, VillageMap.VILLAGE_FROM + 0.3), random.randf_range(0.3, VillageMap.SIZE.y - 0.3))
-		if spot.y > VillageMap.PATH_TOP - 0.6 and spot.y < VillageMap.PATH_BOTTOM + 0.8:
-			continue
-		var clump := EnvironmentArt.leaves(random.randi_range(7, 12), random.randi(), random.randf() < 0.4)
-		_leaves.append({"texture": ImageTexture.create_from_image(clump), "at": (World.to_screen(spot) - Vector2(clump.get_size()) / 2.0).round()})
-	# Leaves overhead: heavy over the forest path, open over the village.
+	# Leaves overhead, over the trees either side of the path and never over the path itself: a
+	# clump hanging over open road with no tree under it looks like leaves from nowhere.
 	for index in 140:
 		var spot := Vector2(random.randf_range(0.0, VillageMap.VILLAGE_FROM - 0.6), random.randf_range(-0.2, VillageMap.SIZE.y + 0.2))
-		if spot.y > VillageMap.PATH_TOP + 0.4 and spot.y < VillageMap.PATH_BOTTOM - 0.4 and random.randf() < 0.7:
+		if spot.y > VillageMap.PATH_TOP - 0.3 and spot.y < VillageMap.PATH_BOTTOM + 0.3:
 			continue
 		if random.randf() < _thinning(spot.x):
 			continue
