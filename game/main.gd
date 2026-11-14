@@ -14,8 +14,9 @@ extends Node
 ## --support=<id>,<id> puts those on his back; --machine starts with a feller buncher close by;
 ## --cage=<count> sets that many cages around him, the first right beside him, the rest far off;
 ## --village starts in the village instead of a fight; --intro tells the story's opening again;
-## --area=<id> starts a liberation run in that area, --freed as if it's been freed already, --boss
-## with its goal done and its boss on the way (--boss-hurt=<share> with that share of its health
+## --area=<id> starts a liberation run in that area, --freed as if it's been freed already
+## (--regrown=<runs> only that many runs grown back since), --boss with its goal done and its boss
+## on the way (--boss-hurt=<share> with that share of its health
 ## left, marked by what he starts with; --boss-down-after=<seconds> to see it go down; --watch-boss
 ## to keep the camera on it); --grove starts Endless as cleansing, in a corrupted
 ## grove; --cub=<element>[:<rank>] gives the cub, and in a grove it's at his heel (with --village,
@@ -311,6 +312,8 @@ var _moments_heard := 0
 var _grove_told := ""
 var _horde_kind := "rat"
 var _dev_freed := false
+## For screenshots: how many runs a freed area has had to grow back (below 0, all it needs).
+var _dev_regrown := -1
 var _dev_boss := false
 ## For screenshots: the boss with this share of its health left, as if it's been fought, by the
 ## weapon he starts with; and when it goes down, in seconds into the run (below 0, never).
@@ -490,6 +493,9 @@ func _ready() -> void:
 			_horde_kind = argument.trim_prefix("--horde-kind=")
 		elif argument == "--freed":
 			_dev_freed = true
+		elif argument.begins_with("--regrown="):
+			_dev_freed = true
+			_dev_regrown = argument.trim_prefix("--regrown=").to_int()
 		elif argument == "--boss":
 			_dev_boss = true
 		elif argument == "--watch-boss":
@@ -603,6 +609,8 @@ func _ready() -> void:
 			if _dev_freed:
 				village.liberated.append(_dev_area)
 				village.told.append_array(["intro:" + _dev_area, "outro:" + _dev_area])
+				if _dev_regrown >= 0 and _dev_regrown < Village.HEALS_IN:
+					village.regrowing[_dev_area] = _dev_regrown
 			elif _dev_boss:
 				# With the goal done, the story going in is long told.
 				village.told.append("intro:" + _dev_area)
