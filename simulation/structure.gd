@@ -59,7 +59,7 @@ func step(delta: float, arena: Arena) -> void:
 				for cat in arena.cats:
 					var apart := cat.body.position - body.position
 					if cat.body.height < 0.4 and apart.length() <= SAW_REACH + cat.body.radius:
-						cat.hurt(SAW_DAMAGE, apart.normalized() * 2.0)
+						cat.hurt(SAW_DAMAGE, apart.normalized() * 2.0, "saw")
 				for creature: Creature in arena.creatures.duplicate():
 					if creature.body.position.distance_to(body.position) <= SAW_REACH + creature.body.radius:
 						arena.strike(creature, 100.0, (creature.body.position - body.position).normalized(), 2.0, 1.0, "saw")

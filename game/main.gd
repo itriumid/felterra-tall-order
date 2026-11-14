@@ -22,11 +22,16 @@ extends Node
 ## --villagers=<count> puts that many rescued cats in it, for this run only; --restored=<all, or
 ## names> shows those buildings brought back from ruin; --salvage=<count> and --cloth=<count> give
 ## the village that much to spend; --liberated=<ids> has those areas freed already; --at-door=<building>
-## stands him at its door; --shop opens what that door holds.
+## stands him at its door; --shop opens what that door holds; --minute=<count> starts Endless that
+## many minutes in, as hard as it is by then; --level=<count> starts the crew at that level, its
+## cards played the way Autoplay plays them, for the weapon he starts with.
 
 ## The light under the canopy in the clearing, and at the village, where it's open to the sky.
 const SHADE := Color(0.62, 0.68, 0.62)
 const VILLAGE_SHADE := Color(0.82, 0.86, 0.8)
+## The siege comes at night, as the story tells it: the village in blue dark, lit by its own roofs
+## burning and the Keepers' lights, which is all anyone sees by.
+const SIEGE_SHADE := Color(0.38, 0.42, 0.6)
 ## Sun through the canopy's gaps: where it reaches the ground, in meters.
 const SHAFTS: Array[Vector2] = [
 	Vector2(8.0, 6.0), Vector2(19.0, 10.0), Vector2(30.0, 7.0), Vector2(13.0, 17.0), Vector2(27.0, 18.0),
@@ -138,8 +143,9 @@ const SETTING_ROWS: Array[Array] = [
 	["audio", "master", "Volume"], ["audio", "music", "Music"], ["audio", "effects", "Effects"],
 	["audio", "interface", "Interface"],
 	["gameplay", "aim", "Aim"], ["gameplay", "blood", "Blood"], ["gameplay", "story_waits", "Story lines"],
-	["gameplay", "damage_numbers", "Damage numbers"],
+	["gameplay", "damage_numbers", "Damage numbers"], ["gameplay", "run_log", "Run log"],
 	["online", "updates", "Check for updates"],
+	["progress", "show_log", "Show the run log's folder"],
 	["progress", "reset", "Reset all progress"],
 	["", "back", "Back"],
 ]
@@ -240,6 +246,9 @@ var _village_view: VillageView
 var _arena_layer: Node2D
 var _village_layer: Node2D
 var _shade: CanvasModulate
+## The burning roofs' light in the siege, one for each roof that can catch.
+var _fire_lights: Array[PointLight2D] = []
+const SIEGE_FIRES := 4
 ## The cutscene playing, if one is: the walk into the village, with or without the opening told
 ## over it.
 var _cutscene: Cutscene
@@ -312,6 +321,10 @@ var _besiege_after_news := false
 ## next walks home.
 var _spirits_withdrew := false
 var _force_intro := false
+## For trying the late game without playing to it: the minute an Endless run starts at, and the
+## level the crew starts at.
+var _dev_minute := 0.0
+var _dev_level := 0
 ## Which of the last run's numbers beat the best.
 var _beaten: Array[String] = []
 var settings := Settings.new()
@@ -394,6 +407,10 @@ func _ready() -> void:
 				village.cats.append({"name": Cage.NAMES[index % Cage.NAMES.size()], "coat": Cage.COATS[index % Cage.COATS.size()]})
 		elif argument.begins_with("--seed="):
 			_dev_seed = argument.trim_prefix("--seed=").to_int()
+		elif argument.begins_with("--minute="):
+			_dev_minute = argument.trim_prefix("--minute=").to_float()
+		elif argument.begins_with("--level="):
+			_dev_level = argument.trim_prefix("--level=").to_int()
 		elif argument.begins_with("--offerings="):
 			village.offerings = argument.trim_prefix("--offerings=").to_int()
 		elif argument.begins_with("--salvage="):
@@ -539,6 +556,10 @@ func _ready() -> void:
 			if not village.truce():
 				village.liberated.append("siege")
 			_set_up_run("endless")
+		elif not _dev_host:
+			# Endless's clearing as a run has it: its own shape, from --seed if given.
+			_set_up_run("endless")
+		_start_late()
 		if _dev_host:
 			_online.host()
 			if _run_kind.is_empty():
@@ -572,6 +593,16 @@ func _build_scene() -> void:
 	_world.add_child(_village_layer)
 	_village_view = VillageView.new()
 	_village_layer.add_child(_village_view)
+	# A light for each roof that can burn in the siege, out until it does.
+	var fire_texture := _soft_light(Vector2i(260, 220))
+	for index in SIEGE_FIRES:
+		var fire := PointLight2D.new()
+		fire.texture = fire_texture
+		fire.color = Palette.HI_VIS
+		fire.height = 30.0
+		fire.energy = 0.0
+		_village_layer.add_child(fire)
+		_fire_lights.append(fire)
 	_ground = GroundView.new()
 	_arena_layer.add_child(_ground)
 	_entities = EntitiesView.new()
@@ -1453,12 +1484,70 @@ func _process(delta: float) -> void:
 	_muzzle_light.position = World.to_screen(cat.body.position, Cat.GUN_HEIGHT) + cat.aim * 10.0
 	_muzzle_light.energy = 1.6 * _entities.flash.get(cat, 0.0)
 	_glow_on_level_up(delta)
+	_light_the_fires()
+	_sample_frame_rate(delta)
 	if arena.liberated and cat.alive():
 		_begin_freeing()
 	elif arena.over():
 		_end_run()
 	_overlay.goal = arena.goal_progress()
 	_take_screenshot(delta)
+
+
+## The late start: the world as many minutes in as asked, and the crew as many levels up, each
+## card played as Autoplay would, so a late fight can be looked at without playing to it.
+func _start_late() -> void:
+	if _dev_minute > 0.0:
+		arena.time = _dev_minute * 60.0
+	while arena.level < _dev_level:
+		arena._gain_experience(Arena.experience_needed(arena.level) - arena.experience)
+		for each in arena.cats:
+			Autoplay.play_all(each)
+
+
+## How smoothly the run went, for the run log: the frames a second, sampled once a second from
+## the fifth on (the first are loading), the lowest and the average.
+var _frame_rates := PackedFloat32Array()
+var _since_frame_rate := 0.0
+
+
+func _sample_frame_rate(delta: float) -> void:
+	_since_frame_rate += delta
+	if _since_frame_rate < 1.0:
+		return
+	_since_frame_rate -= 1.0
+	if arena.time >= 5.0:
+		_frame_rates.append(Engine.get_frames_per_second())
+
+
+func _smoothness() -> Dictionary:
+	if _frame_rates.is_empty():
+		return {}
+	var lowest := INF
+	var total := 0.0
+	for rate in _frame_rates:
+		lowest = minf(lowest, rate)
+		total += rate
+	return {"lowest": lowest, "average": snappedf(total / _frame_rates.size(), 0.1)}
+
+
+## In the siege, each roof alight throws its light about, flickering; put out, it's dark.
+func _light_the_fires() -> void:
+	for index in _fire_lights.size():
+		var fire := _fire_lights[index]
+		fire.energy = 0.0
+		if index >= arena.roofs.size():
+			continue
+		var roof: Dictionary = arena.roofs[index]
+		if not roof.lit or roof.out:
+			continue
+		var footprint := VillageMap.footprint_of(roof.building)
+		fire.position = World.to_screen(footprint.get_center(), VillageView.FLOOR + VillageView.WALL + VillageView.ROOF)
+		fire.energy = 1.5 + 0.25 * sin(_clock_seconds() * 11.0 + index * 2.0) + 0.15 * sin(_clock_seconds() * 23.0 + index)
+
+
+func _clock_seconds() -> float:
+	return Time.get_ticks_msec() / 1000.0
 
 
 ## Up a level: a glow from him, bright at once and fading.
@@ -1528,6 +1617,9 @@ func _remember_run(freed: bool) -> void:
 	records.remember(Records.entry_of(arena, cat, where, freed))
 	if _keeping_settings:
 		records.save()
+		# A playtester's log, if they've turned it on: never from a development run.
+		if settings.get_value("gameplay", "run_log"):
+			RunLog.append(RunLog.entry_of(arena, cat, where, freed, _run_seed, _smoothness()))
 
 
 ## A run out from the village: into the area the map board says, or Endless. Endless is a fresh
@@ -1565,6 +1657,8 @@ func _enter() -> void:
 
 func _set_up_run(run_kind: String) -> void:
 	_run_kind = run_kind
+	_frame_rates.clear()
+	_since_frame_rate = 0.0
 	_freeing = false
 	_fight_in_the_village(false)
 	if run_kind == "endless" or run_kind.is_empty():
@@ -1597,6 +1691,10 @@ func _set_up_run(run_kind: String) -> void:
 				_briefing = true
 				_music.place = "intro"
 			return
+		# Not a box: the jungle comes in round it, its own way each run.
+		arena.shape(fresh)
+		if not _placed:
+			cat.body.position = arena.pull_inside(cat.body.position, 2.0)
 		_ground.paint("clearing", fresh, false)
 		return
 	var area := Areas.named(run_kind)
@@ -1639,7 +1737,7 @@ func _fight_in_the_village(fighting: bool) -> void:
 	_village_view.banners = village.banners
 	_village_layer.visible = true
 	_arena_layer.visible = false
-	_shade.color = VILLAGE_SHADE
+	_shade.color = SIEGE_SHADE
 
 
 ## The cub at his heel, where it walks beside him: while he walks in, the world held still, it
@@ -2054,6 +2152,10 @@ func _read_settings() -> void:
 		if Input.is_action_just_pressed("menu_choose"):
 			_reset_progress()
 		return
+	if row[1] == "show_log":
+		if Input.is_action_just_pressed("menu_choose"):
+			_show_run_log()
+		return
 	settings.step(row[0], row[1], direction)
 	_settings_changed()
 	_audio.interface("menu_choose" if direction > 0 else "menu_back")
@@ -2062,6 +2164,14 @@ func _read_settings() -> void:
 ## Reset all progress: the first press asks, the second does it. The village and the best run go
 ## back to nothing; the settings stay as they are. Choosing any other row first takes the
 ## question back.
+## The folder the run log is in, opened for the player to find the file and send it. Never from a
+## headless run: there's nobody to see it, and a check of the menus shouldn't open windows.
+func _show_run_log() -> void:
+	_audio.interface("menu_choose")
+	if DisplayServer.get_name() != "headless":
+		OS.shell_open(ProjectSettings.globalize_path(RunLog.PATH.get_base_dir()))
+
+
 func _reset_progress() -> void:
 	if _reset_state != "asking":
 		_reset_state = "asking"
@@ -2115,6 +2225,9 @@ func _setting_lines() -> Array[Dictionary]:
 		if row[1] == "reset":
 			line.action = true
 			line.value = {"": "", "asking": "Press again: it can't be undone", "done": "Done"}[_reset_state]
+		elif row[1] == "show_log":
+			line.action = true
+			line.value = "" if FileAccess.file_exists(RunLog.PATH) else "Nothing in it yet"
 		elif row[1] != "back":
 			var value: Variant = settings.get_value(row[0], row[1])
 			match row[1]:
@@ -2124,6 +2237,7 @@ func _setting_lines() -> Array[Dictionary]:
 				"aim": line.value = {"nearest": "Nearest", "toughest": "Toughest first", "crowd": "Thickest crowd"}[value]
 				"blood": line.value = "On" if value else "Off: dust and fur instead"
 				"story_waits": line.value = "Wait for Enter" if value else "Move on by themselves"
+				"run_log": line.value = "On: kept on this computer" if value else "Off"
 				_:
 					if value is bool:
 						line.value = "On" if value else "Off"
@@ -2511,6 +2625,8 @@ func guest_run_begins(setup: Dictionary) -> void:
 		_ground.paint(grove.ground, setup.seed, false)
 		_overlay.area_name = grove.name
 	else:
+		# The same clearing as the host's, from the same seed.
+		arena.shape(setup.seed)
 		_ground.paint("clearing", setup.seed, false)
 	_truth.clear()
 	_guessed = Vector2.INF

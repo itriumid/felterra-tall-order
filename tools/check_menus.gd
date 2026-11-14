@@ -107,6 +107,11 @@ const STEPS := [
 	# Up from the top wraps to Back, then up again to Reset all progress: asked, then done.
 	["move_up", "settings"], ["move_up", "settings"], ["menu_choose", "settings", {"_reset_state": "asking"}],
 	["menu_choose", "settings", {"_reset_state": "done"}],
+	# Up to the run log's folder (shown only with a screen to show it on), and the run log itself,
+	# turned on and off again.
+	["move_up", "settings", {"_reset_state": ""}], ["menu_choose", "settings"],
+	["move_up", "settings"], ["move_up", "settings"], ["move_right", "settings", {"settings.values.gameplay.run_log": true}],
+	["move_left", "settings", {"settings.values.gameplay.run_log": false}],
 	["pause", "title"],
 ]
 

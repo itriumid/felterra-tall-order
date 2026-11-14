@@ -160,6 +160,11 @@ A clearing the company has cut in an Indonesian tropical forest.
   screens each way (a screen shows 16 by 9 meters), so four cats can spread out and a horde comes
   in from every side; a grove is 52 to 60 meters across. Grass grows as thick on a big place as on
   a small one.
+- **It isn't a box.** Along each side the jungle comes in by its own depth, wandering up to
+  three meters (two in a grove), and deepest at the corners, so they're rounded: each run's
+  clearing its own shape, from its seed, so a guest online lays out the same one. The horde
+  comes out of the jungle wherever its edge is, and goes back into it there. The liberation
+  areas, laid out by hand, keep their rectangles.
 - **The jungle is the wall** around the arena: living, thick, impassable. It's drawn as one:
   foliage filling everything past the edge, reaching ragged over it, darkest furthest out, with
   trees and big leaves at its foot. The camera never looks further past the edge than a little
@@ -455,7 +460,8 @@ on: fire and oil, or crewmates who can be downed.
   home with the airstrip free, once what's new is read, Jogiboy smells smoke, and the spirits are
   at the village. He walks in at the gate to it under attack. Beaten back, he's home, and the
   spirits let the village be until he next walks home. It's the village as it stands, every house and prop solid, the forest walling the
-  path in. Two roofs are alight at the start and another catches every 20 seconds, four in all;
+  path in, and it's night: the village in blue dark, lit by its own roofs as they burn, each
+  throwing its light about until it's put out. Two roofs are alight at the start and another catches every 20 seconds, four in all;
   a roof left burning throws out an ember wisp every 6 seconds. Standing at the well fills a
   bucket in a second; standing at a burning house's door with it puts the fire out in a little
   over one. Marks at the screen's edge show the burning houses and, with no water carried, the
@@ -583,7 +589,12 @@ on: fire and oil, or crewmates who can be downed.
     in a cloth for each. The first hut is the weaver's, who sells looks for cloth (his coat, the
     umbul-umbul's colors), its own currency so a look never competes with forging. The full
     list is in the catalog.
-  - **Progress can be reset** from the settings: it asks once more, then the village and the
+  - **The run log, for playtesters.** A setting, off unless turned on, keeps a line for every run
+  that ends in a file on the player's own computer: where, how long, what level, what got him,
+  what he carried, what did the damage, and how smoothly it ran. Nothing is sent: a playtester
+  who wants to help finds the file through "Show the run log's folder" in the settings and sends
+  it themselves. It's how Endless gets tuned against people, not only against a simple bot.
+- **Progress can be reset** from the settings: it asks once more, then the village and the
     best run go back to nothing, and the settings stay.
 - Maps push deeper into the camp: the clearings, the sawpits, the log slide to the river, the
   company's offices, the airstrip.
@@ -753,18 +764,15 @@ for the steering it had by then, with only the difference put right.
 - **Room codes:** the game's rooms service (`rooms/`, a Cloudflare Worker at
   api.tall-order.felterra.games.itrium.id) hands the host a six-letter code and introduces each guest who gives it: it passes their WebRTC
   offers, answers and network candidates between them, and nothing else. Then they play directly,
-  over WebRTC, whenever they can: each machine finds its own address on the internet through
-  Cloudflare's STUN server, and the service never carries the game, and keeps no logs. When two
-  networks are strict enough that the machines can't reach each other directly, the game goes
-  between them through Cloudflare's relay (TURN) instead: Cloudflare's servers then carry the
-  game's traffic, encrypted between the two players, and see both players' addresses. The service
-  hands a guest and the host a credential for the relay as the guest comes in, good for four
-  hours and for nobody outside a room. The relay is over UDP only: a network that blocks UDP
-  altogether still can't play by room code. With no TURN key set on the service (there is none
-  yet), there is no relay, and those players join by address on a home network.
+  over WebRTC; the service never carries the game, and keeps no logs. Each machine finds its own
+  address on the internet through Cloudflare's STUN server. A network strict enough that two
+  machines can't reach each other directly would need a relay (TURN), which isn't built: those
+  players join by address on a home network, or not at all, for now. The relay waits for Steam:
+  its own relay and lobbies come with the game when it goes there, and a paid relay of our own
+  before then isn't worth it.
 - **The pieces:** `game/rooms.gd` plays by room code over WebRTC, `game/session.gd` by address over
   Godot's own networking (on a home network, or a build without WebRTC); a store's lobbies would
-  replace those two and nothing else. `game/online.gd` carries what host and guests say. `rooms/turn.ts` asks Cloudflare for the relay's credential.
+  replace those two and nothing else. `game/online.gd` carries what host and guests say.
   `tools/check_online.gd` plays it from both sides in one process, by address or, against a rooms
   service run locally, by room code.
 

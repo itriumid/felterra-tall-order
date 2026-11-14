@@ -9,11 +9,6 @@
 // Each player is a line into the room, numbered: the host is 1, and each guest who comes gets
 // the next number, never one used before in that room, so a guest back after a dropped connection
 // is never mistaken for who they were.
-//
-// With a relay to offer (`turn.ts`), a guest and the host are each told the servers to reach the
-// other through, before they're told of each other. With none, nothing is said of it.
-
-import type { IceServer } from './turn';
 
 /** A code's letters: none that read as another (no I, L or O, no 0 or 1). */
 export const LETTERS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -77,16 +72,10 @@ export class Room {
 		say(host, { type: 'room', code: room, id: HOST });
 	}
 
-	/**
-	 * A guest in: told their number, and the host told of them. With servers to reach each other
-	 * through, each is told those first, so the connection they make next is made with them. The
-	 * host is told again with every guest, since what it was told for the last may have run out.
-	 */
-	came(guest: Line, servers: IceServer[] | null = null) {
-		const host = this.host();
-		if (servers) say(guest, { type: 'ice_servers', servers });
+	/** A guest in: told their number, and the host told of them. */
+	came(guest: Line) {
 		say(guest, { type: 'joined', id: guest.id });
-		if (host && servers) say(host, { type: 'ice_servers', servers });
+		const host = this.host();
 		if (host) say(host, { type: 'peer', id: guest.id });
 	}
 

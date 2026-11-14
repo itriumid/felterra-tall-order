@@ -13,7 +13,6 @@
 import { DurableObject } from 'cloudflare:workers';
 import { latest } from './latest';
 import { code, CODE, HOST, type Line, Room } from './rooms';
-import { type IceServer, iceServers, keyFrom } from './turn';
 
 /** Codes tried before giving up on making a room: with 887 million of them, one is plenty. */
 const TRIES = 5;
@@ -33,26 +32,9 @@ export class RoomObject extends DurableObject<Env> {
 		return {
 			id: kept.id,
 			version: kept.version,
-			send: (message) => {
-				// One who left while Cloudflare was asked for a relay hears nothing, and that's all.
-				try {
-					socket.send(message);
-				} catch {
-					return;
-				}
-			},
+			send: (message) => socket.send(message),
 			close: (status, reason) => socket.close(status, reason)
 		};
-	}
-
-	/**
-	 * Servers for a guest and the host to reach each other through, with a credential for the
-	 * relay made for the two of them; or null, with no TURN key or no answer, and they do without.
-	 */
-	private async relay(): Promise<IceServer[] | null> {
-		const key = keyFrom(this.env);
-		if (!key) return null;
-		return iceServers(key, (url, asking) => fetch(url, asking));
 	}
 
 	async fetch(request: Request): Promise<Response> {
@@ -77,12 +59,7 @@ export class RoomObject extends DurableObject<Env> {
 			// Asked before this one was counted in.
 			const refusal = new Room(() => this.lines().filter((each) => each.id !== id)).refusal(version);
 			if (refusal) room.refuse(line, refusal);
-			else {
-				// Only a guest let in is given a relay: there's no asking for one from outside a room.
-				const servers = await this.relay();
-				// Gone while that was asked, or the host gone and they with it: nobody's told of them.
-				if (this.ctx.getWebSockets().includes(server)) room.came(line, servers);
-			}
+			else room.came(line);
 		}
 		return new Response(null, { status: 101, webSocket: client });
 	}

@@ -213,7 +213,7 @@ func _retreat(away: Vector2, arena: Arena) -> Vector2:
 	for angle in RETREAT_ANGLES:
 		var way := away.rotated(angle)
 		var spot := body.position + way * RETREAT_LOOK
-		if inside.has_point(spot) and not arena.solid_at(spot, body.radius, Arena.STEPS_OVER) \
+		if inside.has_point(spot) and arena.inside(spot, 1.0) and not arena.solid_at(spot, body.radius, Arena.STEPS_OVER) \
 				and arena.clear_between(body.position, spot, Arena.STEPS_OVER):
 			return way
 	return Vector2.ZERO

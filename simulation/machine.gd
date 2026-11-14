@@ -357,5 +357,5 @@ func _crush(arena: Arena) -> void:
 		var clear := push_out(cat.body.position, cat.body.radius + 0.02)
 		if moving and _crush_ready.get(cat, 0.0) <= 0.0:
 			_crush_ready[cat] = CRUSH_INTERVAL
-			cat.hurt(crush_damage, (clear - body.position).normalized() * 2.0)
+			cat.hurt(crush_damage, (clear - body.position).normalized() * 2.0, kind)
 		cat.body.position = clear
