@@ -47,6 +47,13 @@ stability.
    The version is in the release, in each app's own metadata, and on the game's title screen.
 4. Read the draft. Trim the generated notes to what players would notice (drop changes only to
    Continuous Integration or tooling, and the contributor lists), then **publish it by hand**.
+5. Publishing it posts it in #releases on Itrium's Discord, and the **Publish to itch.io**
+   workflow pushes the same builds to the game's itch.io page with butler, one channel for each
+   system (`windows`, `mac`, `linux`, `linux-arm64`), checked against the release's checksums
+   first. It needs the repository variable `ITCH_GAME` (the page as `user/game`) and the secret
+   `BUTLER_API_KEY`; until both are set it does nothing. Run it by hand to push an earlier
+   release. butler is pinned in the workflow at a version and SHA-256: updating it means
+   changing both.
 
 Releases are **immutable** once published: nothing can be attached, replaced or removed. Check
 the draft before publishing; a mistake after that means a new version.
