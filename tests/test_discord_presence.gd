@@ -1,7 +1,9 @@
 extends TestCase
 ## What he's playing, said to Discord over its local socket: against a pretend Discord listening
 ## where the real one would, the handshake with the game's application, then the activity, as
-## Discord reads it. (Windows's named pipe is the same frames, through a file.)
+## Discord reads it. On Windows, Discord listens on a named pipe and the game reaches it as a
+## file, with the same frames; Godot can neither listen on a Unix socket there nor make a pipe,
+## so there it's checked that the game looks where Discord is (seen working on a Windows PC).
 
 
 func test_frames_are_what_discord_reads() -> void:
@@ -21,7 +23,17 @@ func test_an_activity_says_where_he_is_with_a_button_to_get_the_game() -> void:
 	check(crew.party.size == [3, 4], "a crew of three shows as %s" % str(crew.get("party")))
 
 
+func test_on_windows_it_looks_for_discords_pipe() -> void:
+	if OS.get_name() != "Windows":
+		return
+	var paths := DiscordPresence.socket_paths()
+	check(paths.size() == 10 and paths[0] == "\\\\?\\pipe\\discord-ipc-0" and paths[9] == "\\\\?\\pipe\\discord-ipc-9", "it looks for Discord at %s" % str(paths))
+
+
 func test_it_tells_a_listening_discord_what_he_is_playing() -> void:
+	# Where the game reaches Discord over a socket: everywhere but Windows (see above).
+	if OS.get_name() == "Windows":
+		return
 	var path := ProjectSettings.globalize_path("user://test_discord_ipc")
 	DirAccess.remove_absolute(path)
 	var discord := UDSServer.new()
