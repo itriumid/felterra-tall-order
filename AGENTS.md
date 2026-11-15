@@ -142,7 +142,8 @@ catalog and the code agree.
   `timeout`, alone, since it's timing steps. Playtesters' own runs come from the run log
   (`game/run_log.gd`), a setting that's off unless they turn it on.
 - **Releases come from a signed `v*` tag** matching `config/version` in `project.godot`, and land
-  as a draft that's published by hand; see `CONTRIBUTING.md`. Never tag or publish unless asked.
+  as a draft that's published by hand; publishing pushes the builds to itch.io too
+  (`.github/workflows/itch.yml`); see `CONTRIBUTING.md`. Never tag or publish unless asked.
   Every build is made by `tools/export.sh`, locally, in the Export check and in the Release
   workflow alike. The presets are in `export_presets.cfg`; `icon.png` is drawn by
   `tools/build_icon.gd` from the cat's sprite.

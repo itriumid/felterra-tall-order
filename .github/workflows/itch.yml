@@ -1,0 +1,85 @@
+name: Publish to itch.io
+
+# Publishing a release pushes its builds to the game's page on itch.io, each to the channel for
+# its system, with butler, itch.io's own uploader: the very zips attached to the release, checked
+# against the release's checksums first, so itch.io has exactly what GitHub has. The version
+# goes with them, and itch.io's app updates players by the difference.
+#
+# The page itself is made by hand on itch.io (it has no way to make one otherwise), and named in
+# the repository variable ITCH_GAME as user/game, the end of its address, such as
+# itrium/tall-order. butler signs in with the secret BUTLER_API_KEY, an itch.io API key. Until
+# both are set, this does nothing.
+#
+# Run it manually (Actions → Publish to itch.io → Run workflow) to push an earlier release.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag of the release to push, such as v0.0.8
+        required: true
+
+# Any `permissions:` block replaces the default token scopes, so grant per job.
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  # butler, pinned: its version, and the SHA-256 of its Linux download, checked before it runs.
+  # Updating it means changing both.
+  BUTLER_VERSION: '15.32.0'
+  BUTLER_SHA256: '2335971394ef6596f95ded0833e85ee28755e13761716ef4c91d6b11f69162f5'
+
+jobs:
+  push:
+    name: Push to itch.io
+    if: vars.ITCH_GAME != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Get the release's builds
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/builds" && cd "$RUNNER_TEMP/builds"
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern 'FelterraTallOrder_*'
+          # Exactly what the release has: every build, each matching its checksum.
+          sha256sum --check --strict FelterraTallOrder_checksums.txt
+          for build in windows_x86_64 macos_universal linux_x86_64 linux_arm64; do
+            if [ ! -f "FelterraTallOrder_$build.zip" ]; then
+              echo "::error::$TAG has no FelterraTallOrder_$build.zip."
+              exit 1
+            fi
+          done
+          echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
+      - name: Get butler
+        run: |
+          cd "$RUNNER_TEMP"
+          curl -fsSL -o butler.zip "https://broth.itch.zone/butler/linux-amd64/$BUTLER_VERSION/archive/default"
+          echo "$BUTLER_SHA256  butler.zip" | sha256sum --check --strict
+          unzip -q butler.zip -d butler
+          chmod +x butler/butler
+          echo "$RUNNER_TEMP/butler" >> "$GITHUB_PATH"
+      - name: Push each build to its channel
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+          ITCH_GAME: ${{ vars.ITCH_GAME }}
+        run: |
+          if [ -z "$BUTLER_API_KEY" ]; then
+            echo "::error::The BUTLER_API_KEY secret isn't set."
+            exit 1
+          fi
+          cd "$RUNNER_TEMP/builds"
+          # itch.io reads the system from the channel's name.
+          declare -A channels=(
+            [windows_x86_64]=windows [macos_universal]=mac [linux_x86_64]=linux [linux_arm64]=linux-arm64
+          )
+          for build in "${!channels[@]}"; do
+            butler push "FelterraTallOrder_$build.zip" "$ITCH_GAME:${channels[$build]}" --userversion "$VERSION"
+          done
