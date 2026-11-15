@@ -33,6 +33,7 @@ var _quitting := false
 var _paths: Array[String] = []
 var _sent := {}
 var _sent_at := -INF
+var _last_said := ""
 
 
 ## Starts listening for what to show. Looks for Discord where it keeps its socket, unless told
@@ -94,6 +95,9 @@ static func activity(details: String, state: String, since: int, picture: String
 static func socket_paths() -> Array[String]:
 	var paths: Array[String] = []
 	if OS.get_name() == "Windows":
+		# Both ways Windows writes a pipe's address: the plain device path, then the long-path one.
+		for number in 10:
+			paths.append("\\\\.\\pipe\\discord-ipc-%d" % number)
 		for number in 10:
 			paths.append("\\\\?\\pipe\\discord-ipc-%d" % number)
 		return paths
@@ -145,36 +149,68 @@ func _run() -> void:
 			"cmd": "SET_ACTIVITY", "nonce": str(Time.get_ticks_usec()),
 			"args": {"pid": OS.get_process_id(), "activity": activity if not activity.is_empty() else null},
 		})
-		if not sent or line.receive().is_empty():
+		var answer := line.receive() if sent else {}
+		if answer.is_empty() or answer.get("evt", "") == "ERROR":
+			_say("the activity wasn't taken: %s" % (JSON.stringify(answer) if not answer.is_empty() else "no answer"))
 			line.close()
 			line = null
+		else:
+			_say("showing: %s" % activity.get("details", "nothing"))
 	if line != null:
 		line.close()
 
 
-## The first Discord that answers the handshake, or null.
+## The first Discord that answers the handshake, or null. What became of each try is written to
+## the log, once while it stays the same: with no Discord here to watch, the log is how a player
+## who sees nothing on Discord can show us why.
 func _open() -> Line:
+	var tried: Array[String] = []
 	for path in _paths:
 		var line := Line.new()
 		if not line.open(path):
+			if line.why != "not there":
+				tried.append("%s: %s" % [path, line.why])
 			continue
-		if line.send(HANDSHAKE, {"v": 1, "client_id": APPLICATION}) and line.receive().get("evt", "") == "READY":
+		if not line.send(HANDSHAKE, {"v": 1, "client_id": APPLICATION}):
+			tried.append("%s: opened, but the handshake couldn't be sent (%s)" % [path, line.why])
+			line.close()
+			continue
+		var answer := line.receive()
+		if answer.get("evt", "") == "READY":
+			_say("connected at %s" % path)
 			return line
+		tried.append("%s: opened, but the handshake was answered %s" % [path, JSON.stringify(answer)])
 		line.close()
+	_say("no Discord found" if tried.is_empty() else "no Discord answered: " + "; ".join(tried))
 	return null
+
+
+## A line about talking to Discord, in the log, unless it's what was said last.
+func _say(line: String) -> void:
+	if line == _last_said:
+		return
+	_last_said = line
+	print("[discord] %s" % line)
 
 
 ## The line to one Discord: its socket, or on Windows its pipe, opened as a file.
 class Line:
 	var _socket: StreamPeerUDS
 	var _pipe: FileAccess
+	## Why the last thing tried didn't work, for the log: "not there" when nothing's at the path.
+	var why := ""
 
 	func open(path: String) -> bool:
 		if OS.get_name() == "Windows":
 			_pipe = FileAccess.open(path, FileAccess.READ_WRITE)
+			if _pipe == null:
+				var error := FileAccess.get_open_error()
+				why = "not there" if error == ERR_FILE_NOT_FOUND else "couldn't open it (%s)" % error_string(error)
 			return _pipe != null
 		_socket = StreamPeerUDS.new()
-		if _socket.connect_to_host(path) != OK:
+		var error := _socket.connect_to_host(path)
+		if error != OK:
+			why = "not there" if error in [ERR_FILE_NOT_FOUND, ERR_CANT_CONNECT, ERR_CANT_OPEN] else "couldn't connect (%s)" % error_string(error)
 			_socket = null
 			return false
 		var waited := 0.0
@@ -192,6 +228,7 @@ class Line:
 		if _pipe != null:
 			_pipe.store_buffer(bytes)
 			_pipe.flush()
+			why = error_string(_pipe.get_error())
 			return _pipe.get_error() == OK
 		return _socket != null and _socket.put_data(bytes) == OK
 
