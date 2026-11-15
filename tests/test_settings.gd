@@ -96,3 +96,10 @@ func test_the_game_shows_the_version_it_is() -> void:
 	var version: String = ProjectSettings.get_setting("application/config/version", "")
 	check(not version.is_empty(), "the project has no version")
 	check(Overlay.version_text() == "Version " + version, "the game shows %s, not version %s" % [Overlay.version_text(), version])
+
+
+## Every topic on the privacy page fits under its list, whole.
+func test_the_privacy_page_says_each_thing_in_full() -> void:
+	for topic: Array in preload("res://game/main.gd").PRIVACY:
+		var lines := Overlay.wrapped(topic[1], 320 - 24)
+		check(lines.size() <= Overlay.BOOK_LINES, "\"%s\" takes %d lines of %d" % [topic[0], lines.size(), Overlay.BOOK_LINES])

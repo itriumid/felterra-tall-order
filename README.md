@@ -118,7 +118,15 @@ timeout 300 godot --headless --path . --script tools/benchmark_horde.gd
 The game asks one thing of the internet on its own: on the title, once a launch, whether there's a
 newer version, from its own service (`api.tall-order.felterra.games.itrium.id`, which keeps no
 logs). Settings, Check for updates, turns it off. Playing together online goes through the same
-service only to find each other; the game itself goes between the players directly.
+service only to find each other; the game itself goes between the players directly, so each
+player's computer sees the others' internet addresses.
+
+While Discord is running on the same computer, the game tells it what you're playing (where, your
+level, for how long, and a button to get the game), and your Discord friends see it. It goes to
+the Discord app on your computer, not to us; with Discord closed, nothing is sent. Settings,
+Discord activity, turns it off. The run log is off unless you turn it on, and never leaves your
+computer. The same is on the game's Privacy and terms page, under Settings, and in full in its
+[privacy policy](https://itrium.id/tall-order/privacy) and [terms](https://itrium.id/tall-order/terms).
 
 ## License
 

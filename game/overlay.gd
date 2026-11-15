@@ -207,6 +207,11 @@ func _draw() -> void:
 
 func _draw_interface() -> void:
 	_draw_online_status()
+	# What's kept and sent, and the terms: a page of its own, over wherever the settings were.
+	if page == "privacy" and not shop_rows.is_empty():
+		_dither()
+		_draw_shop()
+		return
 	if page in ["title", "together", "join", "waiting"]:
 		_draw_title()
 		if not report.is_empty():
@@ -577,7 +582,7 @@ func _draw_shop() -> void:
 	var tabs_height := 16 if not shop_tabs.is_empty() else 0
 	var has_stories := shop_rows.any(func(entry: Dictionary) -> bool: return not (entry.get("story", "") as String).is_empty())
 	# The book's chapters are longer than a thing's story.
-	var story_lines := BOOK_LINES if shop_page == "book" else STORY_LINES
+	var story_lines := BOOK_LINES if shop_page in ["book", "privacy"] else STORY_LINES
 	var story_height := story_lines * PixelFont.LINE_HEIGHT + 8 if has_stories else 0
 	# A page with tabs keeps its size from tab to tab, however many each holds.
 	var window := SHOP_ROWS_SHOWN if not shop_tabs.is_empty() else shown
@@ -641,7 +646,7 @@ func _draw_shop() -> void:
 	var keys: Array[String] = ["W S", "choose", "Enter", "take", "Esc", "back"]
 	if not shop_tabs.is_empty():
 		keys = ["A D", "tab", "W S", "choose", "Enter", "forge" if shop_page == "forge" else "take, start with, or leave home", "Esc", "back"]
-	elif shop_page == "book":
+	elif shop_page in ["book", "privacy"]:
 		keys = ["W S", "choose", "Esc", "back"]
 	var keys_width := InterfaceArt.key_line_width(keys)
 	InterfaceArt.key_line(self, Vector2(floorf((screen.x - keys_width) / 2.0), box.end.y + 6), keys)
@@ -1287,6 +1292,9 @@ func _draw_title() -> void:
 	var box := Rect2(floorf((screen.x - width) / 2.0), floorf(screen.y * 0.52 - height / 2.0), width, height)
 	if not setting_rows.is_empty():
 		return
+	if cover:
+		_draw_cover(screen, heading, line)
+		return
 	# The name stands over the panel on its own, drawn large; the world's name small above it.
 	var center := box.position.x + box.size.x / 2.0
 	var logo_at := Vector2(floorf(center - InterfaceArt.logo_width() / 2.0), box.position.y - InterfaceArt.LOGO_HEIGHT - 10)
@@ -1301,6 +1309,22 @@ func _draw_title() -> void:
 	var keys_width := InterfaceArt.key_line_width(keys)
 	InterfaceArt.key_line(self, Vector2(floorf((screen.x - keys_width) / 2.0), box.end.y + 6), keys)
 	_draw_version()
+
+
+## For a picture of the game to show elsewhere (Discord's cover image, say): the title with only
+## its name and its line, over the forest path, no menu, keys or version.
+var cover := false
+
+
+func _draw_cover(screen: Vector2, heading: String, line: String) -> void:
+	var logo_at := Vector2(floorf((screen.x - InterfaceArt.logo_width()) / 2.0), floorf(screen.y * 0.3))
+	var heading_at := Vector2(floorf((screen.x - PixelFont.width(heading)) / 2.0), logo_at.y - PixelFont.LINE_HEIGHT - 3)
+	PixelFont.draw(self, heading_at + Vector2(1, 1), heading, Palette.GRAPHITE)
+	PixelFont.draw(self, heading_at, heading, Palette.OFF_WHITE)
+	InterfaceArt.logo(self, logo_at)
+	var line_at := Vector2(floorf((screen.x - PixelFont.width(line)) / 2.0), logo_at.y + InterfaceArt.LOGO_HEIGHT + 8)
+	PixelFont.draw(self, line_at + Vector2(1, 1), line, Palette.GRAPHITE)
+	PixelFont.draw(self, line_at, line, Palette.OFF_WHITE)
 
 
 ## Which version this is, small in the bottom corner: what a report of something going wrong
