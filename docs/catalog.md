@@ -306,6 +306,13 @@ Bought from the weaver with cloth: looks only, never stats.
 | **Festival banners** | Built | The umbul-umbul in red, yellow, cream and teal, from the start |
 | **Rhodonite banners** | Built | Pink and graphite. 10 cloth |
 | **Lagoon banners** | Built | Teal, cream and blue. 10 cloth |
+| **Wooden doors** | Built | Every house's own door, from the start |
+| **Batik door curtains** | Built | Brown batik dotted in cream, hung in every doorway. 8 cloth |
+| **Ikat door curtains** | Built | Red ikat with indigo diamonds. 10 cloth |
+| **Songket door curtains** | Built | Red, woven through with gold thread. 14 cloth |
+| **No awnings** | Built | From the start |
+| **Red-striped awnings** | Built | Red and cream, over every door. 8 cloth |
+| **Teal-striped awnings** | Built | Teal and cream, over every door. 8 cloth |
 | **Tabby and spotted coats** | Idea | Patterns over the coats: stripes, spots, a white chest |
 | **Scarf colors** | Idea | The red scarf in other colors |
 | **Weapon wraps** | Idea | Cloth wound round a weapon's grip, in his colors |

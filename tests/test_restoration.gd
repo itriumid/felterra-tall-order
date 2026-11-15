@@ -92,6 +92,28 @@ func test_the_weaver_sells_looks_for_cloth() -> void:
 	check(not village.wear_look("coat:black"), "a coat he doesn't own was worn")
 
 
+## The village's own looks: curtains in the doorways and awnings over them, bought, worn, changed
+## back for nothing, kept, and cleared by a reset.
+func test_the_village_wears_its_curtains_and_awnings() -> void:
+	var village := _village(1, 100)
+	village.restored.append("hut_0")
+	village.cloth = 30
+	check(village.wearing("curtains:door") and village.wearing("awnings:none"), "the village didn't start with its doors and no awnings")
+	check(village.buy_look("curtains:songket") and village.wear_look("curtains:songket") and village.curtains == "songket", "songket curtains couldn't be bought and hung")
+	check(village.buy_look("awnings:teal") and village.wear_look("awnings:teal") and village.awnings == "teal", "teal awnings couldn't be bought and put up")
+	check(village.cloth == 30 - Village.LOOKS["curtains:songket"].cloth - Village.LOOKS["awnings:teal"].cloth, "they left %d cloth" % village.cloth)
+	check(village.wear_look("curtains:door") and village.curtains == "door" and village.cloth == 8, "going back to the doors cost cloth or failed")
+	village.wear_look("curtains:songket")
+	var path := "user://test_village_looks.cfg"
+	village.save(path)
+	var loaded := Village.new()
+	loaded.load_from(path)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+	check(loaded.curtains == "songket" and loaded.awnings == "teal", "kept, the village came back with %s curtains and %s awnings" % [loaded.curtains, loaded.awnings])
+	loaded.clear()
+	check(loaded.curtains == "door" and loaded.awnings == "none" and not "curtains:songket" in loaded.looks, "a reset kept the curtains or awnings")
+
+
 func test_everything_comes_back_and_a_reset_clears_it() -> void:
 	var village := _village(2, 100)
 	village.cloth = 30

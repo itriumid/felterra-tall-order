@@ -34,9 +34,11 @@ const PAINTS: Array[Color] = [Palette.SCARF_RED, Palette.PAINT_TEAL, Palette.BRA
 var village: VillageMap
 ## What the village keeps, for the board's marks.
 var village_record: Village
-## The umbul-umbul's colors, as the village wears them, and a building being restored right now,
-## with how long its dust has left to settle.
+## The umbul-umbul's colors, as the village wears them, what hangs in the houses' doorways and
+## over them; and a building being restored right now, with how long its dust has left to settle.
 var banners := "festival"
+var curtains := "door"
+var awnings := "none"
 var _restoring := ""
 var _restoring_for := 0.0
 var _ground: ImageTexture
@@ -401,8 +403,13 @@ func _draw_house(footprint: Rect2, restored: bool, paint: int) -> void:
 		# window where the door would be.
 		if not turned:
 			_arch(middle, front, 0.24, 0.4, Palette.BARK_LIGHT if longhouse else Palette.CREAM)
-			_arch(middle, front, 0.18, 0.38, Palette.BARK)
-			draw_rect(Rect2(World.to_screen(Vector2(middle + 0.1, front), FLOOR + 0.25), Vector2.ONE), Palette.BRASS_LIGHT)
+			if curtains == "door":
+				_arch(middle, front, 0.18, 0.38, Palette.BARK)
+				draw_rect(Rect2(World.to_screen(Vector2(middle + 0.1, front), FLOOR + 0.25), Vector2.ONE), Palette.BRASS_LIGHT)
+			else:
+				_curtain(middle, front)
+			if awnings != "none":
+				_awning(middle, front)
 		for window_x in ([left + 0.5, right - 0.5] if longhouse or turned else [left + 0.45]):
 			_round_window(window_x, front)
 	else:
@@ -460,6 +467,93 @@ func _draw_house(footprint: Rect2, restored: bool, paint: int) -> void:
 		var hook := World.to_screen(Vector2(left - overhang + 0.15, lip), lip_height) + Vector2(0, 3)
 		draw_colored_polygon(PackedVector2Array([hook, hook + Vector2(3, 0), hook + Vector2(1, 4)]), Palette.PINK)
 		draw_colored_polygon(PackedVector2Array([hook + Vector2(4, 1), hook + Vector2(7, 1), hook + Vector2(5, 4)]), Palette.BRASS)
+
+
+## Wears what the village wears: the banners' colors, the curtains and the awnings.
+func dress(record: Village) -> void:
+	banners = record.banners
+	curtains = record.curtains
+	awnings = record.awnings
+
+
+## What each door curtain is woven in: its ground, and the pattern's two threads.
+const CURTAINS := {
+	"batik": [Palette.BARK, Palette.CREAM, Palette.BRASS],
+	"ikat": [Palette.SCARF_RED, Palette.CLOTH, Palette.CREAM],
+	"songket": [Palette.SCARF_RED, Palette.BRASS_LIGHT, Palette.BRASS],
+}
+## Each awning's stripes.
+const AWNINGS := {"red": [Palette.SCARF_RED, Palette.CREAM], "teal": [Palette.PAINT_TEAL, Palette.CREAM]}
+
+
+## A curtain hung in the doorway, two panels meeting down the middle, in its weave: batik's dots
+## and flowers, ikat's diamonds, songket's gold thread in rows.
+func _curtain(middle: float, front: float) -> void:
+	var threads: Array = CURTAINS.get(curtains, CURTAINS.batik)
+	_arch(middle, front, 0.18, 0.38, threads[0])
+	var top_left := World.to_screen(Vector2(middle - 0.18, front), FLOOR + 0.38).floor()
+	var bottom_right := World.to_screen(Vector2(middle + 0.18, front), FLOOR).floor()
+	for y in range(int(top_left.y), int(bottom_right.y)):
+		for x in range(int(top_left.x) + 1, int(bottom_right.x) - 1):
+			var across := x - int(top_left.x)
+			var down := y - int(top_left.y)
+			var color := Color.TRANSPARENT
+			match curtains:
+				"batik":
+					if down % 4 == 1 and (across + down / 4 * 2) % 4 == 0:
+						color = threads[1]
+					elif down % 4 == 3 and (across + 2 + down / 4 * 2) % 4 == 0:
+						color = threads[2]
+				"ikat":
+					var dx := absi(across % 6 - 3)
+					var dy := absi(down % 6 - 3)
+					if dx + dy == 2:
+						color = threads[1]
+					elif dx + dy == 0:
+						color = threads[2]
+				"songket":
+					if down % 3 == 0 and across % 2 == 0:
+						color = threads[1]
+					elif down % 3 == 1 and (across + down) % 4 == 1:
+						color = threads[2]
+			if color.a > 0.0:
+				draw_rect(Rect2(Vector2(x, y), Vector2.ONE), color)
+	# Where the two panels meet, and the hem along the bottom.
+	var split := World.to_screen(Vector2(middle, front), FLOOR).floor()
+	draw_rect(Rect2(Vector2(split.x, top_left.y + 2), Vector2(1, bottom_right.y - top_left.y - 2)), Palette.OUTLINE)
+	draw_rect(Rect2(Vector2(top_left.x + 1, bottom_right.y - 1), Vector2(bottom_right.x - top_left.x - 2, 1)), threads[1])
+
+
+## A striped cloth awning over the door, out from the wall on two poles, its valance edge
+## scalloped and lit along its front.
+func _awning(middle: float, front: float) -> void:
+	var stripes: Array = AWNINGS.get(awnings, AWNINGS.red)
+	var half := 0.36
+	# Shallow, between the door's arch and the bunting under the eaves: seen from up here, one
+	# that stuck out further would hide the door.
+	var wall_height := FLOOR + 0.7
+	var out := front + 0.14
+	var out_height := FLOOR + 0.6
+	# Its poles stand on the porch's front edge.
+	for side in [-1.0, 1.0]:
+		_quad([Vector2(middle + side * (half - 0.03), out), Vector2(middle + side * (half - 0.03) + 0.03, out)], FLOOR, out_height, Palette.BARK_LIGHT)
+	var stripe := 0
+	var x := middle - half
+	while x < middle + half - 0.001:
+		var to := minf(x + 0.09, middle + half)
+		_slope(Vector2(x, front), Vector2(to, front), wall_height, Vector2(x, out), Vector2(to, out), out_height, stripes[stripe % stripes.size()])
+		# The valance: a hem hanging off the front edge, scalloped stripe by stripe.
+		var hem := World.to_screen(Vector2(x, out), out_height).floor()
+		var hem_end := World.to_screen(Vector2(to, out), out_height).floor()
+		draw_rect(Rect2(hem, Vector2(hem_end.x - hem.x, 2)), stripes[stripe % stripes.size()])
+		draw_rect(Rect2(hem + Vector2(1, 2), Vector2(maxf(hem_end.x - hem.x - 2, 1), 1)), stripes[stripe % stripes.size()])
+		# Its underside in shadow, under each scallop.
+		draw_rect(Rect2(hem + Vector2(1, 3), Vector2(maxf(hem_end.x - hem.x - 2, 1), 1)), Palette.OUTLINE)
+		x = to
+		stripe += 1
+	var left := World.to_screen(Vector2(middle - half, out), out_height).floor()
+	var right := World.to_screen(Vector2(middle + half, out), out_height).floor()
+	draw_rect(Rect2(left, Vector2(right.x - left.x, 1)), Palette.OFF_WHITE)
 
 
 ## A doorway on a front wall: upright sides to a height, under a round arch, in one color.

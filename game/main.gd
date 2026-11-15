@@ -24,7 +24,7 @@ extends Node
 ## an Endless clearing or grove from that seed, the same every time; --horde-kind=<kind> makes the --horde that kind (wisp, tuyul, pocong, sapling, monkey);
 ## --villagers=<count> puts that many rescued cats in it, for this run only; --restored=<all, or
 ## names> shows those buildings brought back from ruin; --salvage=<count> and --cloth=<count> give
-## the village that much to spend; --liberated=<ids> has those areas freed already; --at-door=<building>
+## the village that much to spend; --looks=<ids> wears those looks, as if bought; --liberated=<ids> has those areas freed already; --at-door=<building>
 ## stands him at its door; --shop opens what that door holds; --minute=<count> starts Endless that
 ## many minutes in, as hard as it is by then; --level=<count> starts the crew at that level, its
 ## cards played the way Autoplay plays them, for the weapon he starts with.
@@ -474,6 +474,13 @@ func _ready() -> void:
 			_dev_tidings = true
 		elif argument.begins_with("--report="):
 			_dev_report = argument.trim_prefix("--report=")
+		elif argument.begins_with("--looks="):
+			# Worn, as if bought: a coat, the banners, the door curtains, the awnings.
+			for id in argument.trim_prefix("--looks=").split(",", false):
+				if Village.LOOKS.has(id):
+					if not id in village.looks:
+						village.looks.append(id)
+					village.wear_look(id)
 		elif argument.begins_with("--restored="):
 			var names := argument.trim_prefix("--restored=")
 			village.restored.assign(VillageMap.building_names() if names == "all" else Array(names.split(",", false)))
@@ -818,7 +825,7 @@ func _enter_village(spot: Vector2) -> void:
 	village_map = VillageMap.new(village.at_home(), village.restored)
 	village_map.cat.body.position = spot
 	village_map.cat.coat = village.coat
-	_village_view.banners = village.banners
+	_village_view.dress(village)
 	_village_view.village = village_map
 	_village_view.village_record = village
 	_show_layer(true)
@@ -1263,7 +1270,7 @@ func _shop_rows() -> Array[Dictionary]:
 	else:
 		for id: String in Village.LOOKS:
 			var owned := id in village.looks
-			var worn := (id == "coat:" + village.coat) or (id == "banners:" + village.banners)
+			var worn := village.wearing(id)
 			var state := "worn" if worn else ("owned: wear it?" if owned else "%d cloth" % Village.LOOKS[id].cloth)
 			rows.append({"id": id, "name": Village.LOOKS[id].name, "state": state, "can": owned or village.cloth >= Village.LOOKS[id].cloth})
 	return rows
@@ -1437,7 +1444,7 @@ func _read_shop() -> void:
 		if done:
 			_keep_village()
 			village_map.cat.coat = village.coat
-			_village_view.banners = village.banners
+			_village_view.dress(village)
 	if Input.is_action_just_pressed("move_up") or Input.is_action_just_pressed("move_down") or Input.is_action_just_pressed("move_left") or Input.is_action_just_pressed("move_right"):
 		_overlay.shop_note = ""
 	_overlay.shop_page = _page
@@ -1880,7 +1887,7 @@ func _fight_in_the_village(fighting: bool) -> void:
 	village_map = VillageMap.new([], village.restored)
 	_village_view.village = village_map
 	_village_view.village_record = village
-	_village_view.banners = village.banners
+	_village_view.dress(village)
 	_village_layer.visible = true
 	_arena_layer.visible = false
 	# Night comes on while its story's told: never day one frame and dark the next.
