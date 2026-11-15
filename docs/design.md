@@ -837,6 +837,21 @@ setting, Check for updates, turns it off; a development run never asks. Installi
 itself would make the update source a way to run code on every player's machine, which needs
 signed updates first; a store's own updating comes with the game when it goes to one.
 
+**Discord shows what he's playing**, so word gets round: "Freeing the sawpits, level 12", or
+Endless with the crew's size, or in the village, with how long, a picture of each (made by
+`tools/build_discord_art.gd`, uploaded to the Discord application "Felterra - Tall Order"; Discord
+won't take a colon in its name) and a button to get the game. The game tells the Discord app
+running on the same computer over its local socket (a named pipe on Windows), on a thread of its
+own, with no Discord library: no dependency, nothing in the builds, and with Discord closed,
+nothing sent at all. It's on unless turned off (Settings, Discord activity); a development run
+never tells it. What it shares is on the game's privacy page.
+
+**Privacy and terms are in the game**, a page off the settings, in its words: nothing tracks
+him; what the update check, playing together, Discord and the run log each send or keep, and how
+to turn each off; that progress stays on his computer; and the terms (free software under the
+GPL, version 3, with no warranty; the name and logo not covered). The README's Privacy section
+says the same.
+
 WebRTC comes from Godot's own extension, webrtc-native, fetched at a pinned version and checksum
 by `tools/fetch_webrtc.sh` rather than kept in git; the builds carry its library and, in a
 `licenses` folder, the licenses of what it's built on.

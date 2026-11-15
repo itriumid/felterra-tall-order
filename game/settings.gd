@@ -21,8 +21,9 @@ const DEFAULTS := {
 	"audio": {"master": 8, "music": 7, "effects": 8, "interface": 6},
 	# The run log is off unless a playtester turns it on: see RunLog.
 	"gameplay": {"aim": "nearest", "blood": true, "story_waits": false, "damage_numbers": true, "run_log": false},
-	# Whether the title asks if there's a newer version: it sends nothing but the asking.
-	"online": {"updates": true},
+	# Whether the title asks if there's a newer version: it sends nothing but the asking. And
+	# whether the Discord app on this computer is told what he's playing, for his friends to see.
+	"online": {"updates": true, "discord": true},
 }
 
 var values := {}

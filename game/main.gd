@@ -154,6 +154,18 @@ const BOSS_FALLS := 2.6
 const FALL_SLOW_FOR := 0.7
 const FALL_SLOW := 0.35
 
+## What the game keeps and sends, and its terms, as the privacy page says them. The README's
+## Privacy section says the same.
+const PRIVACY: Array[Array] = [
+	["Nothing tracks you", "No advertisements, no accounts, and nothing that counts what you do or sells it. What the game keeps, it keeps on this computer."],
+	["Checking for updates", "On the title, once each launch, the game asks its own service (api.tall-order.felterra.games.itrium.id) whether there's a newer version. It sends nothing but the asking, and the service keeps no logs. Settings, Check for updates, turns it off."],
+	["Playing together", "Hosting or joining by a room's code goes through the same service, only so the players can find each other; it keeps no logs. Then the game goes between the players directly, so each computer sees the others' internet addresses, as any game played directly does."],
+	["Discord", "While Discord is running on this computer, your Discord friends see that you're playing: where (the village, the area you're freeing, or Endless), your level, and for how long, with a button to get the game. The game tells the Discord app on this computer, and Discord shows it; with Discord closed, nothing is sent. Settings, Discord activity, turns it off."],
+	["The run log", "Off unless you turn it on. It keeps a line for each run on this computer and never sends it; Settings has a button to find the file, if you'd like to send it to us."],
+	["Your progress", "Your village, your best runs and your settings are kept on this computer only. Settings, Reset all progress, clears the village and the runs."],
+	["Terms", "Felterra: Tall Order is free, and free software: its code is under the GNU General Public License, version 3, and comes with no warranty. The name Felterra and the game's logo aren't covered by that license. Questions are welcome on Itrium's Discord, or on the game's GitHub page."],
+]
+
 ## The tabs of the smithy and the pack: what kind of thing each shows, and what it's called.
 const THING_TABS: Array[Array] = [["weapon", "Weapons"], ["gear", "Gear"], ["support", "Support"], ["mutation", "Dodge mutations"]]
 
@@ -166,7 +178,8 @@ const SETTING_ROWS: Array[Array] = [
 	["audio", "interface", "Interface"],
 	["gameplay", "aim", "Aim"], ["gameplay", "blood", "Blood"], ["gameplay", "story_waits", "Story lines"],
 	["gameplay", "damage_numbers", "Damage numbers"], ["gameplay", "run_log", "Run log"],
-	["online", "updates", "Check for updates"],
+	["online", "updates", "Check for updates"], ["online", "discord", "Discord activity"],
+	["online", "privacy", "Privacy and terms"],
 	["progress", "show_log", "Show the run log's folder"],
 	["progress", "reset", "Reset all progress"],
 	["", "back", "Back"],
@@ -263,6 +276,11 @@ var _reset_state := ""
 ## Where he is: on the "title", "arriving" in the village (walking in, a cutscene), in the
 ## "village", "leaving" it (seen off, a cutscene), or on a "run".
 var _place := "run"
+## Telling Discord what he's playing (null while it isn't), how long since it was last told, and
+## since when he's been doing what it says: this run, or being home.
+var _presence: DiscordPresence
+var _presence_for := 0.0
+var _doing_since := 0
 var village_map: VillageMap
 var _village_view: VillageView
 var _arena_layer: Node2D
@@ -372,6 +390,8 @@ var settings := Settings.new()
 ## touches them.
 var _keeping_settings := false
 var _open_settings_first := false
+## For screenshots: the privacy page opened from the settings.
+var _open_privacy_first := false
 var _open_menu_first := false
 var _open_title_first := false
 ## For screenshots: he goes down this many seconds into the run (never, below 0).
@@ -550,6 +570,9 @@ func _ready() -> void:
 			_down_after = argument.trim_prefix("--down-after=").to_float()
 		elif argument == "--settings":
 			_open_settings_first = true
+		elif argument == "--privacy":
+			_open_settings_first = true
+			_open_privacy_first = true
 		elif argument.begins_with("--menu-after="):
 			_menu_after = argument.trim_prefix("--menu-after=").to_float()
 		elif argument == "--sturdy":
@@ -582,6 +605,8 @@ func _ready() -> void:
 	# A development run is silent unless asked: screenshots shouldn't blast whoever's nearby.
 	AudioServer.set_bus_mute(0, not _keeping_settings and not "--sound" in OS.get_cmdline_user_args())
 	_build_scene()
+	_doing_since = int(Time.get_unix_time_from_system())
+	_set_up_presence()
 	_entities.blood = settings.get_value("gameplay", "blood")
 	_overlay.health_shown = settings.get_value("graphics", "health")
 	_overlay.damage_numbers = settings.get_value("gameplay", "damage_numbers")
@@ -647,7 +672,7 @@ func _ready() -> void:
 			_open_page("pause")
 			if _open_settings_first:
 				_settings_from = "pause"
-				_page = "settings"
+				_page = "privacy" if _open_privacy_first else "settings"
 
 
 func _build_scene() -> void:
@@ -817,6 +842,7 @@ func _show_title() -> void:
 
 ## Into the village, with everyone he's brought home in it, and him standing at a spot.
 func _enter_village(spot: Vector2) -> void:
+	_doing_since = int(Time.get_unix_time_from_system())
 	# Home, the allies' gamepads are his again, and guests still out with him wait for the next.
 	_part_the_crew()
 	if _online.hosting:
@@ -1202,6 +1228,10 @@ func _keep_village() -> void:
 ## packed; the looks'; and the book's, the story so far, a chapter a row.
 func _shop_rows() -> Array[Dictionary]:
 	var rows: Array[Dictionary] = []
+	if _page == "privacy":
+		for topic: Array in PRIVACY:
+			rows.append({"id": topic[0], "name": topic[0], "state": "", "can": false, "story": topic[1]})
+		return rows
 	if _page == "board":
 		for area: Dictionary in Areas.LIST:
 			var found := village.found(area.id)
@@ -1387,8 +1417,14 @@ func _chapters() -> Array[Dictionary]:
 func _read_shop() -> void:
 	var rows := _shop_rows()
 	if Input.is_action_just_pressed("pause"):
-		_close_page()
 		_audio.interface("menu_back")
+		if _page == "privacy":
+			# Back to the settings it was opened from.
+			_page = "settings"
+			_overlay.shop_rows.clear()
+			_overlay.shop_note = ""
+			return
+		_close_page()
 		return
 	var back := Input.is_action_just_pressed("move_up")
 	var on := Input.is_action_just_pressed("move_down")
@@ -1406,7 +1442,7 @@ func _read_shop() -> void:
 	if on:
 		_shop_choice = wrapi(_shop_choice + 1, 0, rows.size())
 		_audio.interface("menu_move")
-	if Input.is_action_just_pressed("menu_choose") and _page != "book":
+	if Input.is_action_just_pressed("menu_choose") and not _page in ["book", "privacy"]:
 		var id: String = rows[_shop_choice].id
 		var done := false
 		if _page == "board":
@@ -1448,7 +1484,7 @@ func _read_shop() -> void:
 	if Input.is_action_just_pressed("move_up") or Input.is_action_just_pressed("move_down") or Input.is_action_just_pressed("move_left") or Input.is_action_just_pressed("move_right"):
 		_overlay.shop_note = ""
 	_overlay.shop_page = _page
-	_overlay.shop_title = {"forge": "The smithy", "pack": "Your pack", "looks": "The weaver's hut", "board": "The map of the forest", "book": "The book of stories", "market": "The market", "healer": "The healer's hut", "shrine": "The Great Tiger's shrine"}[_page]
+	_overlay.shop_title = {"forge": "The smithy", "pack": "Your pack", "looks": "The weaver's hut", "board": "The map of the forest", "book": "The book of stories", "privacy": "Privacy and terms", "market": "The market", "healer": "The healer's hut", "shrine": "The Great Tiger's shrine"}[_page]
 	_overlay.shop_tabs.clear()
 	if _page in ["forge", "pack"]:
 		for tab: Array in _tabs():
@@ -1524,6 +1560,7 @@ func _soft_light(size: Vector2i) -> GradientTexture2D:
 
 
 func _process(delta: float) -> void:
+	_tell_discord(delta)
 	if _online.guesting and _place == "run":
 		_guest_frame(delta)
 		return
@@ -1792,6 +1829,7 @@ func _enter() -> void:
 
 func _set_up_run(run_kind: String) -> void:
 	_run_kind = run_kind
+	_doing_since = int(Time.get_unix_time_from_system())
 	_down_for = -1.0
 	_frame_rates.clear()
 	_since_frame_rate = 0.0
@@ -2171,7 +2209,7 @@ func _read_page() -> void:
 			return
 		_overlay.page = "news"
 		return
-	if _page in ["forge", "pack", "looks", "board", "book", "market", "healer", "shrine"]:
+	if _page in ["forge", "pack", "looks", "board", "book", "market", "healer", "shrine", "privacy"]:
 		_read_shop()
 		_overlay.page = _page
 		return
@@ -2282,7 +2320,8 @@ func _read_choices() -> void:
 ## The page a menu's drawn from: the settings, the damage table and the run history open over
 ## another page, which shows behind them.
 func _shown_page() -> String:
-	if _page == "settings":
+	# The privacy page is opened from the settings, over the same page they were.
+	if _page in ["settings", "privacy"]:
 		return _settings_from
 	if _page in REPORTS:
 		return _report_from
@@ -2340,6 +2379,13 @@ func _read_settings() -> void:
 		if Input.is_action_just_pressed("menu_choose"):
 			_show_run_log()
 		return
+	if row[1] == "privacy":
+		if Input.is_action_just_pressed("menu_choose"):
+			_audio.interface("menu_choose")
+			_page = "privacy"
+			_shop_choice = 0
+			_overlay.setting_rows.clear()
+		return
 	settings.step(row[0], row[1], direction)
 	_settings_changed()
 	_audio.interface("menu_choose" if direction > 0 else "menu_back")
@@ -2370,9 +2416,57 @@ func _reset_progress() -> void:
 	_audio.interface("banish")
 
 
+## Discord is told what he's playing in a real session with the setting on; never in a
+## development run (its flags are someone trying things, not playing) or with nobody at the screen.
+func _set_up_presence() -> void:
+	var wanted: bool = _keeping_settings and DisplayServer.get_name() != "headless" and settings.get_value("online", "discord")
+	if wanted and _presence == null:
+		_presence = DiscordPresence.new()
+		_presence.start()
+	elif not wanted and _presence != null:
+		_presence.stop()
+		_presence = null
+
+
+## Once a second, what he's doing, for Discord: it sends only what's changed, and no more often
+## than Discord takes it.
+func _tell_discord(delta: float) -> void:
+	if _presence == null:
+		return
+	_presence_for += delta
+	if _presence_for < 1.0:
+		return
+	_presence_for = 0.0
+	_presence.show(_presence_activity(), Time.get_ticks_msec() / 1000.0)
+
+
+func _presence_activity() -> Dictionary:
+	if _place == "run" and arena != null:
+		var level := "Level %d" % arena.level
+		var crew := arena.cats.size()
+		if _run_kind in Areas.ids():
+			var area := Areas.named(_run_kind)
+			if area.get("in_the_village", false):
+				return DiscordPresence.activity("Defending the village", level, _doing_since, "liberation", "Liberation", crew)
+			var name: String = area.name
+			return DiscordPresence.activity("Freeing " + name.left(1).to_lower() + name.substr(1), level, _doing_since, "liberation", "Liberation", crew)
+		return DiscordPresence.activity("Endless", level, _doing_since, "endless", "Endless", crew)
+	if _page in TITLE_PAGES:
+		return DiscordPresence.activity("On the title", "", _doing_since, "village", "The village")
+	var home := village.cats.size()
+	return DiscordPresence.activity("In the village", ("%d cats home" % home) if home > 1 else "", _doing_since, "village", "The village")
+
+
+func _exit_tree() -> void:
+	if _presence != null:
+		_presence.stop()
+		_presence = null
+
+
 ## Puts changed settings into effect, in the run too, and keeps them.
 func _settings_changed() -> void:
 	settings.apply()
+	_set_up_presence()
 	if cat != null:
 		cat.aim_mode = settings.get_value("gameplay", "aim")
 	_entities.blood = settings.get_value("gameplay", "blood")
@@ -2412,6 +2506,9 @@ func _setting_lines() -> Array[Dictionary]:
 		elif row[1] == "show_log":
 			line.action = true
 			line.value = "" if FileAccess.file_exists(RunLog.PATH) else "Nothing in it yet"
+		elif row[1] == "privacy":
+			line.action = true
+			line.value = "What's kept, what's sent"
 		elif row[1] != "back":
 			var value: Variant = settings.get_value(row[0], row[1])
 			match row[1]:
@@ -2422,6 +2519,7 @@ func _setting_lines() -> Array[Dictionary]:
 				"blood": line.value = "On" if value else "Off: dust and fur instead"
 				"story_waits": line.value = "Wait for Enter" if value else "Move on by themselves"
 				"run_log": line.value = "On: kept on this computer" if value else "Off"
+				"discord": line.value = "On: friends see what you play" if value else "Off"
 				_:
 					if value is bool:
 						line.value = "On" if value else "Off"
