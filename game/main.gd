@@ -392,6 +392,8 @@ var _keeping_settings := false
 var _open_settings_first := false
 ## For screenshots: the privacy page opened from the settings.
 var _open_privacy_first := false
+## For pictures of the game: the title bare but for its name.
+var _overlay_cover := false
 var _open_menu_first := false
 var _open_title_first := false
 ## For screenshots: he goes down this many seconds into the run (never, below 0).
@@ -570,6 +572,10 @@ func _ready() -> void:
 			_down_after = argument.trim_prefix("--down-after=").to_float()
 		elif argument == "--settings":
 			_open_settings_first = true
+		elif argument == "--cover":
+			# The title with nothing on it but its name, for a picture of the game.
+			_open_title_first = true
+			_overlay_cover = true
 		elif argument == "--privacy":
 			_open_settings_first = true
 			_open_privacy_first = true
@@ -605,6 +611,7 @@ func _ready() -> void:
 	# A development run is silent unless asked: screenshots shouldn't blast whoever's nearby.
 	AudioServer.set_bus_mute(0, not _keeping_settings and not "--sound" in OS.get_cmdline_user_args())
 	_build_scene()
+	_overlay.cover = _overlay_cover
 	_doing_since = int(Time.get_unix_time_from_system())
 	_set_up_presence()
 	_entities.blood = settings.get_value("gameplay", "blood")
