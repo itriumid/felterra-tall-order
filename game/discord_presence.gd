@@ -95,9 +95,7 @@ static func activity(details: String, state: String, since: int, picture: String
 static func socket_paths() -> Array[String]:
 	var paths: Array[String] = []
 	if OS.get_name() == "Windows":
-		# Both ways Windows writes a pipe's address: the plain device path, then the long-path one.
-		for number in 10:
-			paths.append("\\\\.\\pipe\\discord-ipc-%d" % number)
+		# The long-path form: Godot opens a pipe by it, and not by the plain device path, \\.\pipe\.
 		for number in 10:
 			paths.append("\\\\?\\pipe\\discord-ipc-%d" % number)
 		return paths
