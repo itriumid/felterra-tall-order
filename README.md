@@ -20,7 +20,9 @@ and support; Endless; and synthesized sound and music.
 
 Builds for Windows, macOS (Apple Silicon and Intel) and Linux (x86-64 and ARM) are on the
 [releases page](https://github.com/itriumid/felterra-tall-order/releases). Each is a zip: unpack it
-and run the game inside.
+and run the game inside. The same builds are on
+[itch.io](https://itrium.itch.io/felterra-tall-order), where the itch.io app keeps the game up to
+date for you.
 
 The builds aren't signed by a publisher Windows or macOS knows yet, so each warns the first time:
 
