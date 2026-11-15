@@ -125,7 +125,8 @@ While Discord is running on the same computer, the game tells it what you're pla
 level, for how long, and a button to get the game), and your Discord friends see it. It goes to
 the Discord app on your computer, not to us; with Discord closed, nothing is sent. Settings,
 Discord activity, turns it off. The run log is off unless you turn it on, and never leaves your
-computer. The same is on the game's Privacy and terms page, under Settings.
+computer. The same is on the game's Privacy and terms page, under Settings, and in full in its
+[privacy policy](https://itrium.id/tall-order/privacy) and [terms](https://itrium.id/tall-order/terms).
 
 ## License
 

@@ -163,7 +163,7 @@ const PRIVACY: Array[Array] = [
 	["Discord", "While Discord is running on this computer, your Discord friends see that you're playing: where (the village, the area you're freeing, or Endless), your level, and for how long, with a button to get the game. The game tells the Discord app on this computer, and Discord shows it; with Discord closed, nothing is sent. Settings, Discord activity, turns it off."],
 	["The run log", "Off unless you turn it on. It keeps a line for each run on this computer and never sends it; Settings has a button to find the file, if you'd like to send it to us."],
 	["Your progress", "Your village, your best runs and your settings are kept on this computer only. Settings, Reset all progress, clears the village and the runs."],
-	["Terms", "Felterra: Tall Order is free, and free software: its code is under the GNU General Public License, version 3, and comes with no warranty. The name Felterra and the game's logo aren't covered by that license. Questions are welcome on Itrium's Discord, or on the game's GitHub page."],
+	["Terms", "Felterra: Tall Order is free, and free software: its code is under the GNU General Public License, version 3, and comes with no warranty. The name Felterra and the game's logo aren't covered by that license. In full, with the privacy policy: itrium.id/tall-order/terms and itrium.id/tall-order/privacy."],
 ]
 
 ## The tabs of the smithy and the pack: what kind of thing each shows, and what it's called.
